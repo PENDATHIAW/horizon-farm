@@ -38,13 +38,13 @@ test('opportunité vente ouvre Commercial', () => {
   assert.deepEqual(calls[0], { module: 'commercial', tab: 'Opportunités' });
 });
 
-test('objectif financeur ouvre Documents ou Investisseurs & Forums', () => {
+test('objectif financeur ouvre Documents ou Financements', () => {
   const docs = resolveObjectifsNavigation('financeur_dossier');
   assert.equal(docs.module, 'documents_rapports');
   assert.equal(docs.tab, 'Rapports & exports');
   const investors = resolveObjectifsNavigation('financeurs');
-  assert.equal(investors.module, 'investisseurs_forums');
-  assert.equal(investors.tab, 'Résumé');
+  assert.equal(investors.module, 'financements');
+  assert.equal(investors.tab, 'cockpit-dashboard');
   const calls = [];
   navigateObjectifsTarget((module, opts) => calls.push({ module, tab: opts?.tab }), 'financeur_dossier');
   assert.deepEqual(calls[0], { module: 'documents_rapports', tab: 'Rapports & exports' });

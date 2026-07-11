@@ -1,7 +1,7 @@
 /**
  * KPI coherence — vérifie que CA / encaissé / créances sont identiques
  * entre Accueil (`buildDashboardSummary`), Hey Horizon Core (`getSalesSummary`)
- * et Investisseurs & Forums (`buildInvestorForumProfile.keyFigures`).
+ * et Financements (`buildInvestorForumProfile.keyFigures`).
  */
 
 import test from 'node:test';
@@ -110,7 +110,7 @@ test('Finance treasury synchro : creances_clients = Commercial receivable', () =
   assert.equal(finance.sales_linked.encaisse_ventes, canonical.collected);
 });
 
-test('Investisseurs & Forums keyFigures alignés sur canon Commercial', () => {
+test('Financements keyFigures alignés sur canon Commercial', () => {
   const dataMap = composeDecisionDataMap({ crud, dataMap: {} });
   const profile = buildInvestorForumProfile({ crud, dataMap });
   const canonical = buildConsolidatedCommercialKpis({ orders: salesOrders, payments, clients });

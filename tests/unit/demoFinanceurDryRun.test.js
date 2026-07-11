@@ -152,16 +152,16 @@ test('parcours 3 — centre décisionnel deep-link vers module cible', () => {
   assert.deepEqual(calls[0], { module: 'achats_stock', tab: 'Stock' });
 });
 
-test('parcours 4 — investisseurs Préparation → export PDF', () => {
-  assert.equal(resolveInvestisseursTab('Préparation'), 'preparation');
+test('parcours 4 — financements Préparation → export PDF', () => {
+  assert.equal(resolveInvestisseursTab('Préparation'), 'cockpit-dashboard');
 
   const calls = [];
   const tab = navigateInvestisseursTab(
     (module, opts) => calls.push({ module, tab: opts?.tab }),
     'Préparation',
   );
-  assert.equal(tab, 'preparation');
-  assert.deepEqual(calls[0], { module: 'investisseurs_forums', tab: 'Préparation' });
+  assert.equal(tab, 'cockpit-dashboard');
+  assert.deepEqual(calls[0], { module: 'financements', tab: 'Préparation' });
 
   const crud = {
     sales_orders: { rows: [{ id: 'V1', montant_total: 500000 }] },

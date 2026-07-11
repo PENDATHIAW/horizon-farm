@@ -48,7 +48,7 @@ const CRITICAL_MODULES = [
   'elevage',
   'cultures',
   'documents_rapports',
-  'investisseurs_forums',
+  'financements',
   'rh',
   'smartfarm',
   'gestion_systeme',

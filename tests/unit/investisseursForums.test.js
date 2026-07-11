@@ -63,7 +63,7 @@ test('buildForumPack et payload export', () => {
   assert.equal(pack.packType.id, 'rapport_financier');
   assert.ok(pack.sections.length >= 8);
   const payload = forumPackToExportPayload(pack);
-  assert.equal(payload.module, 'Investisseurs & Forums');
+  assert.equal(payload.module, 'Financements');
   assert.ok(payload.labels.length > 0);
 });
 

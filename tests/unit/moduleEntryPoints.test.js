@@ -11,12 +11,12 @@ import { NAV_MODULE_ORDER, ROUTE_TO_MODULE } from '../../src/config/modules.conf
 
 test('impact_business retiré de la navigation principale', () => {
   assert.ok(!NAV_MODULE_ORDER.includes('impact_business'));
-  assert.ok(NAV_MODULE_ORDER.includes('investisseurs_forums'));
+  assert.ok(NAV_MODULE_ORDER.includes('financements'));
 });
 
-test('impact_business redirigé vers investisseurs_forums', () => {
-  assert.equal(ROUTE_TO_MODULE.impact_business, 'investisseurs_forums');
-  assert.equal(resolveActiveModuleId('impact_business'), 'investisseurs_forums');
+test('impact_business redirigé vers financements', () => {
+  assert.equal(ROUTE_TO_MODULE.impact_business, 'financements');
+  assert.equal(resolveActiveModuleId('impact_business'), 'financements');
 });
 
 test('chaque entry point référence un fichier canonique à jour', () => {
@@ -46,5 +46,5 @@ test('modules critiques — versions les plus récentes', () => {
   assert.match(entryPointSource('cultures'), /CulturesRecoveredModule\.jsx$/);
   assert.match(entryPointSource('dashboard'), /AccueilRefinedEntry\.jsx$/);
   assert.match(entryPointSource('finances'), /FinancesV12\.jsx$/);
-  assert.match(entryPointSource('investisseurs_forums'), /InvestisseursForumsModule\.jsx$/);
+  assert.match(entryPointSource('financements'), /FinancementsModule\.jsx$/);
 });

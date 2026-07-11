@@ -36,7 +36,7 @@ export const MODULE_TAB_MATRIX = {
   agri_feeds: AGRI_FEEDS_TABS,
   cultures: CULTURES_TABS,
   documents_rapports: DOCUMENTS_RAPPORTS_TABS,
-  investisseurs_forums: INVESTISSEURS_TABS,
+  financements: INVESTISSEURS_TABS,
   rh: RH_TABS,
   smartfarm: SMARTFARM_TABS,
   sync_activity: SYNC_ACTIVITY_TABS,

@@ -10,17 +10,17 @@ import {
   navigationOptionsForFinding,
 } from '../../src/utils/commercialNavigation.js';
 
-test('resolveInvestisseursTab — alias Préparation et Résumé', () => {
-  assert.equal(resolveInvestisseursTab('Préparation'), 'preparation');
-  assert.equal(resolveInvestisseursTab('Résumé'), 'room');
-  assert.equal(resolveInvestisseursTab('Data Room'), 'library');
+test('resolveInvestisseursTab — alias legacy vers Financements', () => {
+  assert.equal(resolveInvestisseursTab('Préparation'), 'cockpit-dashboard');
+  assert.equal(resolveInvestisseursTab('Résumé'), 'cockpit-dashboard');
+  assert.equal(resolveInvestisseursTab('Data Room'), 'funder-documents');
 });
 
 test('navigateInvestisseursTab — conserve alias brut', () => {
   const calls = [];
   const resolved = navigateInvestisseursTab((module, opts) => calls.push({ module, ...opts }), 'Préparation');
-  assert.equal(resolved, 'preparation');
-  assert.deepEqual(calls, [{ module: 'investisseurs_forums', tab: 'Préparation' }]);
+  assert.equal(resolved, 'cockpit-dashboard');
+  assert.deepEqual(calls, [{ module: 'financements', tab: 'Préparation' }]);
 });
 
 test('navigateSmartFarmTab — conserve alias Capteurs', () => {
@@ -49,9 +49,9 @@ test('navigateGestionSystemeTab — conserve alias brut', () => {
   assert.deepEqual(calls, [{ module: 'gestion_systeme', tab: 'Audit' }]);
 });
 
-test('navigationOptionsForFinding — investisseurs et sync_activity', () => {
-  const inv = navigationOptionsForFinding({ module: 'investisseurs_forums', tab: 'Préparation' });
-  assert.equal(inv.module, 'investisseurs_forums');
+test('navigationOptionsForFinding — financements et sync_activity', () => {
+  const inv = navigationOptionsForFinding({ module: 'financements', tab: 'Préparation' });
+  assert.equal(inv.module, 'financements');
   assert.equal(inv.tab, 'Préparation');
   const sync = navigationOptionsForFinding({ module: 'audit_logs', tab: 'journal' });
   assert.equal(sync.module, 'sync_activity');

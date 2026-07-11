@@ -7,7 +7,7 @@ import {
 
 test('maps sidebar sections to module ids', () => {
   assert.deepEqual(FARM_NAV_SECTIONS.pilotage.modules, [
-    'dashboard', 'assistant_erp', 'centre_ia', 'objectifs_croissance', 'investisseurs_forums',
+    'dashboard', 'assistant_erp', 'centre_ia', 'objectifs_croissance', 'financements',
   ]);
   assert.deepEqual(FARM_NAV_SECTIONS.production.modules, ['elevage', 'cultures']);
 });

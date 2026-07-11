@@ -3,6 +3,8 @@ import assert from 'node:assert/strict';
 import React from 'react';
 import { renderToString } from 'react-dom/server';
 import { MODULE_ENTRY_POINTS } from '../../src/config/moduleEntryPoints.js';
+import { AppProvider } from '../../src/context/AppContext.jsx';
+import { AuthProvider } from '../../src/context/AuthContext.jsx';
 
 const baseProps = {
   user: { email: 'test@horizonfarm.app', user_metadata: { name: 'Test' } },
@@ -46,7 +48,7 @@ const baseProps = {
 
 const CRITICAL = [
   'dashboard', 'assistant_erp', 'commercial', 'achats_stock', 'finance_pilotage',
-  'investisseurs_forums', 'rh', 'equipements', 'investissements',
+  'financements', 'rh', 'equipements', 'investissements',
 ];
 
 for (const moduleId of CRITICAL) {
@@ -56,7 +58,14 @@ for (const moduleId of CRITICAL) {
     const mod = await loader();
     const Component = mod.default;
     const extra = moduleId === 'centre_ia' ? { initialTab: 'Urgences & risques' } : {};
-    const html = renderToString(React.createElement(Component, { ...baseProps, ...extra }));
+    const html = renderToString(
+      React.createElement(
+        AuthProvider,
+        null,
+        React.createElement(AppProvider, null, React.createElement(Component, { ...baseProps, ...extra })),
+      ),
+    );
     assert.ok(html.length > 20, `${moduleId} rendered empty`);
+    assert.doesNotMatch(html, /ERREUR MODULE|useAppData must be used|is not defined/i);
   });
 }
