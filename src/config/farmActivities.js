@@ -40,7 +40,7 @@ export const FARM_ADAPTIVE_MODULES = Object.freeze([
   'smartfarm',
   'rh',
   'rapports',
-  'investisseurs_forums',
+  'financements',
   'centre_ia',
   'objectifs_croissance',
   'impact_business',

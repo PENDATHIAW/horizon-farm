@@ -59,7 +59,7 @@ export default function GreenpreneursReadinessCard({
         </div>
         <p className="mt-1 text-xs">{readiness.statusLabel}</p>
         {onNavigate ? (
-          <button type="button" onClick={() => onNavigate('investisseurs_forums', { tab: 'Préparation' })} className="mt-2 text-xs font-black underline">
+          <button type="button" onClick={() => onNavigate('financements', { tab: 'Préparation' })} className="mt-2 text-xs font-black underline">
             Voir le détail →
           </button>
         ) : null}

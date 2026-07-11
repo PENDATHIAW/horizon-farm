@@ -1,5 +1,5 @@
 /**
- * Score de préparation forum / investisseur — s'appuie sur getInvestorReadySummary sans recalcul Finance.
+ * Score de préparation financement — s'appuie sur getInvestorReadySummary sans recalcul Finance.
  */
 
 const arr = (value) => (Array.isArray(value) ? value : []);
@@ -10,7 +10,7 @@ const CHECKLIST = [
   { id: 'bp', label: 'Business plan enregistré', weight: 12, test: (p) => (p.investorReady?.highlights?.business_plans || 0) > 0 },
   { id: 'ca', label: 'Ventes suivies dans l\'ERP', weight: 10, test: (p) => (p.keyFigures?.ca_erp || 0) > 0 },
   { id: 'encaissements', label: 'Encaissements tracés', weight: 10, test: (p) => (p.keyFigures?.encaissements || 0) > 0 },
-  { id: 'documents', label: 'Preuves & documents classés', weight: 12, test: (p) => (p.keyFigures?.documents || 0) >= 3 },
+  { id: 'documents', label: 'Justificatifs & documents classés', weight: 12, test: (p) => (p.keyFigures?.documents || 0) >= 3 },
   { id: 'clients', label: 'Clients référencés', weight: 8, test: (p) => (p.keyFigures?.clients || 0) > 0 },
   { id: 'activite', label: 'Production active (avicole ou bovin)', weight: 10, test: (p) => arr(p.activities).some((a) => a.status === 'actif') },
   { id: 'stock', label: 'Stock valorisé', weight: 8, test: (p) => (p.keyFigures?.valeur_stock || 0) > 0 },
@@ -31,7 +31,7 @@ export const PREPARATION_CHECKLIST = [
   { id: 'bibliotheque', label: 'Documents du dossier attachés', test: (p, ctx) => (ctx?.dossierFileCount || 0) >= 2 },
   { id: 'exports', label: 'Documents PDF générés', test: (p, ctx) => (ctx?.exportCount || 0) > 0 },
   { id: 'pitch', label: 'Pitch prêt', test: (p, ctx) => (ctx?.exportCount || 0) > 0 || hasText(p.manualContent?.project_pitch) },
-  { id: 'demo', label: 'Démo investisseur prête', test: (p, ctx) => Boolean(ctx?.demoCompleted) },
+  { id: 'demo', label: 'Parcours financeur prêt', test: (p, ctx) => Boolean(ctx?.demoCompleted) },
 ];
 
 /** Actions recommandées pour compléter chaque élément manquant. */
@@ -39,7 +39,7 @@ export const SCORE_ACTIONS = {
   bp: { tab: 'library', label: 'Ajouter le business plan', hint: 'Rattachez le BP dans Documents du dossier ou Finance.' },
   ca: { tab: 'dossier', section: 'figures', navigate: 'ventes', label: 'Enregistrer des ventes', hint: 'Module Commercial / Ventes.' },
   encaissements: { tab: 'dossier', section: 'figures', navigate: 'finances', label: 'Tracer les encaissements', hint: 'Module Finance & Pilotage.' },
-  documents: { tab: 'library', label: 'Classer les preuves', hint: 'Ajoutez factures et justificatifs au dossier.' },
+  documents: { tab: 'cockpit-applications', label: 'Classer les justificatifs', hint: 'Ajoutez factures et justificatifs au dossier.' },
   clients: { tab: 'dossier', section: 'figures', navigate: 'clients', label: 'Référencer les clients', hint: 'Module Clients.' },
   activite: { tab: 'dossier', section: 'figures', navigate: 'avicole', label: 'Activer la production', hint: 'Modules Avicole ou Élevage.' },
   stock: { tab: 'dossier', section: 'figures', navigate: 'stock', label: 'Valoriser le stock', hint: 'Module Stock.' },
@@ -53,9 +53,9 @@ export const SCORE_ACTIONS = {
   impact: { tab: 'dossier', section: 'impact', edit: true, label: 'Détailler l\'impact social', hint: 'Emplois, femmes/jeunes, communauté.' },
   objectifs: { tab: 'dossier', section: 'objectives', edit: true, label: 'Fixer les objectifs', hint: 'Horizons 6 mois, 12 mois et 3 ans.' },
   bibliotheque: { tab: 'library', label: 'Ajouter des pièces', hint: 'BP, photos, devis, factures, attestations.' },
-  exports: { tab: 'export', label: 'Générer un PDF', hint: 'Fiche projet ou dossier investisseur.' },
+  exports: { tab: 'funder-reports', label: 'Générer un PDF', hint: 'Fiche projet ou dossier financeur.' },
   pitch: { tab: 'dossier', section: 'project', edit: true, label: 'Finaliser le pitch', hint: 'Résumé exécutif percutant.' },
-  demo: { tab: 'demo', label: 'Lancer la démo', hint: 'WhatsApp, OCR, Brief, Forecast.' },
+  demo: { tab: 'demo', label: 'Ouvrir le parcours exemple', hint: 'WhatsApp, OCR, Brief, Forecast.' },
 };
 
 function readinessLabel(score) {
@@ -150,10 +150,10 @@ export function computeForumReadinessScore(profile = {}, context = {}) {
       .map((m) => ({ id: m.id, label: m.label, ...m.action })),
     ready_for_export: composite >= 55,
     summary: composite >= 80
-      ? 'Dossier solide — exports investisseur et subvention recommandés.'
+      ? 'Dossier solide — rapports financeurs et subvention recommandés.'
       : composite >= 55
-        ? 'Base présentable — compléter les points manquants avant salon international.'
-        : 'Renforcer preuves ERP et textes stratégiques avant forum ou banque.',
+        ? 'Base présentable — compléter les points manquants avant échange financeur.'
+        : 'Renforcer justificatifs ERP et textes stratégiques avant banque ou subvention.',
   };
 }
 

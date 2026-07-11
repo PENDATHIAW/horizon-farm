@@ -1,5 +1,5 @@
 /**
- * CRM Investisseurs & Forums — Supabase + repli localStorage.
+ * CRM Financements — Supabase + repli localStorage.
  */
 
 import { supabase } from '../../lib/supabase.js';
@@ -16,7 +16,7 @@ export const CONTACT_TYPES = [
   { id: 'incubateur', label: 'Incubateur' },
   { id: 'mentor', label: 'Mentor' },
   { id: 'fournisseur', label: 'Fournisseur' },
-  { id: 'forum', label: 'Forum' },
+  { id: 'evenement', label: 'Événement' },
   { id: 'salon', label: 'Salon' },
   { id: 'partenaire', label: 'Partenaire' },
 ];

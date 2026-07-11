@@ -117,9 +117,9 @@ export function buildInvestorPilotageAnswer(type = 'farm_status', dataMap = {}) 
     case 'investor_room':
       situation = `CA ${fmtCurrency(ca)} · Trésorerie ${fmtCurrency(treasury)} · Marge ${fmtCurrency(margin)}.`;
       cause = 'Synthèse issue des moteurs canoniques Finance et Commercial.';
-      action = 'Ouvrir Investisseurs & Forums pour le dossier complet ou exporter le rapport financeur.';
+      action = 'Ouvrir Financements pour le dossier complet ou exporter le rapport financeur.';
       sources = ['consolidateFinance', 'buildConsolidatedCommercialKpis', 'summarizeSalesMargins', 'buildObjectifsCroissanceData'];
-      title = 'Vue investisseur';
+      title = 'Vue financeur';
       break;
     case 'ca_progress': {
       const annualTarget = n(growth?.annualTarget ?? growth?.objectifAnnuel);
@@ -177,7 +177,7 @@ export function buildInvestorPilotageAnswer(type = 'farm_status', dataMap = {}) 
     cause,
     action,
     sources,
-    route: type === 'investor_room' ? 'investisseurs_forums' : 'finance_pilotage',
+    route: type === 'investor_room' ? 'financements' : 'finance_pilotage',
     confidence: 92,
     rows: [],
   };

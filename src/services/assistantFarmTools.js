@@ -177,7 +177,7 @@ export const FARM_TOOL_CATALOG = Object.freeze([
     id: FARM_TOOL_IDS.INVESTOR,
     label: 'Investisseur et performance',
     description: 'Vue financeur, croissance, risques, tendances, comparaisons',
-    moduleKey: 'investisseurs_forums',
+    moduleKey: 'financements',
     intents: [
       'investor_summary', 'growth', 'ca_progress', 'investment_capacity', 'main_risk',
       'farm_trends', 'farm_comparisons', 'farm_risks',

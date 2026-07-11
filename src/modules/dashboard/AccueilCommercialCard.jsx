@@ -15,10 +15,10 @@ const QUICK_LINKS = [
   },
   {
     id: 'investisseurs',
-    label: 'Investisseurs & Forums',
+    label: 'Financements',
     detail: 'Dossier financeur',
-    module: 'investisseurs_forums',
-    tab: 'Résumé',
+    module: 'financements',
+    tab: 'cockpit-dashboard',
   },
 ];
 

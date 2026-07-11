@@ -136,7 +136,7 @@ const MODULE_LABELS = Object.freeze({
   smartfarm: 'Smart Farm',
   rh: 'RH',
   rapports: 'Rapports',
-  investisseurs_forums: 'Investisseurs & Forums',
+  financements: 'Financements',
   centre_ia: 'Centre décisionnel',
   objectifs_croissance: 'Objectifs & Croissance',
   impact_business: 'Impact business',

@@ -55,7 +55,7 @@ const BASE_MODULE_BUSINESS_QUESTIONS = Object.freeze({
     q(F.OBJECTIFS, 'progress_status', 'Avancement', ['où j en suis sur mes objectifs', 'avancement objectif', 'objectifs', 'mes objectifs', 'ecart objectif', 'pourcentage objectif'], ['écart objectif mensuel', 'atteinte objectif'], ['projection objectifs']),
     q(F.OBJECTIFS, 'annual_outlook', 'Objectif annuel', ['vais je atteindre mon objectif annuel', 'objectif annuel atteignable', 'finir l année dans les clous', 'mon objectif est il atteignable', 'projection fin annee'], ['prévision objectif année', 'atteinte annuelle probable'], ['outlook annuel exploitation']),
   ],
-  investisseurs_forums: [
+  financements: [
     q(F.INVESTISSEUR, 'investor_summary', 'Investisseur', ['dossier investisseur', 'résumé pour la banque', 'dossier banque', 'presentation financeur'], ['vue financeur', 'dossier banque'], ['état pour investisseur', 'performance investisseur']),
     q(F.INVESTISSEUR, 'growth', 'Croissance', ['la croissance est elle bonne', 'croissance exploitation', 'on grandit bien'], ['tendance croissance'], ['croissance annuelle']),
     q(F.INVESTISSEUR, 'ca_progress', 'CA', ['le ca progresse t il', 'chiffre affaires progresse', 'ventes en hausse'], ['évolution ca'], ['progression ca annuel']),

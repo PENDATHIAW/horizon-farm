@@ -46,7 +46,7 @@ const formatDateTime = () => new Intl.DateTimeFormat('fr-FR', {
 }).format(new Date());
 
 const NAV_GROUPS = [
-  { key: 'pilotage', label: 'Pilotage', ids: ['dashboard', 'assistant_erp', 'centre_ia', 'agri_feeds', 'objectifs_croissance', 'investisseurs_forums'] },
+  { key: 'pilotage', label: 'Pilotage', ids: ['dashboard', 'assistant_erp', 'centre_ia', 'agri_feeds', 'objectifs_croissance', 'financements'] },
   { key: 'production', label: 'Production', ids: ['elevage', 'cultures'] },
   { key: 'commerce', label: 'Commerce', ids: ['commercial', 'achats_stock'] },
   { key: 'finance', label: 'Finance', ids: ['finance_pilotage'] },

@@ -546,32 +546,64 @@ export const DASHBOARD_TAB_ALIASES = {
   graphiques: 'Carnet Horizon',
   Carnet: 'Carnet Horizon',
 };
-export const INVESTISSEURS_TABS = ['room', 'preparation', 'dossier', 'library', 'crm', 'preview', 'export', 'history', 'demo'];
+export const FINANCEMENTS_TABS = [
+  'cockpit-dashboard',
+  'cockpit-opportunities',
+  'cockpit-contacts',
+  'cockpit-applications',
+  'cockpit-agreements',
+  'funder-overview',
+  'funder-reports',
+  'funder-journal',
+  'funder-documents',
+  'demo',
+];
+export const INVESTISSEURS_TABS = FINANCEMENTS_TABS;
 
 const INVESTISSEURS_TAB_ALIASES = {
-  room: 'room',
-  'Investor Room': 'room',
-  preparation: 'preparation',
-  Préparation: 'preparation',
-  Preparation: 'preparation',
-  dossier: 'dossier',
-  Dossier: 'dossier',
-  library: 'library',
-  'Data Room': 'library',
-  crm: 'crm',
-  CRM: 'crm',
-  preview: 'preview',
-  'Aperçu dossier': 'preview',
-  export: 'export',
-  'Exports PDF': 'export',
-  history: 'history',
-  Historique: 'history',
+  'cockpit-dashboard': 'cockpit-dashboard',
+  'cockpit-opportunities': 'cockpit-opportunities',
+  'cockpit-contacts': 'cockpit-contacts',
+  'cockpit-applications': 'cockpit-applications',
+  'cockpit-agreements': 'cockpit-agreements',
+  'funder-overview': 'funder-overview',
+  'funder-reports': 'funder-reports',
+  'funder-journal': 'funder-journal',
+  'funder-documents': 'funder-documents',
+  room: 'cockpit-dashboard',
+  'Investor Room': 'cockpit-dashboard',
+  preparation: 'cockpit-dashboard',
+  Préparation: 'cockpit-dashboard',
+  Preparation: 'cockpit-dashboard',
+  dossier: 'cockpit-applications',
+  Dossier: 'cockpit-applications',
+  library: 'funder-documents',
+  'Data Room': 'funder-documents',
+  crm: 'cockpit-contacts',
+  CRM: 'cockpit-contacts',
+  preview: 'funder-overview',
+  'Aperçu dossier': 'funder-overview',
+  export: 'funder-reports',
+  'Exports PDF': 'funder-reports',
+  history: 'funder-journal',
+  Historique: 'funder-journal',
   demo: 'demo',
   'Démo investisseur': 'demo',
-  Résumé: 'room',
-  resume: 'room',
-  financeurs: 'preparation',
-  Financeurs: 'preparation',
+  'Mode exemple': 'demo',
+  Résumé: 'cockpit-dashboard',
+  resume: 'cockpit-dashboard',
+  financements: 'cockpit-dashboard',
+  Financements: 'cockpit-dashboard',
+  financeurs: 'funder-overview',
+  Financeurs: 'funder-overview',
+  Opportunités: 'cockpit-opportunities',
+  opportunites: 'cockpit-opportunities',
+  Contacts: 'cockpit-contacts',
+  Dossiers: 'cockpit-applications',
+  Conventions: 'cockpit-agreements',
+  Rapports: 'funder-reports',
+  Journal: 'funder-journal',
+  Documents: 'funder-documents',
 };
 
 export const GESTION_SYSTEME_TABS = ['Vue admin', 'Utilisateurs', 'Fermes', 'Paramètres', 'Sécurité', 'Sauvegardes', 'Réinitialisation', 'Audit'];
@@ -774,22 +806,26 @@ export function resolveDashboardTab(value = '') {
 
 export function resolveInvestisseursTab(value = '') {
   const tab = String(value || '').trim();
-  if (INVESTISSEURS_TABS.includes(tab)) return tab;
+  if (FINANCEMENTS_TABS.includes(tab)) return tab;
   const fromAlias = INVESTISSEURS_TAB_ALIASES[tab] || INVESTISSEURS_TAB_ALIASES[lower(tab)];
   if (fromAlias) return fromAlias;
   const legacy = tabAliases[lower(tab)];
-  if (legacy && INVESTISSEURS_TABS.includes(legacy)) return legacy;
-  return 'room';
+  if (legacy && FINANCEMENTS_TABS.includes(legacy)) return legacy;
+  return 'cockpit-dashboard';
 }
+
+export const resolveFinancementsTab = resolveInvestisseursTab;
 
 /** Navigation externe — conserve alias legacy (Préparation, Data Room…). */
 export function navigateInvestisseursTab(onNavigate, tab = '', options = {}) {
-  const raw = String(tab || '').trim() || 'room';
+  const raw = String(tab || '').trim() || 'cockpit-dashboard';
   if (typeof onNavigate === 'function') {
-    onNavigate('investisseurs_forums', { tab: raw, ...options });
+    onNavigate('financements', { tab: raw, ...options });
   }
   return resolveInvestisseursTab(raw);
 }
+
+export const navigateFinancementsTab = navigateInvestisseursTab;
 
 /** Résout un identifiant legacy (ventes, finances, stock…) vers le grand module ERP. */
 export function resolveRouteModule(moduleId = '') {
@@ -812,7 +848,7 @@ export function defaultTabForLegacyModule(moduleId = '') {
   if (moduleId === 'invoices') return 'Ventes';
   if (moduleId === 'deliveries') return 'Livraisons';
   if (moduleId === 'audit_logs' || moduleId === 'sync') return 'Vérifications';
-  if (moduleId === 'investisseurs_forums' || moduleId === 'financeurs') return 'Préparation';
+  if (moduleId === 'financements' || moduleId === 'investisseurs_forums' || moduleId === 'financeurs' || moduleId === 'impact_business') return 'cockpit-dashboard';
   return null;
 }
 
@@ -908,10 +944,10 @@ export function navigationOptionsForFinding(finding = {}) {
       tab: explicitTab || defaultTabForLegacyModule(rawModule) || 'Suivi du Business Plan',
     };
   }
-  if (module === 'investisseurs_forums') {
+  if (module === 'financements') {
     return {
       module,
-      tab: explicitTab || defaultTabForLegacyModule(rawModule) || 'room',
+      tab: explicitTab || defaultTabForLegacyModule(rawModule) || 'cockpit-dashboard',
     };
   }
   if (module === 'smartfarm') {
@@ -975,8 +1011,8 @@ export function navigateForIaFinding(finding = {}, onNavigate) {
     onNavigate('objectifs_croissance', { tab: finding.tab || 'Suivi du Business Plan' });
     return;
   }
-  if (module === 'investisseurs_forums') {
-    onNavigate('investisseurs_forums', { tab: finding.tab || 'room' });
+  if (module === 'financements') {
+    onNavigate('financements', { tab: finding.tab || 'cockpit-dashboard' });
     return;
   }
   if (module === 'smartfarm') {

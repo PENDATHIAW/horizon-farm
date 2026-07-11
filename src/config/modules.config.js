@@ -19,8 +19,9 @@ export const MODULE_REGISTRY = {
   finance_pilotage: { label: 'Finance & Pilotage', icon: DollarSign, group: 'metier' },
   activite_suivi: { label: 'Activité & Suivi', icon: ClipboardList, group: 'metier' },
   documents_rapports: { label: 'Documents & Rapports', icon: FolderOpen, group: 'metier' },
-  impact_business: { label: 'Investisseurs & Forums', icon: Handshake, group: 'pilotage', deprecated: true },
-  investisseurs_forums: { label: 'Investisseurs & Forums', icon: Handshake, group: 'pilotage' },
+  financements: { label: 'Financements', icon: Handshake, group: 'pilotage' },
+  impact_business: { label: 'Financements', icon: Handshake, group: 'pilotage', deprecated: true },
+  investisseurs_forums: { label: 'Financements', icon: Handshake, group: 'pilotage', deprecated: true },
   cultures: { label: 'Cultures', icon: Sprout, group: 'metier' },
   rh: { label: 'Opérations & Ressources', icon: UserCog, group: 'operations' },
   equipements: { label: 'Équipements', icon: Wrench, group: 'operations' },
@@ -54,6 +55,9 @@ export const CRUD_KEYS = [
   'feed_formula_ingredients', 'feed_facility_zones',
   'feed_production_orders', 'feed_finished_batches', 'feed_quality_checks',
   'feed_trials', 'feed_phase1_comparisons',
+  'funding_opportunities', 'funding_contacts', 'funding_applications',
+  'funding_document_library', 'funding_agreements', 'funding_expense_allocations',
+  'funding_reports', 'funding_project_journal', 'funder_accounts', 'funder_access_logs',
 ];
 
 export const SALES_WORKFLOW_KEYS = [
@@ -62,7 +66,7 @@ export const SALES_WORKFLOW_KEYS = [
 ];
 
 export const NAV_MODULE_ORDER = [
-  'dashboard', 'assistant_erp', 'centre_ia', 'agri_feeds', 'objectifs_croissance', 'investisseurs_forums',
+  'dashboard', 'assistant_erp', 'centre_ia', 'agri_feeds', 'objectifs_croissance', 'financements',
   'elevage', 'cultures',
   'commercial', 'achats_stock',
   'finance_pilotage',
@@ -79,8 +83,10 @@ export const ROUTE_TO_MODULE = {
   sante: 'elevage',
   finances: 'finance_pilotage',
   investissements: 'finance_pilotage',
-  investisseurs_forums: 'investisseurs_forums',
-  impact_business: 'investisseurs_forums',
+  financements: 'financements',
+  financeurs: 'financements',
+  investisseurs_forums: 'financements',
+  impact_business: 'financements',
   alertes: 'activite_suivi',
   taches: 'activite_suivi',
   tracabilite: 'activite_suivi',

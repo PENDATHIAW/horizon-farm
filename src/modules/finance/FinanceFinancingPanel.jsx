@@ -60,7 +60,7 @@ export default function FinanceFinancingPanel({
             className="inline-flex items-center gap-1 rounded-xl border border-[#d6c3a0] bg-white px-3 py-2 text-xs font-black text-[#2f2415] hover:bg-[#fffdf8]"
           >
             <ExternalLink size={14} />
-            Investisseurs & Forums
+            Financements
           </button>
           <button
             type="button"

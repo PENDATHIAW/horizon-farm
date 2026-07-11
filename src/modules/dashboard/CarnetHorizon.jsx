@@ -142,7 +142,7 @@ function InvestorReadinessStrip({ investor, onNavigate }) {
         {onNavigate ? (
           <button
             type="button"
-            onClick={() => onNavigate('investisseurs_forums', { tab: 'Résumé' })}
+            onClick={() => onNavigate('financements', { tab: 'cockpit-dashboard' })}
             className="shrink-0 rounded-lg bg-[#2f2415] px-3 py-1.5 text-[10px] font-black text-white"
           >
             Préparer le dossier

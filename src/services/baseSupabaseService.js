@@ -16,6 +16,9 @@ const tableModuleMap = {
   feed_raw_materials: 'feed_raw_materials', feed_raw_batches: 'feed_raw_batches', feed_formulas: 'feed_formulas', feed_formula_versions: 'feed_formula_versions', feed_formula_ingredients: 'feed_formula_ingredients', feed_facility_zones: 'feed_facility_zones',
   feed_production_orders: 'feed_production_orders', feed_finished_batches: 'feed_finished_batches', feed_quality_checks: 'feed_quality_checks',
   feed_trials: 'feed_trials', feed_phase1_comparisons: 'feed_phase1_comparisons',
+  funding_opportunities: 'funding_opportunities', funding_contacts: 'funding_contacts', funding_applications: 'funding_applications',
+  funding_document_library: 'funding_document_library', funding_agreements: 'funding_agreements', funding_expense_allocations: 'funding_expense_allocations',
+  funding_reports: 'funding_reports', funding_project_journal: 'funding_project_journal', funder_accounts: 'funder_accounts', funder_access_logs: 'funder_access_logs',
 };
 
 const realDeletedKey = (table) => `horizon_real_deleted:${table}`;

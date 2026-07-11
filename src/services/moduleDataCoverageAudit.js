@@ -12,7 +12,7 @@ const ENRICHED_MODULES = [
   'cultures',
   'achats_stock',
   'activite_suivi',
-  'investisseurs_forums',
+  'financements',
   'equipements',
   'smartfarm',
   'agri_feeds',

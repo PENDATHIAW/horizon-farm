@@ -58,7 +58,7 @@ export default function RapportsExportsTab({
             <p className="text-sm text-emerald-800">DER, FONGIP, BNDE, CNCAS — actifs, production, CA, rentabilité, risques et prévisions.</p>
           </div>
           <div className="flex flex-wrap gap-2">
-            <Button primary onClick={() => onNavigate?.('investisseurs_forums', { tab: 'export' })}>Générer pack investisseur</Button>
+            <Button primary onClick={() => onNavigate?.('financements', { tab: 'export' })}>Générer pack investisseur</Button>
             <Button onClick={() => onNavigate?.('rapports')}>Dossier financeur (legacy)</Button>
           </div>
         </div>

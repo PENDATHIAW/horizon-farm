@@ -19,8 +19,8 @@ export const DATA_SOURCES_OF_TRUTH = {
   organic_material: { table: 'stock + business_events', modules: ['elevage', 'cultures', 'achats_stock', 'finance_pilotage', 'documents_rapports'] },
   biosecurity_cleaning: { table: 'business_events', modules: ['elevage', 'achats_stock', 'cultures', 'activite_suivi', 'finance_pilotage', 'documents_rapports'] },
   irrigation: { table: 'business_events + sensor_devices', modules: ['cultures', 'smartfarm', 'finance_pilotage', 'centre_ia', 'equipements'] },
-  document: { table: 'documents', modules: ['documents_rapports', 'finance_pilotage', 'commercial', 'sante', 'achats_stock', 'investisseurs_forums'] },
-  report: { table: 'rapports', modules: ['documents_rapports', 'objectifs_croissance', 'investisseurs_forums', 'finance_pilotage'] },
+  document: { table: 'documents', modules: ['documents_rapports', 'finance_pilotage', 'commercial', 'sante', 'achats_stock', 'financements'] },
+  report: { table: 'rapports', modules: ['documents_rapports', 'objectifs_croissance', 'financements', 'finance_pilotage'] },
   task: { table: 'taches', modules: ['activite_suivi', 'dashboard', 'centre_ia', 'assistant_erp'] },
   alert: { table: 'alertes_center', modules: ['activite_suivi', 'dashboard', 'centre_ia', 'assistant_erp'] },
   business_event: { table: 'business_events', modules: ['tracabilite', 'centre_ia', 'documents_rapports', 'dashboard'] },
@@ -28,9 +28,9 @@ export const DATA_SOURCES_OF_TRUTH = {
   sensor: { table: 'sensor_devices', modules: ['smartfarm', 'equipements', 'cultures', 'elevage', 'centre_ia'] },
   camera: { table: 'camera_devices', modules: ['smartfarm', 'equipements', 'centre_ia'] },
   opportunity: { table: 'sales_opportunities', modules: ['commercial', 'objectifs_croissance', 'centre_ia'] },
-  business_plan: { table: 'business_plans', modules: ['objectifs_croissance', 'investissements', 'documents_rapports', 'investisseurs_forums'] },
-  investment: { table: 'investissements', modules: ['finance_pilotage', 'objectifs_croissance', 'documents_rapports', 'equipements', 'investisseurs_forums'] },
-  funding_usage: { table: 'finances + investissements + documents', modules: ['finance_pilotage', 'objectifs_croissance', 'documents_rapports', 'investisseurs_forums'] },
+  business_plan: { table: 'business_plans', modules: ['objectifs_croissance', 'investissements', 'documents_rapports', 'financements'] },
+  investment: { table: 'investissements', modules: ['finance_pilotage', 'objectifs_croissance', 'documents_rapports', 'equipements', 'financements'] },
+  funding_usage: { table: 'finances + investissements + documents', modules: ['finance_pilotage', 'objectifs_croissance', 'documents_rapports', 'financements'] },
   ai_recommendation: { table: 'ai_recommendations', modules: ['assistant_erp', 'centre_ia'] },
 };
 

@@ -218,7 +218,7 @@ export function evaluateCoherenceRules(data = {}) {
   investments.forEach((investment) => {
     const funding = /financement|der|subvention|pret|prêt|loan/.test(rowText(investment));
     if (funding && !hasDocumentFor(docs, investment.id)) {
-      pushFinding(findings, { id: `coh-funding-no-doc-${investment.id}`, module: 'investisseurs_forums', severity: 'haute', title: `Financement sans justificatif : ${investment.libelle || investment.name || investment.id}`, description: 'Une ligne de financement ou investissement n’a pas de document lié.', recommended_action: 'Joindre convention, facture, reçu ou preuve d’utilisation', auto_action: 'create_task', confidence_score: 0.86 });
+      pushFinding(findings, { id: `coh-funding-no-doc-${investment.id}`, module: 'financements', severity: 'haute', title: `Financement sans justificatif : ${investment.libelle || investment.name || investment.id}`, description: 'Une ligne de financement ou investissement n’a pas de document lié.', recommended_action: 'Joindre convention, facture, reçu ou preuve d’utilisation', auto_action: 'create_task', confidence_score: 0.86 });
     }
   });
 

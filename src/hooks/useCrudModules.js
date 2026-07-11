@@ -41,6 +41,16 @@ export default function useCrudModules() {
   const payments = useCrudModule('payments');
   const sales_opportunities = useCrudModule('sales_opportunities');
   const stock_movements = useCrudModule('stock_movements');
+  const funding_opportunities = useCrudModule('funding_opportunities');
+  const funding_contacts = useCrudModule('funding_contacts');
+  const funding_applications = useCrudModule('funding_applications');
+  const funding_document_library = useCrudModule('funding_document_library');
+  const funding_agreements = useCrudModule('funding_agreements');
+  const funding_expense_allocations = useCrudModule('funding_expense_allocations');
+  const funding_reports = useCrudModule('funding_reports');
+  const funding_project_journal = useCrudModule('funding_project_journal');
+  const funder_accounts = useCrudModule('funder_accounts');
+  const funder_access_logs = useCrudModule('funder_access_logs');
 
   return useMemo(() => ({
     animaux,
@@ -82,6 +92,16 @@ export default function useCrudModules() {
     payments,
     sales_opportunities,
     stock_movements,
+    funding_opportunities,
+    funding_contacts,
+    funding_applications,
+    funding_document_library,
+    funding_agreements,
+    funding_expense_allocations,
+    funding_reports,
+    funding_project_journal,
+    funder_accounts,
+    funder_access_logs,
   }), [
     animaux,
     avicole,
@@ -122,5 +142,15 @@ export default function useCrudModules() {
     payments,
     sales_opportunities,
     stock_movements,
+    funding_opportunities,
+    funding_contacts,
+    funding_applications,
+    funding_document_library,
+    funding_agreements,
+    funding_expense_allocations,
+    funding_reports,
+    funding_project_journal,
+    funder_accounts,
+    funder_access_logs,
   ]);
 }

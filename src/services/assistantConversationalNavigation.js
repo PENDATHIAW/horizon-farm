@@ -6,7 +6,7 @@ const NAV_PHRASES = Object.freeze({
   dashboard: 'Revenons à la vue d\'ensemble de la ferme.',
   centre_ia: 'Regardons ce qui demande votre attention en priorité.',
   objectifs_croissance: 'Voyons où vous en êtes sur vos objectifs.',
-  investisseurs_forums: 'Je vous prépare la vue pour vos financeurs.',
+  financements: 'Je vous prépare la vue pour vos financeurs.',
   elevage: 'Allons voir votre cheptel et vos lots.',
   cultures: 'Je vous montre vos parcelles et cultures.',
   commercial: 'Regardons vos ventes et vos clients.',

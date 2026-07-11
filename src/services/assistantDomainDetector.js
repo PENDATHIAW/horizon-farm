@@ -14,7 +14,7 @@ const DOMAIN_MODULE_MAP = Object.freeze({
   FINANCE: 'finance_pilotage',
   OBJECTIFS: 'objectifs_croissance',
   DECISION: 'centre_ia',
-  INVESTISSEUR: 'investisseurs_forums',
+  INVESTISSEUR: 'financements',
   SALUTATION: 'assistant_erp',
 });
 

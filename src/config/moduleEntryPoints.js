@@ -22,8 +22,9 @@ export const CANONICAL_MODULE_FILES = {
   finances: 'FinancesV12.jsx',
   comptabilite: 'ComptabiliteV7.jsx',
   investissements: 'InvestissementsV9.jsx',
-  impact_business: 'InvestisseursForumsModule.jsx',
-  investisseurs_forums: 'InvestisseursForumsModule.jsx',
+  financements: 'FinancementsModule.jsx',
+  impact_business: 'FinancementsModule.jsx',
+  investisseurs_forums: 'FinancementsModule.jsx',
   stock: 'StocksV5.jsx',
   clients: 'ClientsReadable.jsx',
   fournisseurs: 'FournisseursReadable.jsx',
@@ -76,9 +77,10 @@ export const MODULE_ENTRY_POINTS = {
   finances: () => import('../modules/FinancesV12.jsx'),
   comptabilite: () => import('../modules/ComptabiliteV7.jsx'),
   investissements: () => import('../modules/InvestissementsV9.jsx'),
-  /** @deprecated alias — redirigé vers investisseurs_forums */
-  impact_business: () => import('../modules/InvestisseursForumsModule.jsx'),
-  investisseurs_forums: () => import('../modules/InvestisseursForumsModule.jsx'),
+  financements: () => import('../modules/FinancementsModule.jsx'),
+  /** @deprecated alias — redirigé vers financements */
+  impact_business: () => import('../modules/FinancementsModule.jsx'),
+  investisseurs_forums: () => import('../modules/FinancementsModule.jsx'),
   stock: () => import('../modules/StocksV5.jsx'),
   clients: () => import('../modules/ClientsReadable.jsx'),
   fournisseurs: () => import('../modules/FournisseursReadable.jsx'),
@@ -100,7 +102,9 @@ export const MODULE_ENTRY_POINTS = {
 
 /** Routes historiques → module actif (navigation + chargement). */
 export const DEPRECATED_MODULE_ALIASES = {
-  impact_business: 'investisseurs_forums',
+  impact_business: 'financements',
+  investisseurs_forums: 'financements',
+  financeurs: 'financements',
 };
 
 export function resolveActiveModuleId(moduleId = '') {

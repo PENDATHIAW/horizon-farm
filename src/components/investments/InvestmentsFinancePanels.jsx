@@ -127,7 +127,7 @@ export function BpDistributionNav({
   );
 }
 
-/** Pont Finance → module Investisseurs & Forums (lecture seule, pas de duplication). */
+/** Pont Finance → module Financements (lecture seule, pas de duplication). */
 export function InvestmentsInvestorBridge({ onNavigate, ...props }) {
   const summary = useMemo(() => getInvestorReadySummary(buildCoreDataMap(props)), [props]);
 
@@ -140,9 +140,9 @@ export function InvestmentsInvestorBridge({ onNavigate, ...props }) {
             Dossier investisseur / financeur
           </p>
           <p className="mt-1 text-sm text-[#7d6a4a] leading-relaxed">
-            Le BP et les lignes actionnables restent ici. Le pack présentable (banque, subvention, forum) est dans
+            Le BP et les lignes actionnables restent ici. Le pack présentable (banque, subvention, événement) est dans
             {' '}
-            <b>Investisseurs & Forums</b>
+            <b>Financements</b>
             , alimenté par les mêmes données ERP.
           </p>
         </div>
@@ -154,10 +154,10 @@ export function InvestmentsInvestorBridge({ onNavigate, ...props }) {
           </div>
           <button
             type="button"
-            onClick={() => onNavigate?.('investisseurs_forums')}
+            onClick={() => onNavigate?.('financements')}
             className="inline-flex min-h-[44px] items-center gap-2 rounded-2xl bg-[#2f2415] px-4 py-2 text-sm font-black text-white hover:bg-[#3d2f1d]"
           >
-            Ouvrir Investisseurs & Forums
+            Ouvrir Financements
             <ArrowRight size={16} />
           </button>
         </div>
@@ -171,7 +171,7 @@ export function InvestmentsInvestorBridge({ onNavigate, ...props }) {
         </ul>
       ) : (
         <p className="mt-3 text-xs text-emerald-800 rounded-2xl border border-emerald-200 bg-emerald-50 p-3">
-          Dossier cohérent côté ERP — vous pouvez générer le pack forum depuis Investisseurs & Forums.
+          Dossier cohérent côté ERP — vous pouvez générer le pack financeur depuis Financements.
         </p>
       )}
     </div>

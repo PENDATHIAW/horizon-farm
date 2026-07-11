@@ -1,5 +1,5 @@
 /**
- * Investisseurs & Forums — agrégation lecture seule du profil projet.
+ * Financements — agrégation lecture seule du profil projet.
  * Réutilise Hey Horizon AI Core + composeReportData ; ne recalcule pas Finance / Rapports / Impact.
  */
 
@@ -13,7 +13,7 @@ import { HORIZON_FARM_OFFICIAL_BP } from '../horizonFarmOfficialBusinessPlan.js'
 
 export const HORIZON_FARM_TAGLINE = 'Horizon Farm est une entreprise agricole intégrée qui combine élevage, agriculture, technologies numériques et intelligence artificielle afin de construire un modèle agricole moderne, rentable, durable et reproductible en Afrique.';
 
-export const INVESTOR_FORUMS_SOURCE = 'investisseurs_forums';
+export const INVESTOR_FORUMS_SOURCE = 'financements';
 
 const arr = (value) => (Array.isArray(value) ? value : []);
 const lower = (value) => String(value || '').trim().toLowerCase();

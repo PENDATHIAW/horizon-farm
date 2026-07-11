@@ -25,7 +25,7 @@ const MODULE_ENGINES = Object.freeze({
   achats_stock: ['computeStockSummary'],
   finance_pilotage: ['consolidateFinance'],
   objectifs_croissance: ['buildObjectifsCroissanceData', 'buildConsolidatedCommercialKpis'],
-  investisseurs_forums: ['consolidateFinance', 'buildConsolidatedCommercialKpis', 'summarizeSalesMargins', 'buildObjectifsCroissanceData'],
+  financements: ['consolidateFinance', 'buildConsolidatedCommercialKpis', 'summarizeSalesMargins', 'buildObjectifsCroissanceData'],
   centre_ia: ['buildCarnetDomainCards'],
   activite_suivi: ['buildCarnetDomainCards'],
   documents_rapports: ['business_events'],

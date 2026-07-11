@@ -61,7 +61,7 @@ export function buildForumPack(profile = {}, { audienceKey = 'investisseur_prive
   const audience = FORUM_AUDIENCES[resolvedAudienceKey] || FORUM_AUDIENCES.investisseur_prive;
 
   const pack = {
-    id: `forum-pack-${packType}-${Date.now()}`,
+    id: `funding-pack-${packType}-${Date.now()}`,
     source: INVESTOR_FORUMS_SOURCE,
     readOnly: true,
     generated_at: new Date().toISOString(),
@@ -97,7 +97,7 @@ export function forumPackToExportPayload(pack = {}) {
       ].filter((r) => r[1]);
 
   return {
-    module: 'Investisseurs & Forums',
+    module: 'Financements',
     title: pack.title || pack.packType?.label || 'Rapport',
     period: 'Toutes les périodes',
     subtitle: sanitizeInstitutionalText(pack.subtitle || HORIZON_FARM_TAGLINE),
@@ -130,7 +130,7 @@ export function downloadForumPackPdf(pack = {}) {
   anchor.click();
   URL.revokeObjectURL(url);
   saveModuleReportExport({
-    module: 'Investisseurs & Forums',
+    module: 'Financements',
     title: pack.title,
     period: 'Toutes les périodes',
     filename,

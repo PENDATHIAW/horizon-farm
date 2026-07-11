@@ -1,5 +1,5 @@
 /**
- * Adaptation du profil selon la cible (investisseur, banque, ONG, salon…).
+ * Adaptation du profil selon la cible (partenaire privé, banque, ONG, événement…).
  */
 
 import { fmtCurrency } from '../../utils/format.js';
@@ -10,7 +10,7 @@ const arr = (value) => (Array.isArray(value) ? value : []);
 export const FORUM_AUDIENCES = {
   investisseur_prive: {
     id: 'investisseur_prive',
-    label: 'Investisseur privé',
+    label: 'Partenaire privé',
     angle: 'ROI, croissance, marge et maîtrise des risques',
     emphasis: ['keyFigures', 'risksMitigation', 'aiInnovation'],
     tone: 'opportunite',
@@ -31,7 +31,7 @@ export const FORUM_AUDIENCES = {
   },
   salon_agricole: {
     id: 'salon_agricole',
-    label: 'Salon agricole / forum',
+    label: 'Événement agricole',
     angle: 'Innovation, productivité, traçabilité',
     emphasis: ['aiInnovation', 'activities', 'projectSummary'],
     tone: 'innovation',

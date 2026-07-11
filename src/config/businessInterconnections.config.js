@@ -367,7 +367,7 @@ export const BUSINESS_EVENT_WORKFLOWS = Object.freeze([
     label: 'Document justificatif',
     sourceModule: 'documents_rapports',
     sourceTables: ['documents', 'finances', 'sales_orders', 'stock', 'business_events'],
-    impactedModules: ['documents_rapports', 'finance_pilotage', 'commercial', 'achats_stock', 'centre_ia', 'investisseurs_forums'],
+    impactedModules: ['documents_rapports', 'finance_pilotage', 'commercial', 'achats_stock', 'centre_ia', 'financements'],
     requiredFields: ['date', 'document_type', 'linked_entity_type', 'linked_entity_id'],
     automaticEffects: [
       'Rattacher document à opération source',
@@ -383,7 +383,7 @@ export const BUSINESS_EVENT_WORKFLOWS = Object.freeze([
     label: 'Rapport financeur mensuel',
     sourceModule: 'documents_rapports',
     sourceTables: ['rapports', 'finances', 'sales_orders', 'payments', 'stock', 'avicole', 'cultures', 'documents', 'business_events'],
-    impactedModules: ['documents_rapports', 'finance_pilotage', 'investisseurs_forums', 'objectifs_croissance', 'dashboard'],
+    impactedModules: ['documents_rapports', 'finance_pilotage', 'financements', 'objectifs_croissance', 'dashboard'],
     requiredFields: ['period', 'generated_by', 'data_cutoff_date'],
     automaticEffects: [
       'Assembler activité par filière',
@@ -401,7 +401,7 @@ export const BUSINESS_EVENT_WORKFLOWS = Object.freeze([
     label: 'Suivi du financement',
     sourceModule: 'finance_pilotage',
     sourceTables: ['finances', 'investissements', 'business_plans', 'documents', 'rapports'],
-    impactedModules: ['finance_pilotage', 'objectifs_croissance', 'documents_rapports', 'investisseurs_forums', 'dashboard'],
+    impactedModules: ['finance_pilotage', 'objectifs_croissance', 'documents_rapports', 'financements', 'dashboard'],
     requiredFields: ['date', 'funding_source', 'amount', 'usage_category', 'linked_document_id'],
     automaticEffects: [
       'Rattacher dépense à une ligne de financement',

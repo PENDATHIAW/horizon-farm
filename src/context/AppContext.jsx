@@ -53,6 +53,18 @@ import {
 } from '../services/salesService';
 import { whatsappLogsService, whatsappTemplatesService } from '../services/whatsappService';
 import { stockMovementsCrud } from '../services/stockMovementsService';
+import {
+  funderAccessLogsService,
+  funderAccountsService,
+  fundingAgreementsService,
+  fundingApplicationsService,
+  fundingContactsService,
+  fundingDocumentLibraryService,
+  fundingExpenseAllocationsService,
+  fundingOpportunitiesService,
+  fundingProjectJournalService,
+  fundingReportsService,
+} from '../services/fundingCrudService.js';
 import { supabase } from '../lib/supabase';
 import { normalizeByModule } from '../utils/normalize.js';
 import { clearOfflineQueue, enqueueOfflineMutation, isBrowserOffline, readOfflineQueue, saveOfflineQueue } from '../services/offlineQueueService';
@@ -103,6 +115,16 @@ const serviceMap = {
   payments: paymentsService,
   sales_opportunities: salesOpportunitiesService,
   stock_movements: stockMovementsCrud,
+  funding_opportunities: fundingOpportunitiesService,
+  funding_contacts: fundingContactsService,
+  funding_applications: fundingApplicationsService,
+  funding_document_library: fundingDocumentLibraryService,
+  funding_agreements: fundingAgreementsService,
+  funding_expense_allocations: fundingExpenseAllocationsService,
+  funding_reports: fundingReportsService,
+  funding_project_journal: fundingProjectJournalService,
+  funder_accounts: funderAccountsService,
+  funder_access_logs: funderAccessLogsService,
 };
 
 const emptyInitialData = () => Object.fromEntries(['dashboard', ...Object.keys(serviceMap), 'sync'].map((key) => [key, []]));

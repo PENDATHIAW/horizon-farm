@@ -36,7 +36,7 @@ export const ERP_MODULE_PERMISSIONS = [
   'comptabilite',
   'investissements',
   'impact_business',
-  'investisseurs_forums',
+  'financements',
   'stock',
   'clients',
   'ventes',

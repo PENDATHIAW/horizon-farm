@@ -9,7 +9,7 @@ import { normalizeAgriculturalText } from './assistantUniversalIntents.js';
 export const FARM_NAV_SECTIONS = Object.freeze({
   pilotage: {
     label: 'Pilotage',
-    modules: ['dashboard', 'assistant_erp', 'centre_ia', 'objectifs_croissance', 'investisseurs_forums'],
+    modules: ['dashboard', 'assistant_erp', 'centre_ia', 'objectifs_croissance', 'financements'],
   },
   production: {
     label: 'Production',
@@ -43,7 +43,7 @@ const MODULE_ALIASES = Object.entries(MODULE_REGISTRY).flatMap(([id, meta]) => {
   if (id === 'centre_ia') aliases.push('centre decisionnel', 'centre ia');
   if (id === 'achats_stock') aliases.push('achats stock', 'stock', 'achats');
   if (id === 'finance_pilotage') aliases.push('finance', 'finance pilotage', 'tresorerie module');
-  if (id === 'investisseurs_forums') aliases.push('investisseurs', 'forums', 'impact business');
+  if (id === 'financements') aliases.push('financements', 'financeurs', 'dossier financement', 'subventions', 'impact business', 'investisseurs');
   if (id === 'sync_activity') aliases.push('sync erp', 'activite sync', 'activite sync erp');
   if (id === 'rh') aliases.push('operations ressources', 'operations et ressources', 'rh equipe');
   return aliases.map((alias) => ({ alias: normalizeAgriculturalText(alias), moduleId: id }));

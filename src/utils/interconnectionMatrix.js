@@ -72,7 +72,7 @@ export const ERP_INTERCONNECTION_MATRIX = [
     id: 'investment_profitability',
     label: 'Investissements ↔ Rentabilité',
     source: 'investissements',
-    targets: ['finances', 'business_plans', 'bp_investment_lines', 'bp_revenue_projections', 'investisseurs_forums'],
+    targets: ['finances', 'business_plans', 'bp_investment_lines', 'bp_revenue_projections', 'financements'],
     checks: [
       'Un investissement doit remonter dans la rentabilité globale.',
       'Les coûts récurrents doivent être visibles dans Finance & Investisseurs.',
