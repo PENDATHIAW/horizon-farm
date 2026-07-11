@@ -41,17 +41,6 @@ export default function useCrudModules() {
   const payments = useCrudModule('payments');
   const sales_opportunities = useCrudModule('sales_opportunities');
   const stock_movements = useCrudModule('stock_movements');
-  const feed_raw_materials = useCrudModule('feed_raw_materials');
-  const feed_raw_batches = useCrudModule('feed_raw_batches');
-  const feed_formulas = useCrudModule('feed_formulas');
-  const feed_formula_versions = useCrudModule('feed_formula_versions');
-  const feed_formula_ingredients = useCrudModule('feed_formula_ingredients');
-  const feed_facility_zones = useCrudModule('feed_facility_zones');
-  const feed_production_orders = useCrudModule('feed_production_orders');
-  const feed_finished_batches = useCrudModule('feed_finished_batches');
-  const feed_quality_checks = useCrudModule('feed_quality_checks');
-  const feed_trials = useCrudModule('feed_trials');
-  const feed_phase1_comparisons = useCrudModule('feed_phase1_comparisons');
 
   return useMemo(() => ({
     animaux,
@@ -93,17 +82,6 @@ export default function useCrudModules() {
     payments,
     sales_opportunities,
     stock_movements,
-    feed_raw_materials,
-    feed_raw_batches,
-    feed_formulas,
-    feed_formula_versions,
-    feed_formula_ingredients,
-    feed_facility_zones,
-    feed_production_orders,
-    feed_finished_batches,
-    feed_quality_checks,
-    feed_trials,
-    feed_phase1_comparisons,
   }), [
     animaux,
     avicole,
@@ -144,16 +122,5 @@ export default function useCrudModules() {
     payments,
     sales_opportunities,
     stock_movements,
-    feed_raw_materials,
-    feed_raw_batches,
-    feed_formulas,
-    feed_formula_versions,
-    feed_formula_ingredients,
-    feed_facility_zones,
-    feed_production_orders,
-    feed_finished_batches,
-    feed_quality_checks,
-    feed_trials,
-    feed_phase1_comparisons,
   ]);
 }

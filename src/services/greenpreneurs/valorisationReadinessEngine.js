@@ -213,11 +213,11 @@ function buildTallowGoReadiness(dataMap) {
   if (treasury.net > 0) readyItems.push('Trésorerie positive');
 
   const nextActions = [];
-  if (compliance.score < 10) nextActions.push('Préparer conformité cosmétique Tallow & Go');
-  if (compliance.score < 15) nextActions.push('Créer tâche : identifier laboratoire cosmétique');
-  nextActions.push('Créer tâche : chiffrer packaging');
-  nextActions.push('Créer opportunité : tester demande marché');
-  nextActions.push('Créer document : cahier de traçabilité suif');
+  if (compliance.score < 10) nextActions.push('Critère futur : conformité cosmétique à cadrer');
+  if (compliance.score < 15) nextActions.push('Critère futur : laboratoire cosmétique à identifier');
+  nextActions.push('Critère futur : packaging à chiffrer');
+  nextActions.push('Critère futur : demande marché à valider');
+  nextActions.push('Critère futur : traçabilité suif à documenter');
 
   const bestMoment = total >= 75
     ? 'Conditions réunies — pilote Tallow & Go envisageable'
@@ -242,10 +242,10 @@ function buildBoviniaReadiness(dataMap) {
   if (!traceability) blockers.push('Traçabilité des lots non prête');
 
   const nextActions = [
-    'Cadrer conformité alimentaire BOVINIA',
-    'Planifier équipement déshydratation',
-    'Documenter traçabilité lots os',
-    'Identifier demande nutrition / bien-être',
+    'Critère futur : conformité alimentaire à cadrer',
+    'Critère futur : équipement déshydratation à évaluer',
+    'Critère futur : traçabilité lots os à documenter',
+    'Critère futur : demande nutrition / bien-être à valider',
   ];
 
   const bestMoment = total >= 75

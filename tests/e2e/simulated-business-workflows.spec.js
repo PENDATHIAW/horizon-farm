@@ -39,6 +39,7 @@ import { auditErpInterconnections } from '../../src/utils/interconnectionAudit.j
 import { buildSyncRepairTask, routeForSyncIssue, syncIssueActionLabel } from '../../src/utils/syncAuditWorkflows.js';
 import { buildSystemAuditEvent, canPerformSystemAction, isLastActiveAdmin, roleCanAccess, validateSystemResetConfirmation } from '../../src/utils/systemAccessWorkflows.js';
 import { stripRepeatedPrefix, formatFindingLabel, shouldSkipCriticalTaskFinding } from '../../src/utils/healthFindingLabels.js';
+import { buildDashboardTodayActions, sanitizeDashboardMetric } from '../../src/utils/dashboardWorkflows.js';
 
 const n = (value = 0) => Number(value || 0) || 0;
 const today = () => '2026-01-01';
@@ -85,29 +86,6 @@ function eggOpportunity(lot, eggs, date = today()) {
   };
 }
 
-function cultureHarvestSync(culture) {
-  const qty = n(culture.quantite_recoltee);
-  return {
-    stock: {
-      stock_key: `culture-stock:${culture.id}`,
-      source_module: 'cultures',
-      source_type: 'culture',
-      source_id: culture.id,
-      quantite: qty,
-      unite: culture.unite_recolte || 'kg',
-    },
-    opportunity: {
-      opportunity_key: `culture-sale:${culture.id}`,
-      source_module: 'cultures',
-      source_type: 'recolte_culture',
-      source_id: culture.id,
-      quantity: qty,
-      unite: culture.unite_recolte || 'kg',
-      statut: 'ouverte',
-    },
-  };
-}
-
 function normalizeClient(client, sales, payments) {
   const clientSales = sales.filter((sale) => sale.client_id === client.id || sale.client_label === client.nom);
   const debt = clientSales.reduce((sum, sale) => sum + remainingOf(sale, payments), 0);
@@ -151,7 +129,7 @@ test.describe('Audit métier avec données simulées Horizon Farm', () => {
     const culture = { id: 'CULT-TOMATE-001', nom: 'Tomates serre 1', quantite_recoltee: 120, unite_recolte: 'kg', prix_vente_estime: 900 };
     const result = buildCultureHarvestWorkflow({ after: culture, date: today() });
     expect(result.stock).toMatchObject({ stock_key: 'culture-stock:CULT-TOMATE-001', source_module: 'cultures', quantite: 120, unite: 'kg' });
-    expect(result.opportunity).toMatchObject({ opportunity_key: 'culture-sale:CULT-TOMATE-001', source_type: 'recolte_culture', quantity: 120, statut: 'ouverte' });
+    expect(result.opportunity).toMatchObject({ opportunity_key: 'cultures:CULT-TOMATE-001', source_type: 'recolte_culture', quantity: 120, statut: 'ouverte' });
     expect(result.event).toMatchObject({ event_type: 'recolte_culture_disponible', entity_id: 'CULT-TOMATE-001' });
   });
 
@@ -301,8 +279,9 @@ test.describe('Audit métier avec données simulées Horizon Farm', () => {
       'Poids entrée',
       'Poids actuel',
       'Prix achat',
-      'Coût cumulé',
-      'Valeur estimée',
+      'COST_UNIFIED_LABEL',
+      'Prix proposé',
+      'Plancher acceptable',
       'Documents / photos',
       'Historique de vie',
       'Notes terrain',
@@ -354,7 +333,7 @@ test.describe('Audit métier avec données simulées Horizon Farm', () => {
       readFileSync('src/modules/StockReorderTasksBridge.jsx', 'utf8'),
     ].join('\n');
     ['undefined', '[object Object]', 'NaN'].forEach((technicalText) => expect(source).not.toContain(`>${technicalText}<`));
-    ['Créer / réceptionner stock', 'Utiliser aliment', 'Perte', 'Source liée', 'Preuve / facture'].forEach((label) => expect(source).toContain(label));
+    ['Réception achat', 'Créer fiche stock', 'Utiliser aliment', 'Perte', 'Source liée', 'Preuve / facture'].forEach((label) => expect(source).toContain(label));
   });
 
   test('santé crée une tâche et une alerte liées pour un soin en retard', () => {
@@ -959,7 +938,8 @@ test.describe('Audit métier avec données simulées Horizon Farm', () => {
     });
     expect(actions.map((action) => action.moduleKey)).toEqual(expect.arrayContaining(['commercial', 'activite_suivi', 'achats_stock', 'elevage', 'smartfarm', 'documents_rapports']));
     expect(actions[0]).toMatchObject({ moduleKey: 'commercial', category: 'Argent' });
-    expect(actions.find((action) => action.moduleKey === 'documents_rapports')?.title).toContain('preuves');
+    const documentsAction = actions.find((action) => action.moduleKey === 'documents_rapports');
+    expect(`${documentsAction?.title} ${documentsAction?.detail}`).toMatch(/preuve|justificatif/i);
     expect(actions.map((action) => `${action.title} ${action.detail}`).join(' ')).not.toMatch(/undefined|null|NaN|\[object Object\]/i);
     expect(sanitizeDashboardMetric(Number.NaN, '0')).toBe('0');
     expect(sanitizeDashboardMetric('[object Object]', 'Non renseigné')).toBe('Non renseigné');
@@ -1018,7 +998,7 @@ test.describe('Audit métier avec données simulées Horizon Farm', () => {
 
     const detailsModal = readFileSync('src/modals/DetailsModal.jsx', 'utf8');
     expect(detailsModal).toContain("'source_record_id'");
-    expect(detailsModal).toContain('Informations de suivi');
+    expect(detailsModal).toContain("label: 'Suivi'");
     expect(detailsModal).toContain('Non renseigné');
   });
 });

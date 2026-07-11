@@ -53,19 +53,6 @@ import {
 } from '../services/salesService';
 import { whatsappLogsService, whatsappTemplatesService } from '../services/whatsappService';
 import { stockMovementsCrud } from '../services/stockMovementsService';
-import {
-  feedFacilityZonesService,
-  feedFinishedBatchesService,
-  feedFormulaIngredientsService,
-  feedFormulaVersionsService,
-  feedFormulasService,
-  feedPhase1ComparisonsService,
-  feedProductionOrdersService,
-  feedQualityChecksService,
-  feedRawBatchesService,
-  feedRawMaterialsService,
-  feedTrialsService,
-} from '../services/agriFeedsService';
 import { supabase } from '../lib/supabase';
 import { normalizeByModule } from '../utils/normalize.js';
 import { clearOfflineQueue, enqueueOfflineMutation, isBrowserOffline, readOfflineQueue, saveOfflineQueue } from '../services/offlineQueueService';
@@ -116,17 +103,6 @@ const serviceMap = {
   payments: paymentsService,
   sales_opportunities: salesOpportunitiesService,
   stock_movements: stockMovementsCrud,
-  feed_raw_materials: feedRawMaterialsService,
-  feed_raw_batches: feedRawBatchesService,
-  feed_formulas: feedFormulasService,
-  feed_formula_versions: feedFormulaVersionsService,
-  feed_formula_ingredients: feedFormulaIngredientsService,
-  feed_facility_zones: feedFacilityZonesService,
-  feed_production_orders: feedProductionOrdersService,
-  feed_finished_batches: feedFinishedBatchesService,
-  feed_quality_checks: feedQualityChecksService,
-  feed_trials: feedTrialsService,
-  feed_phase1_comparisons: feedPhase1ComparisonsService,
 };
 
 const emptyInitialData = () => Object.fromEntries(['dashboard', ...Object.keys(serviceMap), 'sync'].map((key) => [key, []]));

@@ -9,12 +9,14 @@ import ProductionTab from './agriFeeds/tabs/ProductionTab.jsx';
 import TrialsComparisonTab from './agriFeeds/tabs/TrialsComparisonTab.jsx';
 import CommercialTab from './agriFeeds/tabs/CommercialTab.jsx';
 import QualityReportingTab from './agriFeeds/tabs/QualityReportingTab.jsx';
+import useAgriFeedsData from './agriFeeds/hooks/useAgriFeedsData.js';
 
 const arr = (value) => (Array.isArray(value) ? value : []);
 const crudRows = (crud, key) => arr(crud?.[key]?.rows);
 
 export default function AgriFeedsModule(props) {
   const { initialTab, onTabChange } = props;
+  const agriFeedsCrud = useAgriFeedsData({ activeFarm: props.activeFarm });
   const controlled = Boolean(onTabChange);
   const [internalTab, setInternalTab] = useState(() => resolveAgriFeedsTab(initialTab || 'Tableau de bord'));
   const tab = controlled
@@ -52,23 +54,23 @@ export default function AgriFeedsModule(props) {
     rapports: arr(props.rapports ?? props.dataMap?.rapports ?? crudRows(props.crud, 'rapports')),
     audit_logs: arr(props.auditLogs ?? props.dataMap?.audit_logs ?? crudRows(props.crud, 'audit_logs')),
     production_oeufs_logs: arr(props.productionLogs ?? props.dataMap?.production_oeufs_logs ?? crudRows(props.crud, 'production_oeufs_logs')),
-    feed_raw_materials: arr(props.feedRawMaterials ?? props.dataMap?.feed_raw_materials ?? crudRows(props.crud, 'feed_raw_materials')),
-    feed_raw_batches: arr(props.feedRawBatches ?? props.dataMap?.feed_raw_batches ?? crudRows(props.crud, 'feed_raw_batches')),
-    feed_formulas: arr(props.feedFormulas ?? props.dataMap?.feed_formulas ?? crudRows(props.crud, 'feed_formulas')),
-    feed_formula_versions: arr(props.feedFormulaVersions ?? props.dataMap?.feed_formula_versions ?? crudRows(props.crud, 'feed_formula_versions')),
-    feed_formula_ingredients: arr(props.feedFormulaIngredients ?? props.dataMap?.feed_formula_ingredients ?? crudRows(props.crud, 'feed_formula_ingredients')),
-    feed_facility_zones: arr(props.feedFacilityZones ?? props.dataMap?.feed_facility_zones ?? crudRows(props.crud, 'feed_facility_zones')),
-    feed_trials: arr(props.feedTrials ?? props.dataMap?.feed_trials ?? crudRows(props.crud, 'feed_trials')),
-    feed_phase1_comparisons: arr(props.feedPhase1Comparisons ?? props.dataMap?.feed_phase1_comparisons ?? crudRows(props.crud, 'feed_phase1_comparisons')),
-    feed_production_orders: arr(props.feedProductionOrders ?? props.dataMap?.feed_production_orders ?? crudRows(props.crud, 'feed_production_orders')),
-    feed_finished_batches: arr(props.feedFinishedBatches ?? props.dataMap?.feed_finished_batches ?? crudRows(props.crud, 'feed_finished_batches')),
-    feed_quality_checks: arr(props.feedQualityChecks ?? props.dataMap?.feed_quality_checks ?? crudRows(props.crud, 'feed_quality_checks')),
-  }), [props]);
+    feed_raw_materials: arr(props.feedRawMaterials ?? props.dataMap?.feed_raw_materials ?? crudRows(agriFeedsCrud, 'feed_raw_materials')),
+    feed_raw_batches: arr(props.feedRawBatches ?? props.dataMap?.feed_raw_batches ?? crudRows(agriFeedsCrud, 'feed_raw_batches')),
+    feed_formulas: arr(props.feedFormulas ?? props.dataMap?.feed_formulas ?? crudRows(agriFeedsCrud, 'feed_formulas')),
+    feed_formula_versions: arr(props.feedFormulaVersions ?? props.dataMap?.feed_formula_versions ?? crudRows(agriFeedsCrud, 'feed_formula_versions')),
+    feed_formula_ingredients: arr(props.feedFormulaIngredients ?? props.dataMap?.feed_formula_ingredients ?? crudRows(agriFeedsCrud, 'feed_formula_ingredients')),
+    feed_facility_zones: arr(props.feedFacilityZones ?? props.dataMap?.feed_facility_zones ?? crudRows(agriFeedsCrud, 'feed_facility_zones')),
+    feed_trials: arr(props.feedTrials ?? props.dataMap?.feed_trials ?? crudRows(agriFeedsCrud, 'feed_trials')),
+    feed_phase1_comparisons: arr(props.feedPhase1Comparisons ?? props.dataMap?.feed_phase1_comparisons ?? crudRows(agriFeedsCrud, 'feed_phase1_comparisons')),
+    feed_production_orders: arr(props.feedProductionOrders ?? props.dataMap?.feed_production_orders ?? crudRows(agriFeedsCrud, 'feed_production_orders')),
+    feed_finished_batches: arr(props.feedFinishedBatches ?? props.dataMap?.feed_finished_batches ?? crudRows(agriFeedsCrud, 'feed_finished_batches')),
+    feed_quality_checks: arr(props.feedQualityChecks ?? props.dataMap?.feed_quality_checks ?? crudRows(agriFeedsCrud, 'feed_quality_checks')),
+  }), [props, agriFeedsCrud]);
 
   const workflowHandlers = {
-    onCreateFeedRawMaterial: props.onCreateFeedRawMaterial || props.crud?.feed_raw_materials?.create,
-    onCreateFeedRawBatch: props.onCreateFeedRawBatch || props.crud?.feed_raw_batches?.create,
-    onUpdateFeedRawBatch: props.onUpdateFeedRawBatch || props.crud?.feed_raw_batches?.update,
+    onCreateFeedRawMaterial: props.onCreateFeedRawMaterial || agriFeedsCrud.feed_raw_materials.create,
+    onCreateFeedRawBatch: props.onCreateFeedRawBatch || agriFeedsCrud.feed_raw_batches.create,
+    onUpdateFeedRawBatch: props.onUpdateFeedRawBatch || agriFeedsCrud.feed_raw_batches.update,
     onCreateStock: props.onCreateStock || props.crud?.stock?.create,
     onUpdateStock: props.onUpdateStock || props.crud?.stock?.update,
     onCreateStockMovement: props.onCreateStockMovement || props.crud?.stock_movements?.create,
@@ -76,19 +78,19 @@ export default function AgriFeedsModule(props) {
     onUpdateSupplier: props.onUpdateSupplier || props.crud?.fournisseurs?.update,
     onCreateBusinessEvent: props.onCreateBusinessEvent || props.crud?.business_events?.create,
     onCreateAlert: props.onCreateAlert || props.crud?.alertes_center?.create,
-    onCreateFeedFormula: props.onCreateFeedFormula || props.crud?.feed_formulas?.create,
-    onUpdateFeedFormula: props.onUpdateFeedFormula || props.crud?.feed_formulas?.update,
-    onCreateFeedFormulaVersion: props.onCreateFeedFormulaVersion || props.crud?.feed_formula_versions?.create,
-    onCreateFeedFormulaIngredient: props.onCreateFeedFormulaIngredient || props.crud?.feed_formula_ingredients?.create,
-    onCreateFeedProductionOrder: props.onCreateFeedProductionOrder || props.crud?.feed_production_orders?.create,
-    onUpdateFeedProductionOrder: props.onUpdateFeedProductionOrder || props.crud?.feed_production_orders?.update,
-    onCreateFeedFinishedBatch: props.onCreateFeedFinishedBatch || props.crud?.feed_finished_batches?.create,
-    onUpdateFeedFinishedBatch: props.onUpdateFeedFinishedBatch || props.crud?.feed_finished_batches?.update,
-    onCreateFeedQualityCheck: props.onCreateFeedQualityCheck || props.crud?.feed_quality_checks?.create,
-    onCreateFeedTrial: props.onCreateFeedTrial || props.crud?.feed_trials?.create,
-    onUpdateFeedTrial: props.onUpdateFeedTrial || props.crud?.feed_trials?.update,
-    onCreateFeedPhase1Comparison: props.onCreateFeedPhase1Comparison || props.crud?.feed_phase1_comparisons?.create,
-    onUpdateFeedPhase1Comparison: props.onUpdateFeedPhase1Comparison || props.crud?.feed_phase1_comparisons?.update,
+    onCreateFeedFormula: props.onCreateFeedFormula || agriFeedsCrud.feed_formulas.create,
+    onUpdateFeedFormula: props.onUpdateFeedFormula || agriFeedsCrud.feed_formulas.update,
+    onCreateFeedFormulaVersion: props.onCreateFeedFormulaVersion || agriFeedsCrud.feed_formula_versions.create,
+    onCreateFeedFormulaIngredient: props.onCreateFeedFormulaIngredient || agriFeedsCrud.feed_formula_ingredients.create,
+    onCreateFeedProductionOrder: props.onCreateFeedProductionOrder || agriFeedsCrud.feed_production_orders.create,
+    onUpdateFeedProductionOrder: props.onUpdateFeedProductionOrder || agriFeedsCrud.feed_production_orders.update,
+    onCreateFeedFinishedBatch: props.onCreateFeedFinishedBatch || agriFeedsCrud.feed_finished_batches.create,
+    onUpdateFeedFinishedBatch: props.onUpdateFeedFinishedBatch || agriFeedsCrud.feed_finished_batches.update,
+    onCreateFeedQualityCheck: props.onCreateFeedQualityCheck || agriFeedsCrud.feed_quality_checks.create,
+    onCreateFeedTrial: props.onCreateFeedTrial || agriFeedsCrud.feed_trials.create,
+    onUpdateFeedTrial: props.onUpdateFeedTrial || agriFeedsCrud.feed_trials.update,
+    onCreateFeedPhase1Comparison: props.onCreateFeedPhase1Comparison || agriFeedsCrud.feed_phase1_comparisons.create,
+    onUpdateFeedPhase1Comparison: props.onUpdateFeedPhase1Comparison || agriFeedsCrud.feed_phase1_comparisons.update,
     onCreateSaleOrder: props.onCreateSaleOrder || props.crud?.sales_orders?.create,
     onCreateSaleOrderItem: props.onCreateSaleOrderItem || props.crud?.sales_order_items?.create,
     onUpdateClient: props.onUpdateClient || props.crud?.clients?.update,

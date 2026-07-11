@@ -3,11 +3,31 @@ import { toNumber } from './format';
 export const arr = (value) => (Array.isArray(value) ? value : []);
 
 const stockUnitPrice = (stock = {}) => toNumber(stock.prixUnit ?? stock.prix_unitaire ?? stock.unit_price ?? stock.price);
+const lower = (value) => String(value || '').toLowerCase();
+const activeAnimalStatuses = new Set(['vendu', 'mort', 'vole', 'volé', 'reforme', 'réforme']);
+const activeLotStatuses = new Set(['vendu', 'termine', 'terminé', 'perdu', 'archive', 'archivé']);
+const stockLabel = (stock = {}) => lower(`${stock.produit || ''} ${stock.name || ''} ${stock.nom || ''} ${stock.categorie || ''} ${stock.category || ''}`);
+const lotLabel = (lot = {}) => lower(`${lot.type || ''} ${lot.type_lot || ''} ${lot.name || ''} ${lot.nom || ''}`);
+const animalLabel = (animal = {}) => lower(`${animal.type || ''} ${animal.espece || ''} ${animal.species || ''} ${animal.name || ''} ${animal.nom || ''}`);
+const isActiveAnimal = (animal = {}) => animal?.id && !activeAnimalStatuses.has(lower(animal.status || animal.statut));
+const isActiveLot = (lot = {}) => lot?.id && !activeLotStatuses.has(lower(lot.status || lot.statut));
+const categoryFromText = (text) => {
+  const value = lower(text);
+  if (/pondeuse|layer|oeuf|œuf/.test(value)) return 'pondeuse';
+  if (/chair|broiler|poulet/.test(value)) return 'chair';
+  if (/caprin|chevre|chèvre/.test(value)) return 'caprin';
+  if (/ovin|mouton|brebis/.test(value)) return 'ovin';
+  if (/bovin|boeuf|bœuf|vache|taureau/.test(value)) return 'bovin';
+  return '';
+};
+const lotCategory = (lot = {}) => categoryFromText(lotLabel(lot));
+const animalCategory = (animal = {}) => categoryFromText(animalLabel(animal));
+const one = (rows = []) => (rows.length === 1 ? rows[0] : null);
 
 export function alimentationFields({ stocks = [], animaux = [], lots = [], fournisseurs = [], isFood = () => false } = {}) {
   const foodStocks = arr(stocks).filter(isFood);
-  const activeAnimals = arr(animaux).filter((a) => a?.id && !['vendu', 'mort', 'vole', 'volé', 'reforme', 'réforme'].includes(String(a.status || a.statut || '').toLowerCase()));
-  const activeLots = arr(lots).filter((l) => l?.id && !['vendu', 'termine', 'terminé', 'perdu', 'archive', 'archivé'].includes(String(l.status || l.statut || '').toLowerCase()));
+  const activeAnimals = arr(animaux).filter(isActiveAnimal);
+  const activeLots = arr(lots).filter(isActiveLot);
   const supplierOptions = arr(fournisseurs).map((f) => ({ value: f.id, label: f.nom || f.name || f.id }));
 
   return [
@@ -41,9 +61,22 @@ export function alimentationFields({ stocks = [], animaux = [], lots = [], fourn
   ];
 }
 
-export function deriveAlimentationValues({ stocks = [], fournisseurs = [] } = {}) {
-  return (next, changedKey, previous = {}) => {
+export function deriveAlimentationValues({ stocks = [], fournisseurs = [], animaux = [], lots = [], isFood = () => false } = {}) {
+  return (next, changedKey) => {
     const out = { ...next };
+    const foodStocks = arr(stocks).filter(isFood);
+    const activeAnimals = arr(animaux).filter(isActiveAnimal);
+    const activeLots = arr(lots).filter(isActiveLot);
+    let autoSelectedStock = false;
+
+    if (changedKey === null && (!out.stock_id || out.stock_id === '__manual__')) {
+      const onlyStock = one(foodStocks);
+      if (onlyStock) {
+        out.stock_id = onlyStock.id;
+        autoSelectedStock = true;
+      }
+    }
+
     const stock = out.stock_id && out.stock_id !== '__manual__'
       ? arr(stocks).find((s) => String(s.id) === String(out.stock_id))
       : null;
@@ -51,12 +84,43 @@ export function deriveAlimentationValues({ stocks = [], fournisseurs = [] } = {}
     if (stock && (changedKey === null || changedKey === 'stock_id')) {
       if (!out.produit) out.produit = stock.produit || stock.name || stock.nom || '';
       if (!out.fournisseur_id && stock.fournisseur_id) out.fournisseur_id = stock.fournisseur_id;
+      if (!out.unite && stock.unite) out.unite = stock.unite;
+      const inferredCategory = categoryFromText(stockLabel(stock));
+      if (inferredCategory && (!out.categorie || changedKey === 'stock_id' || autoSelectedStock)) out.categorie = inferredCategory;
       const unitPrice = stockUnitPrice(stock);
       const qty = toNumber(out.quantite);
       if (unitPrice > 0 && qty > 0 && (!out.montant_total || changedKey === 'stock_id')) {
         out.montant_total = String(Math.round(unitPrice * qty));
       }
       if (unitPrice > 0 && !out.prix_unitaire) out.prix_unitaire = String(Number(unitPrice.toFixed(2)));
+    }
+
+    if (!out.fournisseur_id && changedKey === null) {
+      const onlySupplier = one(arr(fournisseurs).filter((f) => f?.id));
+      if (onlySupplier) out.fournisseur_id = onlySupplier.id;
+    }
+
+    const targetCategory = out.categorie || categoryFromText(out.produit);
+    if ((changedKey === null || changedKey === 'stock_id' || changedKey === 'categorie' || changedKey === 'type_cible') && !out.cible_id) {
+      if (out.type_cible === 'animal') {
+        const onlyAnimal = one(targetCategory ? activeAnimals.filter((item) => animalCategory(item) === targetCategory) : activeAnimals);
+        if (onlyAnimal) out.cible_id = onlyAnimal.id;
+      } else if (out.type_cible === 'lot_avicole') {
+        const onlyLot = one(targetCategory ? activeLots.filter((item) => lotCategory(item) === targetCategory) : activeLots);
+        if (onlyLot) out.cible_id = onlyLot.id;
+      } else if (['pondeuse', 'chair'].includes(targetCategory)) {
+        const onlyLot = one(activeLots.filter((item) => lotCategory(item) === targetCategory));
+        if (onlyLot) {
+          out.type_cible = 'lot_avicole';
+          out.cible_id = onlyLot.id;
+        }
+      } else if (['bovin', 'ovin', 'caprin'].includes(targetCategory)) {
+        const onlyAnimal = one(activeAnimals.filter((item) => animalCategory(item) === targetCategory));
+        if (onlyAnimal) {
+          out.type_cible = 'animal';
+          out.cible_id = onlyAnimal.id;
+        }
+      }
     }
 
     const qty = toNumber(out.quantite);

@@ -51,7 +51,6 @@ export function normalizeGreenpreneursDataMap(raw = {}) {
 export function buildGreenpreneursCentreAlerts(metrics = {}) {
   const alerts = [];
   const circular = metrics.circular || {};
-  const valorisation = metrics.valorisation || {};
   const orgaloop = circular.orgaloop || {};
   const orgaloopHybrid = circular.orgaloopHybrid ?? ORGALOOP_EFFLUENT_CHANNEL.strategy === 'hybride_surplus_orgaloop';
   const orgaloopPrimary = circular.orgaloopPrimary
@@ -130,19 +129,6 @@ export function buildGreenpreneursCentreAlerts(metrics = {}) {
       detail: `${Math.round(orgaloop.soldKg)} kg vendus · ${orgaloop.revenueFcfa > 0 ? `${Math.round(orgaloop.revenueFcfa).toLocaleString('fr-FR')} FCFA` : 'revenu à renseigner'}.`,
       severity: 'info',
       navigate: { module: 'commercial', tab: 'Ventes' },
-    });
-  }
-
-  const tallow = valorisation.phase2_tallow_go;
-  if (tallow?.status === 'a_preparer' || tallow?.status === 'pilote_possible') {
-    (tallow.nextActions || []).slice(0, 2).forEach((action, idx) => {
-      alerts.push({
-        id: `gp-tallow-${idx}`,
-        title: `Tallow & Go — ${action}`,
-        detail: tallow.bestMoment || 'Préparer la phase 2 selon les données ERP.',
-        severity: 'info',
-        navigate: { module: 'objectifs_croissance', tab: 'Suivi du Business Plan' },
-      });
     });
   }
 

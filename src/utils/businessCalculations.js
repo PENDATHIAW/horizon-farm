@@ -1,6 +1,7 @@
-import { getCalculatedAnimalFeedingCost, getLotFeedingCategory } from './alimentation';
+import { getLotFeedingCategory } from './alimentation';
 import { validateAnimalPayload } from './animalValidation';
 import { calculateUnifiedAnimalCost, calculateUnifiedLotCost, mapUnifiedToLotMetricsFields } from '../services/unifiedCostService.js';
+import { avicoleActiveCount } from './avicoleMetrics.js';
 import { toNumber } from './format';
 
 const EGGS_PER_TABLET = 30;
@@ -45,9 +46,7 @@ export const isLayerLot = (lot = {}) => ['pondeuse', 'pondeuses'].includes(clean
 export const isBroilerLot = (lot = {}) => ['chair', 'poulet_chair', 'poulets_chair'].includes(clean(lot.type)) || lot.type === 'Chair';
 
 export const calculateLotCurrentCount = (lot = {}) => {
-  const initial = toNumber(lot.initial_count ?? lot.effectif_initial);
-  const losses = toNumber(lot.mortality) + toNumber(lot.vols) + toNumber(lot.vendus) + toNumber(lot.reformes) + toNumber(lot.sorties);
-  return Math.max(0, initial - losses);
+  return avicoleActiveCount(lot);
 };
 
 export const getLotDefaultCycle = (lot = {}) => {
@@ -202,7 +201,7 @@ export const calculateLotSaleReadiness = (lot = {}, metrics = calculateLotMetric
   return { score, status: score >= 86 ? 'recommande_pret' : score >= 65 ? 'presque_pret' : 'non_pret', recommended: score >= 86, reason: criteria.filter((item) => item.ok).map((item) => item.label).join(', '), missing: criteria.filter((item) => !item.ok).map((item) => item.label), ageDays: age, expectedEndDate: expectedEnd };
 };
 
-export const calculateAnimalMetrics = ({ animal = {}, animals = [], feedingLogs = [], vaccins = [], healthEvents = [], directCharges = [] } = {}) => {
+export const calculateAnimalMetrics = ({ animal = {}, feedingLogs = [], vaccins = [], healthEvents = [], directCharges = [] } = {}) => {
   const validation = validateAnimalPayload(animal);
   const unified = calculateUnifiedAnimalCost({ animal, alimentationLogs: feedingLogs, vaccins, healthEvents, directCharges });
   const feedingCost = unified.feedingCost;
