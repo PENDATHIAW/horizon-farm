@@ -195,7 +195,7 @@ const linkSalesOrderToOpportunity = async (createdOrder = {}, originalPayload = 
     return { ...createdOrder, opportunity_id: createdOrder.opportunity_id || match.id, decision_origin: createdOrder.decision_origin || originalPayload.decision_origin || 'opportunite_vente', attributable_to_decision_center: true };
   } catch { return createdOrder; }
 };
-const writeDeletedRecord = async ({ table, id, idField }) => {
+const writeDeletedRecord = async ({ table, id }) => {
   writeRealDeletedId(table, id);
 };
 const trySoftDelete = async ({ table, id, idField }) => {

@@ -1,9 +1,9 @@
 /**
- * Flux coproduits bovins (suif, os) — traçabilité ERP + stock optionnel + opportunités phase future.
+ * Flux coproduits bovins (suif, os) — traçabilité ERP + stock optionnel.
  *
- * Par défaut : on enregistre les quantités en business_events (preuve Greenpreneurs / Tallow & Go)
+ * Par défaut : on enregistre les quantités en business_events (preuve Greenpreneurs)
  * SANS créer de stock suif/os — le suif brut se périme vite ; le stock n'est utile que quand
- * la phase 2 (transformation / congélation) est prête.
+ * la transformation / congélation est prête.
  */
 import { makeId } from '../../utils/ids.js';
 import { toNumber } from '../../utils/format.js';
@@ -11,7 +11,6 @@ import {
   CIRCULAR_SIMULATION_MONTHLY_KG,
   COPRODUCT_AUTO_STOCK_ENABLED,
   SUIF_RAW_MAX_STORAGE_DAYS,
-  VALORISATION_OPPORTUNITY_TEMPLATES,
 } from '../../config/derfjGreenpreneurs.config.js';
 
 const arr = (value) => (Array.isArray(value) ? value : []);
@@ -121,35 +120,6 @@ async function upsertCoproductStock({
   return id;
 }
 
-function hasValorisationOpportunity(opportunities = [], key) {
-  const template = VALORISATION_OPPORTUNITY_TEMPLATES[key];
-  if (!template) return false;
-  return arr(opportunities).some((opp) => {
-    const text = norm(`${opp.title || ''} ${opp.activity_type || ''} ${opp.phase || ''}`);
-    return text.includes(norm(template.match)) || norm(opp.created_from) === norm(template.created_from);
-  });
-}
-
-async function ensureValorisationOpportunities({ opportunities = [], handlers = {}, animalLabel = '' }) {
-  const { onCreateOpportunity, onRefreshOpportunities } = handlers;
-  if (!onCreateOpportunity) return;
-
-  for (const key of ['tallow_go', 'bovinia']) {
-    if (hasValorisationOpportunity(opportunities, key)) continue;
-    const template = VALORISATION_OPPORTUNITY_TEMPLATES[key];
-    await onCreateOpportunity({
-      id: makeId('OPP'),
-      ...template,
-      notes: `${template.notes} · déclenché après sortie bovin (${animalLabel})`,
-      status: 'a_traiter',
-      statut: 'a_traiter',
-      date: today(),
-      created_at: new Date().toISOString(),
-    });
-  }
-  await onRefreshOpportunities?.();
-}
-
 /**
  * Émet suif/os en business_events (+ stock optionnel) lors d'une sortie bovin.
  */
@@ -165,7 +135,6 @@ export async function emitBovinCoproductSideEffects({
   sourceType,
   skipStock,
   createCoproductStock = false,
-  skipOpportunities = false,
 } = {}) {
   const id = animalId || animal.id;
   if (!id || !isBovinAnimal(animal)) return { emitted: false, reason: 'not_bovin' };
@@ -174,8 +143,6 @@ export async function emitBovinCoproductSideEffects({
     onCreateBusinessEvent,
     onCreateStock,
     onUpdateStock,
-    onCreateOpportunity,
-    onRefreshOpportunities,
     onRefreshBusinessEvents,
   } = handlers;
 
@@ -255,14 +222,6 @@ export async function emitBovinCoproductSideEffects({
     stockCreated = true;
   }
 
-  if (!skipOpportunities) {
-    await ensureValorisationOpportunities({
-      opportunities: context.opportunities || context.sales_opportunities || [],
-      handlers: { onCreateOpportunity, onRefreshOpportunities },
-      animalLabel,
-    });
-  }
-
   await onRefreshBusinessEvents?.();
   return {
     emitted: true,
@@ -273,5 +232,6 @@ export async function emitBovinCoproductSideEffects({
     stockCreated,
     storageAdvice: traceNote,
     traceOnly: !stockCreated,
+    opportunitiesCreated: false,
   };
 }

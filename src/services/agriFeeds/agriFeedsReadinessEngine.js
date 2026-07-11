@@ -235,8 +235,9 @@ function scorePilotPhase2A(dataMap = {}, phase1 = {}) {
       ? mortalityRates.reduce((a, b) => a + b, 0) / mortalityRates.length
       : null;
     const openHealthAlerts = alerts.filter((a) => isCriticalAlert(a) && norm(`${a.module_source || a.module || ''}`).includes('sante')).length;
+    const riskyAnimals = animaux.filter((animal) => ['malade', 'critique', 'a_surveiller', 'sous_traitement'].some((status) => norm(`${animal.health_status || animal.status || animal.statut}`).includes(status))).length;
     if (avgMortality != null) {
-      if (avgMortality <= 5 && openHealthAlerts === 0) {
+      if (avgMortality <= 5 && openHealthAlerts === 0 && riskyAnimals === 0) {
         s = cap;
         met.push(`Mortalité moyenne ${avgMortality.toFixed(1)} %`);
       } else if (avgMortality <= 10 && openHealthAlerts === 0) {
@@ -246,6 +247,7 @@ function scorePilotPhase2A(dataMap = {}, phase1 = {}) {
         s = cap * 0.3;
         warnings.push(`Mortalité moyenne ${avgMortality.toFixed(1)} % ou alertes sanitaires ouvertes`);
         if (openHealthAlerts > 0) missing.push(`${openHealthAlerts} alerte(s) sanitaire critique ouverte(s)`);
+        if (riskyAnimals > 0) missing.push(`${riskyAnimals} animal/animaux à risque sanitaire`);
       }
       if (santeEvents.length === 0) warnings.push('Aucun événement sanitaire tracé');
     } else {
@@ -363,7 +365,7 @@ function scorePilotPhase2A(dataMap = {}, phase1 = {}) {
     const warnings = [];
     const used = ['invoices', 'payments'];
     const missingData = [];
-    let s = 0;
+    let s;
     const receivables = invoices.reduce((sum, inv) => {
       const total = toNumber(inv.montant_total || inv.total_ttc);
       const paid = toNumber(inv.montant_paye || inv.paid_amount);
@@ -484,7 +486,7 @@ function scorePilotPhase2A(dataMap = {}, phase1 = {}) {
     const warnings = [];
     const used = ['alertes_center'];
     const missingData = [];
-    let s = 0;
+    let s;
     const openCritical = alerts.filter(isCriticalAlert).length;
     if (openCritical === 0) { s = cap; met.push('Aucune alerte critique ouverte'); }
     else if (openCritical <= 2) { s = cap * 0.4; warnings.push(`${openCritical} alerte(s) critique(s) ouverte(s)`); }

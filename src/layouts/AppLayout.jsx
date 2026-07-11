@@ -148,7 +148,7 @@ export default function AppLayout({
   const currentWeather = safeWeather(meteo || weather);
   const displayUser = user?.user_metadata?.login || user?.email?.split('@')[0] || 'Administrateur';
   const farmLocation = activeFarm?.name || activeFarm?.location || currentWeather.location || currentWeather.localisation || currentWeather.city || currentWeather.place || currentWeather.nom_ferme || 'Horizon Farm';
-  const currentDateTime = useMemo(formatDateTime, []);
+  const currentDateTime = useMemo(() => formatDateTime(), []);
   const [globalSearch, setGlobalSearch] = useState('');
   const [mobileSearchOpen, setMobileSearchOpen] = useState(false);
   const [notificationsOpen, setNotificationsOpen] = useState(false);

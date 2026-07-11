@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import ModuleTabsBar from '../components/module/ModuleTabsBar.jsx';
 import { resolveAgriFeedsTab } from '../utils/agriFeedsNavigation.js';
 import AgriFeedsDashboardTab from './agriFeeds/tabs/AgriFeedsDashboardTab.jsx';
@@ -14,25 +14,21 @@ const arr = (value) => (Array.isArray(value) ? value : []);
 const crudRows = (crud, key) => arr(crud?.[key]?.rows);
 
 export default function AgriFeedsModule(props) {
-  const controlled = Boolean(props.onTabChange);
-  const [internalTab, setInternalTab] = useState(() => resolveAgriFeedsTab(props.initialTab || 'Tableau de bord'));
+  const { initialTab, onTabChange } = props;
+  const controlled = Boolean(onTabChange);
+  const [internalTab, setInternalTab] = useState(() => resolveAgriFeedsTab(initialTab || 'Tableau de bord'));
   const tab = controlled
-    ? resolveAgriFeedsTab(props.initialTab || 'Tableau de bord')
+    ? resolveAgriFeedsTab(initialTab || 'Tableau de bord')
     : internalTab;
 
   const setTab = useCallback((value) => {
     const resolved = resolveAgriFeedsTab(value);
     if (controlled) {
-      props.onTabChange?.(resolved);
+      onTabChange?.(resolved);
       return;
     }
     setInternalTab(resolved);
-  }, [controlled, props.onTabChange]);
-
-  useEffect(() => {
-    if (controlled || !props.initialTab) return;
-    setInternalTab(resolveAgriFeedsTab(props.initialTab));
-  }, [controlled, props.initialTab]);
+  }, [controlled, onTabChange]);
 
   const dataMap = useMemo(() => ({
     ...(props.dataMap || {}),

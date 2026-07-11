@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useState } from 'react';
 import {
   RAW_MATERIAL_CATEGORIES,
   QUALITY_STATUSES,
@@ -64,10 +64,7 @@ export default function MaterialsSuppliersTab({
   const [busy, setBusy] = useState(false);
 
   const selectedSupplier = suppliers.find((s) => String(s.id) === String(reception.supplier_id));
-  const hints = useMemo(
-    () => supplierHints(selectedSupplier, dataMap),
-    [selectedSupplier, dataMap],
-  );
+  const hints = supplierHints(selectedSupplier, dataMap);
   const selectedMaterial = materials.find((m) => String(m.id) === String(reception.raw_material_id));
   const thresholds = selectedMaterial ? qualityThresholdsForMaterial(selectedMaterial) : null;
 

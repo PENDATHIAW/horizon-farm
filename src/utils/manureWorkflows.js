@@ -20,7 +20,7 @@ export function manureOpportunityKey(stockId = '') {
   return `fumier-sale:${clean(stockId)}`;
 }
 
-export function resolveManureProfile(target = {}, lots = [], animaux = []) {
+export function resolveManureProfile(target = {}, lots = []) {
   if (target.module_lie === 'avicole') {
     const lotId = clean(target.related_id);
     const lot = (Array.isArray(lots) ? lots : []).find((row) => String(row.id) === lotId)

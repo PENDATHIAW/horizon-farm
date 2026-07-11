@@ -7,11 +7,9 @@ import { scheduleErpHealthEngine, scheduleErpHealthOnCriticalChange } from './se
 import { trackNavOpen } from './services/erpRules/surveillanceUxRules.js';
 import { composeActionTraceShared, composeDecisionDataMap, composeInternalResources, composeReportData } from './services/moduleDataComposer';
 import { refreshAllModules, refreshSalesWorkflow } from './services/workflowRefresh';
-import { resolveCommercialTab, resolveElevageTab, resolveAchatsStockTab, resolveFinanceTab, resolveActiviteSuiviTab, resolveDocumentsTab, resolveRhTab, resolveObjectifsTab, resolveCentreTab, resolveRouteModule, defaultTabForLegacyModule, isCommercialReconciliationAlias } from './utils/commercialNavigation';
+import { resolveCommercialTab, resolveElevageTab, resolveAchatsStockTab, resolveCentreTab, resolveRouteModule, defaultTabForLegacyModule, isCommercialReconciliationAlias } from './utils/commercialNavigation';
 import { parseErpDeepLinkFromSearch, stripErpDeepLinkParamsFromUrl } from './utils/erpDeepLink.js';
-import { resolveCulturesTab } from './utils/culturesNavigation.js';
 import { resolveAgriFeedsTab } from './utils/agriFeedsNavigation.js';
-import { farmCostSettingsService } from './services/farmCostSettingsService';
 import { pruneHeavyLocalStorage } from './utils/safeLocalStorage';
 import { archiveHealthMirrorTasks, findHealthMirrorTasksToArchive } from './utils/pruneHealthMirrorTasks.js';
 import AppNotificationManager from './components/AppNotificationManager';
@@ -275,7 +273,6 @@ export default function App() {
   );
   const activeFarm = farmContext.activeFarm || getDefaultFarmRecord(effectiveAccessibleFarms);
   const periodLabel = useMemo(() => formatPeriodScopeLabel(periodScope), [periodScope]);
-  const periodScopeKey = useMemo(() => JSON.stringify(periodScope), [periodScope]);
   const cRaw = useCrudModules();
   const c = useFarmScopedCrud(cRaw, farmScope, effectiveAccessibleFarms, activeFarm);
   const mirrorPruneBusy = useRef(false);
@@ -305,7 +302,7 @@ export default function App() {
   useEffect(() => {
     clearPeriodFilterCache();
   }, [crudFingerprint]);
-  const base = (key) => ({ rows: rows(c[key]), loading: c[key]?.loading, onCreate: c[key]?.create, onUpdate: c[key]?.update, onDelete: c[key]?.remove, onRefresh: c[key]?.refresh });
+  const base = useCallback((key) => ({ rows: rows(c[key]), loading: c[key]?.loading, onCreate: c[key]?.create, onUpdate: c[key]?.update, onDelete: c[key]?.remove, onRefresh: c[key]?.refresh }), [c]);
 
   const alertCounts = useMemo(() => computeNavAlertCounts(crudRowsMap(c)), [c]);
   const alertFlags = useMemo(() => navAlertFlags(alertCounts, online), [alertCounts, online]);
@@ -328,7 +325,7 @@ export default function App() {
     sensorDevices: rows(c.sensor_devices),
     cameraDevices: rows(c.camera_devices),
     meteo: liveMeteo,
-  }), [c, liveMeteo, crudFingerprint]);
+  }), [c, liveMeteo]);
   const decisionDataMapRaw = useMemo(
     () => applyFarmScopeToDataMap(
       composeDecisionDataMap({ crud: c, dataMap, liveMeteo }),
@@ -879,15 +876,14 @@ export default function App() {
     sync: { ...syncActivityProps, initialTab: syncActivityTab, onTabChange: (nextTab) => setSyncActivityTab(nextTab) },
     sync_activity: { ...syncActivityProps, initialTab: syncActivityTab, onTabChange: (nextTab) => setSyncActivityTab(nextTab) },
   };
-  }, [c, user, liveMeteo, decisionDataMapRaw, crudFingerprint, centreTab, objectifsTab, commercialTab, elevageTab, agriFeedsTab, culturesTab, achatsStockTab, achatsStockContext, financeTab, activiteSuiviTab, documentsRapportsTab, rhTab, gestionSystemeTab, investisseursTab, smartfarmTab, syncActivityTab, farmsPanelAction, accessibleFarms, effectiveAccessibleFarms, refreshAccessibleFarms, online, lastOnlineAt, dataMap, refreshAll, refreshSalesWorkflowFn, navigateModule, setActive, flushOfflineQueue, handleManageFarms, farmComparisonData, openAssistantWithQuery]);
+  }, [c, user, liveMeteo, decisionDataMapRaw, crudFingerprint, centreTab, objectifsTab, commercialTab, elevageTab, agriFeedsTab, culturesTab, achatsStockTab, achatsStockContext, financeTab, activiteSuiviTab, documentsRapportsTab, rhTab, gestionSystemeTab, investisseursTab, smartfarmTab, syncActivityTab, farmsPanelAction, effectiveAccessibleFarms, refreshAccessibleFarms, online, lastOnlineAt, dataMap, refreshAll, refreshSalesWorkflowFn, navigateModule, setActive, flushOfflineQueue, handleManageFarms, farmComparisonData, openAssistantWithQuery, base, weatherLoading]);
 
-  const activeModuleProps = useMemo(
-    () => applyFarmScopeToProps(
-      applyPeriodScopeToProps(moduleProps[resolveActiveModuleId(active)] || moduleProps[active] || {}, periodScope, { cacheGeneration: crudFingerprint }),
-      farmScope,
-      { accessibleFarms: effectiveAccessibleFarms, activeFarm, moduleId: resolveActiveModuleId(active) },
-    ),
-    [moduleProps, active, periodScopeKey, crudFingerprint, commercialTab, elevageTab, agriFeedsTab, culturesTab, achatsStockTab, financeTab, activiteSuiviTab, documentsRapportsTab, rhTab, centreTab, objectifsTab, periodScope, farmScope, effectiveAccessibleFarms, activeFarm],
+  const activeModuleId = resolveActiveModuleId(active);
+  const activeModuleProps = applyFarmScopeToProps(
+    // eslint-disable-next-line react-hooks/refs -- moduleProps is a memoized lookup table of props, not a React ref.
+    applyPeriodScopeToProps(moduleProps[activeModuleId] || moduleProps[active] || {}, periodScope, { cacheGeneration: crudFingerprint }),
+    farmScope,
+    { accessibleFarms: effectiveAccessibleFarms, activeFarm, moduleId: activeModuleId },
   );
   const scopedAssistantDataMap = useMemo(
     () => {
@@ -910,7 +906,7 @@ export default function App() {
         accessibleFarms: effectiveAccessibleFarms,
       });
     },
-    [assistantOpen, dataMap, periodScopeKey, crudFingerprint, periodScope, farmScope, effectiveAccessibleFarms, activeFarm, c.sales_orders, c.payments, c.finances],
+    [assistantOpen, dataMap, crudFingerprint, periodScope, farmScope, effectiveAccessibleFarms, activeFarm, c.sales_orders, c.payments, c.finances],
   );
 
   if (authLoading) return <div className="min-h-screen bg-[#f6efe2] flex items-center justify-center text-[#2f2415] font-black">Chargement Horizon Farm...</div>;

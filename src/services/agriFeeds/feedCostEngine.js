@@ -35,7 +35,6 @@ export function computeTheoreticalFormulaCost(ingredients = [], dataMap = {}) {
       ? toNumber(ing.latest_unit_cost)
       : resolveLatestUnitCost(ing.raw_material_id, dataMap);
     const qtyKg = pct; // pour 100 kg de formule, % = kg
-    const costContribution = (qtyKg / 100) * unitCost * 100; // = qtyKg * unitCost for 100kg batch
     // cost for 100 kg batch = sum(qty_kg * unit_cost)
     // cost per kg = total_100 / 100
     return {

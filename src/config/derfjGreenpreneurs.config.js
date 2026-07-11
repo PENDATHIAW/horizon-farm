@@ -96,29 +96,3 @@ export const COPRODUCT_AUTO_STOCK_ENABLED = false;
 
 /** Jours conseillés avant transformation du suif brut (alerte métier). */
 export const SUIF_RAW_MAX_STORAGE_DAYS = 14;
-export const VALORISATION_OPPORTUNITY_TEMPLATES = {
-  tallow_go: {
-    title: 'Tallow & Go — test demande marché suif',
-    opportunity_type: 'valorisation_coproduit',
-    source_type: 'libre',
-    phase: 'phase_future',
-    statut_activite: 'phase_future',
-    activity_type: 'valorisation_coproduits',
-    notes: 'Pilote cosmétique / beurre corporel — prospection clients',
-    match: 'tallow',
-    created_from: 'greenpreneurs_valorisation_tallow',
-    estimated_value: 0,
-  },
-  bovinia: {
-    title: 'BOVINIA — nutrition os déshydraté',
-    opportunity_type: 'valorisation_coproduit',
-    source_type: 'libre',
-    phase: 'phase_future',
-    statut_activite: 'phase_future',
-    activity_type: 'valorisation_coproduits',
-    notes: 'Demande marché collagène / bien-être animal',
-    match: 'bovinia',
-    created_from: 'greenpreneurs_valorisation_bovinia',
-    estimated_value: 0,
-  },
-};

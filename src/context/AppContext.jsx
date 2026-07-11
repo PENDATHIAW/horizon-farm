@@ -129,7 +129,6 @@ const serviceMap = {
   feed_phase1_comparisons: feedPhase1ComparisonsService,
 };
 
-const clone = (value) => JSON.parse(JSON.stringify(value || []));
 const emptyInitialData = () => Object.fromEntries(['dashboard', ...Object.keys(serviceMap), 'sync'].map((key) => [key, []]));
 
 const initialData = emptyInitialData();

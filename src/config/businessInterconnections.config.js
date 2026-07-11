@@ -450,6 +450,15 @@ export const BUSINESS_EVENT_WORKFLOWS = Object.freeze([
 
 export const BUSINESS_EVENT_IDS = BUSINESS_EVENT_WORKFLOWS.map((event) => event.id);
 
+export const BUSINESS_EVENT_ALIASES = Object.freeze({
+  supplier_debt_payment: 'supplier_payment',
+  operational_task: 'task_lifecycle',
+  supporting_document: 'support_document',
+  monthly_funder_report: 'monthly_financier_report',
+  funding_tracking: 'funding_usage',
+  smart_farm_signal: 'smartfarm_signal',
+});
+
 export const BUSINESS_EVENT_INTERCONNECTIONS = Object.freeze(
   Object.fromEntries(BUSINESS_EVENT_WORKFLOWS.map((event) => [event.id, event.impactedModules])),
 );
@@ -476,7 +485,8 @@ export const BUSINESS_EVENT_REFRESH_CLUSTERS = Object.freeze(
 );
 
 export function getBusinessEventWorkflow(eventId) {
-  return BUSINESS_EVENT_WORKFLOWS.find((event) => event.id === eventId) || null;
+  const resolvedId = BUSINESS_EVENT_ALIASES[eventId] || eventId;
+  return BUSINESS_EVENT_WORKFLOWS.find((event) => event.id === resolvedId) || null;
 }
 
 export function workflowsForModule(moduleId) {

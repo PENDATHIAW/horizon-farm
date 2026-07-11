@@ -54,7 +54,6 @@ export async function runManureCollectionSideEffects({
 
   for (const extraEvent of arr(workflow.extraEvents)) {
     if (extraEvent && handlers.onCreateBusinessEvent) {
-      // eslint-disable-next-line no-await-in-loop
       await handlers.onCreateBusinessEvent({ ...extraEvent, side_effects_managed: true });
     }
   }
