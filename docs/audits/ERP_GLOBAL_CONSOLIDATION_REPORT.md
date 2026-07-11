@@ -142,6 +142,7 @@ Synthese : 26 `COMPLET`, 0 `PARTIEL`, 0 `CONFIGURATION UNIQUEMENT`, 0 `NON BRANC
 | `npm run build` | OK, built in 2.84s, warnings chunks/imports dynamiques historiques |
 | `git diff --check` | OK |
 | `npx playwright test tests/e2e/module-accessibility.spec.js -g "ouvre chaque module principal"` | OK, 1 test passed, tous modules principaux sans ErrorBoundary |
+| `E2E_LOGIN=penda E2E_PASSWORD=*** npx playwright test tests/e2e/assistant-erp-smoke.spec.js tests/e2e/decision-center-smoke.spec.js --reporter=line` | OK, 6/6 smoke tests CI locaux apres correction des selecteurs login et libelles UI |
 | `PLAYWRIGHT_SKIP_WEBSERVER=1 npx playwright test tests/e2e/module-accessibility.spec.js -g "Commercial / Clients"` | OK, 1 test passed |
 | `PLAYWRIGHT_SKIP_WEBSERVER=1 npx playwright test tests/e2e/module-accessibility.spec.js -g "ouvre les onglets critiques"` | Interrompu manuellement apres blocage sans verdict exploitable ; aucun resultat pass/fail utilisable |
 | `node --test tests/unit/culturesWorkflow.test.js` | KO Node pur : import extensionless existant ; le meme test passe via `vite-node` |

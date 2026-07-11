@@ -11,7 +11,7 @@ test.describe('Assistant ERP — Horizon Chat Native V7', () => {
     await expect(page.getByText(/^Horizon$/).first()).toBeVisible();
     await expect(page.getByText(/Connecté à votre exploitation/i).first()).toBeVisible();
     await expect(page.getByText(/Bonjour/i)).toBeVisible();
-    await expect(page.getByText(/parler/i)).toBeVisible();
+    await expect(page.getByText(/De quoi voulez-vous qu.on parle/i)).toBeVisible();
     await expect(page.getByPlaceholder(/Parlez à votre ferme/i)).toBeVisible();
     await expect(page.getByText(/Hey Horizon/i)).toHaveCount(0);
     await expect(page.getByText(/données ERP/i)).toHaveCount(0);
@@ -33,7 +33,7 @@ test.describe('Assistant ERP — Horizon Chat Native V7', () => {
     await expect(page.getByText(/stock|magasin|produit|reste/i).first()).toBeVisible({ timeout: 15_000 });
   });
 
-  test('question production redirige vers Élevage Cycles', async ({ page }) => {
+  test('question production répond avec un conseil calendrier', async ({ page }) => {
     await login(page);
     await goToModule(page, 'Assistant ERP');
 
@@ -41,7 +41,6 @@ test.describe('Assistant ERP — Horizon Chat Native V7', () => {
     await textarea.fill('Quand ajouter une nouvelle bande pondeuse ?');
     await page.getByRole('button', { name: /Envoyer/i }).click();
 
-    await expect(page.getByRole('heading', { name: /^Élevage$/i })).toBeVisible({ timeout: 15_000 });
-    await expect(page.getByText(/Questions production/i).first()).toBeVisible({ timeout: 15_000 });
+    await expect(page.getByText(/ITH|canicule|bande|pondeuse|calendrier commercial|Timing avicole/i).first()).toBeVisible({ timeout: 15_000 });
   });
 });
