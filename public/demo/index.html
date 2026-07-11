@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Horizon Farm ERP — Démo</title>
+    <title>Horizon Farm ERP</title>
     <meta name="robots" content="noindex" />
     <style>
       :root{--bg:#f7f1e6;--paper:#fffdf8;--white:#fff;--green:#22c55e;--dark:#12351d;--brown:#2f2415;--muted:#75664f;--line:#eadcc2;--soft:#f0fdf4;--amber:#92400e;--shadow:0 26px 80px rgba(47,36,21,.10)}
@@ -18,7 +18,7 @@
             <span class="eyebrow">Horizon Farm ERP</span>
             <h1>Piloter la ferme, du terrain au rapport.</h1>
             <p class="lead">Horizon Farm ERP relie les opérations quotidiennes aux stocks, aux coûts, aux ventes, aux marges, à la traçabilité et au suivi financeur. Chaque activité laisse une donnée utile pour gérer la ferme et préparer sa croissance.</p>
-            <div class="actions"><button class="btn primary" onclick="scrollToDeck()">Lancer la visite</button><a class="btn" href="#domaines">Voir les domaines suivis</a></div>
+            <div class="actions"><button class="btn primary" onclick="scrollToDeck()">Démarrer</button><a class="btn" href="#domaines">Voir les domaines suivis</a></div>
           </div>
           <div class="hero-card">
             <div class="metric"><small>Terrain</small><strong>4 saisies clés</strong><p>Aliment, ponte, vente, transfert organique.</p></div>
@@ -29,22 +29,22 @@
       </section>
 
       <section class="section" id="domaines">
-        <div class="section-head"><div><h2>Les domaines suivis</h2><p>La visite montre les principales fonctions de l’ERP à travers une journée de ferme.</p></div></div>
+        <div class="section-head"><div><h2>Les domaines suivis</h2><p>L’ERP couvre les fonctions essentielles de gestion d’une exploitation intégrée.</p></div></div>
         <div class="domains">
           <div class="domain"><small>1</small><b>Pilotage global</b></div><div class="domain"><small>2</small><b>Production animale</b></div><div class="domain"><small>3</small><b>Production végétale</b></div><div class="domain"><small>4</small><b>Achats & stocks</b></div><div class="domain"><small>5</small><b>Ventes & clients</b></div><div class="domain"><small>6</small><b>Finance</b></div><div class="domain"><small>7</small><b>Traçabilité</b></div><div class="domain"><small>8</small><b>Économie circulaire</b></div><div class="domain"><small>9</small><b>AGRI FEEDS</b></div><div class="domain"><small>10</small><b>Reporting</b></div>
         </div>
       </section>
 
       <section class="deck" id="deck">
-        <nav class="rail" aria-label="Étapes de la visite">
-          <div class="rail-title">Parcours</div>
+        <nav class="rail" aria-label="Parcours ERP">
+          <div class="rail-title">Parcours ERP</div>
           <button class="step-btn active" data-step="0">1. Tableau de bord</button><button class="step-btn" data-step="1">2. Aliment</button><button class="step-btn" data-step="2">3. Ponte</button><button class="step-btn" data-step="3">4. Vente</button><button class="step-btn" data-step="4">5. Effluents</button><button class="step-btn" data-step="5">6. Points de suivi</button><button class="step-btn" data-step="6">7. Action clôturée</button><button class="step-btn" data-step="7">8. Marge du lot</button><button class="step-btn" data-step="8">9. Multi-filières</button><button class="step-btn" data-step="9">10. Traçabilité</button><button class="step-btn" data-step="10">11. Simulation</button><button class="step-btn" data-step="11">12. Profils</button><button class="step-btn" data-step="12">13. Rapport</button><button class="step-btn" data-step="13">14. AGRI FEEDS</button><button class="step-btn" data-step="14">15. Synthèse</button>
         </nav>
         <article class="story"><div class="progress"><span id="progressBar"></span></div><div id="storyContent"></div><div class="controls"><button class="control" id="prevBtn">← Précédent</button><button class="control next" id="nextBtn">Suivant →</button></div></article>
       </section>
 
       <section class="section">
-        <div class="section-head"><div><h2>Les points qui restent en mémoire</h2><p>Une journée suivie, des coûts reliés aux ventes, une marge expliquée et un rapport lisible.</p></div></div>
+        <div class="section-head"><div><h2>Ce que le système apporte</h2><p>Des opérations suivies, des coûts reliés aux ventes, une marge expliquée et un rapport lisible.</p></div></div>
         <div class="closing"><article class="closing-card"><span>1</span><h3>Effets en cascade</h3><p>Une saisie terrain met à jour les stocks, les coûts et la finance.</p></article><article class="closing-card"><span>2</span><h3>Marge expliquée</h3><p>Le prévu, le réel et les écarts sont visibles poste par poste.</p></article><article class="closing-card"><span>3</span><h3>Traçabilité</h3><p>Une vente peut être reliée à son lot, à son aliment et à son fournisseur.</p></article></div>
       </section>
     </main>
@@ -64,13 +64,13 @@
         {t:'Simulation : préparer une extension',b:'Projection',i:'Avant d’augmenter une bande, la simulation estime les besoins d’aliment, le stock nécessaire, la trésorerie et la soutenabilité du cycle.',p:[['Scénario','500 → 750'],['Besoin','aliment'],['Cash','projeté']],m:'Simulation d’extension',k:[['Sujets','750'],['Stock requis','calculé'],['Trésorerie','projetée'],['Seuil','soutenable']],d:'La croissance se prépare avant d’engager les dépenses.'},
         {t:'Profils : chacun voit ce qui le concerne',b:'Contrôle',i:'La même base sert plusieurs vues : promotrice, équipe terrain et financeur. Les droits évitent d’exposer toutes les informations à tout le monde.',p:[['Promotrice','vue complète'],['Équipe','tâches'],['Financeur','suivi']],m:'Accès par profil',k:[['Promotrice','tout'],['Équipe','saisie'],['Financeur','suivi'],['Droits','maîtrisés']],profiles:[['Promotrice','Filières, finances, décisions et rapports.'],['Équipe','Tâches du jour et saisies terrain, sans finances.'],['Financeur','Activité, coûts, marges, écarts et décisions.']],d:'Le bon niveau d’information est donné au bon profil.'},
         {t:'Rapport financeur : activité, coûts et écarts',b:'Reporting',i:'Le rapport mensuel rassemble activité par filière, dépenses, recettes, marges, écarts, utilisation du financement et décisions documentées.',p:[['Rapport','mensuel'],['Écarts','expliqués'],['Financement','suivi']],m:'Rapport financeur',k:[['Activité','filières'],['Finance','cash + marges'],['Écarts','commentés'],['Décisions','historique']],d:'Le rapport s’appuie sur les opérations enregistrées au quotidien.'},
-        {t:'AGRI FEEDS : passage à l’échelle',b:'Phase 2',i:'AGRI FEEDS s’appuie sur la référence Phase 1 : prix du marché, coûts alimentaires, formulations, tests internes, contrôle qualité et vente progressive.',p:[['Référence','Phase 1'],['Tests','internes'],['Vente','progressive']],m:'Readiness AGRI FEEDS',k:[['Prix marché','comparés'],['Formules','à tester'],['Qualité','à valider'],['Vente','fermée']],d:'Les nouvelles phases avancent quand les indicateurs sont prêts.'},
-        {t:'Synthèse : une ferme suivie de bout en bout',b:'Final',i:'La démonstration rassemble les opérations, les coûts, les ventes, les marges, la traçabilité, le reporting et les futures phases.',p:[['Ferme','organisée'],['Marge','lisible'],['Rapport','prêt']],m:'Résumé Horizon Farm ERP',k:[['Travail','capturé'],['Marge','prouvée'],['Traçabilité','visible'],['Croissance','maîtrisée']],d:'Horizon Farm dispose d’un système de gestion qui relie le terrain, la finance et le suivi du projet.'}
+        {t:'AGRI FEEDS : passage à l’échelle',b:'Phase 2',i:'AGRI FEEDS s’appuie sur la référence Phase 1 : prix du marché, coûts alimentaires, formulations, tests internes, contrôle qualité et vente progressive.',p:[['Référence','Phase 1'],['Tests','internes'],['Vente','progressive']],m:'Préparation AGRI FEEDS',k:[['Prix marché','comparés'],['Formules','à tester'],['Qualité','à valider'],['Vente','fermée']],d:'Les nouvelles phases avancent quand les indicateurs sont prêts.'},
+        {t:'Synthèse : une ferme suivie de bout en bout',b:'Final',i:'L’ERP rassemble les opérations, les coûts, les ventes, les marges, la traçabilité, le reporting et les futures phases.',p:[['Ferme','organisée'],['Marge','lisible'],['Rapport','prêt']],m:'Résumé Horizon Farm ERP',k:[['Travail','capturé'],['Marge','prouvée'],['Traçabilité','visible'],['Croissance','maîtrisée']],d:'Horizon Farm dispose d’un système de gestion qui relie le terrain, la finance et le suivi du projet.'}
       ];
       let current=0;const storyContent=document.getElementById('storyContent'),progressBar=document.getElementById('progressBar'),buttons=[...document.querySelectorAll('.step-btn')],prevBtn=document.getElementById('prevBtn'),nextBtn=document.getElementById('nextBtn');
       function table(t){if(!t)return'';const[h,...r]=t;return`<div class="table-wrap"><table><thead><tr>${h.map(x=>`<th>${x}</th>`).join('')}</tr></thead><tbody>${r.map(row=>`<tr>${row.map(x=>`<td>${x}</td>`).join('')}</tr>`).join('')}</tbody></table></div>`}
       function list(cls,items){if(!items)return'';return`<div class="${cls}">${items.map(([a,b,c])=>cls==='filieres'?`<div class="filiere"><strong>${a}</strong><span>${b}</span><p>${c}</p></div>`:cls==='profiles'?`<div class="profile-card"><h3>${a}</h3><p>${b}</p></div>`:`<div class="${cls==='points'?'point-item':''}"><small>${a}</small><b>${b}</b>${c?`<p>${c}</p>`:''}</div>`).join('')}</div>`}
-      function render(i){current=i;const s=steps[i];progressBar.style.width=`${((i+1)/steps.length)*100}%`;storyContent.innerHTML=`<div class="story-inner"><div class="story-top"><div><h2>${s.t}</h2><p class="story-intro">${s.i}</p></div><span class="pill">${s.b}</span></div><div class="proofs">${s.p.map(([l,v])=>`<div class="proof"><small>${l}</small><b>${v}</b></div>`).join('')}</div><div class="mock"><div class="mock-head"><h3>${s.m}</h3><small>Exemple de suivi</small></div><div class="kpis">${s.k.map(([l,v])=>`<div class="kpi"><small>${l}</small><b>${v}</b></div>`).join('')}</div>${list('cascade',s.c)}${list('points',s.a)}${s.x?`<div class="note">${s.x}</div>`:''}${table(s.table)}${list('filieres',s.f)}${list('trace',s.tr)}${list('profiles',s.profiles)}</div><div class="result">${s.d}</div></div>`;buttons.forEach(btn=>btn.classList.toggle('active',Number(btn.dataset.step)===i));prevBtn.disabled=i===0;nextBtn.textContent=i===steps.length-1?'Revoir depuis le début →':'Suivant →'}
+      function render(i){current=i;const s=steps[i];progressBar.style.width=`${((i+1)/steps.length)*100}%`;storyContent.innerHTML=`<div class="story-inner"><div class="story-top"><div><h2>${s.t}</h2><p class="story-intro">${s.i}</p></div><span class="pill">${s.b}</span></div><div class="proofs">${s.p.map(([l,v])=>`<div class="proof"><small>${l}</small><b>${v}</b></div>`).join('')}</div><div class="mock"><div class="mock-head"><h3>${s.m}</h3><small>Suivi opérationnel</small></div><div class="kpis">${s.k.map(([l,v])=>`<div class="kpi"><small>${l}</small><b>${v}</b></div>`).join('')}</div>${list('cascade',s.c)}${list('points',s.a)}${s.x?`<div class="note">${s.x}</div>`:''}${table(s.table)}${list('filieres',s.f)}${list('trace',s.tr)}${list('profiles',s.profiles)}</div><div class="result">${s.d}</div></div>`;buttons.forEach(btn=>btn.classList.toggle('active',Number(btn.dataset.step)===i));prevBtn.disabled=i===0;nextBtn.textContent=i===steps.length-1?'Recommencer →':'Suivant →'}
       buttons.forEach(btn=>btn.addEventListener('click',()=>render(Number(btn.dataset.step))));prevBtn.addEventListener('click',()=>render(Math.max(0,current-1)));nextBtn.addEventListener('click',()=>render(current===steps.length-1?0:current+1));function scrollToDeck(){document.getElementById('deck').scrollIntoView({behavior:'smooth'})}render(0);
     </script>
   </body>
