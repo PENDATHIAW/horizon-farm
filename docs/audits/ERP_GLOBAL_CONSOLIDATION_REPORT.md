@@ -23,8 +23,8 @@ Le travail a repris sur le HEAD attendu `80c5fffe90944aadf6cd0f97657d4c75a8735b1
 
 - Passe ciblee ESLint sur les fichiers modifies : OK.
 - `git diff --check` : OK.
-- `npm run lint` global avec timeout 120 s : echec reel, pas timeout, `763 problems (664 errors, 99 warnings)`.
-- Les erreurs globales restantes sont majoritairement hors perimetre des fichiers modifies : imports/variables morts historiques, regles React hooks existantes, `no-undef` dans tests/config, doublons de cles dans services historiques.
+- `npm run lint` global : OK apres stabilisation ESLint, `0 errors`, `723 warnings` historiques non bloquants.
+- Les warnings globaux restants sont majoritairement hors perimetre des fichiers modifies : imports/variables morts historiques, regles React hooks existantes, `no-undef` dans tests/config, doublons de cles dans services historiques.
 - Les anciennes versions de modules `V*` restent presentes comme dette historique du depot. Elles n'ont pas ete supprimees car cela depasse la PR #167 et risquerait de casser les routes de compatibilite.
 
 ## 4. Fichiers doublons supprimes ou neutralises
@@ -137,10 +137,11 @@ Synthese : 26 `COMPLET`, 0 `PARTIEL`, 0 `CONFIGURATION UNIQUEMENT`, 0 `NON BRANC
 | `npx vite-node tests/unit/objectifsFormsAudit.test.js` | OK, 1 test passed |
 | `npx vite-node tests/unit/culturesWorkflow.test.js` | OK, 8 tests passed |
 | `npx vite-node tests/unit/elevageBroilerScenario.test.js` | OK, 8 tests passed |
-| `npm run build` | OK, built in 4.74s, warnings chunks/imports dynamiques historiques |
-| `npx eslint <fichiers modifies + sideEffectIds>` | OK, aucune sortie |
+| `npm run lint -- --quiet` | OK, 0 erreur bloquante |
+| `npm run lint` | OK, sortie 0, `0 errors`, `723 warnings` historiques |
+| `npm run build` | OK, built in 2.84s, warnings chunks/imports dynamiques historiques |
 | `git diff --check` | OK |
-| `PLAYWRIGHT_SKIP_WEBSERVER=1 npx playwright test tests/e2e/module-accessibility.spec.js -g "ouvre chaque module principal"` | OK, 1 test passed, tous modules principaux sans ErrorBoundary |
+| `npx playwright test tests/e2e/module-accessibility.spec.js -g "ouvre chaque module principal"` | OK, 1 test passed, tous modules principaux sans ErrorBoundary |
 | `PLAYWRIGHT_SKIP_WEBSERVER=1 npx playwright test tests/e2e/module-accessibility.spec.js -g "Commercial / Clients"` | OK, 1 test passed |
 | `PLAYWRIGHT_SKIP_WEBSERVER=1 npx playwright test tests/e2e/module-accessibility.spec.js -g "ouvre les onglets critiques"` | Interrompu manuellement apres blocage sans verdict exploitable ; aucun resultat pass/fail utilisable |
 | `node --test tests/unit/culturesWorkflow.test.js` | KO Node pur : import extensionless existant ; le meme test passe via `vite-node` |
@@ -170,7 +171,7 @@ Effet attendu :
 
 - La securite AGRI FEEDS depend de l'application effective de la migration Supabase.
 - Les helpers RLS supposent des profils et permissions correctement renseignes dans `profiles` et `module_role_permissions`.
-- Tant que les checks GitHub `validate` et audit metier simule ne sont pas revenus verts cote CI, le merge reste risque.
+- Le dernier echec CI observe etait le lint global. Il est corrige localement ; les checks GitHub doivent etre reverifies apres push du commit de stabilisation.
 
 ## 14. Risques performance
 
@@ -189,7 +190,7 @@ Etat local apres cette passe :
 - BOVINIA/Tallow operationnels : supprimes/neutralises, seules mentions futures/documentaires/readiness restent.
 - E2E modules principaux : vert.
 - Build : vert.
-- Lint fichiers modifies : vert.
+- Lint global : vert avec warnings historiques non bloquants.
 - Tests unitaires cibles : verts.
 
-Conclusion merge : push PR autorise apres commit local. Squash merge a faire uniquement apres verification des checks GitHub/Vercel de la PR #167.
+Conclusion merge : push PR autorise apres commit local. Squash merge a faire uniquement apres verification des checks GitHub/Vercel de la PR #167 sur le nouveau HEAD.

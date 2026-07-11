@@ -1,4 +1,3 @@
-/* global process */
 import { expect, test } from '@playwright/test';
 
 const LOGIN = process.env.E2E_LOGIN || 'penda';
