@@ -44,10 +44,42 @@ export const SYNC_ISSUE_ROUTES = {
   smartfarm_events: 'smartfarm',
   sensor_devices: 'smartfarm',
   camera_devices: 'smartfarm',
+  alimentation_logs: 'stock',
+  production_oeufs_logs: 'avicole',
+  avicole: 'avicole',
+  animaux: 'animaux',
+};
+
+/** Onglet cible dans le module canonique une fois résolu. */
+export const SYNC_ISSUE_TABS = {
+  payments: 'Clients & créances',
+  invoices: 'Ventes',
+  sales_orders: 'Ventes',
+  sales_opportunities: 'Opportunités',
+  clients: 'Clients & créances',
+  fournisseurs: 'Fournisseurs & dettes',
+  documents: 'Rapprochement & preuves',
+  stock: 'Inventaire',
+  alertes_center: 'À traiter maintenant',
+  taches: 'À traiter maintenant',
+  sante: 'Santé',
+  finances: 'Trésorerie',
+  business_events: 'Registre & traçabilité',
+  smartfarm_events: 'Objets connectés',
+  sensor_devices: 'Objets connectés',
+  camera_devices: 'Objets connectés',
+  alimentation_logs: 'Inventaire',
+  production_oeufs_logs: 'Lots & bandes',
+  avicole: 'Lots & bandes',
+  animaux: 'Lots & bandes',
 };
 
 export function routeForSyncIssue(issue = {}) {
   return SYNC_ISSUE_ROUTES[issue.module] || issue.module || 'sync_activity';
+}
+
+export function tabForSyncIssue(issue = {}) {
+  return SYNC_ISSUE_TABS[issue.module] || null;
 }
 
 export function syncIssueActionLabel(issue = {}) {

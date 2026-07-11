@@ -202,7 +202,7 @@ export default function FinanceTransactionsOnly({
         <p className="text-sm text-[#8a7456]">Table des saisies manuelles uniquement. La synthèse des dépenses est au-dessus.</p>
       </div>
       <div className="flex flex-wrap gap-2">
-        <Btn icon={RefreshCw} variant="outline" small onClick={onRefresh}>Actualiser</Btn>
+        <Btn icon={RefreshCw} variant="outline" small onClick={() => onRefresh?.()}>Actualiser</Btn>
         <Btn icon={Plus} small onClick={() => setModal('create')}>Ajouter argent reçu/dépensé</Btn>
         <Btn icon={Download} variant="outline" small onClick={doExports}>Export lignes manuelles</Btn>
       </div>

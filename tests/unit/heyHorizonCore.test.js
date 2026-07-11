@@ -79,7 +79,7 @@ test('getInventorySummary repère stock sous seuil', () => {
   assert.equal(inventory.alertes_sous_seuil.length, 1);
 });
 
-test('getSalesSummary calcule créances depuis commandes et paiements', () => {
+test('getSalesSummary calcule créances via canon Commercial (anti double-count)', () => {
   const dataMap = {
     ...emptyMap,
     sales_orders: [{ id: 'CMD1', montant_total: 100000, montant_paye: 40000 }],
@@ -87,7 +87,8 @@ test('getSalesSummary calcule créances depuis commandes et paiements', () => {
   };
   const sales = getSalesSummary(dataMap);
   assert.equal(sales.ventes.ca_cumul, 100000);
-  assert.equal(sales.creances.montant_total, 50000);
+  // Créance = 100 000 − max(montant_paye 40 000, paiements liés 10 000) = 60 000
+  assert.equal(sales.creances.montant_total, 60000);
   assert.equal(sales.creances.commandes_impayees, 1);
 });
 

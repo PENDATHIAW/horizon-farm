@@ -59,6 +59,7 @@ export default function ObjectifsSandboxTab({
         notes: 'Intrants à 0 FCFA — fumier transféré depuis élevage (économie circulaire).',
       });
       await onRefreshCultures?.();
+      toast.success('Campagne maraîchère créée dans Cultures (100 m² · fumier à coût zéro).');
       onNavigate?.('cultures', { tab: CULTURES_TAB });
     } catch (error) {
       toast.error(error?.message || 'Impossible de lancer la campagne sandbox.');

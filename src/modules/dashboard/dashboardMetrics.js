@@ -3,6 +3,7 @@ import { filterRealOpenTasks } from '../../utils/healthFindingLabels.js';
 import { remainingForOrder } from '../../utils/salesStatuses.js';
 import { buildConsolidationInput, consolidateFinance } from '../../utils/financeConsolidationEngine.js';
 import { openSalesCount } from '../commercial/commercialMetrics.js';
+import { buildConsolidatedCommercialKpis } from '../../utils/commercialKpiConsolidated.js';
 import { buildDashboardTodayActions } from '../../utils/dashboardWorkflows.js';
 import { avicoleActiveCount, avicoleHasActiveBirds } from '../../utils/avicoleMetrics.js';
 import { resolveAvicoleLotKind } from '../../utils/avicoleActivity.js';
@@ -460,12 +461,32 @@ export function buildDashboardSummary(props = {}, periodScope = {}) {
   const scope = normalizePeriodScope(periodScope);
   const salesAll = arr(props.salesOrdersAll?.length ? props.salesOrdersAll : props.salesOrders);
   const paymentsAll = arr(props.paymentsAll?.length ? props.paymentsAll : props.payments);
+  const deliveriesAll = arr(props.deliveries || props.deliveriesAll);
+  const invoicesAll = arr(props.invoices || props.invoicesAll);
+  const clientsAll = arr(props.clients);
 
-  const ca = salesOrders.reduce((sum, row) => sum + money(row), 0);
+  const commercialKpisPeriod = buildConsolidatedCommercialKpis({
+    orders: salesOrders,
+    payments,
+    clients: clientsAll,
+    deliveries: deliveriesAll,
+    invoices: invoicesAll,
+    periodScope: scope,
+  });
+  const commercialKpisAll = buildConsolidatedCommercialKpis({
+    orders: salesAll,
+    payments: paymentsAll,
+    clients: clientsAll,
+    deliveries: deliveriesAll,
+    invoices: invoicesAll,
+    periodScope: {},
+  });
+
+  const ca = commercialKpisPeriod.ca;
   const financePeriods = computeFinancePeriodSummary(payments, transactions, scope);
-  const encaisse = financePeriods.encaissePeriod;
-  const resultat = financePeriods.resultatPeriod;
+  const encaisse = commercialKpisPeriod.collected || financePeriods.encaissePeriod;
   const depenses = financePeriods.depensesPeriod;
+  const resultat = encaisse - depenses;
   const transactionsAll = arr(props.transactionsAll?.length ? props.transactionsAll : props.transactions);
   const financeConsolidated = consolidateFinance(buildConsolidationInput({
     ...props,
@@ -474,9 +495,9 @@ export function buildDashboardSummary(props = {}, periodScope = {}) {
     transactions: transactionsAll,
   }));
   const cashNet = financeConsolidated.cashNet;
-  const receivable = financeConsolidated.creancesReelles;
+  const receivable = commercialKpisAll.receivable;
   const payables = financeConsolidated.payablesTotal ?? financeConsolidated.dettesFournisseurs;
-  const openSales = openSalesCount(salesAll, paymentsAll);
+  const openSales = commercialKpisAll.openOrders ?? openSalesCount(salesAll, paymentsAll);
   const cultureSummary = computeCultureSummary(cultures);
   const startupMode = isDashboardStartupMode(props);
   const stockBas = stocks.filter(isCriticalStock).length;
@@ -524,7 +545,9 @@ export function buildDashboardSummary(props = {}, periodScope = {}) {
 
   return {
     ca,
+    caAll: commercialKpisAll.ca,
     encaisse,
+    encaisseAll: commercialKpisAll.collected,
     depenses,
     resultat,
     receivable,
@@ -547,6 +570,9 @@ export function buildDashboardSummary(props = {}, periodScope = {}) {
     goal,
     plan,
     todoCount: actions.length,
+    commercialKpis: commercialKpisAll,
+    commercialKpisPeriod,
+    kpiSource: 'buildConsolidatedCommercialKpis',
   };
 }
 

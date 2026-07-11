@@ -138,6 +138,16 @@ export default function ElevageRecoveredModule(props) {
         'reproduction_mise_bas',
         'reproduction_document',
       ].includes(formType);
+      const isHealthDraft = (moduleKey === 'sante' || moduleKey === 'elevage')
+        && ['health_action', 'health_intervention', 'sante_intervention', 'health_document'].includes(formType);
+
+      if (isHealthDraft) {
+        setHealthDraft(draft);
+        setTab('Santé');
+        window.setTimeout(() => document.getElementById('hey-horizon-sante-card')?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 120);
+        return;
+      }
+
       if (!isReproModule && !isBirthCreation && !isReproWorkflow) return;
       setReproductionHorizonDraft(draft);
       setTab('Cycles & Reproduction');
@@ -148,7 +158,7 @@ export default function ElevageRecoveredModule(props) {
     };
     window.addEventListener('horizon-open-form', handler);
     return () => window.removeEventListener('horizon-open-form', handler);
-  }, [setTab]);
+  }, [setTab, setHealthDraft]);
   const animauxCrud = useCrudModule('animaux');
   const avicoleCrud = useCrudModule('avicole');
   const santeCrud = useCrudModule('sante');
@@ -298,6 +308,7 @@ export default function ElevageRecoveredModule(props) {
     onCreateDocument: props.onCreateDocument || documentsCrud.create,
     onCreateProduction: props.onCreateProduction || productionCrud.create,
     onCreateWeightRecord: props.onCreateWeightRecord,
+    onNavigate: props.onNavigate,
   });
 
   const refreshAfterWorkflow = useCallback(async () => {
