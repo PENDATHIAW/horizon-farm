@@ -4,6 +4,7 @@
  */
 import { AGRI_FEEDS_ALERT_THRESHOLDS } from '../../config/agriFeeds.config.js';
 import { toNumber } from '../../utils/format.js';
+import { buildConsolidatedCommercialKpis } from '../../utils/commercialKpiConsolidated.js';
 import { assertFinishedBatchSellable } from './feedProductionWorkflow.js';
 
 const arr = (value) => (Array.isArray(value) ? value : []);
@@ -32,6 +33,18 @@ function getCustomerName(client = {}) {
 
 function getBatchLabel(batch = {}, formula = {}, version = {}) {
   return `${formula.name || 'Aliment AGRI FEEDS'} · ${version.version_code || batch.formula_version_id || ''} · ${batch.batch_code || batch.id}`;
+}
+
+function normalizeFeedOrderForCommercialKpis(order = {}) {
+  const total = toNumber(order.montant_total ?? order.total_amount ?? order.total ?? order.amount);
+  const remaining = toNumber(order.reste_a_payer ?? order.remaining ?? order.remaining_amount);
+  const hasPaid = order.montant_paye !== undefined || order.paid_amount !== undefined || order.amount_paid !== undefined;
+  if (hasPaid || !total || remaining < 0) return order;
+  return {
+    ...order,
+    montant_paye: Math.max(0, total - remaining),
+    paid_amount: Math.max(0, total - remaining),
+  };
 }
 
 export function resolveFeedSaleContext(payload = {}, dataMap = {}) {
@@ -271,27 +284,52 @@ export async function commitFeedSaleOrder(preview = {}, handlers = {}) {
 
 export function computeAgriFeedsCommercialKpis(dataMap = {}, { now = new Date() } = {}) {
   const orders = arr(dataMap.sales_orders)
-    .filter((o) => norm(o.module_source || o.source_type) === 'agri_feeds');
+    .filter((o) => norm(o.module_source || o.source_type) === 'agri_feeds')
+    .map(normalizeFeedOrderForCommercialKpis);
   const items = arr(dataMap.sales_order_items).filter((i) => String(i.source_type || '') === 'feed_finished_batch');
   const clients = arr(dataMap.clients);
   const monthKey = now.toISOString().slice(0, 7);
   const monthOrders = orders.filter((o) => String(o.order_date || o.date || '').startsWith(monthKey));
-  const revenueMonth = monthOrders.reduce((sum, o) => sum + toNumber(o.montant_total || o.total_amount), 0);
-  const marginMonth = items.reduce((sum, i) => sum + toNumber(i.margin), 0);
+  const monthOrderIds = new Set(monthOrders.map((o) => String(o.id)).filter(Boolean));
+  const commercialMonth = buildConsolidatedCommercialKpis({
+    orders: monthOrders,
+    payments: arr(dataMap.payments),
+    clients,
+    deliveries: arr(dataMap.deliveries),
+    invoices: arr(dataMap.invoices),
+    periodScope: { module_source: 'agri_feeds', month: monthKey },
+  });
+  const commercialAll = buildConsolidatedCommercialKpis({
+    orders,
+    payments: arr(dataMap.payments),
+    clients,
+    deliveries: arr(dataMap.deliveries),
+    invoices: arr(dataMap.invoices),
+    periodScope: { module_source: 'agri_feeds' },
+  });
+  const marginMonth = items
+    .filter((i) => !i.order_id || monthOrderIds.has(String(i.order_id || '')))
+    .reduce((sum, i) => sum + toNumber(i.margin), 0);
   const agriClientIds = new Set(orders.map((o) => String(o.client_id || '')).filter(Boolean));
   const repeatClients = clients.filter((c) => toNumber(c.repeat_purchase_score) >= 2 || orders.filter((o) => String(o.client_id) === String(c.id)).length >= 2);
-  const receivables = orders.reduce((sum, o) => sum + Math.max(0, toNumber(o.reste_a_payer ?? o.remaining)), 0);
   const clientsToRelance = buildRepurchaseSuggestions(dataMap, { now });
   return {
     orders_count: orders.length,
-    revenue_month: revenueMonth,
+    revenue_month: commercialMonth.ca,
+    collected_month: commercialMonth.collected,
     margin_month: marginMonth,
     agri_clients_count: agriClientIds.size,
     repeat_clients_count: repeatClients.length,
     repeat_rate: agriClientIds.size ? (repeatClients.length / agriClientIds.size) * 100 : 0,
-    receivables,
+    receivables: commercialAll.receivable,
     clients_to_follow: clientsToRelance.length,
     clientsToRelance,
+    sources: {
+      ca: 'buildConsolidatedCommercialKpis(orders agri_feeds)',
+      collected: 'buildConsolidatedCommercialKpis(payments linked)',
+      receivables: 'buildConsolidatedCommercialKpis(receivable)',
+      margin: 'sales_order_items(feed_finished_batch).margin',
+    },
   };
 }
 

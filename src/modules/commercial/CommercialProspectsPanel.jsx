@@ -10,6 +10,18 @@ import {
 } from '../../utils/commercialProspects.js';
 import { prepareCommercialQuoteCommit } from '../../utils/commercialQuoteWorkflow.js';
 
+const PROSPECT_INTERESTS = [
+  'Œufs / tablettes',
+  'Poulets de chair',
+  'Bovins / viande',
+  'Ovins / caprins',
+  'Cultures maraîchères',
+  'Fumier / engrais organique',
+  'Abonnement livraison',
+  'Produits fermiers',
+  'Autre',
+];
+
 export default function CommercialProspectsPanel({
   clients = [],
   onCreateClient,
@@ -132,7 +144,11 @@ export default function CommercialProspectsPanel({
             </label>
             <label className="block space-y-1 md:col-span-2">
               <span className="text-xs font-bold text-[#8a7456]">Intérêt produit</span>
-              <input type="text" value={prospectForm.interest} onChange={(event) => setProspectForm((prev) => ({ ...prev, interest: event.target.value }))} className="w-full rounded-xl border border-[#d6c3a0] px-3 py-2 text-sm" />
+              <select value={prospectForm.interest} onChange={(event) => setProspectForm((prev) => ({ ...prev, interest: event.target.value }))} className="w-full rounded-xl border border-[#d6c3a0] bg-white px-3 py-2 text-sm">
+                {PROSPECT_INTERESTS.map((item) => (
+                  <option key={item} value={item}>{item}</option>
+                ))}
+              </select>
             </label>
             <label className="block space-y-1">
               <span className="text-xs font-bold text-[#8a7456]">Besoin estimé (FCFA)</span>

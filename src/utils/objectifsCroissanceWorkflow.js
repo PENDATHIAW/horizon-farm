@@ -1,9 +1,8 @@
-import { remainingForOrder } from './salesStatuses.js';
 import { computeFinancePeriodSummary } from '../modules/dashboard/dashboardMetrics.js';
+import { buildConsolidatedCommercialKpis } from './commercialKpiConsolidated.js';
 
 const arr = (value) => (Array.isArray(value) ? value : []);
 const n = (value = 0) => Number(value || 0) || 0;
-const money = (row = {}) => n(row?.montant ?? row?.amount ?? row?.total ?? row?.montant_total ?? 0);
 
 export {
   OBJECTIFS_NAV_TARGETS,
@@ -12,13 +11,21 @@ export {
   resolveObjectifsNavigation,
 } from './objectifsCroissanceNavigation.js';
 
-/** KPI finance partagés — mêmes sources que Accueil et Finance & Pilotage. */
+/**
+ * KPI finance partagés — sources uniques :
+ *  - CA / encaissements ventes / créances : `buildConsolidatedCommercialKpis` (Commercial canon)
+ *  - dépenses / trésorerie brute : `computeFinancePeriodSummary` (finances transactions)
+ * Garantit la cohérence des chiffres Accueil / Commercial / Finance / Objectifs / Vision.
+ */
 export function computeSharedPilotageFinanceKpis({
   salesOrders = [],
   salesOrdersAll = [],
   payments = [],
   paymentsAll = [],
   transactions = [],
+  clients = [],
+  deliveries = [],
+  invoices = [],
   periodScope = {},
   periodFiltered = false,
 } = {}) {
@@ -28,9 +35,27 @@ export function computeSharedPilotageFinanceKpis({
   const payAll = arr(paymentsAll).length ? arr(paymentsAll) : payPeriod;
   const tx = arr(transactions);
   const financePeriods = computeFinancePeriodSummary(payPeriod, tx, periodScope);
-  const receivable = salesAll.reduce((sum, order) => sum + remainingForOrder(order, payAll), 0);
-  const salesAmount = (periodFiltered ? salesPeriod : salesAll).reduce((sum, row) => sum + money(row), 0);
-  const encaisse = periodFiltered ? financePeriods.encaissePeriod : financePeriods.encaisseAllTime;
+  const kpisAll = buildConsolidatedCommercialKpis({
+    orders: salesAll,
+    payments: payAll,
+    clients,
+    deliveries,
+    invoices,
+    periodScope: {},
+  });
+  const kpisPeriod = buildConsolidatedCommercialKpis({
+    orders: salesPeriod,
+    payments: payPeriod,
+    clients,
+    deliveries,
+    invoices,
+    periodScope,
+  });
+  const receivable = kpisAll.receivable;
+  const salesAmount = periodFiltered ? kpisPeriod.ca : kpisAll.ca;
+  const encaisseVentes = periodFiltered ? kpisPeriod.collected : kpisAll.collected;
+  const encaisseTreasury = periodFiltered ? financePeriods.encaissePeriod : financePeriods.encaisseAllTime;
+  const encaisse = Math.max(n(encaisseVentes), n(encaisseTreasury));
   const treasuryResult = periodFiltered ? financePeriods.resultatPeriod : financePeriods.resultatAllTime;
   const expenses = periodFiltered ? financePeriods.depensesPeriod : financePeriods.depensesAllTime;
 
@@ -39,10 +64,14 @@ export function computeSharedPilotageFinanceKpis({
     receivable,
     salesAmount,
     encaisse,
+    encaisseVentes,
+    encaisseTreasury,
     treasuryResult,
     expenses,
     grossMargin: encaisse - expenses,
-    source: 'computeFinancePeriodSummary',
+    kpisAll,
+    kpisPeriod,
+    source: 'buildConsolidatedCommercialKpis+computeFinancePeriodSummary',
   };
 }
 

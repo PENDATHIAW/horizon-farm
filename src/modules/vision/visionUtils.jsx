@@ -2,9 +2,10 @@ import { fmtCurrency, fmtNumber } from '../../utils/format';
 import { runErpHealthEngine } from '../../services/erpHealthEngine.js';
 import { buildDecisionCenterPlan } from '../../services/growthDecisionEngine.js';
 import { filterRealOpenTasks } from '../../utils/healthFindingLabels.js';
-import { remainingForOrder } from '../../utils/salesStatuses.js';
-import { computeFinancePeriodSummary } from '../dashboard/dashboardMetrics.js';
+import { computeFinancePeriodSummary, computeFarmHeadcount } from '../dashboard/dashboardMetrics.js';
 import { isOpportunityOpen, saleAmount } from '../commercial/commercialMetrics.js';
+import { buildConsolidatedCommercialKpis } from '../../utils/commercialKpiConsolidated.js';
+import { summarizeStockValuation } from '../../utils/stockValuation.js';
 
 export const arr = (v) => (Array.isArray(v) ? v : []);
 export const low = (v) => String(v || '').toLowerCase();
@@ -186,20 +187,41 @@ export function buildVisionData(props = {}) {
   const pipelineTotal = openOpportunities.reduce((sum, row) => sum + saleAmount(row), 0);
   const financePeriods = computeFinancePeriodSummary(pay, tx, props.periodScope || {});
   const treasuryResult = periodFiltered ? financePeriods.resultatPeriod : financePeriods.resultatAllTime;
-  const encaisseDisplay = periodFiltered ? financePeriods.encaissePeriod : financePeriods.encaisseAllTime;
+  const commercialKpisAll = buildConsolidatedCommercialKpis({
+    orders: salesAll,
+    payments: payAll,
+    clients: allClients,
+    deliveries: arr(dataMap.deliveries || dataMap.livraisons),
+    invoices: arr(dataMap.invoices || dataMap.factures),
+    periodScope: {},
+  });
+  const commercialKpisPeriod = buildConsolidatedCommercialKpis({
+    orders: salesPeriod,
+    payments: payPeriod,
+    clients: allClients,
+    deliveries: arr(dataMap.deliveries || dataMap.livraisons),
+    invoices: arr(dataMap.invoices || dataMap.factures),
+    periodScope: props.periodScope || {},
+  });
+  const activeKpis = periodFiltered ? commercialKpisPeriod : commercialKpisAll;
+  const encaisseDisplay = Math.max(activeKpis.collected, periodFiltered ? financePeriods.encaissePeriod : financePeriods.encaisseAllTime);
   const openAlerts = arr(alertes).length ? arr(alertes).filter(isOpen) : arr(dataMap.alertes_center || dataMap.alertes).filter(isOpen);
   const rawTasks = arr(taches).length ? arr(taches) : arr(dataMap.taches || dataMap.tasks);
   const openTasks = filterRealOpenTasks(rawTasks.filter(isOpen));
   const income = tx.filter(isIncome).reduce((s, r) => s + amount(r), 0);
   const expenses = tx.filter((r) => isExpense(r) || (!isIncome(r) && amount(r) > 0)).reduce((s, r) => s + amount(r), 0);
-  const salesAmount = sales.reduce((s, r) => s + amount(r), 0);
-  const collected = pay.reduce((s, r) => s + amount(r), 0);
-  const stockValue = allStocks.reduce((s, r) => s + stockQty(r) * n(r.prix_unitaire ?? r.unit_price ?? r.price), 0);
+  const salesAmount = activeKpis.ca;
+  const collected = activeKpis.collected;
+  const stockValuation = summarizeStockValuation(allStocks, arr(dataMap.stock_movements || dataMap.stockMovements), tx);
+  const stockValue = stockValuation.totalValue > 0
+    ? stockValuation.totalValue
+    : allStocks.reduce((s, r) => s + stockQty(r) * n(r.prix_unitaire ?? r.unit_price ?? r.price), 0);
   const investmentValue = invest.reduce((s, r) => s + amount(r), 0);
   const missingProof = tx.filter((r) => amount(r) > 0 && !r.document_id && !r.proof_url && !r.justificatif_id).length;
-  const receivable = salesAll.reduce((sum, order) => sum + remainingForOrder(order, payAll), 0);
+  const receivable = commercialKpisAll.receivable;
   const grossMargin = income - expenses;
-  const base = { animaux: allAnimals, lots: allLots, cultures: allCultures, stocks: allStocks, clients: allClients, sales, payments: pay, income, expenses, balance: income - expenses, treasuryResult, encaisseDisplay, financePeriods, margin: grossMargin, grossMargin, netMargin: grossMargin, salesAmount, collected, stockValue, investmentValue, receivable, estimatedValue: stockValue + investmentValue + Math.max(0, grossMargin), productionCount: allAnimals.length + allLots.length + allCultures.length, goals: [...plans, ...invest], opportunities: opps, openOpportunities, pipelineTotal, documents: docs, missingProof, openAlerts, openTasks, debts: expenses, receivables: receivable, periodFiltered, periodLabel: props.periodLabel || '', openAlertsCount: openAlerts.length, openTasksCount: openTasks.length, criticalStockCount: allStocks.filter((r) => stockThreshold(r) > 0 && stockQty(r) <= stockThreshold(r)).length };
+  const headcount = computeFarmHeadcount({ animaux: allAnimals, lots: allLots, cultures: allCultures });
+  const base = { animaux: allAnimals, lots: allLots, cultures: allCultures, stocks: allStocks, clients: allClients, sales, payments: pay, income, expenses, balance: income - expenses, treasuryResult, encaisseDisplay, financePeriods, margin: grossMargin, grossMargin, netMargin: grossMargin, salesAmount, collected, stockValue, stockValuationMethod: stockValuation.totalValue > 0 ? 'cmup' : 'fiche', investmentValue, receivable, estimatedValue: stockValue + investmentValue + Math.max(0, grossMargin), productionCount: headcount.total, headcount, commercialKpis: commercialKpisAll, commercialKpisPeriod, goals: [...plans, ...invest], opportunities: opps, openOpportunities, pipelineTotal, documents: docs, missingProof, openAlerts, openTasks, debts: expenses, receivables: receivable, periodFiltered, periodLabel: props.periodLabel || '', openAlertsCount: openAlerts.length, openTasksCount: openTasks.length, criticalStockCount: allStocks.filter((r) => stockThreshold(r) > 0 && stockQty(r) <= stockThreshold(r)).length };
   const risks = buildRisks(base);
   const priorities = [
     ...openAlerts.slice(0, 5).map((r) => ({ id: `a-${r.id || label(r)}`, title: label(r), detail: r.message || 'Alerte ouverte', value: 'Alerte', tone: 'warn', tab: 'Risques', sourceModule: r.module_source || 'activite_suivi', record: r })),

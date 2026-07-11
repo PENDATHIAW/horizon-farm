@@ -20,6 +20,7 @@
     "test:e2e:push-business": "PLAYWRIGHT_SKIP_WEBSERVER=1 playwright test tests/e2e/push-and-business-flows.spec.js",
     "test:unit": "node --test tests/unit/*.test.js",
     "test:unit:demo-financeur": "npx vite-node tests/unit/demoFinanceurDryRun.test.js",
+    "test:unit:kpi-coherence": "npx vite-node tests/unit/kpiCoherenceAudit.test.js",
     "test:unit:ressources": "node --test tests/unit/ressourcesWorkflow.test.js",
     "test:unit:finance": "npx vite-node tests/unit/financePilotage.test.js",
     "test:unit:finance-v1": "npx vite-node tests/unit/financePilotageV1.test.js",

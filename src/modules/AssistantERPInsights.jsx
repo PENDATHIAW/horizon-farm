@@ -40,7 +40,7 @@ function PriorityRow({ item, onNavigate, onCreateTask, busy }) {
       <p className="mt-1 text-sm text-[#8a7456]">{item.description}</p>
     </div>
     <div className="flex flex-wrap gap-2">
-      <button type="button" onClick={() => onNavigate?.(item.module)} className="rounded-xl border border-[#d6c3a0] bg-[#fffdf8] px-3 py-2 text-sm font-bold text-[#2f2415]"><Navigation size={14} className="inline" /> Ouvrir</button>
+      <button type="button" onClick={() => onNavigate?.(item.module, item.tab ? { tab: item.tab } : undefined)} className="rounded-xl border border-[#d6c3a0] bg-[#fffdf8] px-3 py-2 text-sm font-bold text-[#2f2415]"><Navigation size={14} className="inline" /> Ouvrir</button>
       <button type="button" disabled={busy} onClick={() => onCreateTask(item)} className="rounded-xl bg-[#2f2415] px-3 py-2 text-sm font-bold text-white disabled:opacity-60"><ClipboardList size={14} className="inline" /> Créer tâche</button>
     </div>
   </div>;
@@ -74,17 +74,17 @@ function buildAssistantPriorities(dataMap = {}) {
   const equipmentIssues = equipments.filter((e) => /panne|maintenance|hors_service/.test(lower(e.status || e.statut)));
 
   const priorities = [];
-  if (openAlerts.length) priorities.push({ module: 'alertes', level: 'critical', badge: 'Alerte', title: `${openAlerts.length} alerte(s) ouverte(s)`, description: 'Transformer les alertes critiques en tâches terrain et clôturer celles déjà traitées.' });
-  if (unpaidSales.length) priorities.push({ module: 'commercial', level: 'warning', badge: 'Créance', title: `${unpaidSales.length} commande(s) non soldée(s)`, description: 'Encaisser les restes à payer, générer factures/preuves et relancer les clients.' });
-  if (criticalStock.length) priorities.push({ module: 'stock', level: 'critical', badge: 'Stock', title: `${criticalStock.length} stock(s) critique(s)`, description: 'Réapprovisionner, corriger les seuils ou affecter les sorties alimentation/santé.' });
-  if (sickAnimals.length) priorities.push({ module: 'animaux', level: 'critical', badge: 'Santé', title: `${sickAnimals.length} animal(aux) à suivre`, description: 'Créer un soin, relier les coûts santé et mettre à jour le statut du sujet.' });
-  if (riskyLots.length) priorities.push({ module: 'avicole', level: 'warning', badge: 'Cycle', title: `${riskyLots.length} lot(s) à 0 actif non clôturé(s)`, description: 'Consulter l’historique effectif puis clôturer, justifier la sortie ou corriger l’effectif.' });
-  if (riskyCultures.length) priorities.push({ module: 'cultures', level: 'warning', badge: 'Culture', title: `${riskyCultures.length} culture(s) à surveiller`, description: 'Vérifier rendement, traitements, récoltes et pertes avant clôture.' });
-  if (txWithoutProof.length) priorities.push({ module: 'documents', level: 'warning', badge: 'Preuve', title: `${txWithoutProof.length} transaction(s) sans justificatif`, description: 'Créer ou lier une facture, reçu, photo ou preuve de paiement.' });
-  if (supplierDebt.length) priorities.push({ module: 'fournisseurs', level: 'warning', badge: 'Dette', title: `${supplierDebt.length} fournisseur(s) avec dette`, description: 'Relier les paiements, justificatifs et réceptions stock.' });
-  if (clientNoContact.length) priorities.push({ module: 'clients', level: 'warning', badge: 'Contact', title: `${clientNoContact.length} client(s) sans contact`, description: 'Compléter téléphone/WhatsApp pour relances et suivi commercial.' });
-  if (equipmentIssues.length) priorities.push({ module: 'equipements', level: 'warning', badge: 'Matériel', title: `${equipmentIssues.length} équipement(s) en panne/maintenance`, description: 'Créer une tâche de maintenance et enregistrer les coûts éventuels.' });
-  if (!priorities.length && openTasks.length) priorities.push({ module: 'taches', level: 'info', badge: 'Suivi', title: `${openTasks.length} tâche(s) ouverte(s)`, description: 'Suivre les actions terrain restantes et clôturer ce qui est terminé.' });
+  if (openAlerts.length) priorities.push({ module: 'activite_suivi', tab: 'À traiter maintenant', level: 'critical', badge: 'Alerte', title: `${openAlerts.length} alerte(s) ouverte(s)`, description: 'Transformer les alertes critiques en tâches terrain et clôturer celles déjà traitées.' });
+  if (unpaidSales.length) priorities.push({ module: 'commercial', tab: 'Clients & créances', level: 'warning', badge: 'Créance', title: `${unpaidSales.length} commande(s) non soldée(s)`, description: 'Encaisser les restes à payer, générer factures/preuves et relancer les clients.' });
+  if (criticalStock.length) priorities.push({ module: 'achats_stock', tab: 'Inventaire', level: 'critical', badge: 'Stock', title: `${criticalStock.length} stock(s) critique(s)`, description: 'Réapprovisionner, corriger les seuils ou affecter les sorties alimentation/santé.' });
+  if (sickAnimals.length) priorities.push({ module: 'elevage', tab: 'Santé', level: 'critical', badge: 'Santé', title: `${sickAnimals.length} animal(aux) à suivre`, description: 'Créer un soin, relier les coûts santé et mettre à jour le statut du sujet.' });
+  if (riskyLots.length) priorities.push({ module: 'elevage', tab: 'Lots & bandes', level: 'warning', badge: 'Cycle', title: `${riskyLots.length} lot(s) à 0 actif non clôturé(s)`, description: 'Consulter l’historique effectif puis clôturer, justifier la sortie ou corriger l’effectif.' });
+  if (riskyCultures.length) priorities.push({ module: 'cultures', tab: 'Parcelles & campagnes', level: 'warning', badge: 'Culture', title: `${riskyCultures.length} culture(s) à surveiller`, description: 'Vérifier rendement, traitements, récoltes et pertes avant clôture.' });
+  if (txWithoutProof.length) priorities.push({ module: 'documents_rapports', tab: 'Rapprochement & preuves', level: 'warning', badge: 'Preuve', title: `${txWithoutProof.length} transaction(s) sans justificatif`, description: 'Créer ou lier une facture, reçu, photo ou preuve de paiement.' });
+  if (supplierDebt.length) priorities.push({ module: 'achats_stock', tab: 'Fournisseurs & dettes', level: 'warning', badge: 'Dette', title: `${supplierDebt.length} fournisseur(s) avec dette`, description: 'Relier les paiements, justificatifs et réceptions stock.' });
+  if (clientNoContact.length) priorities.push({ module: 'commercial', tab: 'Clients & créances', level: 'warning', badge: 'Contact', title: `${clientNoContact.length} client(s) sans contact`, description: 'Compléter téléphone/WhatsApp pour relances et suivi commercial.' });
+  if (equipmentIssues.length) priorities.push({ module: 'rh', tab: 'Parc Matériel & Maintenance', level: 'warning', badge: 'Matériel', title: `${equipmentIssues.length} équipement(s) en panne/maintenance`, description: 'Créer une tâche de maintenance et enregistrer les coûts éventuels.' });
+  if (!priorities.length && openTasks.length) priorities.push({ module: 'activite_suivi', tab: 'À traiter maintenant', level: 'info', badge: 'Suivi', title: `${openTasks.length} tâche(s) ouverte(s)`, description: 'Suivre les actions terrain restantes et clôturer ce qui est terminé.' });
   return { priorities, unpaidSales, criticalStock, riskyLots, openTasks };
 }
 
@@ -128,10 +128,10 @@ export default function AssistantERPInsights({ dataMap = {}, onNavigate }) {
     </div>
 
     <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-      <Card icon={FileWarning} label="Créances" value={analysis.unpaidSales.length} hint="commandes non soldées" danger={analysis.unpaidSales.length > 0} onClick={() => onNavigate?.('commercial')} />
-      <Card icon={AlertTriangle} label="Stocks critiques" value={analysis.criticalStock.length} hint="à réapprovisionner" danger={analysis.criticalStock.length > 0} onClick={() => onNavigate?.('stock')} />
-      <Card icon={Sparkles} label="Lots à clôturer" value={analysis.riskyLots.length} hint="effectif 0 non justifié" danger={analysis.riskyLots.length > 0} onClick={() => onNavigate?.('avicole')} />
-      <Card icon={ClipboardList} label="Tâches ouvertes" value={analysis.openTasks.length} hint="terrain / suivi" danger={analysis.openTasks.length > 8} onClick={() => onNavigate?.('taches')} />
+      <Card icon={FileWarning} label="Créances" value={analysis.unpaidSales.length} hint="commandes non soldées" danger={analysis.unpaidSales.length > 0} onClick={() => onNavigate?.('commercial', { tab: 'Clients & créances' })} />
+      <Card icon={AlertTriangle} label="Stocks critiques" value={analysis.criticalStock.length} hint="à réapprovisionner" danger={analysis.criticalStock.length > 0} onClick={() => onNavigate?.('achats_stock', { tab: 'Inventaire' })} />
+      <Card icon={Sparkles} label="Lots à clôturer" value={analysis.riskyLots.length} hint="effectif 0 non justifié" danger={analysis.riskyLots.length > 0} onClick={() => onNavigate?.('elevage', { tab: 'Lots & bandes' })} />
+      <Card icon={ClipboardList} label="Tâches ouvertes" value={analysis.openTasks.length} hint="terrain / suivi" danger={analysis.openTasks.length > 8} onClick={() => onNavigate?.('activite_suivi', { tab: 'À traiter maintenant' })} />
     </div>
 
     <div className="rounded-2xl border border-[#eadcc2] bg-[#fffdf8] p-4 space-y-3">

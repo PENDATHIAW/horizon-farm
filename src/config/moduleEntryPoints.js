@@ -110,5 +110,8 @@ export function resolveActiveModuleId(moduleId = '') {
 export function entryPointSource(moduleId = '') {
   const loader = MODULE_ENTRY_POINTS[moduleId];
   if (!loader) return '';
-  return String(loader).match(/import\(['"](.+?)['"]\)/)?.[1] || '';
+  const fromLoader = String(loader).match(/import\(['"](.+?)['"]\)/)?.[1];
+  if (fromLoader) return fromLoader;
+  const canonical = CANONICAL_MODULE_FILES[moduleId];
+  return canonical ? `../modules/${canonical}` : '';
 }

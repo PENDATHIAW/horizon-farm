@@ -57,7 +57,10 @@ export default function RapportsExportsTab({
             <p className="font-black text-emerald-900">Dossier financeur PDF</p>
             <p className="text-sm text-emerald-800">DER, FONGIP, BNDE, CNCAS — actifs, production, CA, rentabilité, risques et prévisions.</p>
           </div>
-          <Button primary onClick={() => onNavigate?.('rapports')}>Générer dossier financeur</Button>
+          <div className="flex flex-wrap gap-2">
+            <Button primary onClick={() => onNavigate?.('investisseurs_forums', { tab: 'export' })}>Générer pack investisseur</Button>
+            <Button onClick={() => onNavigate?.('rapports')}>Dossier financeur (legacy)</Button>
+          </div>
         </div>
         <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3">
           <Field label="Export ventes" value={`${fmtNumber(data.salesOrders.length)} vente(s)`} />
