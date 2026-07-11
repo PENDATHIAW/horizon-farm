@@ -82,10 +82,18 @@
       .section { margin-top: 20px; }
       .section-head { margin-bottom: 12px; }
       .section-head p { max-width: 760px; margin: 8px 0 0; color: var(--muted); }
-      .principles { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+      .principles, .domains { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
       .principle, .closing-card { padding: 18px; }
       .principle span, .closing-card span { display: inline-grid; place-items: center; width: 34px; height: 34px; border-radius: 50%; background: var(--soft); color: var(--green-dark); font-weight: 900; margin-bottom: 12px; }
       .principle p, .closing-card p { color: var(--muted); margin-bottom: 0; }
+      .domain {
+        border: 1px solid var(--line);
+        border-radius: 18px;
+        background: var(--paper);
+        padding: 13px;
+        font-weight: 900;
+      }
+      .domain small { display: block; color: var(--muted); font-size: 10px; letter-spacing: .08em; text-transform: uppercase; margin-bottom: 4px; }
       .deck { margin-top: 22px; display: grid; grid-template-columns: 250px 1fr; gap: 14px; align-items: start; }
       .rail { padding: 14px; position: sticky; top: 14px; }
       .rail-title { font-size: 12px; color: var(--muted); text-transform: uppercase; font-weight: 900; letter-spacing: .12em; margin: 2px 8px 10px; }
@@ -131,7 +139,7 @@
       .controls { display: flex; justify-content: space-between; gap: 10px; margin-top: 18px; }
       .closing { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; }
       @media (max-width: 900px) {
-        .hero-metrics, .principles, .deck, .closing { grid-template-columns: 1fr; }
+        .hero-metrics, .principles, .domains, .deck, .closing { grid-template-columns: 1fr; }
         .rail { position: static; display: grid; grid-template-columns: repeat(2, 1fr); }
         .rail-title { grid-column: 1 / -1; }
         .proofs, .kpis, .filieres { grid-template-columns: repeat(2, 1fr); }
@@ -157,7 +165,7 @@
           </p>
           <div class="actions">
             <button class="btn primary" onclick="scrollToDeck()">Lancer la démo</button>
-            <a class="btn secondary" href="#principes">Voir la logique</a>
+            <a class="btn secondary" href="#domaines">Voir les domaines</a>
           </div>
           <div class="hero-metrics">
             <div class="metric"><small>Fil rouge</small><strong>Lot B</strong><p>500 sujets suivis jusqu’à la marge.</p></div>
@@ -165,6 +173,24 @@
             <div class="metric"><small>Impact</small><strong>-70 000</strong><p>FCFA de marge menacée.</p></div>
             <div class="metric"><small>Modèle</small><strong>4 filières</strong><p>Chair, œufs, bovins, maraîchage.</p></div>
           </div>
+        </div>
+      </section>
+
+      <section class="section" id="domaines">
+        <div class="section-head">
+          <h2>Domaines suivis</h2>
+          <p>Le pitch reste court, mais il s’appuie sur le périmètre ERP complet : opérations, stocks, finance, traçabilité, économie circulaire, reporting et AGRI FEEDS.</p>
+        </div>
+        <div class="domains">
+          <div class="domain"><small>1</small>Pilotage global</div>
+          <div class="domain"><small>2</small>Production animale</div>
+          <div class="domain"><small>3</small>Production végétale</div>
+          <div class="domain"><small>4</small>Achats & stocks</div>
+          <div class="domain"><small>5</small>Ventes & clients</div>
+          <div class="domain"><small>6</small>Finance</div>
+          <div class="domain"><small>7</small>Traçabilité</div>
+          <div class="domain"><small>8</small>Économie circulaire</div>
+          <div class="domain"><small>9</small>AGRI FEEDS</div>
         </div>
       </section>
 
@@ -277,10 +303,10 @@
           title: 'AGRI FEEDS : discipline avant ambition',
           badge: 'Phase 2',
           intro: 'L’aliment est le premier poste de charge. AGRI FEEDS ne démarre pas comme un pari : il démarre quand les données Phase 1 prouvent que les conditions sont réunies.',
-          proofs: [['Référence', '62/100'], ['Pilote', '38/100'], ['Vente', '12/100']],
+          proofs: [['Référence Phase 1', '62/100'], ['Pilote', '38/100'], ['Vente', '12/100']],
           mockTitle: 'Readiness AGRI FEEDS',
-          kpis: [['Marché', 'À comparer'], ['Formules', 'À tester'], ['QC', 'Obligatoire'], ['Vente', 'Fermée']],
-          alert: 'Décision : continuer à collecter les données Phase 1 avant production commerciale.',
+          kpis: [['Prix marché', 'Comparés'], ['Formules', 'À tester'], ['Qualité', 'À valider'], ['Vente', 'Progressive']],
+          alert: 'Décision : collecter les données Phase 1, valider la qualité, puis ouvrir progressivement la vente.',
           decision: 'L’ERP est le juge de paix : si les chiffres ne justifient pas la phase, on ne la lance pas.',
         },
         {

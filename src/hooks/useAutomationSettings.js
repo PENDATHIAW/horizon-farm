@@ -24,8 +24,9 @@ export default function useAutomationSettings() {
       refresh().catch(() => setSettings(defaultAutomationSettings));
     });
 
+    const channelName = `automation-settings-realtime-${Date.now()}-${Math.random().toString(36).slice(2)}`;
     const channel = supabase
-      .channel('automation-settings-realtime')
+      .channel(channelName)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'automation_settings' }, () => {
         refresh().catch(() => undefined);
       })

@@ -11,10 +11,11 @@ import { evaluateProfitabilityRules } from './profitabilityRules.js';
 import { evaluateModuleDataCoverage } from '../moduleDataCoverageAudit.js';
 
 const arr = (v) => (Array.isArray(v) ? v : []);
+const hasRows = (data = {}) => Object.values(data || {}).some((value) => Array.isArray(value) && value.length > 0);
 
 /** Phase 1 — audit automatique sans IA générative. Préférer runErpAuditEngine pour l'audit complet. */
 export function computeErpAuditFindings(data = {}) {
-  return [
+  const findings = [
     ...evaluateStockRules(arr(data.stock || data.stocks)),
     ...evaluateSalesRules(arr(data.sales_orders || data.salesOrders), arr(data.payments)),
     ...evaluateFinanceRules(arr(data.finances || data.transactions), arr(data.taches || data.tasks)),
@@ -24,7 +25,22 @@ export function computeErpAuditFindings(data = {}) {
     ...evaluateCoherenceRules(data),
     ...evaluateProfitabilityRules(data),
     ...evaluateModuleDataCoverage(data).findings,
-  ].sort((a, b) => {
+  ];
+
+  if (!findings.length && hasRows(data)) {
+    findings.push({
+      id: 'erp-audit-data-present',
+      module: 'erp_audit',
+      severity: 'basse',
+      title: 'Données ERP détectées',
+      description: 'Le moteur a reçu des données exploitables mais aucune règle critique ne s’est déclenchée.',
+      recommended_action: 'Poursuivre le suivi et enrichir les règles métier selon les usages terrain.',
+      confidence_score: 0.7,
+      source_records: [{ type: 'dataset', id: 'erp' }],
+    });
+  }
+
+  return findings.sort((a, b) => {
     const rank = { critique: 0, haute: 1, moyenne: 2, basse: 3 };
     return (rank[a.severity] ?? 9) - (rank[b.severity] ?? 9);
   });

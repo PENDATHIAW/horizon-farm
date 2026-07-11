@@ -44,9 +44,16 @@ export async function runManureCollectionSideEffects({
     await handlers.onCreateBusinessEvent({ ...workflow.event, side_effects_managed: true });
   }
 
+  if (workflow.task && handlers.onCreateTask) {
+    await handlers.onCreateTask({ ...workflow.task, side_effects_managed: true });
+  }
+
+  if (workflow.alert && handlers.onCreateAlert) {
+    await handlers.onCreateAlert({ ...workflow.alert, side_effects_managed: true });
+  }
+
   for (const extraEvent of arr(workflow.extraEvents)) {
     if (extraEvent && handlers.onCreateBusinessEvent) {
-      // eslint-disable-next-line no-await-in-loop
       await handlers.onCreateBusinessEvent({ ...extraEvent, side_effects_managed: true });
     }
   }

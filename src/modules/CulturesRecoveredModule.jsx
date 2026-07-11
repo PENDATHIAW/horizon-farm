@@ -6,7 +6,11 @@ import useLiveWeather from '../hooks/useLiveWeather';
 import { rowsOf } from '../utils/moduleRows';
 import { resolveCulturesSectionIntent, resolveCulturesTab } from '../utils/culturesNavigation.js';
 import { buildCulturesChartNarratives } from '../utils/culturesChartNarratives.js';
+import { buildCropCampaignStartWorkflow, buildIrrigationEventWorkflow } from '../utils/cultureWorkflows.js';
 import { runCultureHarvestSideEffects } from '../utils/cultureSideEffects';
+import { buildOrganicTransferWorkflow } from '../utils/manureWorkflows.js';
+import { dispatchBpLineCompleted } from '../utils/bpLineConcretization.js';
+import { makeId } from '../utils/ids.js';
 import PeriodScopeBadge from '../components/PeriodScopeBadge.jsx';
 import CulturesAnnexeTab from './cultures/CulturesAnnexeTab.jsx';
 import CulturesCyclesHub from './cultures/CulturesCyclesHub.jsx';
@@ -21,6 +25,16 @@ import ModuleProjectionsStrip from '../components/module/ModuleProjectionsStrip.
 import { buildCulturesModuleProjections } from '../utils/moduleProjections.js';
 
 const arr = (value) => (Array.isArray(value) ? value : []);
+const clean = (value = '') => String(value || '').trim();
+const norm = (value = '') => clean(value).toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+const today = () => new Date().toISOString().slice(0, 10);
+const hasAnyKey = (payload = {}, keys = []) => keys.some((key) => Object.prototype.hasOwnProperty.call(payload, key));
+const isIrrigationPayload = (payload = {}) => hasAnyKey(payload, ['irrigation_event', 'volume_litres', 'volume_l', 'duree_minutes', 'cout_eau', 'cout_irrigation', 'source_eau'])
+  || ['irrigation', 'irrigation_event'].includes(norm(payload.type_evenement || payload.event_type));
+const isOrganicTransferPayload = (payload = {}) => hasAnyKey(payload, ['organic_transfer', 'stock_organique_id', 'type_matiere', 'sacs', 'poids_total_kg', 'statut_sanitaire'])
+  || (clean(payload.stock_id) && hasAnyKey(payload, ['sacs', 'quantite', 'qty', 'poids_total_kg']))
+  || ['organic_transfer', 'transfert_organique'].includes(norm(payload.type_evenement || payload.event_type));
+const isParcelRow = (row = {}) => ['parcelle', 'plot'].includes(norm(row.record_type || row.type_fiche || row.type));
 
 export default function CulturesRecoveredModule(props) {
   const controlled = Boolean(props.onTabChange);
@@ -48,17 +62,19 @@ export default function CulturesRecoveredModule(props) {
       return;
     }
     setInternalTab(resolved);
-  }, [controlled, props.onTabChange, rememberSection]);
+  }, [controlled, props, rememberSection]);
 
   useEffect(() => {
     if (controlled || !props.initialTab) return;
-    rememberSection(props.initialTab);
-    setInternalTab(resolveCulturesTab(props.initialTab));
+    queueMicrotask(() => {
+      rememberSection(props.initialTab);
+      setInternalTab(resolveCulturesTab(props.initialTab));
+    });
   }, [controlled, props.initialTab, rememberSection]);
 
   useEffect(() => {
     if (!props.initialTab) return;
-    rememberSection(props.initialTab);
+    queueMicrotask(() => rememberSection(props.initialTab));
   }, [props.initialTab, rememberSection]);
 
   useEffect(() => {
@@ -87,6 +103,8 @@ export default function CulturesRecoveredModule(props) {
   const deliveriesCrud = useCrudModule('deliveries');
   const documentsCrud = useCrudModule('documents');
   const movementsCrud = useCrudModule('stock_movements');
+  const tasksCrud = useCrudModule('taches');
+  const alertsCrud = useCrudModule('alertes_center');
   const { weather: liveMeteo } = useLiveWeather();
 
   const rows = rowsOf(props.rows || props.cultures, culturesCrud, periodFiltered);
@@ -121,6 +139,10 @@ export default function CulturesRecoveredModule(props) {
       financesCrud.refresh?.(),
       salesCrud.refresh?.(),
       paymentsCrud.refresh?.(),
+      documentsCrud.refresh?.(),
+      movementsCrud.refresh?.(),
+      tasksCrud.refresh?.(),
+      alertsCrud.refresh?.(),
     ]);
   };
 
@@ -137,7 +159,10 @@ export default function CulturesRecoveredModule(props) {
     onUpdateOpportunity: props.onUpdateOpportunity || opportunitiesCrud.update,
     onCreateFinanceTransaction: props.onCreateFinanceTransaction || financesCrud.create,
     onCreateBusinessEvent: props.onCreateBusinessEvent || eventsCrud.create,
-    onCreateDocument: props.onCreateDocument,
+    onCreateDocument: props.onCreateDocument || documentsCrud.create,
+    onCreateTask: props.onCreateTask || tasksCrud.create,
+    onCreateAlert: props.onCreateAlert || alertsCrud.create,
+    onCreateStockMovement: props.onCreateStockMovement || movementsCrud.create,
     onCreateOrder: props.onCreateOrder || salesCrud.create,
     onCreatePayment: props.onCreatePayment || paymentsCrud.create,
     onCreateInvoice: props.onCreateInvoice,
@@ -165,12 +190,98 @@ export default function CulturesRecoveredModule(props) {
   };
 
   const onCreate = async (payload) => {
-    await (props.onCreate || culturesCrud.create)?.(payload);
-    await syncHarvest({}, payload, 'création culture');
+    const campaign = buildCropCampaignStartWorkflow({
+      culture: payload,
+      cultures: rows,
+      parcelles: rows.filter(isParcelRow),
+      stocks,
+      date: payload.date_debut_campagne || payload.date_semis || today(),
+    });
+    if (campaign.blocked) {
+      if (campaign.alert) await workflowHandlers.onCreateAlert?.(campaign.alert);
+      await workflowHandlers.onCreateBusinessEvent?.(campaign.event);
+      await refreshWorkflow();
+      throw new Error(campaign.blockingReasons.join(', ') || 'Démarrage campagne bloqué');
+    }
+    await (props.onCreate || culturesCrud.create)?.(campaign.culture);
+    for (const task of campaign.tasks || []) await workflowHandlers.onCreateTask?.(task);
+    for (const patch of campaign.stockPatches || []) await workflowHandlers.onUpdateStock?.(patch.id, patch);
+    for (const movement of campaign.stockMovements || []) await workflowHandlers.onCreateStockMovement?.(movement);
+    if (campaign.financeTransaction) await workflowHandlers.onCreateFinanceTransaction?.(campaign.financeTransaction);
+    if (campaign.alert) await workflowHandlers.onCreateAlert?.(campaign.alert);
+    await workflowHandlers.onCreateBusinessEvent?.(campaign.event);
+    if (payload.bp_line_id) {
+      dispatchBpLineCompleted({
+        bp_line_id: payload.bp_line_id,
+        assetModule: 'cultures',
+        assetId: campaign.culture.id,
+        amount: campaign.reporting?.cout_initial || campaign.financeTransaction?.montant || 0,
+        date: campaign.culture.date_debut_campagne,
+        source: 'culture_campaign_start',
+        issue_key: campaign.event.issue_key,
+      });
+    }
+    await syncHarvest({}, campaign.culture, 'création culture');
   };
 
   const onUpdate = async (id, payload) => {
     const before = rows.find((row) => String(row.id) === String(id)) || {};
+    if (isIrrigationPayload(payload)) {
+      const irrigation = buildIrrigationEventWorkflow({
+        culture: before,
+        payload: { ...payload, culture_id: id },
+        smartReadings: arr(props.smartfarmEvents),
+        date: payload.date || today(),
+      });
+      await onUpdateCultureOnly(id, { ...payload, ...(irrigation.culturePatch || {}) });
+      if (irrigation.task) await workflowHandlers.onCreateTask?.(irrigation.task);
+      if (irrigation.alert) await workflowHandlers.onCreateAlert?.(irrigation.alert);
+      if (irrigation.financeTransaction) await workflowHandlers.onCreateFinanceTransaction?.(irrigation.financeTransaction);
+      await workflowHandlers.onCreateBusinessEvent?.(irrigation.event);
+      await refreshWorkflow();
+      return;
+    }
+
+    if (isOrganicTransferPayload(payload)) {
+      const stockId = clean(payload.stock_organique_id || payload.stock_id);
+      const stock = stocks.find((row) => String(row.id) === String(stockId)) || {};
+      const transfer = buildOrganicTransferWorkflow({
+        stock,
+        culture: before,
+        payload: { ...payload, culture_id: id, stock_id: stockId },
+        date: payload.date || today(),
+      });
+      if (transfer.blocked) {
+        if (transfer.task) await workflowHandlers.onCreateTask?.(transfer.task);
+        if (transfer.alert) await workflowHandlers.onCreateAlert?.(transfer.alert);
+        await workflowHandlers.onCreateBusinessEvent?.(transfer.event);
+        await refreshWorkflow();
+        throw new Error(transfer.alert?.message || 'Transfert organique bloqué');
+      }
+      if (transfer.stockPatch && stockId) await workflowHandlers.onUpdateStock?.(stockId, transfer.stockPatch);
+      if (transfer.culturePatch) await onUpdateCultureOnly(id, { ...payload, ...transfer.culturePatch });
+      if (transfer.document) await workflowHandlers.onCreateDocument?.(transfer.document);
+      if (transfer.task) await workflowHandlers.onCreateTask?.(transfer.task);
+      await workflowHandlers.onCreateBusinessEvent?.(transfer.event);
+      await workflowHandlers.onCreateStockMovement?.({
+        id: makeId('MVT'),
+        stock_id: stockId,
+        type: 'sortie',
+        movement_type: 'sortie',
+        quantite: transfer.transferRow.sacs,
+        quantity: transfer.transferRow.sacs,
+        unite: 'sac',
+        motif: `Transfert organique vers ${before.parcelle || before.nom || id}`,
+        module_source: 'cultures',
+        entity_type: 'culture',
+        entity_id: id,
+        date: transfer.transferRow.date,
+        issue_key: transfer.event.issue_key,
+      });
+      await refreshWorkflow();
+      return;
+    }
+
     await onUpdateCultureOnly(id, payload);
     if (payload.side_effects_managed || payload.derniere_recolte_id || payload.last_harvest_at) {
       await refreshWorkflow();
@@ -211,11 +322,16 @@ export default function CulturesRecoveredModule(props) {
     onRefreshBusinessEvents: props.onRefreshBusinessEvents || eventsCrud.refresh,
     onCreateFinanceTransaction: workflowHandlers.onCreateFinanceTransaction,
     onRefreshFinances: props.onRefreshFinances || financesCrud.refresh,
-    onCreateStockMovement: props.onCreateStockMovement,
-    onRefreshStockMovements: props.onRefreshStockMovements,
+    onCreateStockMovement: workflowHandlers.onCreateStockMovement,
+    onRefreshStockMovements: props.onRefreshStockMovements || movementsCrud.refresh,
+    onCreateTask: workflowHandlers.onCreateTask,
+    onCreateAlert: workflowHandlers.onCreateAlert,
+    onCreateDocument: workflowHandlers.onCreateDocument,
+    onRefreshTasks: props.onRefreshTasks || tasksCrud.refresh,
+    onRefreshAlertes: props.onRefreshAlertes || alertsCrud.refresh,
+    onRefreshDocuments: props.onRefreshDocuments || documentsCrud.refresh,
     onNavigate: props.onNavigate,
     meteo,
-    transactions,
     activeFarm: props.activeFarm,
   };
 

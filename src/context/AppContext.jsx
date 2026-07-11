@@ -105,7 +105,6 @@ const serviceMap = {
   stock_movements: stockMovementsCrud,
 };
 
-const clone = (value) => JSON.parse(JSON.stringify(value || []));
 const emptyInitialData = () => Object.fromEntries(['dashboard', ...Object.keys(serviceMap), 'sync'].map((key) => [key, []]));
 
 const initialData = emptyInitialData();

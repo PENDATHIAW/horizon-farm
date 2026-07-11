@@ -1,14 +1,17 @@
 import {
-  BarChart3, Beef, Bell, Bot, BrainCircuit, Calculator, ClipboardList, DollarSign,
-  FolderOpen, Goal, Handshake, LayoutDashboard, PiggyBank, Settings, ShoppingCart,
-  Sprout, Sun, Tractor, UserCog, Warehouse, Wifi, Wrench,
+  Beef, Bot, BrainCircuit, ClipboardList, DollarSign, FolderOpen, Goal,
+  Handshake, LayoutDashboard, Settings, ShoppingCart, Sprout, Tractor,
+  UserCog, Warehouse, Wifi, Wrench,
 } from 'lucide-react';
+
+const noIcon = () => null;
 
 /** Registre central des modules ERP — routes, labels, regroupements. */
 export const MODULE_REGISTRY = {
   dashboard: { label: 'Accueil', icon: LayoutDashboard, group: 'core' },
   assistant_erp: { label: 'Assistant ERP', icon: Bot, group: 'core' },
   centre_ia: { label: 'Centre décisionnel', icon: BrainCircuit, group: 'pilotage' },
+  agri_feeds: { label: 'AGRI FEEDS', icon: noIcon, group: 'pilotage' },
   objectifs_croissance: { label: 'Objectifs & Croissance', icon: Goal, group: 'pilotage' },
   elevage: { label: 'Élevage', icon: Beef, group: 'metier' },
   commercial: { label: 'Commercial', icon: ShoppingCart, group: 'metier' },
@@ -34,8 +37,8 @@ export const ADVANCED_MODULE_IDS = [
 ];
 
 export const GRAND_MODULE_IDS = [
-  'elevage', 'commercial', 'achats_stock', 'finance_pilotage',
-  'activite_suivi', 'documents_rapports', 'objectifs_croissance', 'centre_ia',
+  'centre_ia', 'agri_feeds', 'objectifs_croissance', 'elevage', 'commercial',
+  'achats_stock', 'finance_pilotage', 'activite_suivi', 'documents_rapports',
 ];
 
 export const CRUD_KEYS = [
@@ -47,6 +50,10 @@ export const CRUD_KEYS = [
   'camera_devices', 'business_events', 'alertes_center', 'whatsapp_templates',
   'whatsapp_logs', 'sales_orders', 'sales_order_items', 'deliveries', 'invoices',
   'payments', 'sales_opportunities', 'stock_movements',
+  'feed_raw_materials', 'feed_raw_batches', 'feed_formulas', 'feed_formula_versions',
+  'feed_formula_ingredients', 'feed_facility_zones',
+  'feed_production_orders', 'feed_finished_batches', 'feed_quality_checks',
+  'feed_trials', 'feed_phase1_comparisons',
 ];
 
 export const SALES_WORKFLOW_KEYS = [
@@ -55,7 +62,7 @@ export const SALES_WORKFLOW_KEYS = [
 ];
 
 export const NAV_MODULE_ORDER = [
-  'dashboard', 'assistant_erp', 'centre_ia', 'objectifs_croissance', 'investisseurs_forums',
+  'dashboard', 'assistant_erp', 'centre_ia', 'agri_feeds', 'objectifs_croissance', 'investisseurs_forums',
   'elevage', 'cultures',
   'commercial', 'achats_stock',
   'finance_pilotage',

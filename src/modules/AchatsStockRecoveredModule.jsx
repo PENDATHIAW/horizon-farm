@@ -124,16 +124,17 @@ function Summary({ data, setTab, onApply, onRelance, busyId, onNavigate, onMarkE
 }
 
 export default function AchatsStockRecoveredModule(props) {
-  const controlled = Boolean(props.onTabChange);
-  const [internalTab, setInternalTab] = useState(() => resolveAchatsStockTab(props.initialTab || 'Inventaire'));
+  const { initialTab, onTabChange } = props;
+  const controlled = Boolean(onTabChange);
+  const [internalTab, setInternalTab] = useState(() => resolveAchatsStockTab(initialTab || 'Inventaire'));
   const [inventaireSection, setInventaireSection] = useState(null);
   const movementsDetailsRef = useRef(null);
   const annexeDetailsRef = useRef(null);
   const tab = controlled
-    ? resolveAchatsStockTab(props.initialTab || 'Inventaire')
+    ? resolveAchatsStockTab(initialTab || 'Inventaire')
     : internalTab;
   const rememberInventaireSection = useCallback((value = '') => {
-    const rawKey = lower(String(value || '').trim());
+    const rawKey = low(String(value || '').trim());
     if (['mouvements', 'annexe', 'graphiques'].includes(rawKey)) {
       setInventaireSection(rawKey === 'graphiques' ? 'annexe' : rawKey);
     }
@@ -143,19 +144,24 @@ export default function AchatsStockRecoveredModule(props) {
     const resolved = resolveAchatsStockTab(value);
     const raw = String(value || '').trim();
     if (controlled) {
-      props.onTabChange?.(raw || resolved);
+      onTabChange?.(raw || resolved);
       return;
     }
     setInternalTab(resolved);
-  }, [controlled, props.onTabChange, rememberInventaireSection]);
+  }, [controlled, onTabChange, rememberInventaireSection]);
   const [busyId, setBusyId] = useState(null);
   const [stockAdvancedOpen, setStockAdvancedOpen] = useState(false);
 
   useEffect(() => {
-    if (!props.initialTab) return;
-    rememberInventaireSection(props.initialTab);
-    if (!controlled) setInternalTab(resolveAchatsStockTab(props.initialTab));
-  }, [controlled, props.initialTab, rememberInventaireSection]);
+    if (!initialTab) return undefined;
+    let cancelled = false;
+    queueMicrotask(() => {
+      if (cancelled) return;
+      rememberInventaireSection(initialTab);
+      if (!controlled) setInternalTab(resolveAchatsStockTab(initialTab));
+    });
+    return () => { cancelled = true; };
+  }, [controlled, initialTab, rememberInventaireSection]);
 
   useEffect(() => {
     if (tab !== 'Inventaire' || !inventaireSection) return;

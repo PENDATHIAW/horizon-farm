@@ -30,10 +30,27 @@ function ActivityCard({ emoji, label, row }) {
   );
 }
 
+function ObjectiveAutomationCard({ workflow }) {
+  const progress = workflow?.progress || {};
+  const simulation = workflow?.simulation || {};
+  return (
+    <div className="rounded-xl border border-[#eadcc2] bg-white p-3">
+      <p className="text-xs font-black text-[#2f2415]">{simulation.activity || progress.source_indicator || 'Objectif'}</p>
+      <p className="mt-1 text-lg font-black text-[#2f2415]">{fmtNumber(progress.attainment || 0)}%</p>
+      <p className="text-xs text-[#8a7456]">Source : {progress.source_indicator || 'BP officiel'}</p>
+      <p className="text-xs text-[#8a7456]">Reste : {fmtCurrency(progress.remaining || 0)}</p>
+      <p className="text-xs text-[#8a7456]">Stock {fmtNumber(simulation.available_stock || 0)} / besoin {fmtNumber(simulation.stock_need || 0)}</p>
+      <p className="text-xs text-[#8a7456]">Cash {fmtCurrency(simulation.available_cash || 0)} / besoin {fmtCurrency(simulation.cash_need || 0)}</p>
+      {workflow?.alert ? <p className="mt-2 rounded-lg border border-amber-200 bg-amber-50 px-2 py-1 text-xs font-bold text-amber-800">{workflow.alert.message}</p> : null}
+    </div>
+  );
+}
+
 export default function ObjectifsBpSuiviTab({
   plan = {},
   dataMap = {},
   chartPlan = {},
+  growthObjectiveWorkflows = [],
   onNavigate,
 }) {
   const goals = applyEncaissementsToGoals(plan.goals || {}, dataMap);
@@ -78,6 +95,19 @@ export default function ObjectifsBpSuiviTab({
           {MAIN_ACTIVITIES.map((item) => (
             <ActivityCard key={item.key} emoji={item.emoji} label={item.label} row={activityMap[item.key]} />
           ))}
+        </div>
+      </section>
+
+      <section className="rounded-3xl border border-[#d6c3a0] bg-white p-5 shadow-sm space-y-4">
+        <div>
+          <p className="text-xs uppercase tracking-widest text-[#8a7456] font-black">Automatisation objectifs</p>
+          <h4 className="text-lg font-black text-[#2f2415] mt-1">Progression calculée depuis les modules</h4>
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+          {growthObjectiveWorkflows.slice(0, 6).map((workflow) => (
+            <ObjectiveAutomationCard key={workflow?.simulation?.activity || workflow?.progress?.source_indicator} workflow={workflow} />
+          ))}
+          {!growthObjectiveWorkflows.length ? <p className="text-sm text-[#8a7456]">Aucun objectif BP exploitable pour la période.</p> : null}
         </div>
       </section>
 

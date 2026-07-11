@@ -31,7 +31,7 @@ test('estimateBovinCoproductKg — scale avec poids carcasse', () => {
   assert.equal(est.sourceType, 'erp_real');
 });
 
-test('emitBovinCoproductSideEffects — crée events sans stock par défaut', async () => {
+test('emitBovinCoproductSideEffects — crée events sans stock ni opportunités futures par défaut', async () => {
   const events = [];
   const stocks = [];
   const opportunities = [];
@@ -41,16 +41,16 @@ test('emitBovinCoproductSideEffects — crée events sans stock par défaut', as
     handlers: {
       onCreateBusinessEvent: async (payload) => { events.push(payload); },
       onCreateStock: async (payload) => { stocks.push(payload); },
-      onCreateOpportunity: async (payload) => { opportunities.push(payload); },
     },
     context: { businessEvents: [], opportunities: [] },
   });
   assert.equal(result.emitted, true);
   assert.equal(result.traceOnly, true);
   assert.equal(result.stockCreated, false);
+  assert.equal(result.opportunitiesCreated, false);
   assert.equal(events.length, 3);
   assert.equal(stocks.length, 0);
-  assert.equal(opportunities.length, 2);
+  assert.equal(opportunities.length, 0);
 });
 
 test('emitBovinCoproductSideEffects — stock si createCoproductStock', async () => {
@@ -63,7 +63,6 @@ test('emitBovinCoproductSideEffects — stock si createCoproductStock', async ()
       onCreateStock: async (payload) => { stocks.push(payload); },
     },
     context: { businessEvents: [], opportunities: [] },
-    skipOpportunities: true,
   });
   assert.equal(result.stockCreated, true);
   assert.equal(stocks.length, 2);

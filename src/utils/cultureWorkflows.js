@@ -3,8 +3,21 @@ import { makeId } from './ids.js';
 
 const today = () => new Date().toISOString().slice(0, 10);
 const now = () => new Date().toISOString();
+const arr = (value) => (Array.isArray(value) ? value : []);
 const clean = (value = '') => String(value || '').trim();
 const norm = (value = '') => clean(value).toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+
+const addDays = (date = today(), days = 0) => {
+  const base = new Date(date || today());
+  if (Number.isNaN(base.getTime())) return today();
+  base.setDate(base.getDate() + Number(days || 0));
+  return base.toISOString().slice(0, 10);
+};
+
+const activeCultureStatus = (row = {}) => {
+  const status = norm(row.statut || row.status || row.phase || '');
+  return !['terminee', 'terminée', 'recoltee', 'récoltée', 'abandonnee', 'abandonnée', 'archivee', 'archivée'].some((word) => status.includes(norm(word)));
+};
 
 export const cultureLabel = (row = {}) => row.nom || row.name || row.type || row.culture || row.parcelle || row.id || 'Culture';
 export const cultureHarvestQty = (row = {}) => toNumber(row.quantite_recoltee ?? row.recolte ?? row.production_recoltee ?? row.rendement_reel);
@@ -42,6 +55,313 @@ export function findCultureOpportunity(opportunities = [], culture = {}) {
     return (String(opp.source_module || opp.created_from || '').includes('cultures')
       && String(opp.source_id || opp.entity_id || opp.culture_id || '') === String(culture.id));
   });
+}
+
+export function buildCropCampaignStartWorkflow({
+  culture = {},
+  cultures = [],
+  parcelles = [],
+  stocks = [],
+  date = today(),
+} = {}) {
+  const cultureId = clean(culture.id) || makeId('CULT');
+  const startDate = culture.date_debut_campagne || culture.date_semis || culture.date || date;
+  const singlePlot = Array.isArray(parcelles) && parcelles.length === 1 ? parcelles[0] : null;
+  const plotId = clean(culture.parcelle_id || culture.plot_id) || clean(singlePlot?.id);
+  const plotLabel = culture.parcelle || culture.plot || singlePlot?.nom || singlePlot?.name || plotId;
+  const surface = toNumber(culture.surface ?? culture.surface_ha ?? singlePlot?.surface ?? singlePlot?.surface_ha);
+  const unit = culture.unite_surface || culture.surface_unit || singlePlot?.unite_surface || 'ha';
+  const cropName = culture.nom || culture.culture || culture.type || 'Culture';
+  const initialCost = toNumber(culture.cout_initial ?? culture.budget_prevu ?? culture.cout_total_prevu);
+  const targetYield = toNumber(culture.rendement_cible ?? culture.target_yield) || (surface > 0 ? Math.round(surface * 12000) : 0);
+  const unitPrice = cultureUnitPrice(culture) || toNumber(culture.prix_vente_prevu_unitaire);
+  const expectedRevenue = unitPrice > 0 ? targetYield * unitPrice : toNumber(culture.revenu_prevu ?? culture.ca_previsionnel);
+  const expectedMargin = expectedRevenue - initialCost;
+  const harvestDate = culture.date_recolte_estimee || culture.date_recolte_prevue || addDays(startDate, toNumber(culture.duree_cycle_jours) || 90);
+  const occupiedPlot = plotId ? arr(cultures).find((row) => {
+    if (clean(row.id) === cultureId) return false;
+    const rowPlotId = clean(row.parcelle_id || row.plot_id);
+    return rowPlotId === plotId && activeCultureStatus(row);
+  }) : null;
+  const inputStocks = (Array.isArray(stocks) ? stocks : []).filter((stock) => {
+    const text = norm(`${stock.categorie || ''} ${stock.category || ''} ${stock.produit || ''} ${stock.name || ''}`);
+    return ['semence', 'engrais', 'intrant', 'irrigation', 'eau', 'phyto'].some((word) => text.includes(word));
+  });
+  const stockReservations = inputStocks
+    .map((stock) => {
+      const requested = toNumber(stock.quantite_reservee ?? stock.reserve_qty ?? stock.quantite_prevue ?? stock.planned_qty);
+      const available = toNumber(stock.quantite ?? stock.quantity);
+      if (requested <= 0) return null;
+      return {
+        stock,
+        requested,
+        available,
+        nextQty: Math.max(0, available - requested),
+      };
+    })
+    .filter(Boolean);
+  const issueKey = `culture-campaign:${cultureId}:${startDate}`;
+  const missing = [
+    plotId || plotLabel ? '' : 'parcelle',
+    surface > 0 ? '' : 'surface',
+    cropName ? '' : 'culture',
+    initialCost > 0 ? '' : 'coûts initiaux',
+  ].filter(Boolean);
+  const blockingReasons = [
+    occupiedPlot ? `parcelle déjà occupée par ${cultureLabel(occupiedPlot)}` : '',
+  ].filter(Boolean);
+  const irrigationCalendar = [7, 14, 21, 28].map((day) => ({ date: addDays(startDate, day), action: `Irrigation J+${day}` }));
+  const followUpCalendar = [15, 30, 45, 60].map((day) => ({ date: addDays(startDate, day), action: `Suivi culture J+${day}` }));
+
+  const culturePayload = {
+    ...culture,
+    id: cultureId,
+    nom: cropName,
+    type: culture.type || cropName,
+    parcelle_id: plotId,
+    plot_id: plotId,
+    parcelle: plotLabel,
+    surface,
+    surface_ha: unit === 'ha' ? surface : culture.surface_ha,
+    unite_surface: unit,
+    statut: culture.statut || 'en_cours',
+    status: culture.status || 'en_cours',
+    date_debut_campagne: startDate,
+    date_semis: culture.date_semis || startDate,
+    cout_initial: initialCost,
+    cout_total_prevu: initialCost,
+    intrants_planifies: inputStocks.map((stock) => stock.id),
+    calendrier_irrigation: irrigationCalendar,
+    calendrier_suivi: followUpCalendar,
+    date_recolte_estimee: harvestDate,
+    date_recolte_prevue: harvestDate,
+    rendement_cible: targetYield,
+    marge_previsionnelle: expectedMargin,
+    intrants_reserves: stockReservations.map(({ stock, requested }) => ({ stock_id: stock.id, quantite: requested, unite: stock.unite || stock.unit || '' })),
+    reporting_campaign_ready: missing.length === 0 && blockingReasons.length === 0,
+    campaign_start_status: blockingReasons.length ? 'bloque' : 'valide',
+    issue_key: issueKey,
+  };
+
+  const tasks = [
+    ...irrigationCalendar.slice(0, 2).map((item) => ({
+      id: makeId('TSK'),
+      title: item.action,
+      module_lie: 'cultures',
+      source_module: 'cultures',
+      source_record_id: cultureId,
+      related_id: cultureId,
+      due_date: item.date,
+      priority: 'moyenne',
+      status: 'a_faire',
+      task_dedupe_key: `${issueKey}:irrigation:${item.date}`,
+      checklist: 'Vérifier humidité; Irriguer; Noter volume ou durée',
+    })),
+    {
+      id: makeId('TSK'),
+      title: `Suivi démarrage ${cultureLabel(culturePayload)}`,
+      module_lie: 'cultures',
+      source_module: 'cultures',
+      source_record_id: cultureId,
+      related_id: cultureId,
+      due_date: addDays(startDate, 7),
+      priority: missing.length ? 'haute' : 'moyenne',
+      status: 'a_faire',
+      task_dedupe_key: `${issueKey}:suivi-demarrage`,
+      checklist: 'Vérifier levée; Contrôler intrants; Confirmer calendrier irrigation; Estimer récolte',
+    },
+  ];
+
+  return {
+    culture: culturePayload,
+    tasks,
+    blocked: blockingReasons.length > 0,
+    blockingReasons,
+    stockPatches: blockingReasons.length ? [] : stockReservations.map(({ stock, nextQty, requested }) => ({
+      id: stock.id,
+      quantite: nextQty,
+      quantity: nextQty,
+      last_movement_type: 'reservation_campagne_culture',
+      last_movement_qty: requested,
+      last_movement_label: `Réservation intrant ${cultureLabel(culturePayload)}`,
+      last_movement_at: now(),
+    })),
+    stockMovements: blockingReasons.length ? [] : stockReservations.map(({ stock, requested }) => ({
+      id: makeId('MVT'),
+      stock_id: stock.id,
+      type: 'sortie',
+      movement_type: 'sortie',
+      quantite: requested,
+      quantity: requested,
+      unite: stock.unite || stock.unit || '',
+      motif: `Réservation intrant campagne ${cultureLabel(culturePayload)}`,
+      module_source: 'cultures',
+      entity_type: 'culture',
+      entity_id: cultureId,
+      date: startDate,
+      issue_key: issueKey,
+    })),
+    financeTransaction: initialCost > 0 ? {
+      id: makeId('TRX'),
+      type: 'sortie',
+      transaction_type: 'sortie',
+      libelle: `Démarrage campagne ${cultureLabel(culturePayload)}`,
+      montant: initialCost,
+      amount: initialCost,
+      date: startDate,
+      categorie: 'Culture',
+      module_lie: 'cultures',
+      related_id: cultureId,
+      source_module: 'cultures',
+      source_record_id: cultureId,
+      statut: 'paye',
+      status: 'paye',
+      cash_effect: true,
+    } : null,
+    alert: missing.length || blockingReasons.length ? {
+      id: makeId('ALT'),
+      title: blockingReasons.length ? `Campagne culture bloquée: ${cultureLabel(culturePayload)}` : `Campagne culture incomplète: ${cultureLabel(culturePayload)}`,
+      message: blockingReasons.length ? blockingReasons.join(', ') : `Données à compléter: ${missing.join(', ')}`,
+      module_source: 'cultures',
+      entity_type: 'culture',
+      entity_id: cultureId,
+      severity: blockingReasons.length ? 'haute' : 'warning',
+      status: 'nouvelle',
+      alert_dedupe_key: `${issueKey}:${blockingReasons.length ? 'blocked' : 'missing'}`,
+    } : null,
+    event: {
+      id: makeId('EVT'),
+      event_type: 'crop_campaign_start',
+      type_evenement: 'crop_campaign_start',
+      module_source: 'cultures',
+      entity_type: 'culture',
+      entity_id: cultureId,
+      title: `Campagne démarrée · ${cultureLabel(culturePayload)}`,
+      description: `${surface || '—'} ${unit} · récolte estimée ${harvestDate} · marge prévue ${expectedMargin} FCFA`,
+      event_date: startDate,
+      severity: missing.length || blockingReasons.length ? 'warning' : 'info',
+      amount: expectedMargin,
+      blocking_reasons: blockingReasons,
+      saisies_evitees: 7,
+    },
+    reporting: {
+      culture_id: cultureId,
+      parcelle: plotLabel,
+      surface,
+      cout_initial: initialCost,
+      rendement_cible: targetYield,
+      recolte_estimee: harvestDate,
+      marge_previsionnelle: expectedMargin,
+      missing_fields: missing,
+      blocking_reasons: blockingReasons,
+      stock_reserved_count: stockReservations.length,
+    },
+  };
+}
+
+export function buildIrrigationEventWorkflow({
+  culture = {},
+  payload = {},
+  smartReadings = [],
+  date = today(),
+} = {}) {
+  const cultureId = clean(payload.culture_id || culture.id);
+  const active = cultureId && activeCultureStatus(culture);
+  const latestWater = (Array.isArray(smartReadings) ? smartReadings : []).find((row) => {
+    const text = norm(`${row.type || ''} ${row.metric || ''} ${row.name || ''}`);
+    return text.includes('water') || text.includes('eau') || text.includes('irrigation');
+  });
+  const durationMin = toNumber(payload.duree_minutes ?? payload.duration_min);
+  const volumeL = toNumber(payload.volume_litres ?? payload.volume_l ?? latestWater?.value);
+  const source = clean(payload.source_eau || payload.water_source || latestWater?.device_name || latestWater?.device_id) || 'manuel';
+  const unitCost = toNumber(payload.cout_unitaire_litre ?? payload.unit_cost_per_liter) || 1;
+  const cost = toNumber(payload.cout ?? payload.cost) || Math.round(volumeL * unitCost);
+  const abnormalThreshold = toNumber(payload.seuil_anormal_litres ?? payload.abnormal_threshold_l) || Math.max(500, toNumber(culture.surface ?? culture.surface_ha) * 4000);
+  const abnormal = volumeL > abnormalThreshold && abnormalThreshold > 0;
+  const issueKey = `culture-irrigation:${cultureId || 'sans-culture'}:${date}`;
+  const history = Array.isArray(culture.irrigation_history) ? culture.irrigation_history : [];
+  const row = { date, volume_litres: volumeL, duree_minutes: durationMin, source_eau: source, cout: cost };
+
+  return {
+    culturePatch: active ? {
+      cout_eau: toNumber(culture.cout_eau) + cost,
+      cout_irrigation: toNumber(culture.cout_irrigation) + cost,
+      cout_total_reel: toNumber(culture.cout_total_reel) + cost,
+      derniere_irrigation: date,
+      irrigation_history: [...history, row],
+      eau_consommee_litres: toNumber(culture.eau_consommee_litres) + volumeL,
+    } : null,
+    alert: (!active || abnormal) ? {
+      id: makeId('ALT'),
+      title: !active ? 'Irrigation sans culture active' : 'Consommation eau anormale',
+      message: !active
+        ? 'Aucune campagne active liée à cette irrigation.'
+        : `${volumeL} L dépasse le seuil ${abnormalThreshold} L.`,
+      module_source: 'cultures',
+      entity_type: 'culture',
+      entity_id: cultureId || 'sans-culture',
+      severity: !active ? 'haute' : 'warning',
+      status: 'nouvelle',
+      alert_dedupe_key: `${issueKey}:alert`,
+    } : null,
+    task: (!active || abnormal) ? {
+      id: makeId('TSK'),
+      title: !active ? 'Vérifier irrigation sans culture' : `Contrôler irrigation ${cultureLabel(culture)}`,
+      module_lie: 'cultures',
+      source_module: 'cultures',
+      source_record_id: cultureId || 'sans-culture',
+      related_id: cultureId || 'sans-culture',
+      task_dedupe_key: `${issueKey}:task`,
+      due_date: date,
+      priority: !active ? 'haute' : 'moyenne',
+      status: 'a_faire',
+      checklist: !active ? 'Identifier parcelle; Relier à une campagne active; Corriger la saisie' : 'Contrôler fuite; Vérifier humidité; Ajuster calendrier irrigation',
+    } : null,
+    financeTransaction: cost > 0 ? {
+      id: makeId('TRX'),
+      type: 'sortie',
+      transaction_type: 'sortie',
+      libelle: `Irrigation ${cultureLabel(culture)}`,
+      montant: cost,
+      amount: cost,
+      date,
+      categorie: 'Eau et irrigation',
+      module_lie: 'cultures',
+      related_id: cultureId || '',
+      source_module: 'cultures',
+      source_record_id: cultureId || '',
+      statut: 'paye',
+      status: 'paye',
+      cash_effect: true,
+    } : null,
+    event: {
+      id: makeId('EVT'),
+      event_type: 'irrigation_event',
+      type_evenement: 'irrigation_event',
+      module_source: 'cultures',
+      entity_type: 'culture',
+      entity_id: cultureId || 'sans-culture',
+      title: `Irrigation · ${cultureLabel(culture)}`,
+      description: `${volumeL || durationMin || '—'} ${volumeL ? 'L' : 'min'} · source ${source} · coût ${cost} FCFA`,
+      event_date: date,
+      severity: (!active || abnormal) ? 'warning' : 'info',
+      quantity: volumeL || durationMin,
+      amount: cost,
+      smartfarm_source_id: latestWater?.id || '',
+      issue_key: issueKey,
+      saisies_evitees: latestWater ? 3 : 2,
+    },
+    reporting: {
+      culture_id: cultureId,
+      volume_litres: volumeL,
+      duree_minutes: durationMin,
+      source_eau: source,
+      cout: cost,
+      abnormal,
+      active,
+    },
+    historyRow: row,
+  };
 }
 
 export function buildCultureHarvestWorkflow({ before = {}, after = {}, stocks = [], opportunities = [], source = 'fiche culture', date = today() }) {

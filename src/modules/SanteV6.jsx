@@ -1,261 +1,1454 @@
-import { AlertTriangle, Camera, CheckCircle2, HeartPulse, Package, ShieldCheck, Syringe, Upload } from 'lucide-react';
-import { useEffect, useMemo, useState } from 'react';
-import toast from 'react-hot-toast';
-import Btn from '../components/Btn';
-import useCrudModule from '../hooks/useCrudModule';
-import { prepareBiosecurityWorkflow, commitBiosecurityWorkflow } from '../services/workflowService';
-import { fmtCurrency, fmtNumber, toNumber } from '../utils/format';
-import { buildHealthCostTransaction, buildHealthMissingProofDocument, buildHealthProofDocument } from '../utils/healthWorkflows';
-import { makeId } from '../utils/ids';
-import { buildStockCriticalFollowUp, hasOpenStockReorderTask } from '../utils/stockWorkflows';
-import { runManureCollectionSideEffects } from '../utils/manureSideEffects';
-import { runHealthStockConsumptionSideEffects } from '../utils/healthSideEffects';
-import { parseScannedDocument } from '../services/aiGateway/documentScannerParser.js';
-import { SCANNER_DOC_TYPES } from '../services/aiGateway/documentScannerTypes.js';
+import {
+  AlertTriangle,
+  Camera,
+  CheckCircle2,
+  HeartPulse,
+  Package,
+  ShieldCheck,
+  Syringe,
+  Upload,
+} from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
+import toast from "react-hot-toast";
+import Btn from "../components/Btn";
+import useCrudModule from "../hooks/useCrudModule";
+import {
+  prepareBiosecurityWorkflow,
+  commitBiosecurityWorkflow,
+} from "../services/workflowService";
+import { fmtCurrency, fmtNumber, toNumber } from "../utils/format";
+import {
+  buildHealthCostTransaction,
+  buildHealthMissingProofDocument,
+  buildHealthProofDocument,
+} from "../utils/healthWorkflows";
+import { makeId } from "../utils/ids";
+import {
+  buildStockCriticalFollowUp,
+  hasOpenStockReorderTask,
+} from "../utils/stockWorkflows";
+import { runManureCollectionSideEffects } from "../utils/manureSideEffects";
+import { runHealthStockConsumptionSideEffects } from "../utils/healthSideEffects";
+import { parseScannedDocument } from "../services/aiGateway/documentScannerParser.js";
+import { SCANNER_DOC_TYPES } from "../services/aiGateway/documentScannerTypes.js";
 import {
   buildHealthInterventionDraftFromScan,
   HEALTH_INTERVENTION_FORM_ID,
   HEALTH_TERRAIN_BANNER,
   navigateToHealthStock,
-} from '../utils/elevageHealthNavigation.js';
-import { buildSanitaryWithdrawalAlert } from '../utils/elevageWorkflow.js';
-import { findActiveWithdrawals } from '../utils/sanitaryWithdrawal.js';
+} from "../utils/elevageHealthNavigation.js";
+import { buildSanitaryWithdrawalAlert } from "../utils/elevageWorkflow.js";
+import { findActiveWithdrawals } from "../utils/sanitaryWithdrawal.js";
 
-const arr = (v) => Array.isArray(v) ? v : [];
-const clean = (v) => String(v || '').trim();
+const arr = (v) => (Array.isArray(v) ? v : []);
+const clean = (v) => String(v || "").trim();
 const today = () => new Date().toISOString().slice(0, 10);
 const now = () => new Date().toISOString();
-const labelOf = (r = {}) => r.name || r.nom || r.tag || r.produit || r.id || '—';
-const validId = (r = {}) => Boolean(String(r.id || '').trim());
-const norm = (value = '') => String(value || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
-const healthStatus = (r = {}) => norm(r.health_status || r.sante || r.status_sante || r.status || r.statut_sanitaire || '');
-const statusOf = (r = {}) => norm(r.status || r.statut || '');
-const isAvailableAnimal = (a = {}) => validId(a) && !['vendu', 'mort', 'vole', 'volé', 'perdu', 'abattu', 'reforme', 'réforme', 'cloture', 'clôture'].some((x) => statusOf(a).includes(norm(x)));
-const isActiveLot = (l = {}) => validId(l) && !['vendu', 'termine', 'terminé', 'perdu', 'archive', 'archivé', 'abattu', 'reforme', 'réforme', 'cloture', 'clôture'].some((x) => statusOf(l).includes(norm(x)));
-const isSickAnimal = (a = {}) => ['malade', 'blesse', 'blessé', 'sous_traitement', 'a_surveiller', 'critique'].some((x) => healthStatus(a).includes(norm(x)));
-const lotSickCount = (l = {}) => toNumber(l.malades ?? l.sick_count ?? l.malade_count);
-const lotDeadCount = (l = {}) => toNumber(l.morts ?? l.mortality ?? l.dead_count ?? l.pertes);
-const lotTotalCount = (l = {}) => toNumber(l.current_count ?? l.effectif ?? l.effectif_actuel ?? l.initial_count ?? l.nombre ?? l.quantite);
-const isSickLot = (l = {}) => ['malade', 'sous_traitement', 'a_surveiller', 'critique', 'baisse_ponte'].some((x) => healthStatus(l).includes(norm(x))) || lotSickCount(l) > 0 || lotDeadCount(l) > 0;
-const isHealthStock = (s = {}) => validId(s) && norm(`${s.categorie || ''} ${s.produit || ''}`).match(/vaccin|medicament|médicament|soin|vermifuge|antibiotique|vitamine|serum|sérum|desinfectant|désinfectant/);
-const isDisinfectantStock = (s = {}) => validId(s) && norm(`${s.categorie || ''} ${s.produit || ''}`).match(/desinfectant|désinfectant|biosecurite|biosécurité|nettoyage|chaux/);
-const dueSoon = (v = {}) => v.prevue && ((new Date(v.prevue) - new Date()) / 86400000) >= 0 && ((new Date(v.prevue) - new Date()) / 86400000) <= 7;
-const late = (v = {}) => norm(v.statut) === 'retard' || (v.prevue && !v.effectuee && new Date(v.prevue) < new Date());
-const done = (v = {}) => Boolean(v.effectuee) || ['fait', 'realise', 'réalisé', 'termine', 'terminé'].some((x) => norm(v.statut || v.status).includes(norm(x)));
+const labelOf = (r = {}) =>
+  r.name || r.nom || r.tag || r.produit || r.id || "—";
+const validId = (r = {}) => Boolean(String(r.id || "").trim());
+const norm = (value = "") =>
+  String(value || "")
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "");
+const healthStatus = (r = {}) =>
+  norm(
+    r.health_status ||
+      r.sante ||
+      r.status_sante ||
+      r.status ||
+      r.statut_sanitaire ||
+      "",
+  );
+const statusOf = (r = {}) => norm(r.status || r.statut || "");
+const isAvailableAnimal = (a = {}) =>
+  validId(a) &&
+  ![
+    "vendu",
+    "mort",
+    "vole",
+    "volé",
+    "perdu",
+    "abattu",
+    "reforme",
+    "réforme",
+    "cloture",
+    "clôture",
+  ].some((x) => statusOf(a).includes(norm(x)));
+const isActiveLot = (l = {}) =>
+  validId(l) &&
+  ![
+    "vendu",
+    "termine",
+    "terminé",
+    "perdu",
+    "archive",
+    "archivé",
+    "abattu",
+    "reforme",
+    "réforme",
+    "cloture",
+    "clôture",
+  ].some((x) => statusOf(l).includes(norm(x)));
+const isSickAnimal = (a = {}) =>
+  [
+    "malade",
+    "blesse",
+    "blessé",
+    "sous_traitement",
+    "a_surveiller",
+    "critique",
+  ].some((x) => healthStatus(a).includes(norm(x)));
+const lotSickCount = (l = {}) =>
+  toNumber(l.malades ?? l.sick_count ?? l.malade_count);
+const lotDeadCount = (l = {}) =>
+  toNumber(l.morts ?? l.mortality ?? l.dead_count ?? l.pertes);
+const lotTotalCount = (l = {}) =>
+  toNumber(
+    l.current_count ??
+      l.effectif ??
+      l.effectif_actuel ??
+      l.initial_count ??
+      l.nombre ??
+      l.quantite,
+  );
+const isSickLot = (l = {}) =>
+  [
+    "malade",
+    "sous_traitement",
+    "a_surveiller",
+    "critique",
+    "baisse_ponte",
+  ].some((x) => healthStatus(l).includes(norm(x))) ||
+  lotSickCount(l) > 0 ||
+  lotDeadCount(l) > 0;
+const isHealthStock = (s = {}) =>
+  validId(s) &&
+  norm(`${s.categorie || ""} ${s.produit || ""}`).match(
+    /vaccin|medicament|médicament|soin|vermifuge|antibiotique|vitamine|serum|sérum|desinfectant|désinfectant/,
+  );
+const isDisinfectantStock = (s = {}) =>
+  validId(s) &&
+  norm(`${s.categorie || ""} ${s.produit || ""}`).match(
+    /desinfectant|désinfectant|biosecurite|biosécurité|nettoyage|chaux/,
+  );
+const dueSoon = (v = {}) =>
+  v.prevue &&
+  (new Date(v.prevue) - new Date()) / 86400000 >= 0 &&
+  (new Date(v.prevue) - new Date()) / 86400000 <= 7;
+const late = (v = {}) =>
+  norm(v.statut) === "retard" ||
+  (v.prevue && !v.effectuee && new Date(v.prevue) < new Date());
+const done = (v = {}) =>
+  Boolean(v.effectuee) ||
+  ["fait", "realise", "réalisé", "termine", "terminé"].some((x) =>
+    norm(v.statut || v.status).includes(norm(x)),
+  );
 const stockAvailable = (s = {}) => toNumber(s.quantite);
-const plural = (unit = '') => { const u = String(unit || 'unité').trim(); return !u ? 'unités' : !u.endsWith('s') ? `${u}s` : u; };
+const plural = (unit = "") => {
+  const u = String(unit || "unité").trim();
+  return !u ? "unités" : !u.endsWith("s") ? `${u}s` : u;
+};
 
 const interventionTypes = [
-  { value: 'vaccination', label: 'Vaccination', family: 'preventif' },
-  { value: 'preventif', label: 'Prévention / contrôle sanitaire', family: 'preventif' },
-  { value: 'curatif', label: 'Soin curatif / traitement maladie', family: 'curatif' },
-  { value: 'deparasitage', label: 'Déparasitage', family: 'preventif' },
-  { value: 'visite_veterinaire', label: 'Visite vétérinaire', family: 'mixte' },
-  { value: 'biosecurite', label: 'Biosécurité / désinfection / quarantaine', family: 'biosecurite' },
-  { value: 'urgence', label: 'Urgence sanitaire / mortalité', family: 'curatif' },
+  { value: "vaccination", label: "Vaccination", family: "preventif" },
+  {
+    value: "preventif",
+    label: "Prévention / contrôle sanitaire",
+    family: "preventif",
+  },
+  {
+    value: "curatif",
+    label: "Soin curatif / traitement maladie",
+    family: "curatif",
+  },
+  { value: "deparasitage", label: "Déparasitage", family: "preventif" },
+  { value: "visite_veterinaire", label: "Visite vétérinaire", family: "mixte" },
+  {
+    value: "biosecurite",
+    label: "Biosécurité / désinfection / quarantaine",
+    family: "biosecurite",
+  },
+  {
+    value: "urgence",
+    label: "Urgence sanitaire / mortalité",
+    family: "curatif",
+  },
 ];
 const periodicityOptions = [
-  { value: 'unique', label: 'Une seule fois' }, { value: 'hebdomadaire', label: 'Chaque semaine' }, { value: 'mensuelle', label: 'Chaque mois' }, { value: 'trimestrielle', label: 'Chaque trimestre' }, { value: 'semestrielle', label: 'Chaque semestre' }, { value: 'annuelle', label: 'Chaque année' }, { value: 'personnalisee', label: 'Personnalisée' },
+  { value: "unique", label: "Une seule fois" },
+  { value: "hebdomadaire", label: "Chaque semaine" },
+  { value: "mensuelle", label: "Chaque mois" },
+  { value: "trimestrielle", label: "Chaque trimestre" },
+  { value: "semestrielle", label: "Chaque semestre" },
+  { value: "annuelle", label: "Chaque année" },
+  { value: "personnalisee", label: "Personnalisée" },
 ];
 const allProductSources = [
-  { value: 'stock', label: 'Utiliser mon stock' }, { value: 'veterinaire', label: 'Produit fourni par le véto' }, { value: 'achat_direct', label: 'Achat direct pendant intervention' }, { value: 'aucun', label: 'Aucun produit consommé' },
+  { value: "stock", label: "Utiliser mon stock" },
+  { value: "veterinaire", label: "Produit fourni par le véto" },
+  { value: "achat_direct", label: "Achat direct pendant intervention" },
+  { value: "aucun", label: "Aucun produit consommé" },
 ];
 const healthOutcomes = [
-  { value: 'sain', label: 'Sain / rétabli' }, { value: 'a_surveiller', label: 'À surveiller' }, { value: 'sous_traitement', label: 'Sous traitement' }, { value: 'malade', label: 'Malade' }, { value: 'critique', label: 'Critique' },
+  { value: "sain", label: "Sain / rétabli" },
+  { value: "a_surveiller", label: "À surveiller" },
+  { value: "sous_traitement", label: "Sous traitement" },
+  { value: "malade", label: "Malade" },
+  { value: "critique", label: "Critique" },
 ];
 const severityOptions = [
-  { value: 'faible', label: 'Faible' }, { value: 'moyen', label: 'Moyen' }, { value: 'eleve', label: 'Élevé' }, { value: 'critique', label: 'Critique' },
+  { value: "faible", label: "Faible" },
+  { value: "moyen", label: "Moyen" },
+  { value: "eleve", label: "Élevé" },
+  { value: "critique", label: "Critique" },
+];
+const biosecurityMaterialOptions = [
+  { value: "fientes", label: "Fientes" },
+  { value: "fumier", label: "Fumier" },
+  { value: "litiere_usee", label: "Litière usée" },
+  { value: "melange", label: "Mélange" },
+];
+const biosecurityStatusOptions = [
+  { value: "normal", label: "Normal" },
+  { value: "a_surveiller", label: "À surveiller" },
+  { value: "suspect", label: "Suspect" },
+  { value: "contamine", label: "Contaminé" },
+];
+const biosecurityDestinationOptions = [
+  { value: "", label: "Non renseignée" },
+  { value: "compostage", label: "Compostage" },
+  { value: "stockage", label: "Stockage" },
+  { value: "parcelle", label: "Parcelle" },
+  { value: "evacuation", label: "Évacuation" },
 ];
 const impactBusinessOptions = [
-  { value: 'aucun_impact', label: 'Suivi simple, sans action urgente' },
-  { value: 'perte_evitee', label: 'Perte évitée / mortalité réduite' },
-  { value: 'risque_mortalite', label: 'Risque mortalité à surveiller' },
-  { value: 'croissance_protegee', label: 'Croissance / prise de poids protégée' },
-  { value: 'ponte_protegee', label: 'Ponte / production œufs protégée' },
-  { value: 'vente_reportee', label: 'Vente reportée ou bloquée' },
-  { value: 'cout_sante_direct', label: 'Coût santé direct à imputer' },
-  { value: 'stock_sante_consomme', label: 'Stock santé consommé' },
-  { value: 'biosécurité_renforcee', label: 'Biosécurité renforcée' },
-  { value: 'alerte_finance_objectifs', label: 'Impact à suivre en Finance / Objectifs' },
+  { value: "aucun_impact", label: "Suivi simple, sans action urgente" },
+  { value: "perte_evitee", label: "Perte évitée / mortalité réduite" },
+  { value: "risque_mortalite", label: "Risque mortalité à surveiller" },
+  {
+    value: "croissance_protegee",
+    label: "Croissance / prise de poids protégée",
+  },
+  { value: "ponte_protegee", label: "Ponte / production œufs protégée" },
+  { value: "vente_reportee", label: "Vente reportée ou bloquée" },
+  { value: "cout_sante_direct", label: "Coût santé direct à imputer" },
+  { value: "stock_sante_consomme", label: "Stock santé consommé" },
+  { value: "biosécurité_renforcee", label: "Biosécurité renforcée" },
+  {
+    value: "alerte_finance_objectifs",
+    label: "Impact à suivre en Finance / Objectifs",
+  },
 ];
-const familyOf = (type) => interventionTypes.find((t) => t.value === type)?.family || 'preventif';
-const labelType = (type) => interventionTypes.find((t) => t.value === type)?.label || 'Intervention';
-const impactDefaultFor = (type) => ({
-  vaccination: 'perte_evitee',
-  preventif: 'perte_evitee',
-  curatif: 'risque_mortalite',
-  deparasitage: 'croissance_protegee',
-  visite_veterinaire: 'alerte_finance_objectifs',
-  biosecurite: 'biosécurité_renforcee',
-  urgence: 'risque_mortalite',
-}[type] || 'aucun_impact');
-const impactLabel = (value) => impactBusinessOptions.find((item) => item.value === value)?.label || 'Suivi simple, sans action urgente';
-const interventionPreset = (type) => ({
-  vaccination: { product: 'Vaccin', medicament: 'Vaccin polyvalent', voie: 'Injection SC/IM', periodicite: 'annuelle', evidence: 'Carnet / photo vaccin', fields: ['lot_produit', 'date_expiration', 'dose_par_sujet'] },
-  preventif: { product: 'Contrôle sanitaire', medicament: 'Vitamine / prévention', voie: 'Orale / eau', periodicite: 'mensuelle', evidence: 'Photo contrôle', fields: ['temperature', 'observation_clinique'] },
-  curatif: { product: 'Traitement maladie', medicament: 'Antibiotique / anti-inflammatoire', voie: 'Selon ordonnance', periodicite: 'personnalisee', evidence: 'Ordonnance photo', fields: ['diagnostic', 'symptomes', 'duree_traitement', 'delai_sanitaire_fin', 'resultat_attendu'] },
-  deparasitage: { product: 'Vermifuge', medicament: 'Vermifuge', voie: 'Orale / injectable', periodicite: 'trimestrielle', evidence: 'Photo produit', fields: ['dose_par_kg', 'poids_reference', 'delai_sanitaire_fin'] },
-  visite_veterinaire: { product: 'Visite vétérinaire', medicament: 'Consultation', voie: 'N/A', periodicite: 'unique', evidence: 'Ordonnance / rapport photo', fields: ['diagnostic', 'recommandation_veto', 'prochain_controle'] },
-  biosecurite: { product: 'Désinfection', medicament: 'Désinfectant / chaux', voie: 'Pulvérisation / nettoyage', periodicite: 'hebdomadaire', evidence: 'Photo zone traitée', fields: ['zone_traitee', 'duree_isolement', 'protocole', 'fumier_sacs'] },
-  urgence: { product: 'Urgence sanitaire', medicament: 'Traitement urgence', voie: 'Selon véto', periodicite: 'personnalisee', evidence: 'Photo preuve / ordonnance', fields: ['diagnostic', 'symptomes', 'duree_traitement', 'delai_sanitaire_fin', 'mortalite', 'mesure_urgence'] },
-}[type] || {});
+const familyOf = (type) =>
+  interventionTypes.find((t) => t.value === type)?.family || "preventif";
+const labelType = (type) =>
+  interventionTypes.find((t) => t.value === type)?.label || "Intervention";
+const impactDefaultFor = (type) =>
+  ({
+    vaccination: "perte_evitee",
+    preventif: "perte_evitee",
+    curatif: "risque_mortalite",
+    deparasitage: "croissance_protegee",
+    visite_veterinaire: "alerte_finance_objectifs",
+    biosecurite: "biosécurité_renforcee",
+    urgence: "risque_mortalite",
+  })[type] || "aucun_impact";
+const impactLabel = (value) =>
+  impactBusinessOptions.find((item) => item.value === value)?.label ||
+  "Suivi simple, sans action urgente";
+const interventionPreset = (type) =>
+  ({
+    vaccination: {
+      product: "Vaccin",
+      medicament: "Vaccin polyvalent",
+      voie: "Injection SC/IM",
+      periodicite: "annuelle",
+      evidence: "Carnet / photo vaccin",
+      fields: ["lot_produit", "date_expiration", "dose_par_sujet"],
+    },
+    preventif: {
+      product: "Contrôle sanitaire",
+      medicament: "Vitamine / prévention",
+      voie: "Orale / eau",
+      periodicite: "mensuelle",
+      evidence: "Photo contrôle",
+      fields: ["temperature", "observation_clinique"],
+    },
+    curatif: {
+      product: "Traitement maladie",
+      medicament: "Antibiotique / anti-inflammatoire",
+      voie: "Selon ordonnance",
+      periodicite: "personnalisee",
+      evidence: "Ordonnance photo",
+      fields: [
+        "diagnostic",
+        "symptomes",
+        "duree_traitement",
+        "delai_sanitaire_fin",
+        "resultat_attendu",
+      ],
+    },
+    deparasitage: {
+      product: "Vermifuge",
+      medicament: "Vermifuge",
+      voie: "Orale / injectable",
+      periodicite: "trimestrielle",
+      evidence: "Photo produit",
+      fields: ["dose_par_kg", "poids_reference", "delai_sanitaire_fin"],
+    },
+    visite_veterinaire: {
+      product: "Visite vétérinaire",
+      medicament: "Consultation",
+      voie: "N/A",
+      periodicite: "unique",
+      evidence: "Ordonnance / rapport photo",
+      fields: ["diagnostic", "recommandation_veto", "prochain_controle"],
+    },
+    biosecurite: {
+      product: "Nettoyage biosécurité",
+      medicament: "Désinfectant / chaux",
+      voie: "Pulvérisation / nettoyage",
+      periodicite: "hebdomadaire",
+      evidence: "Photo zone traitée",
+      fields: [
+        "batiment_box",
+        "zone_traitee",
+        "type_nettoyage",
+        "responsable",
+        "fumier_sacs",
+        "poids_estime_par_sac",
+        "biosecurity_material_type",
+        "biosecurity_status",
+        "biosecurity_destination",
+        "biosecurity_next_step",
+        "protocole",
+        "produits_nettoyage",
+        "eau_utilisee",
+        "duree_isolement",
+      ],
+    },
+    urgence: {
+      product: "Urgence sanitaire",
+      medicament: "Traitement urgence",
+      voie: "Selon véto",
+      periodicite: "personnalisee",
+      evidence: "Photo preuve / ordonnance",
+      fields: [
+        "diagnostic",
+        "symptomes",
+        "duree_traitement",
+        "delai_sanitaire_fin",
+        "mortalite",
+        "mesure_urgence",
+      ],
+    },
+  })[type] || {};
 function applyPreset(type, previous = {}) {
   const preset = interventionPreset(type);
-  return { ...previous, nom: previous.nom || preset.product || '', medicament: previous.medicament || preset.medicament || '', voie_administration: previous.voie_administration || preset.voie || '', periodicite: previous.periodicite && previous.periodicite !== 'unique' ? previous.periodicite : (preset.periodicite || 'unique'), statut_sante_apres: previous.statut_sante_apres || (familyOf(type) === 'curatif' ? 'sous_traitement' : 'sain'), preuve_type: previous.preuve_type || (familyOf(type) === 'curatif' ? 'ordonnance_photo' : 'preuve_photo'), impact_business_code: previous.impact_business_code || impactDefaultFor(type) };
+  return {
+    ...previous,
+    nom: previous.nom || preset.product || "",
+    medicament: previous.medicament || preset.medicament || "",
+    voie_administration: previous.voie_administration || preset.voie || "",
+    periodicite:
+      previous.periodicite && previous.periodicite !== "unique"
+        ? previous.periodicite
+        : preset.periodicite || "unique",
+    statut_sante_apres:
+      previous.statut_sante_apres ||
+      (familyOf(type) === "curatif" ? "sous_traitement" : "sain"),
+    preuve_type:
+      previous.preuve_type ||
+      (familyOf(type) === "curatif" ? "ordonnance_photo" : "preuve_photo"),
+    impact_business_code:
+      previous.impact_business_code || impactDefaultFor(type),
+  };
 }
 
-function buildMode(value, label, count, enabled = true) { return enabled && count > 0 ? { value, label, count } : null; }
+function buildMode(value, label, count, enabled = true) {
+  return enabled && count > 0 ? { value, label, count } : null;
+}
 function modesFor(type, animaux, lots) {
   const family = familyOf(type);
   const animals = arr(animaux).filter(isAvailableAnimal);
   const activeLots = arr(lots).filter(isActiveLot);
   const sickAnimals = animals.filter(isSickAnimal);
   const sickLots = activeLots.filter(isSickLot);
-  const sickLotSubjects = sickLots.reduce((sum, lot) => sum + (lotSickCount(lot) || 1), 0);
-  if (family === 'curatif') return [buildMode('scope:animaux_malades', `Animaux malades / à surveiller (${sickAnimals.length})`, sickAnimals.length), buildMode('scope:avicole_malade', `Volaille malade / lots à risque (${sickLotSubjects})`, sickLotSubjects), buildMode('detail:sick_animal', 'Un animal malade précis', sickAnimals.length), buildMode('detail:sick_lot', 'Un lot avicole malade précis', sickLots.length), buildMode('detail:animal', 'Autre animal précis', animals.length), buildMode('detail:lot', 'Autre lot avicole précis', activeLots.length)].filter(Boolean);
-  if (family === 'biosecurite') return [buildMode('scope:avicole_malade', `Lots à risque / volaille malade (${sickLotSubjects})`, sickLotSubjects), buildMode('scope:avicole_all', `Tous les lots avicoles actifs (${activeLots.length})`, activeLots.length), buildMode('scope:cheptel', `Tout le cheptel (${animals.length})`, animals.length), buildMode('detail:lot', 'Un lot avicole précis', activeLots.length), buildMode('detail:animal', 'Un animal précis', animals.length)].filter(Boolean);
-  return [buildMode('scope:cheptel', `Tout le cheptel (${animals.length})`, animals.length), buildMode('scope:avicole_all', `Tous les lots avicoles actifs (${activeLots.length})`, activeLots.length), buildMode('detail:animal', 'Un animal précis', animals.length), buildMode('detail:lot', 'Un lot avicole précis', activeLots.length)].filter(Boolean);
+  const sickLotSubjects = sickLots.reduce(
+    (sum, lot) => sum + (lotSickCount(lot) || 1),
+    0,
+  );
+  if (family === "curatif")
+    return [
+      buildMode(
+        "scope:animaux_malades",
+        `Animaux malades / à surveiller (${sickAnimals.length})`,
+        sickAnimals.length,
+      ),
+      buildMode(
+        "scope:avicole_malade",
+        `Volaille malade / lots à risque (${sickLotSubjects})`,
+        sickLotSubjects,
+      ),
+      buildMode(
+        "detail:sick_animal",
+        "Un animal malade précis",
+        sickAnimals.length,
+      ),
+      buildMode(
+        "detail:sick_lot",
+        "Un lot avicole malade précis",
+        sickLots.length,
+      ),
+      buildMode("detail:animal", "Autre animal précis", animals.length),
+      buildMode("detail:lot", "Autre lot avicole précis", activeLots.length),
+    ].filter(Boolean);
+  if (family === "biosecurite")
+    return [
+      buildMode(
+        "scope:avicole_malade",
+        `Lots à risque / volaille malade (${sickLotSubjects})`,
+        sickLotSubjects,
+      ),
+      buildMode(
+        "scope:avicole_all",
+        `Tous les lots avicoles actifs (${activeLots.length})`,
+        activeLots.length,
+      ),
+      buildMode(
+        "scope:cheptel",
+        `Tout le cheptel (${animals.length})`,
+        animals.length,
+      ),
+      buildMode("detail:lot", "Un lot avicole précis", activeLots.length),
+      buildMode("detail:animal", "Un animal précis", animals.length),
+    ].filter(Boolean);
+  return [
+    buildMode(
+      "scope:cheptel",
+      `Tout le cheptel (${animals.length})`,
+      animals.length,
+    ),
+    buildMode(
+      "scope:avicole_all",
+      `Tous les lots avicoles actifs (${activeLots.length})`,
+      activeLots.length,
+    ),
+    buildMode("detail:animal", "Un animal précis", animals.length),
+    buildMode("detail:lot", "Un lot avicole précis", activeLots.length),
+  ].filter(Boolean);
 }
 function detailsFor(mode, animaux, lots) {
   const animals = arr(animaux).filter(isAvailableAnimal);
   const activeLots = arr(lots).filter(isActiveLot);
-  if (mode === 'detail:sick_animal') return animals.filter(isSickAnimal).map((a) => ({ value: `animal:${a.id}`, label: `${labelOf(a)} · ${a.id}` }));
-  if (mode === 'detail:sick_lot') return activeLots.filter(isSickLot).map((l) => ({ value: `lot_malade:${l.id}`, label: `${labelOf(l)} · ${lotSickCount(l) || 1}/${lotTotalCount(l) || '?'} malades` }));
-  if (mode === 'detail:animal') return animals.map((a) => ({ value: `animal:${a.id}`, label: `${labelOf(a)} · ${a.id}` }));
-  if (mode === 'detail:lot') return activeLots.map((l) => ({ value: `lot:${l.id}`, label: `${labelOf(l)} · ${lotTotalCount(l) || '?'} sujets` }));
+  if (mode === "detail:sick_animal")
+    return animals
+      .filter(isSickAnimal)
+      .map((a) => ({
+        value: `animal:${a.id}`,
+        label: `${labelOf(a)} · ${a.id}`,
+      }));
+  if (mode === "detail:sick_lot")
+    return activeLots
+      .filter(isSickLot)
+      .map((l) => ({
+        value: `lot_malade:${l.id}`,
+        label: `${labelOf(l)} · ${lotSickCount(l) || 1}/${lotTotalCount(l) || "?"} malades`,
+      }));
+  if (mode === "detail:animal")
+    return animals.map((a) => ({
+      value: `animal:${a.id}`,
+      label: `${labelOf(a)} · ${a.id}`,
+    }));
+  if (mode === "detail:lot")
+    return activeLots.map((l) => ({
+      value: `lot:${l.id}`,
+      label: `${labelOf(l)} · ${lotTotalCount(l) || "?"} sujets`,
+    }));
   return [];
 }
-function emptyTarget(snapshot = now()) { return { module_lie: '', related_id: '', target_scope: 'aucune_cible', target_ids: [], target_count: 0, total_count: 0, target_summary: 'Aucune cible disponible', target_snapshot_date: snapshot }; }
+function emptyTarget(snapshot = now()) {
+  return {
+    module_lie: "",
+    related_id: "",
+    target_scope: "aucune_cible",
+    target_ids: [],
+    target_count: 0,
+    total_count: 0,
+    target_summary: "Aucune cible disponible",
+    target_snapshot_date: snapshot,
+  };
+}
 function resolveTarget(mode, detail, type, animaux, lots) {
   const animals = arr(animaux).filter(isAvailableAnimal);
   const activeLots = arr(lots).filter(isActiveLot);
   const sickAnimals = animals.filter(isSickAnimal);
   const sickLots = activeLots.filter(isSickLot);
-  const raw = String(mode?.startsWith('detail:') ? detail : mode || '').trim();
+  const raw = String(mode?.startsWith("detail:") ? detail : mode || "").trim();
   const snapshot = now();
-  if (raw === 'scope:cheptel' && animals.length) return { module_lie: 'animaux', related_id: 'ALL_ANIMAUX', target_scope: 'cheptel', target_ids: animals.map((a) => a.id), target_count: animals.length, total_count: animals.length, target_summary: `${animals.length} animaux`, target_snapshot_date: snapshot };
-  if (raw === 'scope:animaux_malades' && sickAnimals.length) return { module_lie: 'animaux', related_id: 'ANIMAUX_MALADES', target_scope: 'animaux_malades', target_ids: sickAnimals.map((a) => a.id), target_count: sickAnimals.length, total_count: animals.length, target_summary: `${sickAnimals.length} animaux malades`, target_snapshot_date: snapshot };
-  if (raw === 'scope:avicole_all' && activeLots.length) return { module_lie: 'avicole', related_id: 'ALL_AVICOLE_LOTS', target_scope: 'avicole_all', target_ids: activeLots.map((l) => l.id), target_count: activeLots.reduce((s, l) => s + (lotTotalCount(l) || 0), 0), total_count: activeLots.reduce((s, l) => s + (lotTotalCount(l) || 0), 0), target_summary: `${activeLots.length} lots avicoles`, target_snapshot_date: snapshot };
-  if (raw === 'scope:avicole_malade' && sickLots.length) { const count = sickLots.reduce((s, l) => s + (lotSickCount(l) || 1), 0); return { module_lie: 'avicole', related_id: 'AVICOLE_MALADES', target_scope: 'avicole_malade', target_ids: sickLots.map((l) => l.id), target_count: count, total_count: sickLots.reduce((s, l) => s + (lotTotalCount(l) || 0), 0), target_summary: `${count} volailles malades`, target_snapshot_date: snapshot }; }
-  if (raw.startsWith('animal:')) { const id = raw.replace('animal:', ''); const animal = animals.find((a) => String(a.id) === id); if (!animal) return emptyTarget(snapshot); return { module_lie: 'animaux', related_id: id, target_scope: isSickAnimal(animal) ? 'animal_malade' : 'animal', target_ids: [id], target_count: 1, total_count: 1, target_summary: `${labelOf(animal)} · ${id}`, target_snapshot_date: snapshot }; }
-  if (raw.startsWith('lot_malade:') || raw.startsWith('lot:')) { const id = raw.replace('lot_malade:', '').replace('lot:', ''); const lot = activeLots.find((l) => String(l.id) === id); if (!lot) return emptyTarget(snapshot); const curative = familyOf(type) === 'curatif'; const sick = lotSickCount(lot); const total = lotTotalCount(lot); return { module_lie: 'avicole', related_id: id, target_scope: curative ? 'lot_avicole_malade' : 'lot_avicole', target_ids: [id], target_count: curative ? (sick || 1) : total, total_count: total, target_summary: curative ? `${sick || 1} malades sur ${total || '?'} · ${labelOf(lot)}` : `${labelOf(lot)} · ${total || '?'} sujets`, target_snapshot_date: snapshot }; }
+  if (raw === "scope:cheptel" && animals.length)
+    return {
+      module_lie: "animaux",
+      related_id: "ALL_ANIMAUX",
+      target_scope: "cheptel",
+      target_ids: animals.map((a) => a.id),
+      target_count: animals.length,
+      total_count: animals.length,
+      target_summary: `${animals.length} animaux`,
+      target_snapshot_date: snapshot,
+    };
+  if (raw === "scope:animaux_malades" && sickAnimals.length)
+    return {
+      module_lie: "animaux",
+      related_id: "ANIMAUX_MALADES",
+      target_scope: "animaux_malades",
+      target_ids: sickAnimals.map((a) => a.id),
+      target_count: sickAnimals.length,
+      total_count: animals.length,
+      target_summary: `${sickAnimals.length} animaux malades`,
+      target_snapshot_date: snapshot,
+    };
+  if (raw === "scope:avicole_all" && activeLots.length)
+    return {
+      module_lie: "avicole",
+      related_id: "ALL_AVICOLE_LOTS",
+      target_scope: "avicole_all",
+      target_ids: activeLots.map((l) => l.id),
+      target_count: activeLots.reduce((s, l) => s + (lotTotalCount(l) || 0), 0),
+      total_count: activeLots.reduce((s, l) => s + (lotTotalCount(l) || 0), 0),
+      target_summary: `${activeLots.length} lots avicoles`,
+      target_snapshot_date: snapshot,
+    };
+  if (raw === "scope:avicole_malade" && sickLots.length) {
+    const count = sickLots.reduce((s, l) => s + (lotSickCount(l) || 1), 0);
+    return {
+      module_lie: "avicole",
+      related_id: "AVICOLE_MALADES",
+      target_scope: "avicole_malade",
+      target_ids: sickLots.map((l) => l.id),
+      target_count: count,
+      total_count: sickLots.reduce((s, l) => s + (lotTotalCount(l) || 0), 0),
+      target_summary: `${count} volailles malades`,
+      target_snapshot_date: snapshot,
+    };
+  }
+  if (raw.startsWith("animal:")) {
+    const id = raw.replace("animal:", "");
+    const animal = animals.find((a) => String(a.id) === id);
+    if (!animal) return emptyTarget(snapshot);
+    return {
+      module_lie: "animaux",
+      related_id: id,
+      target_scope: isSickAnimal(animal) ? "animal_malade" : "animal",
+      target_ids: [id],
+      target_count: 1,
+      total_count: 1,
+      target_summary: `${labelOf(animal)} · ${id}`,
+      target_snapshot_date: snapshot,
+    };
+  }
+  if (raw.startsWith("lot_malade:") || raw.startsWith("lot:")) {
+    const id = raw.replace("lot_malade:", "").replace("lot:", "");
+    const lot = activeLots.find((l) => String(l.id) === id);
+    if (!lot) return emptyTarget(snapshot);
+    const curative = familyOf(type) === "curatif";
+    const sick = lotSickCount(lot);
+    const total = lotTotalCount(lot);
+    return {
+      module_lie: "avicole",
+      related_id: id,
+      target_scope: curative ? "lot_avicole_malade" : "lot_avicole",
+      target_ids: [id],
+      target_count: curative ? sick || 1 : total,
+      total_count: total,
+      target_summary: curative
+        ? `${sick || 1} malades sur ${total || "?"} · ${labelOf(lot)}`
+        : `${labelOf(lot)} · ${total || "?"} sujets`,
+      target_snapshot_date: snapshot,
+    };
+  }
   return emptyTarget(snapshot);
 }
 function nextDateFromPeriodicite(dateValue, periodicite, value, unit) {
-  if (!dateValue || periodicite === 'unique') return '';
+  if (!dateValue || periodicite === "unique") return "";
   const date = new Date(dateValue);
-  const add = (days) => { date.setDate(date.getDate() + days); return date.toISOString().slice(0, 10); };
-  if (periodicite === 'hebdomadaire') return add(7);
-  if (periodicite === 'mensuelle') { date.setMonth(date.getMonth() + 1); return date.toISOString().slice(0, 10); }
-  if (periodicite === 'trimestrielle') { date.setMonth(date.getMonth() + 3); return date.toISOString().slice(0, 10); }
-  if (periodicite === 'semestrielle') { date.setMonth(date.getMonth() + 6); return date.toISOString().slice(0, 10); }
-  if (periodicite === 'annuelle') { date.setFullYear(date.getFullYear() + 1); return date.toISOString().slice(0, 10); }
-  if (periodicite === 'personnalisee') { const n = Math.max(1, toNumber(value)); if (unit === 'semaines') return add(n * 7); if (unit === 'mois') { date.setMonth(date.getMonth() + n); return date.toISOString().slice(0, 10); } return add(n); }
-  return '';
+  const add = (days) => {
+    date.setDate(date.getDate() + days);
+    return date.toISOString().slice(0, 10);
+  };
+  if (periodicite === "hebdomadaire") return add(7);
+  if (periodicite === "mensuelle") {
+    date.setMonth(date.getMonth() + 1);
+    return date.toISOString().slice(0, 10);
+  }
+  if (periodicite === "trimestrielle") {
+    date.setMonth(date.getMonth() + 3);
+    return date.toISOString().slice(0, 10);
+  }
+  if (periodicite === "semestrielle") {
+    date.setMonth(date.getMonth() + 6);
+    return date.toISOString().slice(0, 10);
+  }
+  if (periodicite === "annuelle") {
+    date.setFullYear(date.getFullYear() + 1);
+    return date.toISOString().slice(0, 10);
+  }
+  if (periodicite === "personnalisee") {
+    const n = Math.max(1, toNumber(value));
+    if (unit === "semaines") return add(n * 7);
+    if (unit === "mois") {
+      date.setMonth(date.getMonth() + n);
+      return date.toISOString().slice(0, 10);
+    }
+    return add(n);
+  }
+  return "";
 }
-function Mini({ icon: Icon, label, value }) { return <div className="rounded-xl bg-[#fffdf8] border border-[#eadcc2] px-3 py-2 min-w-[100px]"><Icon size={14} className="text-[#9a6b12]" /><b className="block text-[#2f2415]">{value}</b><span className="text-xs text-[#8a7456]">{label}</span></div>; }
-async function markDone(v, props) { try { const financeTransaction = buildHealthCostTransaction({ ...v, effectuee: v.effectuee || today() }); await props.onUpdate?.(v.id, { statut: 'fait', effectuee: v.effectuee || today(), closed_at: now(), linked_finance_transaction_id: financeTransaction?.id || v.linked_finance_transaction_id || '' }); if (financeTransaction) { await props.onCreateFinanceTransaction?.(financeTransaction); const missingProof = buildHealthMissingProofDocument({ ...v, effectuee: v.effectuee || today() }, financeTransaction); if (missingProof) await props.onCreateDocument?.(missingProof); await Promise.allSettled([props.onRefreshFinances?.(), props.onRefreshDocuments?.()]); } await props.onRefresh?.(); toast.success('Intervention validée'); } catch { toast.error('Validation impossible'); } }
+function Mini({ icon: Icon, label, value }) {
+  return (
+    <div className="rounded-xl bg-[#fffdf8] border border-[#eadcc2] px-3 py-2 min-w-[100px]">
+      <Icon size={14} className="text-[#9a6b12]" />
+      <b className="block text-[#2f2415]">{value}</b>
+      <span className="text-xs text-[#8a7456]">{label}</span>
+    </div>
+  );
+}
+async function markDone(v, props) {
+  try {
+    const financeTransaction = buildHealthCostTransaction({
+      ...v,
+      effectuee: v.effectuee || today(),
+    });
+    await props.onUpdate?.(v.id, {
+      statut: "fait",
+      effectuee: v.effectuee || today(),
+      closed_at: now(),
+      linked_finance_transaction_id:
+        financeTransaction?.id || v.linked_finance_transaction_id || "",
+    });
+    if (financeTransaction) {
+      await props.onCreateFinanceTransaction?.(financeTransaction);
+      const missingProof = buildHealthMissingProofDocument(
+        { ...v, effectuee: v.effectuee || today() },
+        financeTransaction,
+      );
+      if (missingProof) await props.onCreateDocument?.(missingProof);
+      await Promise.allSettled([
+        props.onRefreshFinances?.(),
+        props.onRefreshDocuments?.(),
+      ]);
+    }
+    await props.onRefresh?.();
+    toast.success("Intervention validée");
+  } catch {
+    toast.error("Validation impossible");
+  }
+}
 function HealthBridge(props) {
-  const rows = arr(props.rows); const healthStocks = arr(props.stocks).filter(isHealthStock); const alerts = rows.filter((v) => late(v) || dueSoon(v)).slice(0, 6); const rupture = healthStocks.filter((s) => toNumber(s.quantite) <= toNumber(s.seuil)).length; const costs = rows.reduce((sum, v) => sum + toNumber(v.cout), 0); const sickAnimals = arr(props.animaux).filter(isSickAnimal).length; const sickLots = arr(props.lots).filter(isSickLot).length; const activeWithdrawals = findActiveWithdrawals(rows);
-  return <div className="rounded-2xl border border-[#d6c3a0] bg-white p-5 space-y-4"><div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3"><div><p className="text-xs uppercase tracking-widest text-[#8a7456]">Santé & Biosécurité</p><h3 className="font-black text-[#2f2415]">Pilotage sanitaire</h3></div><div className="grid grid-cols-3 lg:grid-cols-5 gap-2 text-sm"><Mini icon={Syringe} label="À suivre" value={alerts.length} /><Mini icon={Package} label="Stock santé" value={healthStocks.length} /><Mini icon={AlertTriangle} label="Ruptures" value={rupture} /><Mini icon={HeartPulse} label="Malades" value={sickAnimals} /><Mini icon={ShieldCheck} label="Lots risque" value={sickLots} /></div></div>{activeWithdrawals.length ? <div className="rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-900"><p className="font-black flex items-center gap-2"><AlertTriangle size={16} /> {activeWithdrawals.length} délai(x) sanitaire(s) actif(s) — vente / transformation bloquées</p><p className="mt-1 text-xs text-red-800">{activeWithdrawals.slice(0, 3).map((w) => `${w.nom || w.id} → ${w.delai_sanitaire_fin || w.withdrawal_until}`).join(' · ')}</p></div> : null}{alerts.length ? <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-2">{alerts.map((v) => <div key={v.id} className="rounded-xl border border-[#eadcc2] bg-[#fffdf8] p-3"><p className="font-bold text-[#2f2415]">{v.nom || v.id}</p><p className="text-xs text-[#8a7456] mt-1">{v.prevue || '—'} · {fmtCurrency(v.cout)}</p><button type="button" className="mt-3 text-sm font-bold text-emerald-700" onClick={() => markDone(v, props)}><CheckCircle2 size={14} className="inline" /> Valider fait</button></div>)}</div> : null}<p className="text-xs text-[#8a7456]">Coût santé total renseigné: {fmtCurrency(costs)}</p></div>;
+  const rows = arr(props.rows);
+  const healthStocks = arr(props.stocks).filter(isHealthStock);
+  const alerts = rows.filter((v) => late(v) || dueSoon(v)).slice(0, 6);
+  const rupture = healthStocks.filter(
+    (s) => toNumber(s.quantite) <= toNumber(s.seuil),
+  ).length;
+  const costs = rows.reduce((sum, v) => sum + toNumber(v.cout), 0);
+  const sickAnimals = arr(props.animaux).filter(isSickAnimal).length;
+  const sickLots = arr(props.lots).filter(isSickLot).length;
+  const activeWithdrawals = findActiveWithdrawals(rows);
+  return (
+    <div className="rounded-2xl border border-[#d6c3a0] bg-white p-5 space-y-4">
+      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3">
+        <div>
+          <p className="text-xs uppercase tracking-widest text-[#8a7456]">
+            Santé & Biosécurité
+          </p>
+          <h3 className="font-black text-[#2f2415]">Pilotage sanitaire</h3>
+        </div>
+        <div className="grid grid-cols-3 lg:grid-cols-5 gap-2 text-sm">
+          <Mini icon={Syringe} label="À suivre" value={alerts.length} />
+          <Mini
+            icon={Package}
+            label="Stock santé"
+            value={healthStocks.length}
+          />
+          <Mini icon={AlertTriangle} label="Ruptures" value={rupture} />
+          <Mini icon={HeartPulse} label="Malades" value={sickAnimals} />
+          <Mini icon={ShieldCheck} label="Lots risque" value={sickLots} />
+        </div>
+      </div>
+      {activeWithdrawals.length ? (
+        <div className="rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-900">
+          <p className="font-black flex items-center gap-2">
+            <AlertTriangle size={16} /> {activeWithdrawals.length} délai(x)
+            sanitaire(s) actif(s) — vente / transformation bloquées
+          </p>
+          <p className="mt-1 text-xs text-red-800">
+            {activeWithdrawals
+              .slice(0, 3)
+              .map(
+                (w) =>
+                  `${w.nom || w.id} → ${w.delai_sanitaire_fin || w.withdrawal_until}`,
+              )
+              .join(" · ")}
+          </p>
+        </div>
+      ) : null}
+      {alerts.length ? (
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-2">
+          {alerts.map((v) => (
+            <div
+              key={v.id}
+              className="rounded-xl border border-[#eadcc2] bg-[#fffdf8] p-3"
+            >
+              <p className="font-bold text-[#2f2415]">{v.nom || v.id}</p>
+              <p className="text-xs text-[#8a7456] mt-1">
+                {v.prevue || "—"} · {fmtCurrency(v.cout)}
+              </p>
+              <button
+                type="button"
+                className="mt-3 text-sm font-bold text-emerald-700"
+                onClick={() => markDone(v, props)}
+              >
+                <CheckCircle2 size={14} className="inline" /> Valider fait
+              </button>
+            </div>
+          ))}
+        </div>
+      ) : null}
+      <p className="text-xs text-[#8a7456]">
+        Coût santé total renseigné: {fmtCurrency(costs)}
+      </p>
+    </div>
+  );
 }
 function FileInput({ label, value, onChange, hint }) {
   const handleFile = (file) => {
     if (!file) return onChange({});
-    if (!file.type?.startsWith('image/')) return toast.error('Ajoute une photo/image uniquement');
+    if (!file.type?.startsWith("image/"))
+      return toast.error("Ajoute une photo/image uniquement");
     const reader = new FileReader();
-    reader.onload = () => onChange({ preuve_photo_data: String(reader.result || ''), preuve_file_name: file.name, preuve_mime_type: file.type, preuve_size: file.size, preuve_url: '' });
+    reader.onload = () =>
+      onChange({
+        preuve_photo_data: String(reader.result || ""),
+        preuve_file_name: file.name,
+        preuve_mime_type: file.type,
+        preuve_size: file.size,
+        preuve_url: "",
+      });
     reader.readAsDataURL(file);
   };
-  return <div className="space-y-2"><span className="text-xs text-[#8a7456]">{label}</span><label className="flex cursor-pointer items-center justify-center gap-2 rounded-xl border border-dashed border-[#c9a96a] bg-[#fffdf8] px-3 py-4 text-sm font-bold text-[#7d6a4a] hover:bg-[#fff7df]"><Upload size={18} /> Prendre / importer une photo<input type="file" accept="image/*" capture="environment" className="hidden" onChange={(e) => handleFile(e.target.files?.[0])} /></label>{value?.preuve_photo_data ? <div className="flex items-center gap-3 rounded-xl border border-emerald-200 bg-emerald-50 p-2"><img src={value.preuve_photo_data} alt="preuve" className="h-14 w-14 rounded-lg object-cover" /><div className="min-w-0"><p className="truncate text-sm font-bold text-emerald-800">{value.preuve_file_name || 'Photo ajoutée'}</p><p className="text-xs text-emerald-700">Stockée avec l’intervention, sans URL manuelle.</p></div></div> : <p className="text-xs text-[#8a7456]"><Camera size={13} className="inline" /> {hint}</p>}</div>;
+  return (
+    <div className="space-y-2">
+      <span className="text-xs text-[#8a7456]">{label}</span>
+      <label className="flex cursor-pointer items-center justify-center gap-2 rounded-xl border border-dashed border-[#c9a96a] bg-[#fffdf8] px-3 py-4 text-sm font-bold text-[#7d6a4a] hover:bg-[#fff7df]">
+        <Upload size={18} /> Prendre / importer une photo
+        <input
+          type="file"
+          accept="image/*"
+          capture="environment"
+          className="hidden"
+          onChange={(e) => handleFile(e.target.files?.[0])}
+        />
+      </label>
+      {value?.preuve_photo_data ? (
+        <div className="flex items-center gap-3 rounded-xl border border-emerald-200 bg-emerald-50 p-2">
+          <img
+            src={value.preuve_photo_data}
+            alt="preuve"
+            className="h-14 w-14 rounded-lg object-cover"
+          />
+          <div className="min-w-0">
+            <p className="truncate text-sm font-bold text-emerald-800">
+              {value.preuve_file_name || "Photo ajoutée"}
+            </p>
+            <p className="text-xs text-emerald-700">
+              Stockée avec l’intervention, sans URL manuelle.
+            </p>
+          </div>
+        </div>
+      ) : (
+        <p className="text-xs text-[#8a7456]">
+          <Camera size={13} className="inline" /> {hint}
+        </p>
+      )}
+    </div>
+  );
 }
 function InterventionPanel(props) {
-  const tachesCrud = useCrudModule('taches'); const alertesCrud = useCrudModule('alertes_center'); const eventsCrud = useCrudModule('business_events'); const docsCrud = useCrudModule('documents'); const stockCrud = useCrudModule('stock'); const opportunitiesCrud = useCrudModule('sales_opportunities'); const vetsCrud = useCrudModule('veterinaires');
-  const [form, setForm] = useState(applyPreset('vaccination', { type_intervention: 'vaccination', target_mode: '', target_detail: '', date: today(), effectuee: '', statut: 'a_faire', vet_mode: '', product_source: 'veterinaire', frequence_unite: 'jours' }));
-  const [newVet, setNewVet] = useState({ nom: '', tel: '', specialite: '' }); const [saving, setSaving] = useState(false); const [scanText, setScanText] = useState('');
-  const openAlertStatus = (row = {}) => !['resolue', 'fermee', 'fermé', 'closed', 'done', 'traite', 'traité'].includes(norm(row.status || row.statut));
+  const tachesCrud = useCrudModule("taches");
+  const alertesCrud = useCrudModule("alertes_center");
+  const eventsCrud = useCrudModule("business_events");
+  const docsCrud = useCrudModule("documents");
+  const stockCrud = useCrudModule("stock");
+  const opportunitiesCrud = useCrudModule("sales_opportunities");
+  const vetsCrud = useCrudModule("veterinaires");
+  const [form, setForm] = useState(
+    applyPreset("vaccination", {
+      type_intervention: "vaccination",
+      target_mode: "",
+      target_detail: "",
+      date: today(),
+      effectuee: "",
+      statut: "a_faire",
+      vet_mode: "",
+      product_source: "veterinaire",
+      frequence_unite: "jours",
+    }),
+  );
+  const [newVet, setNewVet] = useState({ nom: "", tel: "", specialite: "" });
+  const [saving, setSaving] = useState(false);
+  const [scanText, setScanText] = useState("");
+  const openAlertStatus = (row = {}) =>
+    ![
+      "resolue",
+      "fermee",
+      "fermé",
+      "closed",
+      "done",
+      "traite",
+      "traité",
+    ].includes(norm(row.status || row.statut));
   const resolvePayloadIds = () => {
-    let animal_id = '';
-    let lot_id = '';
-    if (selectedDetail?.startsWith('animal:')) animal_id = selectedDetail.replace('animal:', '');
-    if (selectedDetail?.startsWith('lot:') || selectedDetail?.startsWith('lot_malade:')) lot_id = selectedDetail.replace('lot_malade:', '').replace('lot:', '');
-    if (!animal_id && target.module_lie === 'animaux' && target.related_id && !['ALL_ANIMAUX', 'ANIMAUX_MALADES'].includes(target.related_id)) animal_id = target.related_id;
-    if (!lot_id && target.module_lie === 'avicole' && target.related_id && !['ALL_AVICOLE_LOTS', 'AVICOLE_MALADES'].includes(target.related_id)) lot_id = target.related_id;
+    let animal_id = "";
+    let lot_id = "";
+    if (selectedDetail?.startsWith("animal:"))
+      animal_id = selectedDetail.replace("animal:", "");
+    if (
+      selectedDetail?.startsWith("lot:") ||
+      selectedDetail?.startsWith("lot_malade:")
+    )
+      lot_id = selectedDetail.replace("lot_malade:", "").replace("lot:", "");
+    if (
+      !animal_id &&
+      target.module_lie === "animaux" &&
+      target.related_id &&
+      !["ALL_ANIMAUX", "ANIMAUX_MALADES"].includes(target.related_id)
+    )
+      animal_id = target.related_id;
+    if (
+      !lot_id &&
+      target.module_lie === "avicole" &&
+      target.related_id &&
+      !["ALL_AVICOLE_LOTS", "AVICOLE_MALADES"].includes(target.related_id)
+    )
+      lot_id = target.related_id;
     return { animal_id, lot_id };
   };
   const applyScanDraft = () => {
-    if (!scanText.trim()) return toast.error('Collez le texte de l’ordonnance ou importez une photo ci-dessous');
-    const parsed = parseScannedDocument({ text: scanText, docType: SCANNER_DOC_TYPES.VET_PRESCRIPTION });
+    if (!scanText.trim())
+      return toast.error(
+        "Collez le texte de l’ordonnance ou importez une photo ci-dessous",
+      );
+    const parsed = parseScannedDocument({
+      text: scanText,
+      docType: SCANNER_DOC_TYPES.VET_PRESCRIPTION,
+    });
     const draft = buildHealthInterventionDraftFromScan(parsed.fields || {}, {});
-    const type = draft.type_intervention || 'curatif';
-    setForm((prev) => applyPreset(type, { ...prev, ...draft, type_intervention: type }));
-    toast.success('Ordonnance analysée — vérifiez les champs et validez avec une photo preuve');
+    const type = draft.type_intervention || "curatif";
+    setForm((prev) =>
+      applyPreset(type, { ...prev, ...draft, type_intervention: type }),
+    );
+    toast.success(
+      "Ordonnance analysée — vérifiez les champs et validez avec une photo preuve",
+    );
   };
-  const animals = arr(props.animaux).filter(isAvailableAnimal); const lots = arr(props.lots).filter(isActiveLot); const vets = arr(props.vets?.length ? props.vets : vetsCrud.rows).filter(validId); const stocks = arr(props.stocks?.length ? props.stocks : stockCrud.rows).filter(validId);
-  const modes = useMemo(() => modesFor(form.type_intervention, animals, lots), [form.type_intervention, animals, lots]);
-  const detailOptions = useMemo(() => detailsFor(form.target_mode, animals, lots), [form.target_mode, animals, lots]);
-  const healthStocks = stocks.filter(familyOf(form.type_intervention) === 'biosecurite' ? isDisinfectantStock : isHealthStock);
-  const productSources = useMemo(() => healthStocks.length ? allProductSources : allProductSources.filter((source) => source.value !== 'stock'), [healthStocks.length]);
-  const preset = interventionPreset(form.type_intervention); const customFields = preset.fields || [];
-  const calculatedNextDate = useMemo(() => nextDateFromPeriodicite(form.effectuee || form.date, form.periodicite, form.frequence_valeur, form.frequence_unite), [form.effectuee, form.date, form.periodicite, form.frequence_valeur, form.frequence_unite]);
-  useEffect(() => { setForm((prev) => { const next = { ...prev }; const hasMode = modes.some((mode) => mode.value === next.target_mode); if (!hasMode) { next.target_mode = modes[0]?.value || ''; next.target_detail = ''; } if (next.target_mode?.startsWith('detail:')) { const hasDetail = detailOptions.some((item) => item.value === next.target_detail); if (!hasDetail) next.target_detail = detailOptions[0]?.value || ''; } else if (next.target_detail) next.target_detail = ''; if (!productSources.some((item) => item.value === next.product_source)) { next.product_source = productSources[0]?.value || 'aucun'; next.stock_id = ''; } if (next.product_source === 'stock' && next.stock_id && !healthStocks.some((stock) => String(stock.id) === String(next.stock_id))) next.stock_id = ''; return Object.keys(next).every((key) => next[key] === prev[key]) ? prev : next; }); }, [modes, detailOptions, productSources, healthStocks]);
+  const animals = arr(props.animaux).filter(isAvailableAnimal);
+  const lots = arr(props.lots).filter(isActiveLot);
+  const vets = arr(props.vets?.length ? props.vets : vetsCrud.rows).filter(
+    validId,
+  );
+  const stocks = arr(
+    props.stocks?.length ? props.stocks : stockCrud.rows,
+  ).filter(validId);
+  const modes = useMemo(
+    () => modesFor(form.type_intervention, animals, lots),
+    [form.type_intervention, animals, lots],
+  );
+  const detailOptions = useMemo(
+    () => detailsFor(form.target_mode, animals, lots),
+    [form.target_mode, animals, lots],
+  );
+  const healthStocks = stocks.filter(
+    familyOf(form.type_intervention) === "biosecurite"
+      ? isDisinfectantStock
+      : isHealthStock,
+  );
+  const productSources = healthStocks.length
+    ? allProductSources
+    : allProductSources.filter((source) => source.value !== "stock");
+  const preset = interventionPreset(form.type_intervention);
+  const customFields = preset.fields || [];
+  const calculatedNextDate = useMemo(
+    () =>
+      nextDateFromPeriodicite(
+        form.effectuee || form.date,
+        form.periodicite,
+        form.frequence_valeur,
+        form.frequence_unite,
+      ),
+    [
+      form.effectuee,
+      form.date,
+      form.periodicite,
+      form.frequence_valeur,
+      form.frequence_unite,
+    ],
+  );
+  useEffect(() => {
+    const timer = window.setTimeout(
+      () =>
+        setForm((prev) => {
+          const next = { ...prev };
+          const hasMode = modes.some((mode) => mode.value === next.target_mode);
+          if (!hasMode) {
+            next.target_mode = modes[0]?.value || "";
+            next.target_detail = "";
+          }
+          if (next.target_mode?.startsWith("detail:")) {
+            const hasDetail = detailOptions.some(
+              (item) => item.value === next.target_detail,
+            );
+            if (!hasDetail) next.target_detail = detailOptions[0]?.value || "";
+          } else if (next.target_detail) next.target_detail = "";
+          if (
+            !productSources.some((item) => item.value === next.product_source)
+          ) {
+            next.product_source = productSources[0]?.value || "aucun";
+            next.stock_id = "";
+          }
+          if (
+            next.product_source === "stock" &&
+            next.stock_id &&
+            !healthStocks.some(
+              (stock) => String(stock.id) === String(next.stock_id),
+            )
+          )
+            next.stock_id = "";
+          return Object.keys(next).every((key) => next[key] === prev[key])
+            ? prev
+            : next;
+        }),
+      0,
+    );
+    return () => window.clearTimeout(timer);
+  }, [modes, detailOptions, productSources, healthStocks]);
   useEffect(() => {
     if (!props.healthDraft) return;
     const draft = props.healthDraft;
-    const type = draft.type_intervention || 'vaccination';
-    setForm((prev) => applyPreset(type, {
-      ...prev,
-      ...draft,
-      type_intervention: type,
-      product_source: healthStocks.length ? (draft.product_source || 'stock') : (draft.product_source || 'veterinaire'),
-    }));
+    const type = draft.type_intervention || "vaccination";
+    const timer = window.setTimeout(
+      () =>
+        setForm((prev) =>
+          applyPreset(type, {
+            ...prev,
+            ...draft,
+            type_intervention: type,
+            product_source: healthStocks.length
+              ? draft.product_source || "stock"
+              : draft.product_source || "veterinaire",
+          }),
+        ),
+      0,
+    );
     window.setTimeout(() => {
-      document.getElementById(HEALTH_INTERVENTION_FORM_ID)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      document
+        .getElementById(HEALTH_INTERVENTION_FORM_ID)
+        ?.scrollIntoView({ behavior: "smooth", block: "start" });
     }, 120);
+    return () => window.clearTimeout(timer);
   }, [props.healthDraft, healthStocks.length]);
-  const selectedDetail = form.target_mode?.startsWith('detail:') ? (form.target_detail || detailOptions[0]?.value || '') : '';
-  const target = useMemo(() => resolveTarget(form.target_mode, selectedDetail, form.type_intervention, animals, lots), [form.target_mode, selectedDetail, form.type_intervention, animals, lots]);
-  const selectedStock = healthStocks.find((s) => String(s.id) === String(form.stock_id)); const qty = toNumber(form.quantite_utilisee); const availableQty = stockAvailable(selectedStock); const stockInsufficient = form.product_source === 'stock' && selectedStock && qty > availableQty; const canSubmit = Boolean(form.nom) && Boolean(form.target_mode) && target.target_count > 0 && !stockInsufficient && !saving;
-  const update = (key, value) => setForm((prev) => { let next = { ...prev, [key]: value }; if (key === 'type_intervention') { next = applyPreset(value, { ...next, nom: '', medicament: '', voie_administration: '', stock_id: '', target_detail: '', impact_business_code: impactDefaultFor(value) }); const nextModes = modesFor(value, animals, lots); next.target_mode = nextModes[0]?.value || ''; } if (key === 'target_mode') next.target_detail = ''; if (key === 'product_source' && value !== 'stock') next.stock_id = ''; return next; });
-  const ensureVet = async () => { if (form.vet_mode !== '__new__') { const vet = vets.find((v) => String(v.id) === String(form.vet_mode)); return { vet_id: vet?.id || '', vet_name: vet?.nom || '' }; } if (!newVet.nom) return { vet_id: '', vet_name: '' }; const vet = { id: makeId('VET'), nom: newVet.nom, tel: newVet.tel || '', specialite: newVet.specialite || 'Vétérinaire', source: 'manuel' }; await (props.onCreateVet || vetsCrud.create)?.(vet); await Promise.allSettled([props.onRefreshVets?.(), vetsCrud.refresh?.()]); return { vet_id: vet.id, vet_name: vet.nom }; };
-  const decrementStock = async (healthId, healthRecord = {}) => { if (form.product_source !== 'stock' || !qty) { if (form.product_source === 'stock' && qty > 0 && !form.stock_id) return { gap: 'Consommation santé non rattachée au stock : stock_id absent.' }; return null; } if (!form.stock_id) return { gap: 'Consommation santé non rattachée au stock : stock_id absent.' }; const stock = stocks.find((s) => String(s.id) === String(form.stock_id)); if (!stock) throw new Error('Stock indisponible'); if (qty > toNumber(stock.quantite)) throw new Error('Stock insuffisant'); const beforeQty = toNumber(stock.quantite); const nextQty = Math.max(0, beforeQty - qty); await (props.onUpdateStock || stockCrud.update)?.(stock.id, { quantite: nextQty, last_movement_type: 'sortie', last_movement_label: familyOf(form.type_intervention) === 'biosecurite' ? 'biosécurité' : 'santé', last_movement_qty: qty, last_movement_at: now(), source_module: 'sante' }); const consumption = await runHealthStockConsumptionSideEffects({ healthRecord: { ...healthRecord, id: healthId, stock_id: form.stock_id, quantite_utilisee: qty, type_intervention: form.type_intervention, module_lie: target.module_lie, related_id: target.related_id, animal_id: target.module_lie === 'animaux' ? target.related_id : '', lot_id: target.module_lie === 'avicole' ? target.related_id : '', product_source: form.product_source, date: form.date, effectuee: form.effectuee, prevue: form.date, nom: form.nom || form.medicament, medicament: form.medicament || form.nom }, stock, qty, beforeQty, afterQty: nextQty, handlers: { onCreateStockMovement: props.onCreateStockMovement, onRefreshStockMovements: props.onRefreshStockMovements, existingStockMovements: arr(props.stockMovements) } }); const followUp = buildStockCriticalFollowUp({ ...stock, quantite: nextQty }, nextQty); if (followUp && !hasOpenStockReorderTask(stock, tachesCrud.rows)) { await tachesCrud.create?.(followUp.task); await alertesCrud.create?.({ ...followUp.alert, title: `Stock santé critique: ${stock.produit || stock.nom || stock.id}`, action_recommandee: 'Réapprovisionner le produit santé avant le prochain soin.' }); await eventsCrud.create?.({ ...followUp.event, event_type: 'stock_sante_critique_apres_soin' }); } return consumption; };
-  const updateHealthTarget = async (recordId) => { const statusPayload = { health_status: form.statut_sante_apres || 'sain', sante: form.statut_sante_apres || 'sain', last_health_intervention_id: recordId, last_health_intervention_at: form.effectuee || form.date || today(), last_health_intervention_type: form.type_intervention }; if (target.module_lie === 'animaux' && selectedDetail?.startsWith('animal:')) await props.onUpdateAnimal?.(target.related_id, statusPayload); if (target.module_lie === 'avicole' && (selectedDetail?.startsWith('lot:') || selectedDetail?.startsWith('lot_malade:'))) await props.onUpdateLot?.(target.related_id, statusPayload); if (target.module_lie === 'animaux' && target.target_ids?.length && target.related_id === 'ANIMAUX_MALADES') await Promise.allSettled(target.target_ids.map((id) => props.onUpdateAnimal?.(id, statusPayload))); if (target.module_lie === 'avicole' && target.target_ids?.length && ['AVICOLE_MALADES', 'ALL_AVICOLE_LOTS'].includes(target.related_id)) await Promise.allSettled(target.target_ids.map((id) => props.onUpdateLot?.(id, statusPayload))); };
+  const selectedDetail = form.target_mode?.startsWith("detail:")
+    ? form.target_detail || detailOptions[0]?.value || ""
+    : "";
+  const target = resolveTarget(
+    form.target_mode,
+    selectedDetail,
+    form.type_intervention,
+    animals,
+    lots,
+  );
+  const selectedStock = healthStocks.find(
+    (s) => String(s.id) === String(form.stock_id),
+  );
+  const qty = toNumber(form.quantite_utilisee);
+  const availableQty = stockAvailable(selectedStock);
+  const stockInsufficient =
+    form.product_source === "stock" && selectedStock && qty > availableQty;
+  const canSubmit =
+    Boolean(form.nom) &&
+    Boolean(form.target_mode) &&
+    target.target_count > 0 &&
+    !stockInsufficient &&
+    !saving;
+  const update = (key, value) =>
+    setForm((prev) => {
+      let next = { ...prev, [key]: value };
+      if (key === "type_intervention") {
+        next = applyPreset(value, {
+          ...next,
+          nom: "",
+          medicament: "",
+          voie_administration: "",
+          stock_id: "",
+          target_detail: "",
+          impact_business_code: impactDefaultFor(value),
+        });
+        const nextModes = modesFor(value, animals, lots);
+        next.target_mode = nextModes[0]?.value || "";
+      }
+      if (key === "target_mode") next.target_detail = "";
+      if (key === "product_source" && value !== "stock") next.stock_id = "";
+      return next;
+    });
+  const ensureVet = async () => {
+    if (form.vet_mode !== "__new__") {
+      const vet = vets.find((v) => String(v.id) === String(form.vet_mode));
+      return { vet_id: vet?.id || "", vet_name: vet?.nom || "" };
+    }
+    if (!newVet.nom) return { vet_id: "", vet_name: "" };
+    const vet = {
+      id: makeId("VET"),
+      nom: newVet.nom,
+      tel: newVet.tel || "",
+      specialite: newVet.specialite || "Vétérinaire",
+      source: "manuel",
+    };
+    await (props.onCreateVet || vetsCrud.create)?.(vet);
+    await Promise.allSettled([props.onRefreshVets?.(), vetsCrud.refresh?.()]);
+    return { vet_id: vet.id, vet_name: vet.nom };
+  };
+  const decrementStock = async (healthId, healthRecord = {}) => {
+    if (form.product_source !== "stock" || !qty) {
+      if (form.product_source === "stock" && qty > 0 && !form.stock_id)
+        return {
+          gap: "Consommation santé non rattachée au stock : stock_id absent.",
+        };
+      return null;
+    }
+    if (!form.stock_id)
+      return {
+        gap: "Consommation santé non rattachée au stock : stock_id absent.",
+      };
+    const stock = stocks.find((s) => String(s.id) === String(form.stock_id));
+    if (!stock) throw new Error("Stock indisponible");
+    if (qty > toNumber(stock.quantite)) throw new Error("Stock insuffisant");
+    const beforeQty = toNumber(stock.quantite);
+    const nextQty = Math.max(0, beforeQty - qty);
+    await (props.onUpdateStock || stockCrud.update)?.(stock.id, {
+      quantite: nextQty,
+      last_movement_type: "sortie",
+      last_movement_label:
+        familyOf(form.type_intervention) === "biosecurite"
+          ? "biosécurité"
+          : "santé",
+      last_movement_qty: qty,
+      last_movement_at: now(),
+      source_module: "sante",
+    });
+    const consumption = await runHealthStockConsumptionSideEffects({
+      healthRecord: {
+        ...healthRecord,
+        id: healthId,
+        stock_id: form.stock_id,
+        quantite_utilisee: qty,
+        type_intervention: form.type_intervention,
+        module_lie: target.module_lie,
+        related_id: target.related_id,
+        animal_id: target.module_lie === "animaux" ? target.related_id : "",
+        lot_id: target.module_lie === "avicole" ? target.related_id : "",
+        product_source: form.product_source,
+        date: form.date,
+        effectuee: form.effectuee,
+        prevue: form.date,
+        nom: form.nom || form.medicament,
+        medicament: form.medicament || form.nom,
+      },
+      stock,
+      qty,
+      beforeQty,
+      afterQty: nextQty,
+      handlers: {
+        onCreateStockMovement: props.onCreateStockMovement,
+        onRefreshStockMovements: props.onRefreshStockMovements,
+        existingStockMovements: arr(props.stockMovements),
+      },
+    });
+    const followUp = buildStockCriticalFollowUp(
+      { ...stock, quantite: nextQty },
+      nextQty,
+    );
+    if (followUp && !hasOpenStockReorderTask(stock, tachesCrud.rows)) {
+      await tachesCrud.create?.(followUp.task);
+      await alertesCrud.create?.({
+        ...followUp.alert,
+        title: `Stock santé critique: ${stock.produit || stock.nom || stock.id}`,
+        action_recommandee:
+          "Réapprovisionner le produit santé avant le prochain soin.",
+      });
+      await eventsCrud.create?.({
+        ...followUp.event,
+        event_type: "stock_sante_critique_apres_soin",
+      });
+    }
+    return consumption;
+  };
+  const updateHealthTarget = async (recordId) => {
+    const statusPayload = {
+      health_status: form.statut_sante_apres || "sain",
+      sante: form.statut_sante_apres || "sain",
+      last_health_intervention_id: recordId,
+      last_health_intervention_at: form.effectuee || form.date || today(),
+      last_health_intervention_type: form.type_intervention,
+    };
+    if (
+      target.module_lie === "animaux" &&
+      selectedDetail?.startsWith("animal:")
+    )
+      await props.onUpdateAnimal?.(target.related_id, statusPayload);
+    if (
+      target.module_lie === "avicole" &&
+      (selectedDetail?.startsWith("lot:") ||
+        selectedDetail?.startsWith("lot_malade:"))
+    )
+      await props.onUpdateLot?.(target.related_id, statusPayload);
+    if (
+      target.module_lie === "animaux" &&
+      target.target_ids?.length &&
+      target.related_id === "ANIMAUX_MALADES"
+    )
+      await Promise.allSettled(
+        target.target_ids.map((id) =>
+          props.onUpdateAnimal?.(id, statusPayload),
+        ),
+      );
+    if (
+      target.module_lie === "avicole" &&
+      target.target_ids?.length &&
+      ["AVICOLE_MALADES", "ALL_AVICOLE_LOTS"].includes(target.related_id)
+    )
+      await Promise.allSettled(
+        target.target_ids.map((id) => props.onUpdateLot?.(id, statusPayload)),
+      );
+  };
   const submit = async () => {
-    if (saving) return; if (!form.nom) return toast.error('Produit, vaccin ou soin obligatoire'); if (!form.target_mode || target.target_count <= 0) return toast.error('Aucune cible valide pour cette intervention'); if (form.target_mode?.startsWith('detail:') && !selectedDetail) return toast.error('Choisis la cible précise'); if (form.product_source === 'stock' && !form.stock_id) return toast.error('Choisis le stock utilisé ou change la source du produit'); if (stockInsufficient) return toast.error('Stock insuffisant pour cette intervention');
-    try { setSaving(true); const id = makeId('SAN'); const label = labelType(form.type_intervention); const vet = await ensureVet(); const productSourceLabel = productSources.find((s) => s.value === form.product_source)?.label || 'Produit non précisé'; const nextDate = form.prochaine_date_calculee || form.prochaine_action || calculatedNextDate; const photo = form.preuve_photo_data || ''; const impactCode = form.impact_business_code || impactDefaultFor(form.type_intervention); const impactText = impactLabel(impactCode); const financeTransaction = buildHealthCostTransaction({ id, nom: form.nom || label, cout: form.cout, effectuee: form.effectuee || form.date || today(), target_summary: target.target_summary });
-      const { animal_id: payloadAnimalId, lot_id: payloadLotId } = resolvePayloadIds();
-      const delaiFin = clean(form.delai_sanitaire_fin || '');
-      const payload = { id, nom: form.nom || label, type_intervention: form.type_intervention, intervention_family: familyOf(form.type_intervention), animal: target.target_summary, animal_id: payloadAnimalId, lot_id: payloadLotId, cible_sante: form.target_mode?.startsWith('detail:') ? selectedDetail : form.target_mode, prevue: form.date || today(), effectuee: form.effectuee || (form.statut === 'fait' ? (form.date || today()) : ''), statut: form.statut || 'a_faire', statut_sante_apres: form.statut_sante_apres || '', vet: vet.vet_name, vet_id: vet.vet_id, cout: toNumber(form.cout), module_lie: target.module_lie, related_id: target.related_id, target_count: target.target_count, total_count: target.total_count, target_scope: target.target_scope, target_ids: target.target_ids, target_summary: target.target_summary, target_snapshot_date: target.target_snapshot_date, source_module: 'sante', product_source: form.product_source, product_source_label: productSourceLabel, stock_id: form.stock_id || '', medicament: form.medicament || form.nom, produit_utilise: form.nom, dosage: form.dosage || '', voie_administration: form.voie_administration || '', quantite_utilisee: qty, lot_produit: form.lot_produit || '', date_expiration: form.date_expiration || '', dose_par_sujet: form.dose_par_sujet || '', diagnostic: form.diagnostic || '', symptomes: form.symptomes || '', duree_traitement: form.duree_traitement || '', delai_sanitaire_fin: delaiFin, withdrawal_until: delaiFin, resultat_attendu: form.resultat_attendu || '', dose_par_kg: form.dose_par_kg || '', poids_reference: form.poids_reference || '', zone_traitee: form.zone_traitee || '', duree_isolement: form.duree_isolement || '', protocole: form.protocole || '', recommandation_veto: form.recommandation_veto || '', prochain_controle: form.prochain_controle || '', mortalite: form.mortalite || '', mesure_urgence: form.mesure_urgence || '', temperature: form.temperature || '', observation_clinique: form.observation_clinique || '', periodicite: form.periodicite || 'unique', frequence_valeur: form.frequence_valeur || '', frequence_unite: form.frequence_unite || '', prochaine_date_calculee: nextDate, prochaine_action: nextDate, impact_business_code: impactCode, impact_business_label: impactText, impact_business_note: form.impact_business_note || '', urgence: form.urgence || '', preuve_type: form.preuve_type || '', preuve_file_name: form.preuve_file_name || '', preuve_mime_type: form.preuve_mime_type || '', preuve_photo_data: photo, preuve_url: form.preuve_url || '', linked_finance_transaction_id: financeTransaction?.id || '', fumier_sacs: toNumber(form.fumier_sacs), notes: form.notes || '' };
-      await props.onCreate?.(payload); const consumption = await decrementStock(id, payload); if (consumption?.gap) toast(consumption.gap, { icon: 'ℹ️' }); await updateHealthTarget(id);
+    if (saving) return;
+    if (!form.nom) return toast.error("Produit, vaccin ou soin obligatoire");
+    if (!form.target_mode || target.target_count <= 0)
+      return toast.error("Aucune cible valide pour cette intervention");
+    if (form.target_mode?.startsWith("detail:") && !selectedDetail)
+      return toast.error("Choisis la cible précise");
+    if (form.product_source === "stock" && !form.stock_id)
+      return toast.error(
+        "Choisis le stock utilisé ou change la source du produit",
+      );
+    if (stockInsufficient)
+      return toast.error("Stock insuffisant pour cette intervention");
+    try {
+      setSaving(true);
+      const id = makeId("SAN");
+      const label = labelType(form.type_intervention);
+      const vet = await ensureVet();
+      const productSourceLabel =
+        productSources.find((s) => s.value === form.product_source)?.label ||
+        "Produit non précisé";
+      const nextDate =
+        form.prochaine_date_calculee ||
+        form.prochaine_action ||
+        calculatedNextDate;
+      const photo = form.preuve_photo_data || "";
+      const impactCode =
+        form.impact_business_code || impactDefaultFor(form.type_intervention);
+      const impactText = impactLabel(impactCode);
+      const financeTransaction = buildHealthCostTransaction({
+        id,
+        nom: form.nom || label,
+        cout: form.cout,
+        effectuee: form.effectuee || form.date || today(),
+        target_summary: target.target_summary,
+      });
+      const { animal_id: payloadAnimalId, lot_id: payloadLotId } =
+        resolvePayloadIds();
+      const delaiFin = clean(form.delai_sanitaire_fin || "");
+      const bioSacs = toNumber(form.fumier_sacs);
+      const bioWeightPerSac = toNumber(form.poids_estime_par_sac);
+      const bioTotalWeight = bioSacs * bioWeightPerSac;
+      const bioMaterial = biosecurityMaterialOptions.some(
+        (opt) => opt.value === form.biosecurity_material_type,
+      )
+        ? form.biosecurity_material_type
+        : "fumier";
+      const bioStatus = biosecurityStatusOptions.some(
+        (opt) => opt.value === form.biosecurity_status,
+      )
+        ? form.biosecurity_status
+        : "normal";
+      const bioDestination = biosecurityDestinationOptions.some(
+        (opt) => opt.value === form.biosecurity_destination,
+      )
+        ? form.biosecurity_destination
+        : "";
+      const payload = {
+        id,
+        nom: form.nom || label,
+        type_intervention: form.type_intervention,
+        intervention_family: familyOf(form.type_intervention),
+        animal: target.target_summary,
+        animal_id: payloadAnimalId,
+        lot_id: payloadLotId,
+        cible_sante: form.target_mode?.startsWith("detail:")
+          ? selectedDetail
+          : form.target_mode,
+        prevue: form.date || today(),
+        effectuee:
+          form.effectuee ||
+          (form.statut === "fait" ? form.date || today() : ""),
+        statut: form.statut || "a_faire",
+        statut_sante_apres: form.statut_sante_apres || "",
+        vet: vet.vet_name,
+        vet_id: vet.vet_id,
+        cout: toNumber(form.cout),
+        module_lie: target.module_lie,
+        related_id: target.related_id,
+        target_count: target.target_count,
+        total_count: target.total_count,
+        target_scope: target.target_scope,
+        target_ids: target.target_ids,
+        target_summary: target.target_summary,
+        target_snapshot_date: target.target_snapshot_date,
+        source_module: "sante",
+        product_source: form.product_source,
+        product_source_label: productSourceLabel,
+        stock_id: form.stock_id || "",
+        medicament: form.medicament || form.nom,
+        produit_utilise: form.nom,
+        dosage: form.dosage || "",
+        voie_administration: form.voie_administration || "",
+        quantite_utilisee: qty,
+        lot_produit: form.lot_produit || "",
+        date_expiration: form.date_expiration || "",
+        dose_par_sujet: form.dose_par_sujet || "",
+        diagnostic: form.diagnostic || "",
+        symptomes: form.symptomes || "",
+        duree_traitement: form.duree_traitement || "",
+        delai_sanitaire_fin: delaiFin,
+        withdrawal_until: delaiFin,
+        resultat_attendu: form.resultat_attendu || "",
+        dose_par_kg: form.dose_par_kg || "",
+        poids_reference: form.poids_reference || "",
+        batiment_box: form.batiment_box || "",
+        zone_traitee: form.zone_traitee || "",
+        type_nettoyage: form.type_nettoyage || "",
+        responsable: form.responsable || "",
+        duree_isolement: form.duree_isolement || "",
+        protocole: form.protocole || "",
+        produits_nettoyage: form.produits_nettoyage || form.medicament || "",
+        eau_utilisee: form.eau_utilisee || "",
+        biosecurity_material_type: bioMaterial,
+        biosecurity_status: bioStatus,
+        biosecurity_destination: bioDestination,
+        biosecurity_next_step: form.biosecurity_next_step || nextDate || "",
+        biosecurity_block_culture_destination:
+          ["suspect", "contamine"].includes(bioStatus) &&
+          bioDestination === "parcelle",
+        poids_estime_par_sac: bioWeightPerSac,
+        poids_total_calcule: bioTotalWeight,
+        poids_total_kg: bioTotalWeight,
+        recommandation_veto: form.recommandation_veto || "",
+        prochain_controle: form.prochain_controle || "",
+        mortalite: form.mortalite || "",
+        mesure_urgence: form.mesure_urgence || "",
+        temperature: form.temperature || "",
+        observation_clinique: form.observation_clinique || "",
+        periodicite: form.periodicite || "unique",
+        frequence_valeur: form.frequence_valeur || "",
+        frequence_unite: form.frequence_unite || "",
+        prochaine_date_calculee: nextDate,
+        prochaine_action: nextDate,
+        impact_business_code: impactCode,
+        impact_business_label: impactText,
+        impact_business_note: form.impact_business_note || "",
+        urgence: form.urgence || "",
+        preuve_type: form.preuve_type || "",
+        preuve_file_name: form.preuve_file_name || "",
+        preuve_mime_type: form.preuve_mime_type || "",
+        preuve_photo_data: photo,
+        preuve_url: form.preuve_url || "",
+        linked_finance_transaction_id: financeTransaction?.id || "",
+        fumier_sacs: bioSacs,
+        notes: form.notes || "",
+      };
+      await props.onCreate?.(payload);
+      const consumption = await decrementStock(id, payload);
+      if (consumption?.gap) toast(consumption.gap, { icon: "ℹ️" });
+      await updateHealthTarget(id);
       if (delaiFin) {
         const createWithdrawalAlert = async (healthPatch) => {
-          const animal = animals.find((a) => String(a.id) === String(healthPatch.animal_id));
-          const lot = lots.find((l) => String(l.id) === String(healthPatch.lot_id));
-          const sanitary = buildSanitaryWithdrawalAlert({ health: healthPatch, animal, lot });
+          const animal = animals.find(
+            (a) => String(a.id) === String(healthPatch.animal_id),
+          );
+          const lot = lots.find(
+            (l) => String(l.id) === String(healthPatch.lot_id),
+          );
+          const sanitary = buildSanitaryWithdrawalAlert({
+            health: healthPatch,
+            animal,
+            lot,
+          });
           if (!sanitary) return;
-          const exists = arr(props.alertes).some((a) => openAlertStatus(a) && String(a.alert_dedupe_key || '') === sanitary.alert_dedupe_key);
-          if (!exists) await (props.onCreateAlert || alertesCrud.create)?.(sanitary);
+          const exists = arr(props.alertes).some(
+            (a) =>
+              openAlertStatus(a) &&
+              String(a.alert_dedupe_key || "") === sanitary.alert_dedupe_key,
+          );
+          if (!exists)
+            await (props.onCreateAlert || alertesCrud.create)?.(sanitary);
         };
         if (payloadAnimalId || payloadLotId) {
-          await createWithdrawalAlert({ ...payload, animal_id: payloadAnimalId, lot_id: payloadLotId, delai_sanitaire_fin: delaiFin });
+          await createWithdrawalAlert({
+            ...payload,
+            animal_id: payloadAnimalId,
+            lot_id: payloadLotId,
+            delai_sanitaire_fin: delaiFin,
+          });
         } else if (target.target_ids?.length) {
-          await Promise.allSettled(target.target_ids.slice(0, 25).map((tid) => createWithdrawalAlert(
-            target.module_lie === 'animaux'
-              ? { ...payload, animal_id: tid, lot_id: '', delai_sanitaire_fin: delaiFin }
-              : { ...payload, lot_id: tid, animal_id: '', delai_sanitaire_fin: delaiFin },
-          )));
+          await Promise.allSettled(
+            target.target_ids
+              .slice(0, 25)
+              .map((tid) =>
+                createWithdrawalAlert(
+                  target.module_lie === "animaux"
+                    ? {
+                        ...payload,
+                        animal_id: tid,
+                        lot_id: "",
+                        delai_sanitaire_fin: delaiFin,
+                      }
+                    : {
+                        ...payload,
+                        lot_id: tid,
+                        animal_id: "",
+                        delai_sanitaire_fin: delaiFin,
+                      },
+                ),
+              ),
+          );
         }
       }
-      const finalFinanceTransaction = financeTransaction ? { ...financeTransaction, libelle: `${label} - ${form.nom} (${productSourceLabel})`, categorie: familyOf(form.type_intervention) === 'biosecurite' ? 'Biosecurite' : 'Sante', target_module: target.module_lie, target_id: target.related_id, target_ids: target.target_ids, impact_business_code: impactCode, impact_business_label: impactText, notes: `${target.target_summary} · ${impactText}` } : null;
-      if (finalFinanceTransaction) await props.onCreateFinanceTransaction?.(finalFinanceTransaction);
-      await eventsCrud.create?.({ id: makeId('EVT'), event_type: familyOf(form.type_intervention) === 'biosecurite' ? 'biosécurité' : 'intervention_sanitaire', module_source: 'sante', entity_type: target.module_lie, entity_id: target.related_id, title: label, description: `${target.target_summary} · ${productSourceLabel} · ${impactText}`, event_date: form.date || today(), severity: familyOf(form.type_intervention) === 'curatif' || form.type_intervention === 'urgence' ? 'warning' : 'info', related_id: id, source_record_id: id, montant: toNumber(form.cout), impact_business_code: impactCode, impact_business_label: impactText, saisies_evitees: 5 });
-      const proofDocument = buildHealthProofDocument({ ...payload, id, preuve_photo_data: photo });
+      const finalFinanceTransaction = financeTransaction
+        ? {
+            ...financeTransaction,
+            libelle: `${label} - ${form.nom} (${productSourceLabel})`,
+            categorie:
+              familyOf(form.type_intervention) === "biosecurite"
+                ? "Biosecurite"
+                : "Sante",
+            target_module: target.module_lie,
+            target_id: target.related_id,
+            target_ids: target.target_ids,
+            impact_business_code: impactCode,
+            impact_business_label: impactText,
+            notes: `${target.target_summary} · ${impactText}`,
+          }
+        : null;
+      if (finalFinanceTransaction)
+        await props.onCreateFinanceTransaction?.(finalFinanceTransaction);
+      await eventsCrud.create?.({
+        id: makeId("EVT"),
+        event_type:
+          familyOf(form.type_intervention) === "biosecurite"
+            ? "biosécurité"
+            : "intervention_sanitaire",
+        module_source: "sante",
+        entity_type: target.module_lie,
+        entity_id: target.related_id,
+        title: label,
+        description: `${target.target_summary} · ${productSourceLabel} · ${impactText}`,
+        event_date: form.date || today(),
+        severity:
+          familyOf(form.type_intervention) === "curatif" ||
+          form.type_intervention === "urgence"
+            ? "warning"
+            : "info",
+        related_id: id,
+        source_record_id: id,
+        montant: toNumber(form.cout),
+        impact_business_code: impactCode,
+        impact_business_label: impactText,
+        saisies_evitees: 5,
+      });
+      const proofDocument = buildHealthProofDocument({
+        ...payload,
+        id,
+        preuve_photo_data: photo,
+      });
       if (proofDocument) await docsCrud.create?.(proofDocument);
-      if (finalFinanceTransaction && !proofDocument) { const missingProof = buildHealthMissingProofDocument(payload, finalFinanceTransaction); if (missingProof) await docsCrud.create?.(missingProof); }
-      if (nextDate) await tachesCrud.create?.({ id: makeId('TSK'), title: `Suivi ${label}`, module_lie: 'sante', related_id: id, source_module: 'sante', source_record_id: id, task_dedupe_key: `health-next:${id}:${nextDate}`, action_key: `health-next:${id}:${nextDate}`, due_date: nextDate, priority: familyOf(form.type_intervention) === 'curatif' || form.type_intervention === 'urgence' ? 'haute' : 'moyenne', status: 'a_faire', checklist: 'Contrôle;Résultat;Clôture', impact_business_code: impactCode });
-      if (['curatif', 'urgence', 'biosecurite'].includes(form.type_intervention)) { const preview = prepareBiosecurityWorkflow({ id, trigger: form.type_intervention, title: `${label} - ${target.target_summary}`, message: form.notes || `${target.target_summary} · ${impactText}`, module_source: 'sante', entity_type: target.module_lie, entity_id: target.related_id, risk_level: form.type_intervention === 'urgence' ? 'critique' : 'warning', protocol: form.protocole || (form.type_intervention === 'biosecurite' ? 'Nettoyage, désinfection, contrôle accès' : 'Isoler si nécessaire, traiter, surveiller'), next_control_date: nextDate || form.date || today(), document_url: photo }, { tasks: tachesCrud.rows, alerts: alertesCrud.rows, events: eventsCrud.rows, documents: docsCrud.rows }); await commitBiosecurityWorkflow(preview, { onCreateAlert: alertesCrud.create, onCreateTask: tachesCrud.create, onCreateDocument: docsCrud.create, onCreateBusinessEvent: eventsCrud.create }); }
+      if (finalFinanceTransaction && !proofDocument) {
+        const missingProof = buildHealthMissingProofDocument(
+          payload,
+          finalFinanceTransaction,
+        );
+        if (missingProof) await docsCrud.create?.(missingProof);
+      }
+      if (nextDate)
+        await tachesCrud.create?.({
+          id: makeId("TSK"),
+          title: `Suivi ${label}`,
+          module_lie: "sante",
+          related_id: id,
+          source_module: "sante",
+          source_record_id: id,
+          task_dedupe_key: `health-next:${id}:${nextDate}`,
+          action_key: `health-next:${id}:${nextDate}`,
+          due_date: nextDate,
+          priority:
+            familyOf(form.type_intervention) === "curatif" ||
+            form.type_intervention === "urgence"
+              ? "haute"
+              : "moyenne",
+          status: "a_faire",
+          checklist: "Contrôle;Résultat;Clôture",
+          impact_business_code: impactCode,
+        });
+      if (
+        ["curatif", "urgence", "biosecurite"].includes(form.type_intervention)
+      ) {
+        const preview = prepareBiosecurityWorkflow(
+          {
+            id,
+            trigger: form.type_intervention,
+            title: `${label} - ${target.target_summary}`,
+            message: form.notes || `${target.target_summary} · ${impactText}`,
+            module_source: "sante",
+            entity_type: target.module_lie,
+            entity_id: target.related_id,
+            risk_level:
+              form.type_intervention === "urgence" ? "critique" : "warning",
+            protocol:
+              form.protocole ||
+              (form.type_intervention === "biosecurite"
+                ? "Nettoyage, désinfection, contrôle accès"
+                : "Isoler si nécessaire, traiter, surveiller"),
+            next_control_date: nextDate || form.date || today(),
+            document_url: photo,
+          },
+          {
+            tasks: tachesCrud.rows,
+            alerts: alertesCrud.rows,
+            events: eventsCrud.rows,
+            documents: docsCrud.rows,
+          },
+        );
+        await commitBiosecurityWorkflow(preview, {
+          onCreateAlert: alertesCrud.create,
+          onCreateTask: tachesCrud.create,
+          onCreateDocument: docsCrud.create,
+          onCreateBusinessEvent: eventsCrud.create,
+        });
+      }
       const fumierSacs = toNumber(form.fumier_sacs);
-      if (form.type_intervention === 'biosecurite' && fumierSacs > 0) {
+      if (form.type_intervention === "biosecurite" && fumierSacs > 0) {
         const manureResult = await runManureCollectionSideEffects({
           intervention: payload,
           target,
@@ -263,27 +1456,763 @@ function InterventionPanel(props) {
           lots: props.lots,
           animaux: props.animaux,
           stocks: props.stocks?.length ? props.stocks : stockCrud.rows,
-          opportunities: props.opportunities?.length ? props.opportunities : opportunitiesCrud.rows,
+          opportunities: props.opportunities?.length
+            ? props.opportunities
+            : opportunitiesCrud.rows,
           date: form.effectuee || form.date || today(),
           handlers: {
             onCreateStock: props.onCreateStock || stockCrud.create,
             onUpdateStock: props.onUpdateStock || stockCrud.update,
-            onCreateOpportunity: props.onCreateOpportunity || opportunitiesCrud.create,
-            onUpdateOpportunity: props.onUpdateOpportunity || opportunitiesCrud.update,
-            onCreateBusinessEvent: props.onCreateBusinessEvent || eventsCrud.create,
+            onCreateOpportunity:
+              props.onCreateOpportunity || opportunitiesCrud.create,
+            onUpdateOpportunity:
+              props.onUpdateOpportunity || opportunitiesCrud.update,
+            onCreateBusinessEvent:
+              props.onCreateBusinessEvent || eventsCrud.create,
+            onCreateTask: props.onCreateTask || tachesCrud.create,
+            onCreateAlert: props.onCreateAlert || alertesCrud.create,
           },
         });
-        if (manureResult) toast.success(`${fumierSacs} sac(s) de fumier ajoutés au stock · opportunité de vente créée`);
+        if (manureResult)
+          toast.success(
+            `${fumierSacs} sac(s) de fumier ajoutés au stock · opportunité de vente créée`,
+          );
       }
-      await Promise.allSettled([props.onRefresh?.(), props.onRefreshFinances?.(), props.onRefreshAnimals?.(), props.onRefreshLots?.(), props.onRefreshOpportunities?.(), props.onRefreshStock?.(), stockCrud.refresh?.(), opportunitiesCrud.refresh?.(), tachesCrud.refresh?.(), alertesCrud.refresh?.(), eventsCrud.refresh?.(), docsCrud.refresh?.()]); toast.success('Intervention enregistrée'); props.onClearHealthDraft?.(); setForm(applyPreset('vaccination', { type_intervention: 'vaccination', target_mode: modesFor('vaccination', animals, lots)[0]?.value || '', target_detail: '', date: today(), effectuee: '', statut: 'a_faire', vet_mode: '', product_source: healthStocks.length ? 'stock' : 'veterinaire', frequence_unite: 'jours' })); setNewVet({ nom: '', tel: '', specialite: '' });
-    } catch (error) { console.warn(error); toast.error('Intervention impossible'); } finally { setSaving(false); }
+      await Promise.allSettled([
+        props.onRefresh?.(),
+        props.onRefreshFinances?.(),
+        props.onRefreshAnimals?.(),
+        props.onRefreshLots?.(),
+        props.onRefreshOpportunities?.(),
+        props.onRefreshStock?.(),
+        stockCrud.refresh?.(),
+        opportunitiesCrud.refresh?.(),
+        tachesCrud.refresh?.(),
+        alertesCrud.refresh?.(),
+        eventsCrud.refresh?.(),
+        docsCrud.refresh?.(),
+      ]);
+      toast.success("Intervention enregistrée");
+      props.onClearHealthDraft?.();
+      setForm(
+        applyPreset("vaccination", {
+          type_intervention: "vaccination",
+          target_mode: modesFor("vaccination", animals, lots)[0]?.value || "",
+          target_detail: "",
+          date: today(),
+          effectuee: "",
+          statut: "a_faire",
+          vet_mode: "",
+          product_source: healthStocks.length ? "stock" : "veterinaire",
+          frequence_unite: "jours",
+        }),
+      );
+      setNewVet({ nom: "", tel: "", specialite: "" });
+    } catch (error) {
+      console.warn(error);
+      toast.error("Intervention impossible");
+    } finally {
+      setSaving(false);
+    }
   };
-  return <div id={HEALTH_INTERVENTION_FORM_ID} className="rounded-2xl border border-[#d6c3a0] bg-white p-5 space-y-4"><div><p className="text-xs uppercase tracking-widest text-[#8a7456]">Santé & Biosécurité</p><h3 className="font-black text-[#2f2415]">Nouvelle intervention sanitaire</h3><p className="text-sm text-[#8a7456] mt-1">La fiche change selon le type choisi : vaccin, curatif, déparasitage, visite, biosécurité ou urgence.</p>{props.healthDraft ? <p className="mt-2 rounded-xl border border-sky-200 bg-sky-50 px-3 py-2 text-sm text-sky-900">{HEALTH_TERRAIN_BANNER}</p> : null}{!healthStocks.length ? <p className="mt-2 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-900">Aucun médicament/vaccin stocké trouvé. Vous pouvez saisir manuellement ou <button type="button" className="font-black underline" onClick={() => navigateToHealthStock(props.onNavigate)}>créer l&apos;article dans Achats &amp; Stock</button>.</p> : null}</div><div className="rounded-xl border border-[#eadcc2] bg-[#fffdf8] p-3 text-sm text-[#7d6a4a]"><b>Champs attendus :</b> {customFields.length ? customFields.join(' · ') : 'saisie simple'} · <b>preuve :</b> {preset.evidence || 'photo'} · <b>conséquence :</b> {impactLabel(form.impact_business_code || impactDefaultFor(form.type_intervention))}</div><div className="grid grid-cols-1 md:grid-cols-3 gap-3"><Select label="Type d’intervention" value={form.type_intervention} onChange={(v) => update('type_intervention', v)} options={interventionTypes} /><Select label="Périmètre" value={form.target_mode} onChange={(v) => update('target_mode', v)} options={modes} emptyLabel="Aucune cible disponible" />{form.target_mode?.startsWith('detail:') ? <Select label="Cible précise" value={selectedDetail} onChange={(v) => update('target_detail', v)} options={detailOptions} emptyLabel="Aucune cible précise" /> : <div className="rounded-xl border border-[#eadcc2] bg-[#fffdf8] px-3 py-2 text-sm text-[#7d6a4a]"><b>{target.target_count || 0}</b> / {target.total_count || 0}<br />{target.target_summary}</div>}<Input label="Produit / intervention" value={form.nom || ''} onChange={(v) => update('nom', v)} /><Input label="Médicament / matière active" value={form.medicament || ''} onChange={(v) => update('medicament', v)} /><Input label="Dosage / dose" value={form.dosage || ''} onChange={(v) => update('dosage', v)} />{customFields.includes('lot_produit') ? <Input label="N° lot produit" value={form.lot_produit || ''} onChange={(v) => update('lot_produit', v)} /> : null}{customFields.includes('date_expiration') ? <Input label="Expiration produit" type="date" value={form.date_expiration || ''} onChange={(v) => update('date_expiration', v)} /> : null}{customFields.includes('dose_par_sujet') ? <Input label="Dose par sujet" value={form.dose_par_sujet || ''} onChange={(v) => update('dose_par_sujet', v)} /> : null}{customFields.includes('diagnostic') ? <Input label="Diagnostic" value={form.diagnostic || ''} onChange={(v) => update('diagnostic', v)} /> : null}{customFields.includes('symptomes') ? <Input label="Symptômes" value={form.symptomes || ''} onChange={(v) => update('symptomes', v)} /> : null}{customFields.includes('duree_traitement') ? <Input label="Durée traitement" value={form.duree_traitement || ''} onChange={(v) => update('duree_traitement', v)} /> : null}{customFields.includes('delai_sanitaire_fin') ? <Input label="Fin délai sanitaire (vente interdite)" type="date" value={form.delai_sanitaire_fin || ''} onChange={(v) => update('delai_sanitaire_fin', v)} /> : null}{customFields.includes('resultat_attendu') ? <Input label="Résultat attendu" value={form.resultat_attendu || ''} onChange={(v) => update('resultat_attendu', v)} /> : null}{customFields.includes('dose_par_kg') ? <Input label="Dose par kg" value={form.dose_par_kg || ''} onChange={(v) => update('dose_par_kg', v)} /> : null}{customFields.includes('poids_reference') ? <Input label="Poids de référence" value={form.poids_reference || ''} onChange={(v) => update('poids_reference', v)} /> : null}{customFields.includes('zone_traitee') ? <Input label="Zone traitée" value={form.zone_traitee || ''} onChange={(v) => update('zone_traitee', v)} /> : null}{customFields.includes('duree_isolement') ? <Input label="Durée isolement" value={form.duree_isolement || ''} onChange={(v) => update('duree_isolement', v)} /> : null}{customFields.includes('protocole') ? <Input label="Protocole" value={form.protocole || ''} onChange={(v) => update('protocole', v)} /> : null}{customFields.includes('fumier_sacs') ? <Input label="Sacs de fumier collectés" type="number" value={form.fumier_sacs || ''} onChange={(v) => update('fumier_sacs', v)} /> : null}{customFields.includes('recommandation_veto') ? <Input label="Recommandation véto" value={form.recommandation_veto || ''} onChange={(v) => update('recommandation_veto', v)} /> : null}{customFields.includes('prochain_controle') ? <Input label="Prochain contrôle" type="date" value={form.prochain_controle || ''} onChange={(v) => update('prochain_controle', v)} /> : null}{customFields.includes('mortalite') ? <Input label="Mortalité observée" value={form.mortalite || ''} onChange={(v) => update('mortalite', v)} /> : null}{customFields.includes('mesure_urgence') ? <Input label="Mesure d’urgence" value={form.mesure_urgence || ''} onChange={(v) => update('mesure_urgence', v)} /> : null}{customFields.includes('temperature') ? <Input label="Température / observation" value={form.temperature || ''} onChange={(v) => update('temperature', v)} /> : null}<Input label="Voie d’administration" value={form.voie_administration || ''} onChange={(v) => update('voie_administration', v)} /><Select label="Source produit" value={form.product_source} onChange={(v) => update('product_source', v)} options={productSources} emptyLabel="Aucune source" />{form.product_source === 'stock' ? <Select label="Stock utilisé" value={form.stock_id || ''} onChange={(v) => update('stock_id', v)} options={healthStocks.map((s) => ({ value: s.id, label: `${s.produit} · ${fmtNumber(s.quantite)} ${plural(s.unite)} disponibles` }))} emptyLabel="Aucun stock santé disponible" /> : <div className="rounded-xl border border-[#eadcc2] bg-[#fffdf8] px-3 py-2 text-sm text-[#7d6a4a]">Aucune sortie stock</div>}<Input label="Quantité utilisée" type="number" value={form.quantite_utilisee || ''} onChange={(v) => update('quantite_utilisee', v)} />{stockInsufficient ? <div className="rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">Stock insuffisant : {fmtNumber(availableQty)} disponible(s)</div> : <Input label="Coût" type="number" value={form.cout || ''} onChange={(v) => update('cout', v)} />}<Input label="Date prévue / intervention" type="date" value={form.date || today()} onChange={(v) => update('date', v)} /><Input label="Date effectuée" type="date" value={form.effectuee || ''} onChange={(v) => update('effectuee', v)} /><Select label="Statut" value={form.statut || 'a_faire'} onChange={(v) => update('statut', v)} options={[{ value: 'a_faire', label: 'À faire' }, { value: 'fait', label: 'Fait' }, { value: 'retard', label: 'Retard' }, { value: 'annule', label: 'Annulé' }]} /><Select label="Statut santé après" value={form.statut_sante_apres || 'sain'} onChange={(v) => update('statut_sante_apres', v)} options={healthOutcomes} /><Select label="Niveau risque" value={form.urgence || 'moyen'} onChange={(v) => update('urgence', v)} options={severityOptions} /><Select label="Périodicité / rappel" value={form.periodicite || 'unique'} onChange={(v) => update('periodicite', v)} options={periodicityOptions} />{form.periodicite === 'personnalisee' ? <Input label="Fréquence personnalisée" type="number" value={form.frequence_valeur || ''} onChange={(v) => update('frequence_valeur', v)} /> : <div className="rounded-xl border border-[#eadcc2] bg-[#fffdf8] px-3 py-2 text-sm text-[#7d6a4a]">Rappel auto: {calculatedNextDate || '—'}</div>}{form.periodicite === 'personnalisee' ? <Select label="Unité fréquence" value={form.frequence_unite || 'jours'} onChange={(v) => update('frequence_unite', v)} options={[{ value: 'jours', label: 'Jours' }, { value: 'semaines', label: 'Semaines' }, { value: 'mois', label: 'Mois' }]} /> : null}<Input label="Prochaine date / rappel" type="date" value={form.prochaine_date_calculee || calculatedNextDate || ''} onChange={(v) => update('prochaine_date_calculee', v)} /><Select label="Vétérinaire" value={form.vet_mode || ''} onChange={(v) => update('vet_mode', v)} options={[{ value: '', label: 'Non renseigné' }, ...vets.map((v) => ({ value: v.id, label: v.nom || v.id })), { value: '__new__', label: '+ Nouveau véto' }]} />{form.vet_mode === '__new__' ? <div className="md:col-span-3 grid grid-cols-1 md:grid-cols-3 gap-3 rounded-xl border border-[#eadcc2] bg-[#fffdf8] p-3"><Input label="Nom véto" value={newVet.nom} onChange={(v) => setNewVet((p) => ({ ...p, nom: v }))} /><Input label="Téléphone" value={newVet.tel} onChange={(v) => setNewVet((p) => ({ ...p, tel: v }))} /><Input label="Spécialité" value={newVet.specialite} onChange={(v) => setNewVet((p) => ({ ...p, specialite: v }))} /></div> : null}<Select label="Conséquence terrain" value={form.impact_business_code || impactDefaultFor(form.type_intervention)} onChange={(v) => update('impact_business_code', v)} options={impactBusinessOptions} /><Input label="Précision conséquence / observation" value={form.impact_business_note || ''} onChange={(v) => update('impact_business_note', v)} className="md:col-span-2" /><Input label="Notes cliniques / consignes" value={form.notes || ''} onChange={(v) => update('notes', v)} className="md:col-span-2" /><div className="md:col-span-3 rounded-xl border border-[#eadcc2] bg-[#fffdf8] p-3 space-y-2"><p className="text-xs font-black text-[#8a7456]">Scanner ordonnance (texte)</p><textarea className="w-full rounded-lg border border-[#d6c3a0] bg-white px-3 py-2 text-sm min-h-[72px]" placeholder="Collez le texte de l’ordonnance vétérinaire…" value={scanText} onChange={(e) => setScanText(e.target.value)} /><button type="button" className="rounded-lg bg-[#fff7df] border border-[#c9a96a] px-3 py-2 text-sm font-black text-[#7d6a4a]" onClick={applyScanDraft}>Préremplir le formulaire depuis l’ordonnance</button><p className="text-xs text-[#8a7456]">Le scan préremplit sans enregistrer — validation humaine obligatoire avec photo preuve.</p></div><div className="md:col-span-3"><FileInput label="Preuve / ordonnance en photo" hint="Photo obligatoire si ordonnance, preuve de soin ou intervention critique." value={form} onChange={(patch) => setForm((prev) => ({ ...prev, ...patch }))} /></div></div><div className="rounded-xl border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-800"><b>Cible :</b> {target.target_summary} · {target.module_lie || '—'} · {target.related_id || '—'}</div><div className="flex justify-end"><Btn icon={ShieldCheck} onClick={submit} disabled={!canSubmit}>{saving ? 'Enregistrement...' : 'Valider intervention'}</Btn></div></div>;
+  return (
+    <div
+      id={HEALTH_INTERVENTION_FORM_ID}
+      className="rounded-2xl border border-[#d6c3a0] bg-white p-5 space-y-4"
+    >
+      <div>
+        <p className="text-xs uppercase tracking-widest text-[#8a7456]">
+          Santé & Biosécurité
+        </p>
+        <h3 className="font-black text-[#2f2415]">
+          Nouvelle intervention sanitaire
+        </h3>
+        <p className="text-sm text-[#8a7456] mt-1">
+          La fiche change selon le type choisi : vaccin, curatif, déparasitage,
+          visite, biosécurité ou urgence.
+        </p>
+        {props.healthDraft ? (
+          <p className="mt-2 rounded-xl border border-sky-200 bg-sky-50 px-3 py-2 text-sm text-sky-900">
+            {HEALTH_TERRAIN_BANNER}
+          </p>
+        ) : null}
+        {!healthStocks.length ? (
+          <p className="mt-2 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-900">
+            Aucun médicament/vaccin stocké trouvé. Vous pouvez saisir
+            manuellement ou{" "}
+            <button
+              type="button"
+              className="font-black underline"
+              onClick={() => navigateToHealthStock(props.onNavigate)}
+            >
+              créer l&apos;article dans Achats &amp; Stock
+            </button>
+            .
+          </p>
+        ) : null}
+      </div>
+      <div className="rounded-xl border border-[#eadcc2] bg-[#fffdf8] p-3 text-sm text-[#7d6a4a]">
+        <b>Champs attendus :</b>{" "}
+        {customFields.length ? customFields.join(" · ") : "saisie simple"} ·{" "}
+        <b>preuve :</b> {preset.evidence || "photo"} · <b>conséquence :</b>{" "}
+        {impactLabel(
+          form.impact_business_code || impactDefaultFor(form.type_intervention),
+        )}
+      </div>
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+        <Select
+          label="Type d’intervention"
+          value={form.type_intervention}
+          onChange={(v) => update("type_intervention", v)}
+          options={interventionTypes}
+        />
+        <Select
+          label="Périmètre"
+          value={form.target_mode}
+          onChange={(v) => update("target_mode", v)}
+          options={modes}
+          emptyLabel="Aucune cible disponible"
+        />
+        {form.target_mode?.startsWith("detail:") ? (
+          <Select
+            label="Cible précise"
+            value={selectedDetail}
+            onChange={(v) => update("target_detail", v)}
+            options={detailOptions}
+            emptyLabel="Aucune cible précise"
+          />
+        ) : (
+          <div className="rounded-xl border border-[#eadcc2] bg-[#fffdf8] px-3 py-2 text-sm text-[#7d6a4a]">
+            <b>{target.target_count || 0}</b> / {target.total_count || 0}
+            <br />
+            {target.target_summary}
+          </div>
+        )}
+        <Input
+          label="Produit / intervention"
+          value={form.nom || ""}
+          onChange={(v) => update("nom", v)}
+        />
+        <Input
+          label="Médicament / matière active"
+          value={form.medicament || ""}
+          onChange={(v) => update("medicament", v)}
+        />
+        <Input
+          label="Dosage / dose"
+          value={form.dosage || ""}
+          onChange={(v) => update("dosage", v)}
+        />
+        {customFields.includes("lot_produit") ? (
+          <Input
+            label="N° lot produit"
+            value={form.lot_produit || ""}
+            onChange={(v) => update("lot_produit", v)}
+          />
+        ) : null}
+        {customFields.includes("date_expiration") ? (
+          <Input
+            label="Expiration produit"
+            type="date"
+            value={form.date_expiration || ""}
+            onChange={(v) => update("date_expiration", v)}
+          />
+        ) : null}
+        {customFields.includes("dose_par_sujet") ? (
+          <Input
+            label="Dose par sujet"
+            value={form.dose_par_sujet || ""}
+            onChange={(v) => update("dose_par_sujet", v)}
+          />
+        ) : null}
+        {customFields.includes("diagnostic") ? (
+          <Input
+            label="Diagnostic"
+            value={form.diagnostic || ""}
+            onChange={(v) => update("diagnostic", v)}
+          />
+        ) : null}
+        {customFields.includes("symptomes") ? (
+          <Input
+            label="Symptômes"
+            value={form.symptomes || ""}
+            onChange={(v) => update("symptomes", v)}
+          />
+        ) : null}
+        {customFields.includes("duree_traitement") ? (
+          <Input
+            label="Durée traitement"
+            value={form.duree_traitement || ""}
+            onChange={(v) => update("duree_traitement", v)}
+          />
+        ) : null}
+        {customFields.includes("delai_sanitaire_fin") ? (
+          <Input
+            label="Fin délai sanitaire (vente interdite)"
+            type="date"
+            value={form.delai_sanitaire_fin || ""}
+            onChange={(v) => update("delai_sanitaire_fin", v)}
+          />
+        ) : null}
+        {customFields.includes("resultat_attendu") ? (
+          <Input
+            label="Résultat attendu"
+            value={form.resultat_attendu || ""}
+            onChange={(v) => update("resultat_attendu", v)}
+          />
+        ) : null}
+        {customFields.includes("dose_par_kg") ? (
+          <Input
+            label="Dose par kg"
+            value={form.dose_par_kg || ""}
+            onChange={(v) => update("dose_par_kg", v)}
+          />
+        ) : null}
+        {customFields.includes("poids_reference") ? (
+          <Input
+            label="Poids de référence"
+            value={form.poids_reference || ""}
+            onChange={(v) => update("poids_reference", v)}
+          />
+        ) : null}
+        {customFields.includes("batiment_box") ? (
+          <Input
+            label="Bâtiment / box"
+            value={form.batiment_box || ""}
+            onChange={(v) => update("batiment_box", v)}
+          />
+        ) : null}
+        {customFields.includes("zone_traitee") ? (
+          <Input
+            label="Zone traitée"
+            value={form.zone_traitee || ""}
+            onChange={(v) => update("zone_traitee", v)}
+          />
+        ) : null}
+        {customFields.includes("type_nettoyage") ? (
+          <Input
+            label="Type de nettoyage"
+            value={form.type_nettoyage || ""}
+            onChange={(v) => update("type_nettoyage", v)}
+          />
+        ) : null}
+        {customFields.includes("responsable") ? (
+          <Input
+            label="Responsable"
+            value={form.responsable || ""}
+            onChange={(v) => update("responsable", v)}
+          />
+        ) : null}
+        {customFields.includes("duree_isolement") ? (
+          <Input
+            label="Durée isolement"
+            value={form.duree_isolement || ""}
+            onChange={(v) => update("duree_isolement", v)}
+          />
+        ) : null}
+        {customFields.includes("protocole") ? (
+          <Input
+            label="Protocole"
+            value={form.protocole || ""}
+            onChange={(v) => update("protocole", v)}
+          />
+        ) : null}
+        {customFields.includes("fumier_sacs") ? (
+          <Input
+            label="Sacs de fumier collectés"
+            type="number"
+            value={form.fumier_sacs || ""}
+            onChange={(v) => update("fumier_sacs", v)}
+          />
+        ) : null}
+        {customFields.includes("poids_estime_par_sac") ? (
+          <Input
+            label="Poids estimé par sac (kg)"
+            type="number"
+            value={form.poids_estime_par_sac || ""}
+            onChange={(v) => update("poids_estime_par_sac", v)}
+          />
+        ) : null}
+        {customFields.includes("biosecurity_material_type") ? (
+          <Select
+            label="Matière organique"
+            value={form.biosecurity_material_type || "fumier"}
+            onChange={(v) => update("biosecurity_material_type", v)}
+            options={biosecurityMaterialOptions}
+          />
+        ) : null}
+        {customFields.includes("biosecurity_status") ? (
+          <Select
+            label="Statut sanitaire matière"
+            value={form.biosecurity_status || "normal"}
+            onChange={(v) => update("biosecurity_status", v)}
+            options={biosecurityStatusOptions}
+          />
+        ) : null}
+        {customFields.includes("biosecurity_destination") ? (
+          <Select
+            label="Destination matière"
+            value={form.biosecurity_destination || ""}
+            onChange={(v) => update("biosecurity_destination", v)}
+            options={biosecurityDestinationOptions}
+          />
+        ) : null}
+        {customFields.includes("biosecurity_next_step") ? (
+          <Input
+            label="Prochaine étape biosécurité"
+            value={form.biosecurity_next_step || ""}
+            onChange={(v) => update("biosecurity_next_step", v)}
+          />
+        ) : null}
+        {customFields.includes("produits_nettoyage") ? (
+          <Input
+            label="Produits nettoyage utilisés"
+            value={form.produits_nettoyage || ""}
+            onChange={(v) => update("produits_nettoyage", v)}
+          />
+        ) : null}
+        {customFields.includes("eau_utilisee") ? (
+          <Input
+            label="Eau utilisée"
+            value={form.eau_utilisee || ""}
+            onChange={(v) => update("eau_utilisee", v)}
+          />
+        ) : null}
+        {customFields.includes("recommandation_veto") ? (
+          <Input
+            label="Recommandation véto"
+            value={form.recommandation_veto || ""}
+            onChange={(v) => update("recommandation_veto", v)}
+          />
+        ) : null}
+        {customFields.includes("prochain_controle") ? (
+          <Input
+            label="Prochain contrôle"
+            type="date"
+            value={form.prochain_controle || ""}
+            onChange={(v) => update("prochain_controle", v)}
+          />
+        ) : null}
+        {customFields.includes("mortalite") ? (
+          <Input
+            label="Mortalité observée"
+            value={form.mortalite || ""}
+            onChange={(v) => update("mortalite", v)}
+          />
+        ) : null}
+        {customFields.includes("mesure_urgence") ? (
+          <Input
+            label="Mesure d’urgence"
+            value={form.mesure_urgence || ""}
+            onChange={(v) => update("mesure_urgence", v)}
+          />
+        ) : null}
+        {customFields.includes("temperature") ? (
+          <Input
+            label="Température / observation"
+            value={form.temperature || ""}
+            onChange={(v) => update("temperature", v)}
+          />
+        ) : null}
+        <Input
+          label="Voie d’administration"
+          value={form.voie_administration || ""}
+          onChange={(v) => update("voie_administration", v)}
+        />
+        <Select
+          label="Source produit"
+          value={form.product_source}
+          onChange={(v) => update("product_source", v)}
+          options={productSources}
+          emptyLabel="Aucune source"
+        />
+        {form.product_source === "stock" ? (
+          <Select
+            label="Stock utilisé"
+            value={form.stock_id || ""}
+            onChange={(v) => update("stock_id", v)}
+            options={healthStocks.map((s) => ({
+              value: s.id,
+              label: `${s.produit} · ${fmtNumber(s.quantite)} ${plural(s.unite)} disponibles`,
+            }))}
+            emptyLabel="Aucun stock santé disponible"
+          />
+        ) : (
+          <div className="rounded-xl border border-[#eadcc2] bg-[#fffdf8] px-3 py-2 text-sm text-[#7d6a4a]">
+            Aucune sortie stock
+          </div>
+        )}
+        <Input
+          label="Quantité utilisée"
+          type="number"
+          value={form.quantite_utilisee || ""}
+          onChange={(v) => update("quantite_utilisee", v)}
+        />
+        {stockInsufficient ? (
+          <div className="rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
+            Stock insuffisant : {fmtNumber(availableQty)} disponible(s)
+          </div>
+        ) : (
+          <Input
+            label="Coût"
+            type="number"
+            value={form.cout || ""}
+            onChange={(v) => update("cout", v)}
+          />
+        )}
+        <Input
+          label="Date prévue / intervention"
+          type="date"
+          value={form.date || today()}
+          onChange={(v) => update("date", v)}
+        />
+        <Input
+          label="Date effectuée"
+          type="date"
+          value={form.effectuee || ""}
+          onChange={(v) => update("effectuee", v)}
+        />
+        <Select
+          label="Statut"
+          value={form.statut || "a_faire"}
+          onChange={(v) => update("statut", v)}
+          options={[
+            { value: "a_faire", label: "À faire" },
+            { value: "fait", label: "Fait" },
+            { value: "retard", label: "Retard" },
+            { value: "annule", label: "Annulé" },
+          ]}
+        />
+        <Select
+          label="Statut santé après"
+          value={form.statut_sante_apres || "sain"}
+          onChange={(v) => update("statut_sante_apres", v)}
+          options={healthOutcomes}
+        />
+        <Select
+          label="Niveau risque"
+          value={form.urgence || "moyen"}
+          onChange={(v) => update("urgence", v)}
+          options={severityOptions}
+        />
+        <Select
+          label="Périodicité / rappel"
+          value={form.periodicite || "unique"}
+          onChange={(v) => update("periodicite", v)}
+          options={periodicityOptions}
+        />
+        {form.periodicite === "personnalisee" ? (
+          <Input
+            label="Fréquence personnalisée"
+            type="number"
+            value={form.frequence_valeur || ""}
+            onChange={(v) => update("frequence_valeur", v)}
+          />
+        ) : (
+          <div className="rounded-xl border border-[#eadcc2] bg-[#fffdf8] px-3 py-2 text-sm text-[#7d6a4a]">
+            Rappel auto: {calculatedNextDate || "—"}
+          </div>
+        )}
+        {form.periodicite === "personnalisee" ? (
+          <Select
+            label="Unité fréquence"
+            value={form.frequence_unite || "jours"}
+            onChange={(v) => update("frequence_unite", v)}
+            options={[
+              { value: "jours", label: "Jours" },
+              { value: "semaines", label: "Semaines" },
+              { value: "mois", label: "Mois" },
+            ]}
+          />
+        ) : null}
+        <Input
+          label="Prochaine date / rappel"
+          type="date"
+          value={form.prochaine_date_calculee || calculatedNextDate || ""}
+          onChange={(v) => update("prochaine_date_calculee", v)}
+        />
+        <Select
+          label="Vétérinaire"
+          value={form.vet_mode || ""}
+          onChange={(v) => update("vet_mode", v)}
+          options={[
+            { value: "", label: "Non renseigné" },
+            ...vets.map((v) => ({ value: v.id, label: v.nom || v.id })),
+            { value: "__new__", label: "+ Nouveau véto" },
+          ]}
+        />
+        {form.vet_mode === "__new__" ? (
+          <div className="md:col-span-3 grid grid-cols-1 md:grid-cols-3 gap-3 rounded-xl border border-[#eadcc2] bg-[#fffdf8] p-3">
+            <Input
+              label="Nom véto"
+              value={newVet.nom}
+              onChange={(v) => setNewVet((p) => ({ ...p, nom: v }))}
+            />
+            <Input
+              label="Téléphone"
+              value={newVet.tel}
+              onChange={(v) => setNewVet((p) => ({ ...p, tel: v }))}
+            />
+            <Input
+              label="Spécialité"
+              value={newVet.specialite}
+              onChange={(v) => setNewVet((p) => ({ ...p, specialite: v }))}
+            />
+          </div>
+        ) : null}
+        <Select
+          label="Conséquence terrain"
+          value={
+            form.impact_business_code ||
+            impactDefaultFor(form.type_intervention)
+          }
+          onChange={(v) => update("impact_business_code", v)}
+          options={impactBusinessOptions}
+        />
+        <Input
+          label="Précision conséquence / observation"
+          value={form.impact_business_note || ""}
+          onChange={(v) => update("impact_business_note", v)}
+          className="md:col-span-2"
+        />
+        <Input
+          label="Notes cliniques / consignes"
+          value={form.notes || ""}
+          onChange={(v) => update("notes", v)}
+          className="md:col-span-2"
+        />
+        <div className="md:col-span-3 rounded-xl border border-[#eadcc2] bg-[#fffdf8] p-3 space-y-2">
+          <p className="text-xs font-black text-[#8a7456]">
+            Scanner ordonnance (texte)
+          </p>
+          <textarea
+            className="w-full rounded-lg border border-[#d6c3a0] bg-white px-3 py-2 text-sm min-h-[72px]"
+            placeholder="Collez le texte de l’ordonnance vétérinaire…"
+            value={scanText}
+            onChange={(e) => setScanText(e.target.value)}
+          />
+          <button
+            type="button"
+            className="rounded-lg bg-[#fff7df] border border-[#c9a96a] px-3 py-2 text-sm font-black text-[#7d6a4a]"
+            onClick={applyScanDraft}
+          >
+            Préremplir le formulaire depuis l’ordonnance
+          </button>
+          <p className="text-xs text-[#8a7456]">
+            Le scan préremplit sans enregistrer — validation humaine obligatoire
+            avec photo preuve.
+          </p>
+        </div>
+        <div className="md:col-span-3">
+          <FileInput
+            label="Preuve / ordonnance en photo"
+            hint="Photo obligatoire si ordonnance, preuve de soin ou intervention critique."
+            value={form}
+            onChange={(patch) => setForm((prev) => ({ ...prev, ...patch }))}
+          />
+        </div>
+      </div>
+      <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-800">
+        <b>Cible :</b> {target.target_summary} · {target.module_lie || "—"} ·{" "}
+        {target.related_id || "—"}
+      </div>
+      <div className="flex justify-end">
+        <Btn icon={ShieldCheck} onClick={submit} disabled={!canSubmit}>
+          {saving ? "Enregistrement..." : "Valider intervention"}
+        </Btn>
+      </div>
+    </div>
+  );
 }
-function InterventionsHistory({ rows = [], onUpdate, onRefresh, onCreateFinanceTransaction, onRefreshFinances, onCreateDocument, onRefreshDocuments }) {
-  const sorted = [...arr(rows)].sort((a, b) => String(b.prevue || b.created_at || '').localeCompare(String(a.prevue || a.created_at || '')));
-  return <div className="rounded-2xl border border-[#d6c3a0] bg-white p-5 space-y-4"><div><p className="text-xs uppercase tracking-widest text-[#8a7456]">Historique unifié</p><h3 className="font-black text-[#2f2415]">Interventions sanitaires</h3><p className="text-sm text-[#8a7456] mt-1">Vaccins, soins, déparasitage, visites et biosécurité sont affichés ensemble avec preuves photo.</p></div><div className="overflow-x-auto rounded-2xl border border-[#eadcc2]"><table className="min-w-full text-sm"><thead className="bg-[#fffdf8] text-xs uppercase tracking-wide text-[#8a7456]"><tr><th className="px-3 py-2 text-left">Intervention</th><th className="px-3 py-2 text-left">Cible</th><th className="px-3 py-2 text-left">Date</th><th className="px-3 py-2 text-left">Rappel</th><th className="px-3 py-2 text-left">Conséquence</th><th className="px-3 py-2 text-left">Preuve</th><th className="px-3 py-2 text-left">Statut</th><th className="px-3 py-2 text-right">Coût</th><th className="px-3 py-2 text-right">Action</th></tr></thead><tbody>{sorted.slice(0, 12).map((row) => <tr key={row.id} className="border-t border-[#eadcc2]"><td className="px-3 py-2 font-bold text-[#2f2415]">{row.nom || row.type_intervention || row.id}<p className="text-xs font-normal text-[#8a7456]">{row.type_intervention || row.medicament || row.produit_utilise || '—'}</p></td><td className="px-3 py-2 text-[#7d6a4a]">{row.target_summary || row.animal || row.related_id || '—'}</td><td className="px-3 py-2 text-[#7d6a4a]">{row.effectuee || row.prevue || '—'}</td><td className="px-3 py-2 text-[#7d6a4a]">{row.prochaine_date_calculee || row.prochaine_action || '—'}</td><td className="px-3 py-2 text-[#7d6a4a]">{row.impact_business_label || impactLabel(row.impact_business_code)}</td><td className="px-3 py-2 text-[#7d6a4a]">{row.preuve_photo_data ? <span className="text-emerald-700 font-bold">Photo</span> : '—'}</td><td className="px-3 py-2"><span className={`rounded-full border px-2 py-0.5 text-xs font-black ${done(row) ? 'border-emerald-200 bg-emerald-50 text-emerald-700' : late(row) ? 'border-red-200 bg-red-50 text-red-700' : 'border-amber-200 bg-amber-50 text-amber-700'}`}>{done(row) ? 'fait' : late(row) ? 'retard' : row.statut || 'à faire'}</span></td><td className="px-3 py-2 text-right font-black text-[#2f2415]">{fmtCurrency(row.cout || 0)}</td><td className="px-3 py-2 text-right">{done(row) ? '—' : <button type="button" onClick={() => markDone(row, { onUpdate, onRefresh, onCreateFinanceTransaction, onRefreshFinances, onCreateDocument, onRefreshDocuments })} className="text-emerald-700 font-bold text-xs">Valider</button>}</td></tr>)}{!sorted.length ? <tr><td colSpan={9} className="px-3 py-6 text-center text-[#8a7456]">Aucune intervention sanitaire enregistrée.</td></tr> : null}</tbody></table></div></div>;
+function InterventionsHistory({
+  rows = [],
+  onUpdate,
+  onRefresh,
+  onCreateFinanceTransaction,
+  onRefreshFinances,
+  onCreateDocument,
+  onRefreshDocuments,
+}) {
+  const sorted = [...arr(rows)].sort((a, b) =>
+    String(b.prevue || b.created_at || "").localeCompare(
+      String(a.prevue || a.created_at || ""),
+    ),
+  );
+  return (
+    <div className="rounded-2xl border border-[#d6c3a0] bg-white p-5 space-y-4">
+      <div>
+        <p className="text-xs uppercase tracking-widest text-[#8a7456]">
+          Historique unifié
+        </p>
+        <h3 className="font-black text-[#2f2415]">Interventions sanitaires</h3>
+        <p className="text-sm text-[#8a7456] mt-1">
+          Vaccins, soins, déparasitage, visites et biosécurité sont affichés
+          ensemble avec preuves photo.
+        </p>
+      </div>
+      <div className="overflow-x-auto rounded-2xl border border-[#eadcc2]">
+        <table className="min-w-full text-sm">
+          <thead className="bg-[#fffdf8] text-xs uppercase tracking-wide text-[#8a7456]">
+            <tr>
+              <th className="px-3 py-2 text-left">Intervention</th>
+              <th className="px-3 py-2 text-left">Cible</th>
+              <th className="px-3 py-2 text-left">Date</th>
+              <th className="px-3 py-2 text-left">Rappel</th>
+              <th className="px-3 py-2 text-left">Conséquence</th>
+              <th className="px-3 py-2 text-left">Preuve</th>
+              <th className="px-3 py-2 text-left">Statut</th>
+              <th className="px-3 py-2 text-right">Coût</th>
+              <th className="px-3 py-2 text-right">Action</th>
+            </tr>
+          </thead>
+          <tbody>
+            {sorted.slice(0, 12).map((row) => (
+              <tr key={row.id} className="border-t border-[#eadcc2]">
+                <td className="px-3 py-2 font-bold text-[#2f2415]">
+                  {row.nom || row.type_intervention || row.id}
+                  <p className="text-xs font-normal text-[#8a7456]">
+                    {row.type_intervention ||
+                      row.medicament ||
+                      row.produit_utilise ||
+                      "—"}
+                  </p>
+                </td>
+                <td className="px-3 py-2 text-[#7d6a4a]">
+                  {row.target_summary || row.animal || row.related_id || "—"}
+                </td>
+                <td className="px-3 py-2 text-[#7d6a4a]">
+                  {row.effectuee || row.prevue || "—"}
+                </td>
+                <td className="px-3 py-2 text-[#7d6a4a]">
+                  {row.prochaine_date_calculee || row.prochaine_action || "—"}
+                </td>
+                <td className="px-3 py-2 text-[#7d6a4a]">
+                  {row.impact_business_label ||
+                    impactLabel(row.impact_business_code)}
+                </td>
+                <td className="px-3 py-2 text-[#7d6a4a]">
+                  {row.preuve_photo_data ? (
+                    <span className="text-emerald-700 font-bold">Photo</span>
+                  ) : (
+                    "—"
+                  )}
+                </td>
+                <td className="px-3 py-2">
+                  <span
+                    className={`rounded-full border px-2 py-0.5 text-xs font-black ${done(row) ? "border-emerald-200 bg-emerald-50 text-emerald-700" : late(row) ? "border-red-200 bg-red-50 text-red-700" : "border-amber-200 bg-amber-50 text-amber-700"}`}
+                  >
+                    {done(row)
+                      ? "fait"
+                      : late(row)
+                        ? "retard"
+                        : row.statut || "à faire"}
+                  </span>
+                </td>
+                <td className="px-3 py-2 text-right font-black text-[#2f2415]">
+                  {fmtCurrency(row.cout || 0)}
+                </td>
+                <td className="px-3 py-2 text-right">
+                  {done(row) ? (
+                    "—"
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() =>
+                        markDone(row, {
+                          onUpdate,
+                          onRefresh,
+                          onCreateFinanceTransaction,
+                          onRefreshFinances,
+                          onCreateDocument,
+                          onRefreshDocuments,
+                        })
+                      }
+                      className="text-emerald-700 font-bold text-xs"
+                    >
+                      Valider
+                    </button>
+                  )}
+                </td>
+              </tr>
+            ))}
+            {!sorted.length ? (
+              <tr>
+                <td
+                  colSpan={9}
+                  className="px-3 py-6 text-center text-[#8a7456]"
+                >
+                  Aucune intervention sanitaire enregistrée.
+                </td>
+              </tr>
+            ) : null}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
 }
-function Select({ label, value, onChange, options = [], emptyLabel = 'Aucune option' }) { const safeOptions = arr(options); return <label className="space-y-1"><span className="text-xs text-[#8a7456]">{label}</span><select className="w-full bg-[#fffdf8] border border-[#d6c3a0] rounded-lg px-3 py-2 text-sm disabled:opacity-60" value={safeOptions.some((o) => o.value === value) ? value : ''} disabled={!safeOptions.length} onChange={(e) => onChange(e.target.value)}>{safeOptions.length ? safeOptions.map((o) => <option key={o.value} value={o.value}>{o.label}</option>) : <option value="">{emptyLabel}</option>}</select></label>; }
-function Input({ label, value, onChange, type = 'text', className = '' }) { return <label className={`space-y-1 ${className}`}><span className="text-xs text-[#8a7456]">{label}</span><input type={type} className="w-full bg-[#fffdf8] border border-[#d6c3a0] rounded-lg px-3 py-2 text-sm" value={value} onChange={(e) => onChange(e.target.value)} /></label>; }
-export default function SanteV6(props) { return <div className="space-y-6"><HealthBridge {...props} /><InterventionPanel {...props} healthDraft={props.healthDraft} onClearHealthDraft={props.onClearHealthDraft} onNavigate={props.onNavigate} /><InterventionsHistory rows={props.rows || []} onUpdate={props.onUpdate} onRefresh={props.onRefresh} onCreateFinanceTransaction={props.onCreateFinanceTransaction} onRefreshFinances={props.onRefreshFinances} onCreateDocument={props.onCreateDocument} onRefreshDocuments={props.onRefreshDocuments} /></div>; }
+function Select({
+  label,
+  value,
+  onChange,
+  options = [],
+  emptyLabel = "Aucune option",
+}) {
+  const safeOptions = arr(options);
+  return (
+    <label className="space-y-1">
+      <span className="text-xs text-[#8a7456]">{label}</span>
+      <select
+        className="w-full bg-[#fffdf8] border border-[#d6c3a0] rounded-lg px-3 py-2 text-sm disabled:opacity-60"
+        value={safeOptions.some((o) => o.value === value) ? value : ""}
+        disabled={!safeOptions.length}
+        onChange={(e) => onChange(e.target.value)}
+      >
+        {safeOptions.length ? (
+          safeOptions.map((o) => (
+            <option key={o.value} value={o.value}>
+              {o.label}
+            </option>
+          ))
+        ) : (
+          <option value="">{emptyLabel}</option>
+        )}
+      </select>
+    </label>
+  );
+}
+function Input({ label, value, onChange, type = "text", className = "" }) {
+  return (
+    <label className={`space-y-1 ${className}`}>
+      <span className="text-xs text-[#8a7456]">{label}</span>
+      <input
+        type={type}
+        className="w-full bg-[#fffdf8] border border-[#d6c3a0] rounded-lg px-3 py-2 text-sm"
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+      />
+    </label>
+  );
+}
+export default function SanteV6(props) {
+  return (
+    <div className="space-y-6">
+      <HealthBridge {...props} />
+      <InterventionPanel
+        {...props}
+        healthDraft={props.healthDraft}
+        onClearHealthDraft={props.onClearHealthDraft}
+        onNavigate={props.onNavigate}
+      />
+      <InterventionsHistory
+        rows={props.rows || []}
+        onUpdate={props.onUpdate}
+        onRefresh={props.onRefresh}
+        onCreateFinanceTransaction={props.onCreateFinanceTransaction}
+        onRefreshFinances={props.onRefreshFinances}
+        onCreateDocument={props.onCreateDocument}
+        onRefreshDocuments={props.onRefreshDocuments}
+      />
+    </div>
+  );
+}

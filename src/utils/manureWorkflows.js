@@ -20,7 +20,7 @@ export function manureOpportunityKey(stockId = '') {
   return `fumier-sale:${clean(stockId)}`;
 }
 
-export function resolveManureProfile(target = {}, lots = [], animaux = []) {
+export function resolveManureProfile(target = {}, lots = []) {
   if (target.module_lie === 'avicole') {
     const lotId = clean(target.related_id);
     const lot = (Array.isArray(lots) ? lots : []).find((row) => String(row.id) === lotId)
@@ -72,8 +72,15 @@ export function buildManureCollectionWorkflow({
   if (qty <= 0 || !intervention?.id) return null;
 
   const meta = profileMeta?.profile ? profileMeta : resolveManureProfile(target);
+  const materialType = clean(intervention.biosecurity_material_type || intervention.matiere_type || 'fumier') || 'fumier';
+  const sanitaryStatus = clean(intervention.biosecurity_status || intervention.statut_sanitaire || 'normal') || 'normal';
+  const destination = clean(intervention.biosecurity_destination || intervention.destination || '');
+  const nextStep = clean(intervention.biosecurity_next_step || intervention.prochaine_action || intervention.prochaine_etape || '');
+  const unitWeightKg = toNumber(intervention.poids_estime_par_sac || intervention.weight_per_bag_kg);
+  const totalWeightKg = toNumber(intervention.poids_total_calcule || intervention.poids_total_kg) || (unitWeightKg > 0 ? qty * unitWeightKg : 0);
+  const destinationBlocked = ['suspect', 'contamine', 'contaminé'].includes(norm(sanitaryStatus)) && norm(destination) === 'parcelle';
   const stockKey = manureStockKey(meta.profile);
-  const productName = `${meta.label} (sacs)`;
+  const productName = `${materialType === 'fumier' ? meta.label : materialType} (sacs)`;
   const existingStock = findManureStock(stocks, meta.profile);
   const nextQty = toNumber(existingStock?.quantite) + qty;
   const unitPrice = toNumber(existingStock?.prixUnit ?? existingStock?.prix_unitaire) || meta.unitPrice;
@@ -88,6 +95,9 @@ export function buildManureCollectionWorkflow({
     activite_liee: meta.activity,
     quantite: nextQty,
     quantity: nextQty,
+    poids_total_kg: toNumber(existingStock?.poids_total_kg) + totalWeightKg,
+    total_weight_kg: toNumber(existingStock?.total_weight_kg) + totalWeightKg,
+    poids_estime_par_sac: unitWeightKg,
     unite: 'sac',
     unit: 'sac',
     seuil: 0,
@@ -110,7 +120,13 @@ export function buildManureCollectionWorkflow({
     last_movement_qty: qty,
     last_movement_label: `Collecte nettoyage · ${target.target_summary || intervention.id}`,
     last_movement_at: now(),
-    notes: `${qty} sac(s) collectés lors du nettoyage (${intervention.zone_traitee || target.target_summary || '—'}).`,
+    material_type: materialType,
+    statut_sanitaire: sanitaryStatus,
+    sanitary_status: sanitaryStatus,
+    destination_prevue: destination,
+    prochaine_etape: nextStep,
+    destination_blocked: destinationBlocked,
+    notes: `${qty} sac(s) collectés lors du nettoyage (${intervention.zone_traitee || target.target_summary || '—'}).${totalWeightKg ? ` Poids estimé ${Math.round(totalWeightKg)} kg.` : ''}`,
   };
 
   const stockId = existingStock?.id || makeId('STK');
@@ -135,6 +151,7 @@ export function buildManureCollectionWorkflow({
     produit: productName,
     quantity: nextQty,
     quantite: nextQty,
+    poids_total_kg: toNumber(existingStock?.poids_total_kg) + totalWeightKg,
     unit: 'sac',
     unite: 'sac',
     unit_price: unitPrice,
@@ -146,7 +163,8 @@ export function buildManureCollectionWorkflow({
     statut: 'ouverte',
     priority: 'moyenne',
     date,
-    notes: `${nextQty} sac(s) de fumier disponibles à la vente · ${target.target_summary || ''}`.trim(),
+    blocked_reason: destinationBlocked ? 'Matière suspecte/contaminée non utilisable en parcelle sans validation.' : '',
+    notes: `${nextQty} sac(s) disponibles · ${target.target_summary || ''}${destination ? ` · destination ${destination}` : ''}`.trim(),
   };
 
   return {
@@ -183,7 +201,161 @@ export function buildManureCollectionWorkflow({
       linked_opportunity_key: opportunityKey,
       fumier_sacs: qty,
       fumier_profile: meta.profile,
+      material_type: materialType,
+      statut_sanitaire: sanitaryStatus,
+      destination,
+      prochaine_etape: nextStep,
+      poids_estime_par_sac: unitWeightKg,
+      poids_total_kg: totalWeightKg,
+      destination_blocked: destinationBlocked,
       saisies_evitees: 3,
     },
+    task: nextStep ? {
+      id: makeId('TSK'),
+      title: nextStep,
+      module_lie: 'sante',
+      related_id: intervention.id,
+      source_module: 'sante',
+      source_record_id: intervention.id,
+      task_dedupe_key: `biosecurity-next:${intervention.id}:${norm(nextStep)}`,
+      due_date: date,
+      priority: destinationBlocked ? 'haute' : 'moyenne',
+      status: 'a_faire',
+    } : null,
+    alert: !destination || destinationBlocked ? {
+      id: makeId('ALT'),
+      title: destinationBlocked ? 'Destination culture bloquée' : 'Destination matière organique manquante',
+      message: destinationBlocked
+        ? 'Matière suspecte ou contaminée : validation obligatoire avant usage en parcelle.'
+        : 'Choisir compostage, stockage, parcelle ou évacuation.',
+      module_source: 'sante',
+      entity_type: 'intervention_biosecurite',
+      entity_id: intervention.id,
+      severity: destinationBlocked ? 'haute' : 'moyenne',
+      status: 'nouvelle',
+      alert_dedupe_key: `biosecurity-organic:${intervention.id}`,
+    } : null,
+  };
+}
+
+export function buildOrganicTransferWorkflow({
+  stock = {},
+  culture = {},
+  payload = {},
+  date = today(),
+} = {}) {
+  const stockId = clean(payload.stock_id || stock.id);
+  const cultureId = clean(payload.culture_id || payload.parcelle_id || culture.id);
+  const sanitaryStatus = clean(payload.statut_sanitaire || payload.sanitary_status || stock.statut_sanitaire || stock.sanitary_status || 'normal');
+  const qty = Math.max(0, toNumber(payload.sacs ?? payload.quantite ?? payload.qty));
+  const unitWeightKg = toNumber(payload.poids_estime_par_sac ?? payload.weight_per_bag_kg ?? stock.poids_estime_par_sac);
+  const totalWeightKg = toNumber(payload.poids_total_kg ?? payload.total_weight_kg) || (unitWeightKg > 0 ? qty * unitWeightKg : 0);
+  const available = toNumber(stock.quantite ?? stock.quantity);
+  const overStock = stockId && available > 0 && qty > available;
+  const sanitaryBlocked = ['suspect', 'contamine', 'contaminé'].includes(norm(sanitaryStatus));
+  const blocked = sanitaryBlocked || overStock;
+  const nextStockQty = Math.max(0, available - qty);
+  const unitSaving = toNumber(payload.economie_unitaire ?? payload.unit_saving) || toNumber(stock.prix_unitaire ?? stock.prixUnit) || 1500;
+  const saving = Math.round(qty * unitSaving);
+  const issueKey = `organic-transfer:${stockId || 'stock'}:${cultureId || 'culture'}:${date}`;
+  const missing = [
+    stockId ? '' : 'origine',
+    qty > 0 ? '' : 'poids ou sacs',
+    cultureId ? '' : 'destination parcelle',
+  ].filter(Boolean);
+
+  const transferRow = {
+    date,
+    stock_id: stockId,
+    culture_id: cultureId,
+    parcelle_id: payload.parcelle_id || culture.parcelle_id || cultureId,
+    type_matiere: clean(payload.type_matiere || payload.material_type || stock.material_type || stock.categorie || 'fumier'),
+    sacs: qty,
+    poids_total_kg: totalWeightKg,
+    statut_sanitaire: sanitaryStatus,
+    economie_intrants: saving,
+  };
+
+  return {
+    blocked,
+    stockPatch: !blocked && stockId ? {
+      quantite: nextStockQty,
+      quantity: nextStockQty,
+      last_movement_type: 'sortie_fertilisation_parcelle',
+      last_movement_qty: qty,
+      last_movement_label: `Transfert organique vers ${culture.parcelle || culture.nom || cultureId}`,
+      last_movement_at: now(),
+    } : null,
+    culturePatch: !blocked && cultureId ? {
+      fertilisation_organique_sacs: toNumber(culture.fertilisation_organique_sacs) + qty,
+      fertilisation_organique_kg: toNumber(culture.fertilisation_organique_kg) + totalWeightKg,
+      economie_intrants: toNumber(culture.economie_intrants) + saving,
+      cout_total_reel: Math.max(0, toNumber(culture.cout_total_reel) - saving),
+      derniere_fertilisation_organique: date,
+      organic_transfer_history: [...(Array.isArray(culture.organic_transfer_history) ? culture.organic_transfer_history : []), transferRow],
+    } : null,
+    document: !blocked && !missing.length ? {
+      id: makeId('DOC'),
+      title: `Preuve circularité ${culture.parcelle || culture.nom || cultureId}`,
+      document_category: 'circularite',
+      module_source: 'cultures',
+      entity_type: 'culture',
+      entity_id: cultureId,
+      related_id: cultureId,
+      status: payload.preuve_url ? 'fourni' : 'manquant',
+      verification_status: payload.preuve_url ? 'a_verifier' : 'preuve_manquante',
+      file_url: payload.preuve_url || '',
+      issue_key: issueKey,
+      notes: `${qty} sac(s) · ${totalWeightKg || 'poids non renseigné'} kg · origine ${stock.produit || stock.name || stockId}`,
+    } : null,
+    task: {
+      id: makeId('TSK'),
+      title: blocked ? 'Valider matière organique suspecte' : `Suivre fertilisation organique ${culture.parcelle || culture.nom || cultureId}`,
+      module_lie: blocked ? 'sante' : 'cultures',
+      source_module: blocked ? 'sante' : 'cultures',
+      source_record_id: cultureId || stockId,
+      related_id: cultureId || stockId,
+      task_dedupe_key: `${issueKey}:task`,
+      due_date: date,
+      priority: blocked || missing.length ? 'haute' : 'moyenne',
+      status: 'a_faire',
+      checklist: blocked
+        ? 'Isoler matière; Vérifier statut sanitaire; Autoriser ou évacuer'
+        : 'Épandre; Photographier preuve; Contrôler effet parcelle; Mettre à jour économie engrais',
+    },
+    alert: (blocked || missing.length) ? {
+      id: makeId('ALT'),
+      title: blocked ? 'Transfert organique bloqué' : 'Transfert organique incomplet',
+      message: blocked
+        ? (overStock ? `Quantité demandée ${qty} > stock disponible ${available}.` : 'Matière suspecte/contaminée : transfert parcelle interdit sans validation.')
+        : `Données à compléter: ${missing.join(', ')}`,
+      module_source: 'cultures',
+      entity_type: 'culture',
+      entity_id: cultureId || stockId,
+      severity: 'haute',
+      status: 'nouvelle',
+      alert_dedupe_key: `${issueKey}:alert`,
+    } : null,
+    event: {
+      id: makeId('EVT'),
+      event_type: 'organic_transfer',
+      type_evenement: 'organic_transfer',
+      module_source: 'cultures',
+      entity_type: 'culture',
+      entity_id: cultureId || stockId,
+      source_type: 'stock_organique',
+      source_id: stockId,
+      title: blocked ? 'Transfert organique bloqué' : `Transfert organique · ${culture.parcelle || culture.nom || cultureId}`,
+      description: `${qty} sac(s) · ${totalWeightKg || 0} kg · économie intrants ${saving} FCFA`,
+      event_date: date,
+      severity: blocked ? 'warning' : 'info',
+      quantity: qty,
+      amount: saving,
+      issue_key: issueKey,
+      blocked,
+      blocked_reason: overStock ? 'stock_insuffisant' : (sanitaryBlocked ? 'statut_sanitaire' : ''),
+      saisies_evitees: blocked ? 2 : 6,
+    },
+    transferRow,
   };
 }
