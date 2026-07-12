@@ -26,7 +26,7 @@ const TABS = [
   { id: 'identite', label: 'Identité' },
   { id: 'suivi', label: 'Suivi récolte' },
   { id: 'finances', label: 'Finances' },
-  { id: 'decision', label: 'Décision IA' },
+  { id: 'decision', label: 'Décision suggérée' },
 ];
 
 function isCultureLocked(culture = {}) {
@@ -139,7 +139,7 @@ export default function CultureFicheModal({ open, onClose, culture }) {
         ) : null}
 
         {tab === 'decision' ? (
-          <Section title="Décision IA cultures">
+          <Section title="Décision suggérée cultures">
             <Field label="Décision" value={decision.decision || culture.horizon_decision?.decision} />
             <Field label="Priorité" value={decision.priority || culture.horizon_decision?.priority} />
             <Field label="Action recommandée" value={decision.action || decision.next_action || culture.horizon_decision?.action} />

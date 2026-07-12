@@ -116,7 +116,7 @@ export async function loadSupabaseRecommendations(limit = 50) {
   return { ok: true, rows: data || [] };
 }
 
-/** Upsert des recommandations IA générées depuis les règles métier. */
+/** Upsert des suggestions générées depuis les règles métier. */
 export async function syncRecommendationsToSupabase(data = {}) {
   const recommendations = buildRecommendationsFromData(data);
   if (!recommendations.length) return { ok: true, synced: 0 };
@@ -132,7 +132,7 @@ export async function syncRecommendationsToSupabase(data = {}) {
   return { ok: true, synced: recommendations.length };
 }
 
-/** Met à jour le statut d'une recommandation IA. */
+/** Met à jour le statut d'une suggestion. */
 export async function updateRecommendationStatus(id, status, extra = {}) {
   const { error } = await supabase
     .from('ai_recommendations')

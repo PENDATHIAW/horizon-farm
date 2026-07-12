@@ -129,7 +129,7 @@ export default function QualityReportingTab({
         <section className="rounded-3xl border border-[#d6c3a0] bg-white p-5 space-y-3">
           <p className="font-black text-[#2f2415]">Permissions sensibles</p>
           <p className="text-sm text-[#8a7456] leading-relaxed">
-            Les actions critiques restent réservées aux profils autorisés. Les décisions importantes nécessitent une validation humaine.
+            Les actions critiques restent réservées aux profils autorisés. Les décisions importantes nécessitent une confirmation.
           </p>
           <div className="space-y-2 max-h-[360px] overflow-auto pr-1">
             {permissions.map((row) => (

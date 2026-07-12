@@ -54,17 +54,17 @@ export default function VisionOpportunitiesTab({
     <div className="space-y-5">
       <TabIntro
         title="Pipeline & gains possibles"
-        detail="Opportunités commerciales ouvertes et suggestions IA — le pilotage oriente vers Commercial, sans saisie vente directe."
+        detail="Opportunités commerciales ouvertes et suggestions — le pilotage oriente vers Commercial, sans saisie vente directe."
         action={onNavigate ? <Btn onClick={() => onNavigate('commercial', { tab: 'Opportunités' })}>Module Commercial</Btn> : null}
       />
       <div className="grid grid-cols-2 gap-3 xl:grid-cols-4">
         <VisionKpi label="Pipeline ouvert" value={fmtCurrency(pipelineTotal)} tone={pipelineTotal ? 'good' : 'neutral'} onClick={() => onNavigate?.('commercial', { tab: 'Opportunités' })} />
         <VisionKpi label="Opportunités actives" value={commercial.length} tone={commercial.length ? 'good' : 'neutral'} onClick={() => onNavigate?.('commercial', { tab: 'Opportunités' })} />
-        <VisionKpi label="Suggestions IA" value={iaRows.length} tone={iaRows.length ? 'good' : 'neutral'} />
+        <VisionKpi label="Suggestions" value={iaRows.length} tone={iaRows.length ? 'good' : 'neutral'} />
         <VisionKpi label="Créances à convertir" value={fmtCurrency(data.receivable)} tone={data.receivable ? 'warn' : 'good'} onClick={() => onNavigate?.('commercial', { tab: 'Clients & créances' })} />
       </div>
       {iaRows.length ? (
-        <Section icon={TrendingUp} title="Opportunités suggérées par l'IA">
+        <Section icon={TrendingUp} title="Opportunités suggérées par l'analyse">
           <DataTable columns={['Suggestion', 'Action recommandée', 'Confiance', 'Actions']}>
             {iaRows.map((r) => (
               <DataRow
@@ -102,7 +102,7 @@ export default function VisionOpportunitiesTab({
         ) : (
           <Empty>
             Aucune opportunité commerciale ouverte.
-            {data.opportunities?.length ? ' Les opportunités fermées sont masquées — ouvrez le module Commercial pour l’historique.' : ' Les suggestions IA apparaissent quand le moteur détecte des gains possibles.'}
+            {data.opportunities?.length ? ' Les opportunités fermées sont masquées — ouvrez le module Commercial pour l’historique.' : ' Les suggestions apparaissent quand le moteur détecte des gains possibles.'}
           </Empty>
         )}
       </Section>

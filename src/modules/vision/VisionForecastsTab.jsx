@@ -20,10 +20,10 @@ export default function VisionForecastsTab({ data, dataMap = {}, moduleId = 'obj
       <div className="grid grid-cols-2 gap-3 xl:grid-cols-4">
         <Stat label="Solde actuel" value={fmtCurrency(data.balance)} tone={data.balance >= 0 ? 'good' : 'bad'} />
         <Stat label="À encaisser" value={fmtCurrency(data.receivable)} tone={data.receivable ? 'warn' : 'good'} />
-        <Stat label="Prévisions IA" value={fmtNumber(predictions.length)} tone={predictions.length ? 'warn' : 'good'} />
+        <Stat label="Prévisions" value={fmtNumber(predictions.length)} tone={predictions.length ? 'warn' : 'good'} />
         <Stat label="Risques" value={fmtNumber(data.risks.length)} tone={data.risks.length ? 'warn' : 'good'} />
       </div>
-      <Section icon={LineChart} title="Prévisions IA" action={onNavigate ? <Btn onClick={() => onNavigate('elevage', { tab: 'Cycles' })}>Élevage → Cycles</Btn> : null}>
+      <Section icon={LineChart} title="Prévisions" action={onNavigate ? <Btn onClick={() => onNavigate('elevage', { tab: 'Cycles' })}>Élevage → Cycles</Btn> : null}>
         {predictions.length ? predictions.map((p) => (
           <Row
             key={p.id}

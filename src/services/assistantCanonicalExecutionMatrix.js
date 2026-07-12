@@ -70,7 +70,7 @@ export const CANONICAL_EXECUTION_MATRIX = Object.freeze([
     targetWorkflow: null,
     modules: ['elevage', 'avicole', 'tracabilite'],
     autoExecute: false,
-    note: 'Formulaire Élevage — workflow canonique module',
+    note: 'Formulaire Élevage · parcours du module',
   },
   {
     intent: 'transformation',

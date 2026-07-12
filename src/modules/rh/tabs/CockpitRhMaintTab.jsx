@@ -23,7 +23,7 @@ export default function CockpitRhMaintTab({
         <RhStat label="Masse salariale" value={fmtCurrency(data.payroll.gross)} tone="warn" />
         <RhStat label="Équipements" value={fmtNumber(data.equipment.length)} />
         <RhStat label="Maintenance" value={fmtNumber(data.equipmentRisk.length)} tone={data.equipmentRisk.length ? 'warn' : 'good'} />
-        <RhStat label="Signaux IA" value={fmtNumber(data.healthFindings.length)} tone={data.healthFindings.length ? 'warn' : 'good'} />
+        <RhStat label="Signaux d’analyse" value={fmtNumber(data.healthFindings.length)} tone={data.healthFindings.length ? 'warn' : 'good'} />
       </div>
       <RhIaPanel
         findings={data.healthFindings}

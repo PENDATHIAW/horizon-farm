@@ -168,7 +168,7 @@ export default function FormulationsTab({
         <p className="text-lg font-black text-[#2f2415]">Formulations</p>
         <p className="text-sm text-[#8a7456] leading-relaxed max-w-3xl">
           Créez des formules, calculez le coût théorique, suivez le cycle de vie.
-          La commercialisation reste bloquée sans test, coût réel et validation humaine.
+          La commercialisation reste bloquée sans test, coût réel et confirmation.
         </p>
         {message ? (
           <p className="text-sm rounded-xl border border-[#eadcc2] bg-[#fffdf8] px-3 py-2">{message}</p>

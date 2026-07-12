@@ -41,7 +41,7 @@ function executeOpenFormDraft(draft, { stocks = [], onNavigate } = {}) {
     emitHorizonForm(
       'stock',
       'stock_purchase',
-      'Réception achat (depuis rapprochement IA)',
+      'Réception achat (depuis rapprochement automatique)',
       buildStockReceptionFromFinanceTransaction(inner.transaction, stocks),
     );
     onNavigate?.('achats_stock', { tab: 'Stock' });
@@ -85,7 +85,7 @@ export default function AiReconciliationPanel({
 
     const validated = validateAiDraftByUser(draft, { userLabel: 'Utilisateur ERP' });
     if (!validated) {
-      toast.error('Brouillon IA invalide.');
+      toast.error('Brouillon invalide.');
       return;
     }
 

@@ -39,14 +39,14 @@ const CULTURE_FIELDS = [
   { key: 'type', label: 'Type culture', type: 'select', options: ['Poivrons', 'Tomates', 'Oignons', 'Piments', 'Aubergines', 'Pomme de terre', 'Maraîchage', 'Céréales', 'Autre'] },
   { key: 'parcelle', label: 'Parcelle', type: 'text' },
   { key: 'campagne', label: 'Campagne / saison', type: 'text' },
-  { key: 'section_ia_terrain', label: 'Terrain & décision IA', type: 'section' },
+  { key: 'section_ia_terrain', label: 'Terrain & décision suggérée', type: 'section' },
   { key: 'localisation', label: 'Localisation', type: 'text' },
   { key: 'type_sol', label: 'Type de sol', type: 'text' },
   { key: 'eau_disponible', label: 'Eau disponible', type: 'select', options: ['bonne', 'moyenne', 'faible', 'insuffisante', 'à confirmer'] },
   { key: 'besoin_eau_reference', label: 'Besoin eau référence Horizon', type: 'readonly' },
   { key: 'sol_reference', label: 'Sol préféré référence Horizon', type: 'readonly' },
   { key: 'risque_reference', label: 'Risque référence Horizon', type: 'readonly' },
-  { key: 'decision_ia_culture', label: 'Décision IA culture', type: 'readonly', fullWidth: true },
+  { key: 'decision_ia_culture', label: 'Décision suggérée culture', type: 'readonly', fullWidth: true },
   { key: 'section_surface', label: 'Surface & calendrier', type: 'section' },
   { key: 'surface', label: 'Surface', type: 'number' },
   { key: 'unite_surface', label: 'Unité surface', type: 'select', options: ['m²', 'ha'] },
@@ -237,7 +237,7 @@ export default function CulturesV3({
     { key: 'rendement', label: 'Rendement', render: (row) => `${fmtNumber(toNumber(row.rendement_reel ?? row.quantite_recoltee))} / ${fmtNumber(toNumber(row.rendement_attendu ?? row.quantite_prevue))} ${row.unite_recolte || 'kg'}` },
     { key: 'revenu', label: 'Revenu', sortable: true, render: (row) => fmtCurrency(revenueOf(row)) },
     { key: 'marge', label: 'Marge', sortable: true, render: (row) => <span className={marginOf(row) >= 0 ? 'text-emerald-600 font-bold' : 'text-red-500 font-bold'}>{fmtCurrency(marginOf(row))}</span> },
-    { key: 'decision_ia', label: 'Décision IA', render: (row) => { const decision = buildCultureDecisionProfile(row); return <Badge color={decision.priority === 'haute' ? 'red' : 'amber'}>{decision.decision}</Badge>; } },
+    { key: 'decision_ia', label: 'Décision suggérée', render: (row) => { const decision = buildCultureDecisionProfile(row); return <Badge color={decision.priority === 'haute' ? 'red' : 'amber'}>{decision.decision}</Badge>; } },
     { key: 'statut', label: 'Statut', render: (row) => <Badge status={row.statut || 'planifiee'} /> },
     { key: 'actions', label: 'Actions', render: (row) => <div className="flex gap-1"><ActionIconButton icon={Eye} title="Voir" color="sky" onClick={() => { setSelected({ ...row, horizon_decision: buildCultureDecisionProfile(row) }); setModal('details'); }} /><ActionIconButton icon={Edit} title="Modifier" color="amber" onClick={() => { setSelected(row); setModal('edit'); }} disabled={['vendue','vendu','perdu','sinistre'].includes(String(row.statut || row.status || '').toLowerCase())} /><ActionIconButton icon={Trash2} title="Supprimer" color="red" onClick={() => { setSelected(row); setModal('delete'); }} /></div> },
   ];
@@ -253,7 +253,7 @@ export default function CulturesV3({
   ];
 
   return <div className="space-y-6">
-    <SectionHeader title={embeddedMode ? 'Registre parcelles & cultures' : 'Cultures, Parcelles & Campagnes'} sub={embeddedMode ? 'Lecture et navigation — récoltes, intrants, pertes et ventes dans leurs onglets dédiés.' : 'Sol, eau, rendement, stade et décisions IA — récoltes et intrants dans leurs onglets dédiés.'} actions={<><Btn icon={RefreshCw} variant="outline" small onClick={onRefresh}>Refresh</Btn><Btn icon={Download} variant="outline" small onClick={doExports}>Exporter</Btn><Btn icon={Plus} variant="outline" small onClick={() => setModal('create_parcelle')}>Ajouter parcelle</Btn><Btn icon={Plus} small onClick={() => setModal('create')}>Ajouter culture</Btn></>} />
+    <SectionHeader title={embeddedMode ? 'Registre parcelles & cultures' : 'Cultures, Parcelles & Campagnes'} sub={embeddedMode ? 'Lecture et navigation — récoltes, intrants, pertes et ventes dans leurs onglets dédiés.' : 'Sol, eau, rendement, stade et décisions suggérées — récoltes et intrants dans leurs onglets dédiés.'} actions={<><Btn icon={RefreshCw} variant="outline" small onClick={onRefresh}>Refresh</Btn><Btn icon={Download} variant="outline" small onClick={doExports}>Exporter</Btn><Btn icon={Plus} variant="outline" small onClick={() => setModal('create_parcelle')}>Ajouter parcelle</Btn><Btn icon={Plus} small onClick={() => setModal('create')}>Ajouter culture</Btn></>} />
     {showWorkflowBridge ? <CulturesWorkflowBridge rows={realRows} onUpdate={onUpdate} onRefresh={onRefresh} /> : null}
     {showSaleBridge ? <CulturesSaleOpportunityBridge rows={realRows} opportunities={opportunities} onUpdate={onUpdate} onRefresh={onRefresh} onCreateOpportunity={onCreateOpportunity} onUpdateOpportunity={onUpdateOpportunity} onRefreshOpportunities={onRefreshOpportunities} onCreateBusinessEvent={onCreateBusinessEvent} onRefreshBusinessEvents={onRefreshBusinessEvents} /> : null}
     {embeddedMode ? null : <div className="flex flex-wrap gap-2">{tabs.map((item) => <button type="button" key={item} onClick={() => setTab(item)} className={`rounded-xl border px-4 py-2 text-sm font-semibold ${tab === item ? 'bg-[#2f2415] text-white border-[#2f2415]' : 'bg-white text-[#8a7456] border-[#d6c3a0]'}`}>{item}</button>)}</div>}

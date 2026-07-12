@@ -277,7 +277,7 @@ export default function AnimalDetailsModal({ open, onClose, animal, metrics, ani
 
             {tab === 'trace' ? (
               <Section title="Tracabilite & Documents">
-                <Field label="Derniers evenements" value="Alimentes par la tracabilite metier / business_events" />
+                <Field label="Derniers evenements" value="Alimenté par le journal des événements" />
                 <Field label="Documents lies" value="Factures, certificats, ordonnances et photos lies a venir ici" />
                 <div className="md:col-span-2 flex gap-2 flex-wrap">
                   <Btn variant="outline" small onClick={onOpenTrace}>Voir tracabilite complete</Btn>

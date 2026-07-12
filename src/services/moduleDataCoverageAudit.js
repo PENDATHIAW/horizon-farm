@@ -127,7 +127,7 @@ export function evaluateModuleDataCoverage(data = {}, { modules = ENRICHED_MODUL
       severity: 'haute',
       title: 'Colonne vertébrale événements métier absente',
       description: 'Aucun événement métier n’est disponible pour relier automatiquement terrain, stock, finance, tâches et reporting.',
-      recommended_action: 'Créer les workflows d’événements métier et enregistrer chaque geste terrain important dans business_events.',
+      recommended_action: 'Créer les workflows d’événements métier et enregistrer chaque geste terrain important dans le journal des événements.',
       category: 'coverage',
       source_records: [{ type: 'dataset', id: 'business_events' }],
     });

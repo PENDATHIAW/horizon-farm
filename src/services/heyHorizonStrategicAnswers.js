@@ -231,7 +231,7 @@ export function buildStrategicAnswer(type, dataMap = {}) {
         title: 'Pourquoi la marge baisse ?',
         summary: withPeriodContext(
           dataMap,
-          `Marge actuelle ${fmtCurrency(margin)} (recettes ${fmtCurrency(income)} − dépenses ${fmtCurrency(expenses)}). ${profitFindings.length + riskFindings.length} signal(aux) IA expliquent la pression.`,
+          `Marge actuelle ${fmtCurrency(margin)} (recettes ${fmtCurrency(income)} − dépenses ${fmtCurrency(expenses)}). ${profitFindings.length + riskFindings.length} signal(aux) d’analyse expliquent la pression.`,
         ),
         rows: [
           ...profitFindings.slice(0, 4).map((f) => ({ title: f.title, detail: f.description, value: f.recommended_action, module: f.module || 'finance_pilotage' })),

@@ -134,7 +134,7 @@ export function buildHorizonProactiveInsights(data = {}) {
     title: `${sensorAlerts.length} capteur(s) Smart Farm à vérifier`,
     message: 'Des capteurs ne sont pas en état nominal.',
     action: 'Vérifier alimentation, réseau, emplacement et dernier relevé.',
-    reason: 'Une mauvaise donnée terrain fausse les recommandations IA.',
+    reason: 'Une mauvaise donnée terrain fausse les suggestions.',
   }));
 
   const cameraAlerts = cameras.filter((c) => ['offline', 'alerte', 'panne'].some((word) => String(`${c.status || c.statut || ''}`).toLowerCase().includes(word)));

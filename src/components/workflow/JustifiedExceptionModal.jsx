@@ -51,7 +51,7 @@ export default function JustifiedExceptionModal({
           {issueDetail ? <p className="mt-1 text-xs">{issueDetail}</p> : null}
         </div>
         <p className="text-sm text-[#8a7456]">
-          <ShieldCheck size={14} className="inline text-emerald-600" /> L’écart sera masqué des alertes actives, conservé dans l’audit et empêchera l’IA de recréer la même alerte. Réversible par un administrateur.
+          <ShieldCheck size={14} className="inline text-emerald-600" /> L’écart sera masqué des alertes actives, conservé dans l’audit et empêchera la recréation automatique de la même alerte. Réversible par un administrateur.
         </p>
         <label className="block space-y-1 text-sm">
           <span className="font-black text-[#2f2415]">Raison</span>

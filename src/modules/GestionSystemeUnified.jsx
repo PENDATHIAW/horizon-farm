@@ -51,7 +51,7 @@ function ActionNote({ children }) { return <div className="rounded-2xl border bo
 function SystemIaPanel({ findings = [], onApply, busyId, setTab }) {
   if (!findings.length) return null;
   return (
-    <Section icon={BrainCircuit} title="Surveillance IA système">
+    <Section icon={BrainCircuit} title="Surveillance du système">
       <p className="mb-3 text-sm text-[#8a7456]">Doublons navigation, modules hors vision, onglets orphelins et cohérence ERP globale.</p>
       <div className="space-y-2">
         {findings.slice(0, 5).map((f) => (
@@ -152,7 +152,7 @@ export default function GestionSystemeUnified({ equipements = [], transactions =
     setBusyId(finding.id);
     try {
       const result = await applyOneClickRecommendation(finding, actionHandlers);
-      if (result.createdTasks || result.createdAlerts) toast.success('Action IA créée');
+      if (result.createdTasks || result.createdAlerts) toast.success('Action suggérée créée');
       else toast.success('Module ouvert');
     } catch (e) {
       toast.error(e.message || 'Erreur');

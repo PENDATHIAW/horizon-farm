@@ -71,7 +71,7 @@ export function evaluateCommercializableGate(formula = {}, dataMap = {}) {
     {
       id: 'human_validation',
       ok: humanValidated || Boolean(formula.technical_validator_name && norm(formula.technical_validation_status).includes('valid')),
-      label: 'Validation humaine enregistrée',
+      label: 'Confirmation enregistrée',
     },
     {
       id: 'quality_check',
@@ -87,7 +87,7 @@ export function evaluateCommercializableGate(formula = {}, dataMap = {}) {
     blockers,
     message: blockers.length
       ? `Commercialisation bloquée : ${blockers.join(' · ')}.`
-      : 'Conditions réunies pour le statut commercialisable (validation humaine requise pour confirmer).',
+      : 'Conditions réunies pour le statut commercialisable (confirmation requise pour confirmer).',
   };
 }
 

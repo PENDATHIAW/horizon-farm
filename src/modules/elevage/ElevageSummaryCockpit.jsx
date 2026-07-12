@@ -102,7 +102,7 @@ export default function ElevageSummaryCockpit({
         <p className="mt-2 text-sm leading-relaxed text-[#8a7456]">Santé : formulaire complet sur l&apos;onglet Santé (intervention, coût, rappel, preuve).</p>
         <div className="mt-4 grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3">
           <ActionCard title="Distribution aliment" text="Workflow officiel — décrémente le stock." onClick={() => onOpenWorkflow?.('feeding')} />
-          <ActionCard title="Ramassage œufs" text="Draft possible par voix — validation humaine." onClick={() => onOpenWorkflow?.('eggs')} />
+          <ActionCard title="Ramassage œufs" text="Brouillon possible par la voix, à confirmer." onClick={() => onOpenWorkflow?.('eggs')} />
           <ActionCard title="Mortalité lot" text="Impact effectif et alertes." onClick={() => onOpenWorkflow?.('mortality')} />
           <ActionCard title="Intervention santé" text="Preuve, stock, coût, rappel." onClick={() => onOpenWorkflow?.('health')} />
           <ActionCard title="Pesée" text="Historique poids lot ou animal." onClick={() => onOpenWorkflow?.('weighing')} />
@@ -112,7 +112,7 @@ export default function ElevageSummaryCockpit({
 
       <CollapsibleAdvancedSection
         eyebrow="Analyse"
-        title="P&L, rentabilité filières, signaux IA"
+        title="P&L, rentabilité filières, signaux d’analyse"
         description="Sections secondaires — repliées par défaut."
         open={advancedOpen}
         onToggle={onToggleAdvanced}

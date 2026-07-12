@@ -10,7 +10,7 @@ export const auditImprovementRules = [
     id: 'IMPROVEMENT_REQUIRED',
     title: 'Chaque anomalie doit proposer une amélioration',
     severity: 'critique',
-    rule: 'Le rapport ne doit jamais s’arrêter au constat. Il doit proposer au moins une correction et une amélioration UX/métier.',
+    rule: 'Le rapport dépasse le constat. Il propose au moins une correction et une amélioration UX/métier.',
     improvement: 'Séparer correction obligatoire, amélioration recommandée, automatisation possible et simplification UX.',
   },
   {

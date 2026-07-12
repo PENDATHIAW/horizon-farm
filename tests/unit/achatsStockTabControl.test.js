@@ -78,7 +78,7 @@ test('onglet contrôlé — Réceptions & achats rend la vue d\'ensemble', async
     ),
   );
 
-  assert.match(html, /Vue d'ensemble|Chemin canonique achat/i);
+  assert.match(html, /Vue d'ensemble|Parcours unique d'achat/i);
   assert.doesNotMatch(html, /ERREUR MODULE|is not defined/i);
 });
 

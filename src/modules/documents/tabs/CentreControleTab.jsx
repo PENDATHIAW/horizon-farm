@@ -99,7 +99,7 @@ export default function CentreControleTab({
       <div className="grid grid-cols-2 gap-3 xl:grid-cols-4">
         <Stat label="Rapports" value={fmtNumber(data.reports.length)} />
         <Stat label="Montant à justifier" value={fmtCurrency(data.missingProofAmount)} tone={data.missingProofAmount ? 'warn' : 'good'} />
-        <Stat label="Signaux IA" value={fmtNumber(data.healthFindings.length)} tone={data.healthFindings.length ? 'warn' : 'good'} />
+        <Stat label="Signaux d’analyse" value={fmtNumber(data.healthFindings.length)} tone={data.healthFindings.length ? 'warn' : 'good'} />
         <Stat label="Écarts détectés" value={fmtNumber(data.gaps.length)} tone={data.gaps.length ? 'warn' : 'good'} />
       </div>
       <DocumentsIaPanel findings={data.healthFindings} predictions={data.healthPredictions} onApply={onApply} busyId={busyId} onNavigate={onNavigate} navigateDocuments={navigateDocuments} />

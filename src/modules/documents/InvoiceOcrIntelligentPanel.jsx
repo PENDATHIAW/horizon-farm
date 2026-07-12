@@ -283,7 +283,7 @@ export default function InvoiceOcrIntelligentPanel({
       {draft ? (
         <div className="rounded-2xl border border-emerald-200 bg-emerald-50/40 p-4 text-xs space-y-2">
           <div className="flex flex-wrap gap-2 items-center">
-            <Pill tone="good">Brouillon IA</Pill>
+            <Pill tone="good">Brouillon</Pill>
             <Pill>{Math.round((draft.confidence || 0) * 100)} % confiance</Pill>
             <Pill tone={draft.target_workflow === 'commitStockPurchaseWorkflow' ? 'good' : 'warn'}>
               {draft.target_workflow === 'commitStockPurchaseWorkflow' ? 'Réception stock' : 'Dépense (formulaire)'}

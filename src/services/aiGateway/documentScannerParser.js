@@ -192,7 +192,7 @@ export function parseDeliveryNote(text = {}, context = {}) {
   return {
     ...purchase,
     doc_type: SCANNER_DOC_TYPES.DELIVERY_NOTE,
-    notes: 'Réception bon de livraison (scanner IA)',
+    notes: 'Réception bon de livraison (scan de document)',
     entry_kind: 'achat_stockable',
   };
 }

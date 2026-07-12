@@ -134,7 +134,7 @@ export function validateDraftForExecution(draft = {}) {
   if (!assessment.safeForDisplay) {
     return {
       ok: false,
-      error: 'Les brouillons IA ne peuvent pas contenir de handlers d\'écriture directe.',
+      error: 'Les brouillons ne peuvent pas contenir de handlers d\'écriture directe.',
       assessment,
     };
   }
@@ -176,7 +176,7 @@ export function validateDraftForExecution(draft = {}) {
   if (!assessment.canExecute) {
     return {
       ok: false,
-      error: 'Exécution refusée par les garde-fous IA.',
+      error: 'Exécution refusée par les garde-fous.',
       assessment,
     };
   }

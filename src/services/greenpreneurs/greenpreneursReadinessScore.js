@@ -215,7 +215,7 @@ function buildActions(dossier, score, circular) {
     actions.push('Renseigner fientes/fumiers dans Élevage et Cultures');
   }
   if (!circular.hasRealData) {
-    actions.push('Enregistrer les premiers flux circulaires (business_events)');
+    actions.push('Enregistrer les premiers flux circulaires dans le journal des événements');
   }
   actions.push('Créer captures Smart Farm pour le dossier financeur');
   if (score.dossier.value < 8) actions.push('Compléter budget indicatif et devis');

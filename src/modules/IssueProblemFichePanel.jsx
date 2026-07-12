@@ -6,7 +6,7 @@ const typeLabel = (type = '') => ({
   alerte: 'Alerte',
   tache: 'Tâche',
   event: 'Événement',
-  recommendation: 'Recommandation IA',
+  recommendation: 'Suggestion',
   vente: 'Vente',
   paiement: 'Paiement',
 }[type] || type);

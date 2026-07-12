@@ -231,7 +231,7 @@ export function buildFinanceurNarrative({ readiness = {}, operational = {}, qual
   if (readiness.recommendedMode === 'REFERENCE') {
     lines.push('La priorité reste la consolidation de la référence Phase 1 avant toute montée en production.');
   } else if (readiness.recommendedMode === 'PILOT_INTERNAL') {
-    lines.push('La production pilote interne peut être préparée ou poursuivie sous validation humaine.');
+    lines.push('La production pilote interne peut être préparée ou poursuivie après confirmation.');
   } else {
     lines.push('La vente progressive est envisageable uniquement sur les formules validées et les lots contrôlés.');
   }

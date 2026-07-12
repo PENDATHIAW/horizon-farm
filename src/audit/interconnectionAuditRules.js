@@ -92,7 +92,7 @@ export const interconnectionAuditRules = [
     severity: 'critique',
     title: 'Une vente doit alimenter finance, document, stock, objectif et traçabilité',
     rule: 'Une commande validée ou payée doit avoir ses ricochets : paiement finance, facture/document si facturée, sortie stock ou actif vendu, objectif réalisé, trace historique.',
-    verify: ['Commande reliée au client', 'Paiement relié à la commande', 'Paiement visible dans Finances', 'Facture visible dans Documents si émise', 'Stock ou actif source mis à jour', 'Objectif réalisé mis à jour', 'Trace créée dans Traçabilité ou business_events'],
+    verify: ['Commande reliée au client', 'Paiement relié à la commande', 'Paiement visible dans Finances', 'Facture visible dans Documents si émise', 'Stock ou actif source mis à jour', 'Objectif réalisé mis à jour', 'Trace créée dans Traçabilité ou le journal des événements'],
     anomalies: ['paiement_sans_finance', 'facture_sans_document', 'vente_sans_sortie_stock', 'vente_sans_objectif_realise', 'commande_sans_trace', 'opportunite_non_fermee_apres_commande'],
     improvements: ['Afficher un bloc Après validation listant les modules mis à jour', 'Ajouter un bouton Voir les impacts de cette vente', 'Empêcher le statut payé si aucune transaction finance n’existe'],
   },

@@ -94,7 +94,7 @@ function ImpactSummary({ form, selected, clients, productTotal, deliveryFee, gra
     form.source_type !== 'autre' ? 'Stock, lot, animal ou culture mis à jour selon la source vendue.' : 'Vente hors source : aucun stock/effectif décrémenté.',
     form.invoice_issued ? 'Facture et document de preuve créés automatiquement.' : 'Facture non créée : à ajouter plus tard si nécessaire.',
     form.fulfillment_mode === 'a_livrer' ? 'Tâche de livraison créée dans Activité & Suivi.' : 'Livraison/retrait marqué immédiatement.',
-    'Événement métier créé pour traçabilité, rapports et Centre IA.',
+    'Événement métier créé pour traçabilité, rapports et Centre décisionnel.',
   ];
   return <div className="space-y-3"><div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-4"><p className="text-xs uppercase tracking-widest font-black text-emerald-700">Résumé avant validation</p><p className="mt-1 text-2xl font-black text-emerald-800">{fmtCurrency(grandTotal)}</p><p className="text-sm text-emerald-800">Produits : {fmtCurrency(productTotal)}{deliveryFee > 0 ? ` · Livraison : ${fmtCurrency(deliveryFee)}` : ''}</p><p className="text-sm text-emerald-800">Payé : {fmtCurrency(paid)} · Reste : {fmtCurrency(remaining)}</p><p className="mt-2 text-sm text-emerald-800">Produit : <b>{form.product_name || selected?.name || '-'}</b> · Client : <b>{clientName(clients, form.client_id)}</b></p></div><div className="grid grid-cols-1 md:grid-cols-2 gap-2">{impacts.map((impact) => <div key={impact} className="rounded-xl border border-[#eadcc2] bg-[#fffdf8] p-3 text-sm text-[#7d6a4a]"><CheckCircle2 size={14} className="inline text-emerald-600" /> {impact}</div>)}</div></div>;
 }

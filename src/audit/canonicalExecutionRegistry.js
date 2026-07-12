@@ -1,7 +1,7 @@
 /**
  * Horizon Farm — registre Canonical Execution Enforcement V1.
  * Cartographie statique des appels workflow, events et KPI.
- * Lecture seule — ne modifie pas les moteurs canoniques.
+ * Lecture seule — ne modifie pas les moteurs de calcul.
  */
 
 /** @typedef {'canonical'|'legacy'|'parallel'|'bypass'} WorkflowCallKind */
@@ -46,7 +46,7 @@ export const WORKFLOW_ENFORCEMENT_REPORT = [
   { workflow: 'commitStockPurchaseWorkflow', fichier: 'src/services/aiGateway/documentScannerExecute.js', appelant: 'OCR facture stock', kind: 'canonical', risque: 'faible', note: '' },
 
   { workflow: 'commitPurchaseWorkflow', fichier: 'src/services/whatsappHorizon/whatsappDraftService.js', appelant: 'WhatsApp PURCHASE', kind: 'legacy', risque: 'moyen', note: 'Pas ledger mouvements' },
-  { workflow: 'commitStockPurchaseWorkflow', fichier: 'src/modules/StocksV4.jsx', appelant: 'HeyHorizonStockCard réception', kind: 'canonical', risque: 'faible', note: 'Réception avec montant via workflow canonique' },
+  { workflow: 'commitStockPurchaseWorkflow', fichier: 'src/modules/StocksV4.jsx', appelant: 'HeyHorizonStockCard réception', kind: 'canonical', risque: 'faible', note: 'Réception avec montant via le parcours de réception' },
   { workflow: 'commitStockPurchaseWorkflow', fichier: 'src/utils/purchaseSideEffects.js', appelant: 'purchaseSideEffects', kind: 'parallel', risque: 'moyen', note: 'onCreateFinanceTransaction hors workflow canonique' },
 
   // —— Finance : consolidateFinance (lecture seule — pas de bypass écriture) ——
@@ -57,7 +57,7 @@ export const WORKFLOW_ENFORCEMENT_REPORT = [
 
   // —— Parallèles (hub side effects hors commitCommercialSale) ——
   { workflow: 'runNewSaleSideEffects', fichier: 'src/utils/culturesWorkflow.js', appelant: 'vente culture', kind: 'parallel', risque: 'moyen', note: 'Vente récolte sans prepareCommercialSaleCommit' },
-  { workflow: 'runNewSaleSideEffects', fichier: 'src/services/workflowService.js', appelant: 'commitSaleWorkflow', kind: 'legacy', risque: 'moyen', note: 'Hub partagé legacy + canonique' },
+  { workflow: 'runNewSaleSideEffects', fichier: 'src/services/workflowService.js', appelant: 'commitSaleWorkflow', kind: 'legacy', risque: 'moyen', note: 'Hub partagé (ancien + actuel)' },
 ];
 
 export const CANONICAL_WORKFLOW_MARKERS = {

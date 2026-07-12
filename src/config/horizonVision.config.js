@@ -9,7 +9,7 @@ export const HORIZON_MISSION = [
   'piloter une ferme intégrée à partir des opérations réelles du terrain',
   'réduire les doubles saisies grâce aux événements métier',
   'relier production, stock, commercial, finance, traçabilité et reporting',
-  'calculer des chiffres cohérents depuis une source officielle',
+  'calculer des chiffres cohérents depuis leur source de référence',
   'expliquer les écarts entre prévisionnel et réel',
   'documenter les décisions, les actions et les preuves financeur',
   'préparer la croissance uniquement quand les données le justifient',

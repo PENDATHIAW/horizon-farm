@@ -1,5 +1,5 @@
 /**
- * Moteur décisionnel stratégique Centre IA :
+ * Moteur décisionnel stratégique Centre décisionnel :
  * QUAND VENDRE, QUAND LANCER, audit stock, BFR, ITH, calendrier religieux, effet ciseau.
  */
 

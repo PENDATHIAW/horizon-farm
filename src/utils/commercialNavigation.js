@@ -885,7 +885,7 @@ export function resolveSearchNavigation(moduleKey = '') {
   return { module, tab };
 }
 
-/** Module + onglet pour une recommandation IA / finding ERP. */
+/** Module + onglet pour une suggestion / finding ERP. */
 export function navigationOptionsForFinding(finding = {}) {
   const rawModule = finding.module || finding.module_target || 'objectifs_croissance';
   const module = resolveRouteModule(rawModule);

@@ -115,13 +115,13 @@ function buildWhatToDo(item = {}) {
     case 'preuve':
       return 'Rattacher les justificatifs manquants aux opérations.';
     case 'ia':
-      return action || item.detail || 'Appliquer la recommandation IA ou ouvrir la source.';
+      return action || item.detail || 'Appliquer la suggestion ou ouvrir la source.';
     default:
       return item.detail || 'Consulter la source et décider.';
   }
 }
 
-/** Une seule file sans doublon : alertes terrain d'abord, puis signaux IA complémentaires. */
+/** Une seule file sans doublon : alertes terrain d'abord, puis signaux d’analyse complémentaires. */
 export function buildActionQueue(items = [], { includeDismissed = false } = {}) {
   const dismissed = includeDismissed ? new Set() : getDismissedPriorityKeys();
   const sorted = [...items].sort((a, b) => kindRank(a) - kindRank(b) || severityRank(a) - severityRank(b));

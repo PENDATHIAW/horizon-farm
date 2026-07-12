@@ -9,7 +9,7 @@
  * Le moteur ne répond jamais uniquement « prêt / pas prêt ».
  * Il retourne : score, mode recommandé, blockers, warnings,
  * données utilisées, données manquantes, actions prioritaires,
- * et signale toujours qu’une validation humaine est requise.
+ * et signale toujours qu’une confirmation est requise.
  *
  * L’IA propose. L’humain décide.
  */
@@ -539,7 +539,7 @@ function scorePilotPhase2A(dataMap = {}, phase1 = {}) {
  *   - un coût réel de production calculé (`feed_production_orders.real_cost_per_kg > 0`) ;
  *   - une comparaison avec la référence Phase 1 ;
  *   - au moins un contrôle qualité `feed_quality_checks` enregistré ;
- *   - une validation humaine explicite (essai clôturé + reviewed_by_human ou
+ *   - une confirmation explicite (essai clôturé + reviewed_by_human ou
  *     validated_by / formule `commercializable`) ;
  *   - au moins une formule au statut `commercializable`.
  */
@@ -577,7 +577,7 @@ function scoreProgressivePhase2B(dataMap = {}, pilot = {}) {
     realCost: 'Coût réel de production calculé',
     phase1Comparison: 'Comparaison avec référence Phase 1',
     qcMinimum: 'Au moins un contrôle qualité enregistré',
-    humanValidation: 'Validation humaine enregistrée',
+    humanValidation: 'Confirmation enregistrée',
     hasCommercializable: 'Formule au statut commercialisable',
   };
 
@@ -781,7 +781,7 @@ export function computeAgriFeedsReadiness(dataMap = {}) {
     priority_actions: buildNextActions(recommendedMode, phase1, pilot, sales),
     next_actions: buildNextActions(recommendedMode, phase1, pilot, sales),
     human_validation_required: true,
-    ai_disclaimer: 'L’IA propose une décision à partir des données ERP. La validation reste humaine.',
+    ai_disclaimer: 'Une décision est suggérée à partir des données. Elle reste à confirmer.',
     metrics: phase1.metrics,
     note: 'Le passage de mode dépend des données ERP (Phase 1, Phase 2A, Phase 2B), pas d’une date fixe.',
     sales_gates: sales.gates,

@@ -89,7 +89,7 @@ export default function AgriFeedsDashboardTab({ dataMap = {}, onNavigateTab }) {
         ) : null}
 
         <div className="mt-3 rounded-2xl border border-[#d6c3a0] bg-[#fffdf8] p-3">
-          <p className="text-xs font-black text-[#2f2415]">Validation humaine requise</p>
+          <p className="text-xs font-black text-[#2f2415]">Confirmation requise</p>
           <p className="text-xs text-[#8a7456] leading-relaxed">
             {readiness.ai_disclaimer || 'L’IA propose. L’humain valide.'}
           </p>

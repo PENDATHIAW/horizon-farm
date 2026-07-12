@@ -1,5 +1,5 @@
 /**
- * Contexte secrétaire agricole — lecture seule via moteurs canoniques existants.
+ * Contexte secrétaire agricole — lecture seule via moteurs de calcul existants.
  * consolidateFinance · buildConsolidatedCommercialKpis · buildObjectifsCroissanceData · carnetHorizon
  */
 

@@ -25,7 +25,7 @@ export function enrichAnimalFieldsForDecision(fields = []) {
   ]);
 
   next = insertAfter(next, 'poids', [
-    { key: 'section_pesee_ia', label: 'Pesée & suivi IA', type: 'section' },
+    { key: 'section_pesee_ia', label: 'Pesée & suivi', type: 'section' },
     { key: 'poids_entree', label: 'Poids à l’entrée (kg)', type: 'number' },
     { key: 'date_poids_entree', label: 'Date poids entrée', type: 'date' },
     { key: 'poids_actuel', label: 'Poids actuel / dernière pesée (kg)', type: 'number' },

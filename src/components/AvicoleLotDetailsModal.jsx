@@ -172,7 +172,7 @@ export default function AvicoleLotDetailsModal({ open, onClose, lot, productionL
         tabs={[
           { id: 'situation', label: 'Situation' },
           { id: 'production', label: layer ? 'Ponte & objectifs' : 'Poids & croissance' },
-          { id: 'decision', label: 'Décision IA' },
+          { id: 'decision', label: 'Décision suggérée' },
           { id: 'finances', label: 'Finances' },
         ]}
         active={tab}
@@ -229,7 +229,7 @@ export default function AvicoleLotDetailsModal({ open, onClose, lot, productionL
         <>
           <SaleOpportunityGuardPanel guard={guard} />
           <div className="flex flex-wrap gap-2 rounded-2xl border border-[#eadcc2] bg-white p-3"><Btn small onClick={confirmOpportunity}>{existingOpportunity ? 'Mettre à jour opportunité' : 'Confirmer opportunité de vente'}</Btn><Btn small variant="outline" onClick={() => onNavigate?.('ventes')}>Voir opportunités / ventes</Btn></div>
-          <Section title="Décision IA" note="Décision affichée, à valider par l'utilisateur avant création d'opportunité."><Field label="Décision" value={decision.decision} /><Field label="Priorité" value={decision.priority || '-'} /><Field label="Prochaine action" value={decision.nextWeighingDate || decision.reformStart || livingTarget.nextWeighingDate || '-'} /><Field label="Poids / ponte attendu" value={decision.expectedWeight ? `${decision.expectedWeight} kg` : decision.expectedEggsDay ? eggTabletLabel(decision.expectedEggsDay) : livingTarget.expectedEggsDay ? eggTabletLabel(livingTarget.expectedEggsDay) : '-'} /></Section>
+          <Section title="Décision suggérée" note="Décision affichée, à valider par l'utilisateur avant création d'opportunité."><Field label="Décision" value={decision.decision} /><Field label="Priorité" value={decision.priority || '-'} /><Field label="Prochaine action" value={decision.nextWeighingDate || decision.reformStart || livingTarget.nextWeighingDate || '-'} /><Field label="Poids / ponte attendu" value={decision.expectedWeight ? `${decision.expectedWeight} kg` : decision.expectedEggsDay ? eggTabletLabel(decision.expectedEggsDay) : livingTarget.expectedEggsDay ? eggTabletLabel(livingTarget.expectedEggsDay) : '-'} /></Section>
         </>
       ) : null}
 

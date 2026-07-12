@@ -251,7 +251,7 @@ export default function AvicoleV10(props) {
   return <div className="space-y-6 avicole-mobile-final">
     <style>{`.avicole-mobile-final .objective-card-grid{align-items:stretch}@media(max-width:640px){.avicole-mobile-final .rounded-2xl{border-radius:18px}.avicole-mobile-final table{font-size:12px}.avicole-mobile-final th,.avicole-mobile-final td{padding-left:10px!important;padding-right:10px!important}.avicole-mobile-final .text-2xl{font-size:1.35rem}.avicole-mobile-final .grid{gap:.75rem}.avicole-mobile-final .overflow-x-auto{max-width:100vw}}`}</style>
     <section className="rounded-2xl border border-sky-200 bg-sky-50 p-4 text-sm text-sky-900">
-      <b>Commande vocale</b> — ex. « 12 tablettes ramassées » ou « 2 poulets morts » : draft Avicole ouvert, <b>validation humaine obligatoire</b> avant enregistrement.
+      <b>Commande vocale</b> — ex. « 12 tablettes ramassées » ou « 2 poulets morts » : draft Avicole ouvert, <b>à confirmer</b> avant enregistrement.
     </section>
     {horizonDraft ? <div id="hey-horizon-avicole-card"><HeyHorizonAvicoleCard draft={horizonDraft} rows={activeScopedRows} onUpdate={wrappedUpdate} onCreateProduction={props.onCreateProduction} onCommitEggProduction={props.onCommitEggProduction} onRefreshProduction={props.onRefreshProduction} onCreateBusinessEvent={props.onCreateBusinessEvent} onRefresh={props.onRefresh} onRefreshBusinessEvents={props.onRefreshBusinessEvents} onClose={() => setHorizonDraft(null)} onCreateEggOpportunity={createOrReactivateEggOpportunity} /></div> : null}
     <div className="rounded-3xl border border-[#d6c3a0] bg-[#fffdf8] p-5 shadow-sm">

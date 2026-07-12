@@ -184,7 +184,7 @@ export async function applyErpHealthAutoActions(report, {
           module_source: 'taches',
           entity_type: 'tache',
           entity_id: task.id,
-          title: `Tâche IA : ${task.title}`,
+          title: `Tâche suggérée : ${task.title}`,
           description: task.notes,
           event_date: today(),
           severity: task.priority === 'critique' ? 'critique' : 'info',

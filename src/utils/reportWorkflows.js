@@ -218,7 +218,7 @@ export function buildMonthlyFinancierReportWorkflow({
       priority: missingData.length ? 'haute' : 'moyenne',
       status: 'a_faire',
       checklist: 'Contrôler chiffres; Vérifier preuves; Valider humainement; Envoyer financeur',
-      notes: missingData.length ? `Données manquantes: ${missingData.join(', ')}` : 'Validation humaine requise.',
+      notes: missingData.length ? `Données manquantes: ${missingData.join(', ')}` : 'Confirmation requise.',
     },
     auditLog: {
       id: makeId('LOG'),

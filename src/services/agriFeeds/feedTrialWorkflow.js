@@ -1,12 +1,12 @@
 /**
- * AGRI FEEDS — essais internes + comparaison Phase 1 + validation humaine.
+ * AGRI FEEDS — essais internes + comparaison Phase 1 + confirmation.
  *
  * Fournit :
  *   - prepareTrial / commitTrial              : ouvre un essai (lot × formule)
  *   - prepareCloseTrial / commitCloseTrial    : clôture, KPI, décision proposée,
  *                                               comparaison Phase 1 formalisée
  *   - proposeTrialDecision                    : décision proposée par l’IA
- *   - prepareHumanValidation / commit         : validation humaine explicite
+ *   - prepareHumanValidation / commit         : confirmation explicite
  *
  * L’IA propose. L’humain décide.
  */
@@ -344,7 +344,7 @@ export function prepareCloseTrial(payload = {}, dataMap = {}) {
     },
     alert: proposal.value === 'abandon' ? {
       title: `Essai à revoir — ${trial.trial_code}`,
-      message: `Proposition IA : abandon (${proposal.reasons.join(' · ')}). Validation humaine requise.`,
+      message: `Suggestion : abandon (${proposal.reasons.join(' · ')}). Confirmation requise.`,
       severity: 'moyenne',
       module_source: 'agri_feeds',
       entity_id: trial.id,
@@ -373,7 +373,7 @@ export async function commitCloseTrial(preview = {}, handlers = {}) {
 }
 
 /**
- * Validation humaine explicite d’un essai clôturé.
+ * Confirmation explicite d’un essai clôturé.
  * L’IA a proposé, l’humain confirme (ou choisit une autre décision).
  */
 export function prepareHumanValidation(payload = {}, dataMap = {}) {

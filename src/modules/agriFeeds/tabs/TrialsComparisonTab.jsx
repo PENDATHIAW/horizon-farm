@@ -159,8 +159,8 @@ export default function TrialsComparisonTab({
         decision_notes: preview.proposal.reasons.join(' · '),
       });
       setMessage(
-        `Essai clôturé — IA propose : ${preview.proposal.label} (${preview.proposal.confidence}).`
-        + ` Comparaison : ${preview.comparison?.message || 'données limitées'}. Validation humaine requise.`,
+        `Essai clôturé · suggestion : ${preview.proposal.label} (${preview.proposal.confidence}).`
+        + ` Comparaison : ${preview.comparison?.message || 'données limitées'}. Confirmation requise.`,
       );
       setCloseForm((p) => ({
         ...p,
@@ -195,7 +195,7 @@ export default function TrialsComparisonTab({
         onUpdateComparison: onUpdateFeedPhase1Comparison,
         onCreateBusinessEvent,
       });
-      setMessage(`Validation humaine enregistrée — décision ${DECISION_LABEL[validationForm.decision] || validationForm.decision}.`);
+      setMessage(`Confirmation enregistrée — décision ${DECISION_LABEL[validationForm.decision] || validationForm.decision}.`);
       setValidationForm({ trial_id: '', decision: '', reviewed_by: '', decision_notes: '' });
     } catch (err) {
       setMessage(err?.message || 'Validation impossible.');
@@ -210,8 +210,8 @@ export default function TrialsComparisonTab({
         <p className="text-lg font-black text-[#2f2415]">Tests & comparaison</p>
         <p className="text-sm text-[#8a7456] leading-relaxed max-w-3xl">
           Essais internes sur animaux Horizon Farm, comparaison formalisée avec la référence
-          Phase 1, et validation humaine explicite. L’IA propose une décision — la décision
-          finale reste humaine.
+          Phase 1, et confirmation explicite. Une décision est suggérée ; la décision
+          finale reste à l’exploitant.
         </p>
         {message ? (
           <p className="text-sm rounded-xl border border-[#eadcc2] bg-[#fffdf8] px-3 py-2">{message}</p>
@@ -450,7 +450,7 @@ export default function TrialsComparisonTab({
 
       {awaitingHuman.length ? (
         <section className="rounded-3xl border border-amber-300 bg-amber-50/60 p-5 space-y-3">
-          <p className="font-black text-amber-950">Validation humaine requise ({awaitingHuman.length})</p>
+          <p className="font-black text-amber-950">Confirmation requise ({awaitingHuman.length})</p>
           {awaitingHuman.map((t) => {
             const comp = comparisons.find((c) => String(c.trial_id) === String(t.id));
             const proposal = proposeTrialDecision({ trial: t, comparison: comp ? { status: comp.overall_status, comparison: comp.metrics } : null });
@@ -460,7 +460,7 @@ export default function TrialsComparisonTab({
                   {t.trial_code} — {t.animal_lot_id}
                 </p>
                 <p className="text-xs text-[#8a7456]">
-                  IA propose : <b>{proposal.label}</b> ({proposal.confidence}) · {proposal.reasons.join(' · ')}
+                  Suggestion : <b>{proposal.label}</b> ({proposal.confidence}) · {proposal.reasons.join(' · ')}
                 </p>
                 <button
                   type="button"
@@ -472,7 +472,7 @@ export default function TrialsComparisonTab({
                   })}
                   className="text-xs font-bold text-[#2f2415] underline"
                 >
-                  Renseigner la validation humaine
+                  Renseigner la confirmation
                 </button>
               </div>
             );
@@ -481,9 +481,9 @@ export default function TrialsComparisonTab({
       ) : null}
 
       <form onSubmit={validateTrial} className="rounded-3xl border border-[#d6c3a0] bg-white p-5 space-y-3">
-        <p className="font-black text-[#2f2415]">Validation humaine</p>
+        <p className="font-black text-[#2f2415]">Confirmation</p>
         <p className="text-xs text-[#8a7456] leading-relaxed max-w-2xl">
-          L’IA propose une décision à partir des KPI et de la comparaison Phase 1.
+          Une décision est suggérée à partir des indicateurs et de la comparaison Phase 1.
           Vous devez la confirmer, la corriger et signer.
         </p>
         <div className="grid grid-cols-2 gap-3">
@@ -542,7 +542,7 @@ export default function TrialsComparisonTab({
           disabled={busy || !closedTrials.length}
           className="min-h-[44px] rounded-xl bg-[#2f2415] px-4 text-sm font-bold text-white disabled:opacity-50"
         >
-          Enregistrer la validation humaine
+          Enregistrer la confirmation
         </button>
       </form>
 
@@ -575,7 +575,7 @@ export default function TrialsComparisonTab({
                       {t.reviewed_by_human
                         ? `✓ Validé par ${t.reviewed_by} — décision : ${DECISION_LABEL[t.decision] || t.decision || '—'}`
                         : t.status === 'closed'
-                          ? '! En attente de validation humaine'
+                          ? '! En attente de confirmation'
                           : ''}
                     </p>
                   </article>

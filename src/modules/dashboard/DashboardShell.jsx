@@ -270,7 +270,7 @@ export function DashboardExploitationScorePanel({ exploitation = {}, onNavigate 
         </p>
       ) : null}
       <button type="button" onClick={() => onNavigate?.('centre_ia', { tab: 'Urgences & risques' })} className="mt-3 text-xs font-black text-[#9a6b12]">
-        Détail pilotage IA →
+        Détail du pilotage →
       </button>
     </section>
   );
@@ -763,7 +763,7 @@ export function DashboardHealthStrip({ health = {}, onOpenFinding, onNavigate })
       <div className="mb-3 flex items-center justify-between gap-2">
         <div className="inline-flex items-center gap-2">
           <BrainCircuit size={16} className="text-[#9a6b12]" />
-          <h2 className="text-sm font-black text-[#2f2415]">Pilotage IA (détail)</h2>
+          <h2 className="text-sm font-black text-[#2f2415]">Pilotage (détail)</h2>
         </div>
         <button type="button" onClick={() => onNavigate?.('centre_ia', { tab: 'Urgences & risques' })} className="text-xs font-black text-[#9a6b12]">
           Vision →

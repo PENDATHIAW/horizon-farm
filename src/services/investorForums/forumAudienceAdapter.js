@@ -73,7 +73,7 @@ function buildExecutiveSummary(profile, audience) {
     case 'ong_subvention':
       return `${founder} porte un projet de sécurité alimentaire locale : œufs, volaille, viande bovine. ${profile.socialImpact?.securite_alimentaire}. ${audience.angle}.`;
     case 'salon_agricole':
-      return `${HORIZON_FARM_TAGLINE} Productivité avicole et bovine + traçabilité ERP + modules IA Horizon. ${audience.angle}.`;
+      return `${HORIZON_FARM_TAGLINE} Productivité avicole et bovine + traçabilité ERP + modules d’analyse Horizon. ${audience.angle}.`;
     case 'partenaire_technique':
       return `Horizon Farm recherche équipements avicoles, aliments, formation et maintenance. Production : pondeuses, chair, embouche. ${audience.angle}.`;
     case 'incubateur':

@@ -18,7 +18,7 @@ export default function VisionModuleAuditPanel({ dataMap = {}, onNavigate }) {
       <section className="rounded-3xl border border-[#d6c3a0] bg-white p-5 shadow-sm">
         <p className="text-xs uppercase tracking-[0.25em] text-[#9a6b12] font-black">Audit vision 2026–2027</p>
         <h2 className="mt-1 text-xl font-black text-[#2f2415]">Conformité module par module</h2>
-        <p className="mt-2 text-sm text-[#8a7456]">Analyse automatique : onglets cibles, données, cohérence IA, risques, interconnexions, écarts et améliorations.</p>
+        <p className="mt-2 text-sm text-[#8a7456]">Analyse automatique : onglets cibles, données, cohérence des analyses, risques, interconnexions, écarts et améliorations.</p>
         <div className="mt-4 grid grid-cols-2 gap-3 xl:grid-cols-6">
           <div className="rounded-2xl border border-[#eadcc2] bg-[#fffdf8] p-4"><p className="text-xs text-[#8a7456]">Score global</p><p className="text-xl font-black text-[#2f2415]">{audit.globalScore}/100</p></div>
           <div className="rounded-2xl border border-[#eadcc2] bg-[#fffdf8] p-4"><p className="text-xs text-[#8a7456]">Santé ERP</p><p className="text-xl font-black text-[#2f2415]">{audit.healthScore}/100</p></div>

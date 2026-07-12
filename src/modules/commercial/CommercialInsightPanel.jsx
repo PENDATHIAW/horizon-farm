@@ -13,7 +13,7 @@ const MODULE_LINKS = [
   { key: 'elevage', label: 'Élevage', hint: 'Lots, animaux, coûts de production' },
   { key: 'achats_stock', label: 'Stock', hint: 'Produits finis, viande, disponibilités' },
   { key: 'activite_suivi', label: 'Tâches & relances', hint: 'Suivi opérationnel' },
-  { key: 'centre_ia', label: 'Centre IA', hint: 'Analyses et recommandations' },
+  { key: 'centre_ia', label: 'Centre décisionnel', hint: 'Analyses et recommandations' },
 ];
 
 export default function CommercialInsightPanel({

@@ -23,7 +23,7 @@ Son ambition est de démontrer qu'une agriculture moderne, pilotée par la donn�
 export const DEFAULT_FOUNDER_CV = `Ingénieure Télécommunications & Informatique — ESMT Dakar
 ~9 ans Sonatel — performance, BI, automatisation, stratégie analytique
 Fondatrice & coordinatrice — Horizon Farm
-Compétences : pilotage de la performance, ERP, data, IA appliquée à l'agriculture`;
+Compétences : pilotage de la performance, ERP, data, analyses appliquées à l'agriculture`;
 
 export const DEFAULT_FOUNDER_EDUCATION = 'Diplôme ingénieur — ESMT Dakar (Télécommunications & Informatique)';
 
@@ -38,7 +38,7 @@ export const DEFAULT_OBJECTIVES_6M = `- Lancement exploitation (avicole, bovin, 
 - Dossier investisseur / data room complet`;
 
 export const DEFAULT_OBJECTIVES_12M = `- Exploitation rentable selon trajectoire BP
-- Déploiement modules IA (Brief, OCR, Forecast, Advisor)
+- Déploiement modules d’analyse (Brief, OCR, Forecast, Advisor)
 - Premiers partenariques (intrants, débouchés, technique)
 - Participation à un forum ou salon agricole`;
 
@@ -51,13 +51,13 @@ export const DEFAULT_OBJECTIVES_3Y = `- Exploitation agricole intégrée rentabl
 
 export const DEFAULT_WHY_INVEST = [
   { id: 'probleme', title: 'Problème', body: 'Agriculture fragmentée, peu de traçabilité, décisions au feeling, accès financement difficile.' },
-  { id: 'solution', title: 'Solution', body: 'Exploitation intégrée + ERP propriétaire + IA Hey Horizon pour piloter production, finances et décisions.' },
+  { id: 'solution', title: 'Solution', body: 'Exploitation intégrée + ERP propriétaire + assistant Hey Horizon pour piloter production, finances et décisions.' },
   { id: 'marche', title: 'Marché', body: 'Demande locale forte en œufs, volaille et viande ; marchés de proximité et restauration.' },
-  { id: 'differentiation', title: 'Différenciation', body: 'Double compétence fondatrice tech + agricole ; stack ERP + IA intégrée dès le jour 1.' },
+  { id: 'differentiation', title: 'Différenciation', body: 'Double compétence fondatrice tech + agricole ; stack ERP + analyses intégrées dès le jour 1.' },
   { id: 'impact', title: 'Impact', body: 'Sécurité alimentaire, emplois locaux, formalisation et preuves pour subventions.' },
-  { id: 'scalabilite', title: 'Scalabilité', body: 'Modèle réplicable : production + logiciel + IA pour d\'autres fermes africaines.' },
+  { id: 'scalabilite', title: 'Scalabilité', body: 'Modèle réplicable : production + logiciel + analyses pour d\'autres fermes africaines.' },
   { id: 'technologie', title: 'Technologie', body: 'Horizon Farm ERP — ventes, stock, santé, finances, documents interconnectés.' },
-  { id: 'ia', title: 'IA', body: 'Hey Horizon AI Core — brief, OCR, forecast, advisor, WhatsApp terrain.' },
+  { id: 'ia', title: 'Analyses', body: 'Hey Horizon AI Core — brief, OCR, forecast, advisor, WhatsApp terrain.' },
   { id: 'erp', title: 'ERP propriétaire', body: 'Pas de patchwork Excel : un système unique piloté par la fondatrice.' },
   { id: 'femmes', title: 'Impact femmes', body: 'Leadership féminin tech-agri ; modèle pour femmes entrepreneures.' },
   { id: 'jeunes', title: 'Impact jeunes', body: 'Emplois et formation terrain pour jeunes ruraux.' },
@@ -147,7 +147,7 @@ export function applyInvestorRoomDefaults(manual = {}) {
   fill('objectives_12m', DEFAULT_OBJECTIVES_12M);
   fill('objectives_3y', DEFAULT_OBJECTIVES_3Y);
   fill('ai_headline', 'Hey Horizon AI — copilote décisionnel intégré à l\'ERP');
-  fill('ai_differentiator', 'Une entreprise agricole avec son propre ERP et modules IA : pas seulement une ferme, un modèle reproductible.');
+  fill('ai_differentiator', 'Une entreprise agricole avec son propre ERP et modules d’analyse : pas seulement une ferme, un modèle reproductible.');
   fill('ai_modules', 'WhatsApp Horizon · OCR Intelligent · Brief vocal · Forecast Engine · Horizon Advisor');
 
   if (!Array.isArray(m.why_invest) || !m.why_invest.length) m.why_invest = DEFAULT_WHY_INVEST.map((card) => ({ ...card }));
