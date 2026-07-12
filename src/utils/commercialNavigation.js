@@ -252,14 +252,14 @@ export function resolveElevageLotsSubview(value = '') {
 
 export function resolveElevageTab(value = '') {
   const tab = String(value || '').trim();
+  const configured = configuredComponent('elevage', tab);
+  if (configured) return configured;
   if (ELEVAGE_TABS.includes(tab)) return tab;
   const fromElevage = ELEVAGE_TAB_ALIASES[tab] || ELEVAGE_TAB_ALIASES[lower(tab)];
   if (fromElevage) return fromElevage;
-  const configured = configuredComponent('elevage', tab);
-  if (configured) return configured;
   const fromGeneric = tabAliases[lower(tab)];
   if (fromGeneric && ELEVAGE_TABS.includes(fromGeneric)) return fromGeneric;
-  return 'Lots & bandes';
+  return 'Vue élevage';
 }
 
 /** Navigation externe — conserve Avicole/Animaux pour la sous-vue Lots & bandes. */
@@ -706,12 +706,12 @@ export function navigateRhTab(onNavigate, tab = '', options = {}) {
 
 export function resolveObjectifsTab(value = '') {
   const tab = String(value || '').trim();
+  const configured = configuredComponent('objectifs_croissance', tab);
+  if (configured) return configured;
   if (OBJECTIFS_TABS.includes(tab)) return tab;
   const fromAlias = OBJECTIFS_TAB_ALIASES[tab] || OBJECTIFS_TAB_ALIASES[lower(tab)];
   if (fromAlias) return fromAlias;
-  const configured = configuredComponent('objectifs_croissance', tab);
-  if (configured) return configured;
-  return OBJECTIFS_TABS[0];
+  return 'Objectifs';
 }
 
 export function navigateObjectifsTab(onNavigate, tab = '', options = {}) {
@@ -810,15 +810,15 @@ export function navigateGestionSystemeTab(onNavigate, tab = '', options = {}) {
 
 export function resolveCulturesTab(value = '') {
   const tab = String(value || '').trim();
+  const configured = configuredComponent('cultures', tab);
+  if (configured) return configured;
   if (CULTURES_TABS.includes(tab)) return tab;
   const fromAlias = CULTURES_TAB_ALIASES[tab] || CULTURES_TAB_ALIASES[lower(tab)];
   if (fromAlias) return fromAlias;
-  const configured = configuredComponent('cultures', tab);
-  if (configured) return configured;
   if (lower(tab) === 'resume') return 'Parcelles & campagnes';
   const legacy = tabAliases[lower(tab)];
   if (legacy && CULTURES_TABS.includes(legacy)) return legacy;
-  return 'Parcelles & campagnes';
+  return 'Parcelles cultures';
 }
 
 /** Navigation externe — conserve alias section (Intrants, Transformation…) pour replis auto. */

@@ -1,59 +1,38 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { MODULE_TARGET_TABS } from '../../src/config/horizonVision.config.js';
+import { resolveElevageLotsSubview, resolveElevageTab } from '../../src/utils/commercialNavigation.js';
 
 const TAB_IDS = MODULE_TARGET_TABS.elevage;
 
-const LEGACY_ALIASES = {
-  Résumé: 'Lots & bandes',
-  Cycles: 'Cycles & Reproduction',
-  Animaux: 'Lots & bandes',
-  Avicole: 'Lots & bandes',
-  Alimentation: 'Lots & bandes',
-  Production: 'Lots & bandes',
-  Reproduction: 'Cycles & Reproduction',
-  Annexe: 'Lots & bandes',
-  Graphiques: 'Lots & bandes',
-};
-
-function resolveTab(initial) {
-  const mapped = initial ? (LEGACY_ALIASES[initial] || initial) : null;
-  if (mapped && TAB_IDS.includes(mapped)) return mapped;
-  return TAB_IDS[0];
-}
-
-function resolveLotsSubview(value = '') {
-  const tab = String(value || '').trim();
-  if (tab === 'Avicole' || tab.toLowerCase() === 'avicole') return 'avicole';
-  if (tab === 'Animaux' || tab.toLowerCase() === 'animaux') return 'animaux';
-  return null;
-}
-
-test('elevage exposes 4 target tabs', () => {
+test('elevage expose les 7 onglets cibles', () => {
   assert.deepEqual(TAB_IDS, [
-    'Lots & bandes',
-    'Cycles & Reproduction',
-    'Santé',
-    'Transformation',
+    'Vue d’ensemble',
+    'Lots & animaux',
+    'Alimentation',
+    'Production',
+    'Santé & Biosécurité',
+    'Coûts & performance',
+    'Historique',
   ]);
 });
 
-test('legacy elevage tab aliases resolve to new tabs', () => {
-  assert.equal(resolveTab('Résumé'), 'Lots & bandes');
-  assert.equal(resolveTab('Cycles'), 'Cycles & Reproduction');
-  assert.equal(resolveTab('Avicole'), 'Lots & bandes');
-  assert.equal(resolveTab('Reproduction'), 'Cycles & Reproduction');
-  assert.equal(resolveTab('unknown'), 'Lots & bandes');
+test('les anciens onglets élevage restent des alias', () => {
+  assert.equal(resolveElevageTab('Résumé'), 'Vue élevage');
+  assert.equal(resolveElevageTab('Cycles'), 'Production élevage');
+  assert.equal(resolveElevageTab('Avicole'), 'Production élevage');
+  assert.equal(resolveElevageTab('Reproduction'), 'Production élevage');
+  assert.equal(resolveElevageTab('unknown'), 'Vue élevage');
 });
 
 test('resolveElevageLotsSubview maps avicole and animaux', () => {
-  assert.equal(resolveLotsSubview('Avicole'), 'avicole');
-  assert.equal(resolveLotsSubview('Animaux'), 'animaux');
-  assert.equal(resolveLotsSubview('Cycles'), null);
+  assert.equal(resolveElevageLotsSubview('Avicole'), 'avicole');
+  assert.equal(resolveElevageLotsSubview('Animaux'), 'animaux');
+  assert.equal(resolveElevageLotsSubview('Cycles'), null);
 });
 
-test('alias Avicole et Animaux résolvent vers Lots & bandes avec sous-vue', () => {
-  assert.equal(resolveTab('Avicole'), 'Lots & bandes');
-  assert.equal(resolveTab('Animaux'), 'Lots & bandes');
-  assert.equal(resolveLotsSubview('Avicole'), 'avicole');
+test('les alias Avicole et Animaux conservent leur sous-vue', () => {
+  assert.equal(resolveElevageTab('Avicole'), 'Production élevage');
+  assert.equal(resolveElevageTab('Animaux'), 'Lots & animaux');
+  assert.equal(resolveElevageLotsSubview('Avicole'), 'avicole');
 });

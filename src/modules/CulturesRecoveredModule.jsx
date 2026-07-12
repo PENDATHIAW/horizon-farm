@@ -36,6 +36,20 @@ const isOrganicTransferPayload = (payload = {}) => hasAnyKey(payload, ['organic_
   || ['organic_transfer', 'transfert_organique'].includes(norm(payload.type_evenement || payload.event_type));
 const isParcelRow = (row = {}) => ['parcelle', 'plot'].includes(norm(row.record_type || row.type_fiche || row.type));
 
+function CulturesHistory({ events = [] }) {
+  const rows = events.filter((event) => /culture|parcelle|campagne|irrigation|recolte|récolte/.test(norm(`${event.source_module || ''} ${event.module || ''} ${event.event_type || ''}`)));
+  return (
+    <section aria-label="Historique cultures">
+      {rows.length ? rows.slice(0, 100).map((event) => (
+        <div key={event.id || event.event_key} className="border-b border-[#eadcc2] py-3">
+          <strong className="text-sm text-[#2f2415]">{event.title || event.event_type || 'Événement cultures'}</strong>
+          <p className="mt-1 text-xs text-[#8a7456]">{event.occurred_at || event.created_at || event.event_date || 'Date inconnue'}</p>
+        </div>
+      )) : <p className="py-8 text-center text-sm text-[#8a7456]">Rien à afficher pour l’instant.</p>}
+    </section>
+  );
+}
+
 export default function CulturesRecoveredModule(props) {
   const controlled = Boolean(props.onTabChange);
   const [internalTab, setInternalTab] = useState(() => resolveCulturesTab(props.initialTab || 'Parcelles & campagnes'));
@@ -351,7 +365,7 @@ export default function CulturesRecoveredModule(props) {
     [rows],
   );
 
-  const content = tab === 'Parcelles & campagnes' ? (
+  const content = tab === 'Parcelles cultures' ? (
     <div className="space-y-4">
       <ModuleProjectionsStrip projections={culturesModuleProjections} onNavigate={props.onNavigate} />
       <CulturesPilotageHub
@@ -370,32 +384,19 @@ export default function CulturesRecoveredModule(props) {
         onRefresh={refreshWorkflow}
       />
       <CulturesParcellesHub {...sharedV3Props} />
-      <details ref={intrantsDetailsRef} className="rounded-2xl border border-[#eadcc2] bg-[#fffdf8] p-4">
-        <summary className="cursor-pointer font-black text-sm text-[#2f2415]">Intrants & météo</summary>
-        <div className="mt-3">
-          <CulturesIntrantsHub {...sharedV3Props} />
-        </div>
-      </details>
-      <details ref={santeDetailsRef} className="rounded-2xl border border-[#eadcc2] bg-[#fffdf8] p-4">
-        <summary className="cursor-pointer font-black text-sm text-[#2f2415]">Santé & protection</summary>
-        <div className="mt-3">
-          <CulturesSanteHub {...sharedV3Props} />
-        </div>
-      </details>
-      <details ref={cyclesDetailsRef} className="rounded-2xl border border-[#eadcc2] bg-[#fffdf8] p-4">
-        <summary className="cursor-pointer font-black text-sm text-[#2f2415]">Cycles & campagnes</summary>
-        <div className="mt-3">
-          <CulturesCyclesHub rows={rows} salesOrders={salesOrders} deliveries={deliveriesList} businessEvents={businessEvents} onNavigate={props.onNavigate} />
-        </div>
-      </details>
-      <details ref={annexeDetailsRef} className="rounded-2xl border border-[#eadcc2] bg-[#fffdf8] p-4">
-        <summary className="cursor-pointer font-black text-sm text-[#2f2415]">Annexe documents</summary>
-        <div className="mt-3">
-          <CulturesAnnexeTab documents={documents} onNavigate={props.onNavigate} />
-        </div>
-      </details>
     </div>
-  ) : tab === 'Récoltes' ? (
+  ) : tab === 'Campagnes cultures' ? (
+    <div ref={cyclesDetailsRef}>
+      <CulturesCyclesHub rows={rows} salesOrders={salesOrders} deliveries={deliveriesList} businessEvents={businessEvents} onNavigate={props.onNavigate} />
+    </div>
+  ) : tab === 'Irrigation cultures' ? (
+    <div ref={intrantsDetailsRef}><CulturesIntrantsHub {...sharedV3Props} /></div>
+  ) : tab === 'Intrants & fertilisation cultures' ? (
+    <div className="space-y-4">
+      <div ref={intrantsDetailsRef}><CulturesIntrantsHub {...sharedV3Props} /></div>
+      <div ref={santeDetailsRef}><CulturesSanteHub {...sharedV3Props} /></div>
+    </div>
+  ) : tab === 'Récoltes cultures' ? (
     <div className="space-y-4">
       <CulturesRecoltesHub
         rows={rows}
@@ -427,30 +428,22 @@ export default function CulturesRecoveredModule(props) {
         </div>
       </details>
     </div>
-  ) : (
+  ) : tab === 'Coûts & marge cultures' ? (
     <div className="space-y-4">
       <CulturesEconomieHub stocks={stocks} salesOrders={salesOrders} rows={rows} businessEvents={businessEvents} dataMap={dataMap} onNavigate={props.onNavigate} />
-      <details ref={graphiquesDetailsRef} className="rounded-2xl border border-[#eadcc2] bg-[#fffdf8] p-4">
-        <summary className="cursor-pointer font-black text-sm text-[#2f2415]">Graphiques & courbes</summary>
+    </div>
+  ) : (
+    <div className="space-y-4">
+      <CulturesHistory events={businessEvents} />
+      <details ref={annexeDetailsRef} className="border-t border-[#eadcc2] pt-4">
+        <summary className="cursor-pointer text-sm font-black text-[#2f2415]">Documents liés</summary>
+        <div className="mt-3"><CulturesAnnexeTab documents={documents} onNavigate={props.onNavigate} /></div>
+      </details>
+      <details ref={graphiquesDetailsRef} className="border-t border-[#eadcc2] pt-4">
+        <summary className="cursor-pointer text-sm font-black text-[#2f2415]">Courbes historiques</summary>
         <div className="mt-3 space-y-4">
-          {chartNarratives.length ? (
-            <section className="rounded-2xl border border-[#eadcc2] bg-[#fffdf8] p-4 space-y-2">
-              <h2 className="text-sm font-black text-[#2f2415]">Lecture des courbes</h2>
-              {chartNarratives.map((line) => <p key={line} className="text-sm text-[#7d6a4a]">{line}</p>)}
-            </section>
-          ) : null}
-          <ModuleGraphiquesTab
-            moduleId="cultures"
-            periodFiltered={periodFiltered}
-            periodScope={props.periodScope}
-            periodLabel={props.periodLabel}
-            cultures={rows}
-            salesOrders={salesOrders}
-            payments={payments}
-            transactions={transactions}
-            stocks={stocks}
-            onNavigate={props.onNavigate}
-          />
+          {chartNarratives.map((line) => <p key={line} className="text-sm text-[#7d6a4a]">{line}</p>)}
+          <ModuleGraphiquesTab moduleId="cultures" periodFiltered={periodFiltered} periodScope={props.periodScope} periodLabel={props.periodLabel} cultures={rows} salesOrders={salesOrders} payments={payments} transactions={transactions} stocks={stocks} onNavigate={props.onNavigate} />
         </div>
       </details>
     </div>
@@ -461,7 +454,7 @@ export default function CulturesRecoveredModule(props) {
       <section className="rounded-3xl border border-[#d6c3a0] bg-white p-5 shadow-sm">
         <p className="text-xs uppercase tracking-[0.25em] text-[#9a6b12] font-black">Production</p>
         <h1 className="mt-1 text-2xl font-black text-[#2f2415]">Cultures</h1>
-        <p className="mt-1 text-sm text-[#8a7456]">Parcelles, intrants, récoltes, transformation et rentabilité — centre métier sans double saisie Stock / Commercial / Finance.</p>
+        <p className="mt-1 text-sm text-[#8a7456]">Parcelles, campagnes, irrigation, intrants, récoltes, coûts et historique.</p>
         {props.periodLabel ? <div className="mt-2"><PeriodScopeBadge label={props.periodLabel} /></div> : null}
       </section>
       <ModuleTabsBar moduleId="cultures" active={tab} onChange={setTab} activeFarm={props.activeFarm} />

@@ -11,22 +11,22 @@ const lower = (value = '') => String(value || '').trim().toLowerCase();
 export function resolveCulturesSectionIntent(tab = '') {
   const key = lower(tab);
   if (key === 'intrants & météo' || key === 'intrants') {
-    return { tab: 'Parcelles & campagnes', section: 'intrants' };
+    return { tab: 'Intrants & fertilisation cultures', section: 'intrants' };
   }
   if (key === 'santé & protection' || key === 'sante') {
-    return { tab: 'Parcelles & campagnes', section: 'sante' };
+    return { tab: 'Intrants & fertilisation cultures', section: 'sante' };
   }
   if (key === 'cycles' || key === 'campagnes') {
-    return { tab: 'Parcelles & campagnes', section: 'cycles' };
+    return { tab: 'Campagnes cultures', section: 'cycles' };
   }
   if (key === 'annexe') {
-    return { tab: 'Parcelles & campagnes', section: 'annexe' };
+    return { tab: 'Historique cultures', section: 'annexe' };
   }
   if (key === 'transformation') {
-    return { tab: 'Récoltes', section: 'transformation' };
+    return { tab: 'Récoltes cultures', section: 'transformation' };
   }
   if (key === 'graphiques') {
-    return { tab: 'Économie circulaire', section: 'graphiques' };
+    return { tab: 'Historique cultures', section: 'graphiques' };
   }
   return { tab: null, section: null };
 }

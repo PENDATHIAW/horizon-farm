@@ -63,6 +63,7 @@ export const CRUD_KEYS = [
   'funding_opportunities', 'funding_contacts', 'funding_applications',
   'funding_document_library', 'funding_agreements', 'funding_expense_allocations',
   'funding_reports', 'funding_project_journal', 'funder_accounts', 'funder_access_logs',
+  'planning_simulations',
 ];
 
 export const SALES_WORKFLOW_KEYS = [
