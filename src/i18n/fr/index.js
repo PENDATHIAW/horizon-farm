@@ -5,8 +5,9 @@
  */
 import commun from './commun.js';
 import navigation from './navigation.js';
+import composants from './composants.js';
 
-const dictionnaire = { commun, navigation };
+const dictionnaire = { commun, navigation, composants };
 
 export default dictionnaire;
 
