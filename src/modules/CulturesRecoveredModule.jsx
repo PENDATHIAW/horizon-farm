@@ -7,7 +7,8 @@ import useLiveWeather from '../hooks/useLiveWeather';
 import { rowsOf } from '../utils/moduleRows';
 import { resolveCulturesSectionIntent, resolveCulturesTab } from '../utils/culturesNavigation.js';
 import { buildCulturesChartNarratives } from '../utils/culturesChartNarratives.js';
-import { buildCropCampaignStartWorkflow, buildIrrigationEventWorkflow } from '../utils/cultureWorkflows.js';
+import { buildCropCampaignStartWorkflow } from '../utils/cultureWorkflows.js';
+import { commitCultureIrrigation } from '../utils/culturesWorkflow.js';
 import { runCultureHarvestSideEffects } from '../utils/cultureSideEffects';
 import { buildOrganicTransferWorkflow } from '../utils/manureWorkflows.js';
 import { dispatchBpLineCompleted } from '../utils/bpLineConcretization.js';
@@ -17,6 +18,7 @@ import CulturesAnnexeTab from './cultures/CulturesAnnexeTab.jsx';
 import CulturesCyclesHub from './cultures/CulturesCyclesHub.jsx';
 import CulturesEconomieHub from './cultures/CulturesEconomieHub.jsx';
 import CulturesIntrantsHub from './cultures/CulturesIntrantsHub.jsx';
+import CulturesIrrigationQuickForm from './cultures/CulturesIrrigationQuickForm.jsx';
 import CulturesParcellesHub from './cultures/CulturesParcellesHub.jsx';
 import CulturesPilotageHub from './cultures/CulturesPilotageHub.jsx';
 import CulturesRecoltesHub from './cultures/CulturesRecoltesHub.jsx';
@@ -36,6 +38,10 @@ const isOrganicTransferPayload = (payload = {}) => hasAnyKey(payload, ['organic_
   || (clean(payload.stock_id) && hasAnyKey(payload, ['sacs', 'quantite', 'qty', 'poids_total_kg']))
   || ['organic_transfer', 'transfert_organique'].includes(norm(payload.type_evenement || payload.event_type));
 const isParcelRow = (row = {}) => ['parcelle', 'plot'].includes(norm(row.record_type || row.type_fiche || row.type));
+const DAILY_CULTURE_TABS = Object.freeze({
+  daily_irrigation: { tab: 'Irrigation cultures', testId: 'daily-irrigation-panel' },
+  daily_harvest: { tab: 'Récoltes cultures', testId: 'daily-harvest-panel' },
+});
 
 export default function CulturesRecoveredModule(props) {
   const controlled = Boolean(props.onTabChange);
@@ -79,6 +85,19 @@ export default function CulturesRecoveredModule(props) {
   }, [props.initialTab, rememberSection]);
 
   useEffect(() => {
+    const handler = (event) => {
+      const detail = event.detail || {};
+      const moduleKey = String(detail.module || detail.draft?.primary_module || '').toLowerCase();
+      const target = DAILY_CULTURE_TABS[detail.draft?.form_type];
+      if (moduleKey !== 'cultures' || !target) return;
+      setTab(target.tab);
+      window.setTimeout(() => document.querySelector(`[data-testid="${target.testId}"]`)?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 120);
+    };
+    window.addEventListener('horizon-open-form', handler);
+    return () => window.removeEventListener('horizon-open-form', handler);
+  }, [setTab]);
+
+  useEffect(() => {
     const refBySection = {
       intrants: intrantsDetailsRef,
       sante: santeDetailsRef,
@@ -118,6 +137,8 @@ export default function CulturesRecoveredModule(props) {
   const deliveriesList = rowsOf(props.deliveriesList || props.deliveries, deliveriesCrud, periodFiltered);
   const documents = rowsOf(props.documents, documentsCrud, periodFiltered);
   const stockMovements = rowsOf(props.stockMovements, movementsCrud, false);
+  const tasks = rowsOf(props.tasks, tasksCrud, false);
+  const alertes = rowsOf(props.alertes, alertsCrud, false);
   const meteo = props.meteo || liveMeteo;
 
   const workflowContext = {
@@ -129,6 +150,12 @@ export default function CulturesRecoveredModule(props) {
     salesOrders,
     payments: payments,
     clients: arr(props.clients),
+    tasks,
+    alertes,
+    smartReadings: arr(props.smartfarmEvents),
+    userId: props.user?.id || props.user?.email || 'system',
+    farmId: props.activeFarm?.id || props.farm?.id || '',
+    activeFarm: props.activeFarm || props.farm || null,
   };
 
   const refreshWorkflow = async () => {
@@ -228,17 +255,11 @@ export default function CulturesRecoveredModule(props) {
   const onUpdate = async (id, payload) => {
     const before = rows.find((row) => String(row.id) === String(id)) || {};
     if (isIrrigationPayload(payload)) {
-      const irrigation = buildIrrigationEventWorkflow({
-        culture: before,
-        payload: { ...payload, culture_id: id },
-        smartReadings: arr(props.smartfarmEvents),
-        date: payload.date || today(),
+      await commitCultureIrrigation({
+        form: { ...payload, culture_id: id },
+        context: workflowContext,
+        handlers: workflowHandlers,
       });
-      await onUpdateCultureOnly(id, { ...payload, ...(irrigation.culturePatch || {}) });
-      if (irrigation.task) await workflowHandlers.onCreateTask?.(irrigation.task);
-      if (irrigation.alert) await workflowHandlers.onCreateAlert?.(irrigation.alert);
-      if (irrigation.financeTransaction) await workflowHandlers.onCreateFinanceTransaction?.(irrigation.financeTransaction);
-      await workflowHandlers.onCreateBusinessEvent?.(irrigation.event);
       await refreshWorkflow();
       return;
     }
@@ -377,7 +398,10 @@ export default function CulturesRecoveredModule(props) {
       <CulturesCyclesHub rows={rows} salesOrders={salesOrders} deliveries={deliveriesList} businessEvents={businessEvents} onNavigate={props.onNavigate} />
     </div>
   ) : tab === 'Irrigation cultures' ? (
-    <div ref={intrantsDetailsRef}><CulturesIntrantsHub {...sharedV3Props} /></div>
+    <div className="space-y-4" ref={intrantsDetailsRef}>
+      <CulturesIrrigationQuickForm rows={rows} context={workflowContext} handlers={workflowHandlers} onSuccess={refreshWorkflow} />
+      <CulturesIntrantsHub {...sharedV3Props} />
+    </div>
   ) : tab === 'Intrants & fertilisation cultures' ? (
     <div className="space-y-4">
       <div ref={intrantsDetailsRef}><CulturesIntrantsHub {...sharedV3Props} /></div>

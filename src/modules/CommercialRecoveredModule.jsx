@@ -608,7 +608,7 @@ export default function CommercialRecoveredModule(props) {
       <CommercialModuleHeader tab={tab} setTab={setTab} healthScore={data.healthScore} periodLabel={props.periodLabel} periodFiltered={periodFiltered} onNavigate={props.onNavigate} onOpenAssistant={props.onOpenAssistant} badges={{ receivable: data.receivable, receivableAll: data.receivableAll, todo: todoBadge, tabs: tabBadges }} />
       {tab === 'Ventes & commandes commercial' ? (
         <div className="space-y-4">
-          <VentesV5 {...salesProps} />
+          <VentesV5 {...salesProps} user={props.user} />
           <details className="border-t border-[#eadcc2] pt-4">
             <summary className="cursor-pointer text-sm font-black text-[#2f2415]">Opportunités disponibles</summary>
             <div className="mt-4">{opportunitiesPanel}</div>

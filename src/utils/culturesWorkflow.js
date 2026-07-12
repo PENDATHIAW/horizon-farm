@@ -12,20 +12,23 @@ import {
 } from './stockWorkflows.js';
 import {
   buildCultureHarvestWorkflow,
-  cultureHarvestQty,
+  buildIrrigationEventWorkflow,
   cultureHarvestUnit,
   cultureLabel,
   cultureStockKey,
   cultureUnitPrice,
-  findCultureStock,
 } from './cultureWorkflows.js';
-import { buildCultureHarvestFinanceRow } from './cultureSideEffects.js';
 import {
-  buildPaidFinanceRow,
-  buildReceivableFinanceRow,
   runNewSaleSideEffects,
 } from './saleSideEffects.js';
 import { calculateCultureMetrics } from './businessCalculations.js';
+import {
+  attachDailyEntryMeta,
+  DAILY_ENTRY_TYPES,
+  dailyEntryRecordId,
+  findDailyEntryReplay,
+  resolveDailyEntryIdentity,
+} from './dailyQuickEntryContract.js';
 
 const arr = (value) => (Array.isArray(value) ? value : []);
 const clean = (value) => String(value || '').trim();
@@ -64,7 +67,16 @@ export function validateCultureHarvestForm(form = {}) {
   if (!clean(form.culture_id)) return 'Culture obligatoire.';
   const qty = num(form.quantite_recoltee ?? form.quantite);
   if (qty <= 0) return 'Quantité récoltée obligatoire.';
+  const downgraded = Math.max(0, num(form.quantite_declassee ?? form.quantite_declassement));
+  const loss = Math.max(0, num(form.quantite_perdue ?? form.quantite_perte));
+  if (downgraded + loss > qty) return 'Déclassement et pertes ne peuvent pas dépasser la récolte.';
   if (form.destination === 'perte') return '';
+  return '';
+}
+
+export function validateCultureIrrigationForm(form = {}) {
+  if (!clean(form.culture_id)) return 'Culture obligatoire.';
+  if (num(form.volume_litres ?? form.volume_l) <= 0) return 'Volume d’irrigation obligatoire.';
   return '';
 }
 
@@ -89,7 +101,7 @@ function harvestFees(form = {}) {
     + num(form.frais_main_oeuvre) + num(form.autres_frais);
 }
 
-function buildCulturePatchAfterHarvest(culture = {}, form = {}, qty = 0, unitCost = 0) {
+function buildCulturePatchAfterHarvest(culture = {}, form = {}, qty = 0, unitCost = 0, quality = {}) {
   const price = num(form.prix_vente_unitaire ?? form.prix_vente_kg ?? culture.prix_vente_unitaire ?? cultureUnitPrice(culture));
   const revenue = qty * price;
   const extra = harvestFees(form);
@@ -104,8 +116,11 @@ function buildCulturePatchAfterHarvest(culture = {}, form = {}, qty = 0, unitCos
   }
   return {
     quantite_recoltee: num(culture.quantite_recoltee) + qty,
-    quantite_disponible: num(culture.quantite_disponible) + qty,
+    quantite_disponible: num(culture.quantite_disponible) + quality.sellableQty,
     production_reelle: num(culture.production_reelle) + qty,
+    quantite_declassee: num(culture.quantite_declassee) + quality.downgradedQty,
+    pertes_recolte: num(culture.pertes_recolte) + quality.lossQty,
+    pertes: num(culture.pertes) + quality.lossQty,
     unite_recolte: form.unite || cultureHarvestUnit(culture),
     prix_vente_unitaire: price,
     prix_vente_kg: price,
@@ -152,17 +167,35 @@ export async function commitCultureHarvest({ form = {}, context = {}, handlers =
 
   const qty = num(form.quantite_recoltee ?? form.quantite);
   const unit = form.unite || cultureHarvestUnit(culture);
-  const harvestId = clean(form.harvest_id) || makeId('RECOLTE');
-  const issueKey = buildCultureIssueKey(CULTURE_DOMAINS.HARVEST, harvestId);
   const date = form.date || today();
+  const farmId = clean(form.farm_id || context.farmId || context.activeFarm?.id || culture.farm_id);
+  const identity = resolveDailyEntryIdentity(DAILY_ENTRY_TYPES.HARVEST, form, {
+    farmId,
+    recordId: cultureId,
+  });
+  const replay = findDailyEntryReplay([
+    ...arr(context.harvestRecords),
+    ...arr(context.businessEvents),
+  ], identity.eventKey);
+  if (replay) return { ok: true, replayed: true, eventKey: identity.eventKey, qty, unit };
+
+  const harvestId = clean(form.harvest_id) || dailyEntryRecordId('RECOLTE', identity);
+  const issueKey = identity.eventKey;
   const destination = lower(form.destination || 'stock');
+  const downgradedQty = destination === 'perte'
+    ? 0
+    : Math.max(0, num(form.quantite_declassee ?? form.quantite_declassement));
+  const lossQty = destination === 'perte'
+    ? qty
+    : Math.max(0, num(form.quantite_perdue ?? form.quantite_perte));
+  const sellableQty = Math.max(0, qty - downgradedQty - lossQty);
   const extra = harvestFees(form);
   const metrics = calculateCultureMetrics(culture);
   const unitCost = qty > 0
     ? ((num(culture.cout_total_reel) || metrics.costTotal) + extra) / qty
     : 0;
 
-  const harvestRecord = {
+  const harvestRecord = attachDailyEntryMeta({
     id: harvestId,
     culture_id: cultureId,
     related_id: cultureId,
@@ -173,15 +206,18 @@ export async function commitCultureHarvest({ form = {}, context = {}, handlers =
     source_module: 'cultures',
     module_lie: 'cultures',
     title: `Récolte · ${cultureLabel(culture)}`,
-    description: `${qty} ${unit}${extra > 0 ? ` · frais ${extra}` : ''}`,
+    description: `${qty} ${unit} · vendable ${sellableQty} · déclassé ${downgradedQty} · pertes ${lossQty}${extra > 0 ? ` · frais ${extra}` : ''}`,
     event_date: date,
     date,
     quantite: qty,
+    quantite_vendable: sellableQty,
+    quantite_declassee: downgradedQty,
+    quantite_perdue: lossQty,
     unite: unit,
     montant: extra,
     issue_key: issueKey,
     side_effects_managed: true,
-  };
+  }, identity, form.recorded_by || context.userId);
 
   await handlers.onCreateHarvestRecord?.(harvestRecord);
   if (!handlers.onCreateHarvestRecord && handlers.onCreateBusinessEvent) {
@@ -191,13 +227,14 @@ export async function commitCultureHarvest({ form = {}, context = {}, handlers =
   const before = { ...culture };
   const after = {
     ...culture,
-    ...buildCulturePatchAfterHarvest(culture, form, qty, unitCost),
+    ...buildCulturePatchAfterHarvest(culture, form, qty, unitCost, { sellableQty, downgradedQty, lossQty }),
     derniere_recolte_id: harvestId,
   };
 
   await handlers.onUpdateCulture?.(cultureId, after);
 
-  if (destination !== 'perte') {
+  let newStockQty = null;
+  if (destination !== 'perte' && sellableQty > 0) {
     const workflow = buildCultureHarvestWorkflow({
       before,
       after,
@@ -210,14 +247,14 @@ export async function commitCultureHarvest({ form = {}, context = {}, handlers =
     if (workflow) {
       const stockRow = workflow.stockExistingId
         ? { ...workflow.stock, id: workflow.stockExistingId }
-        : workflow.stock;
+        : { ...workflow.stock, id: dailyEntryRecordId('STK-Q', { ...identity, eventKey: `${identity.eventKey}:stock-row` }) };
 
       const unitPrice = num(form.prix_vente_unitaire) || unitCost || cultureUnitPrice(after);
       const stockPayload = {
         ...stockRow,
         quantite: workflow.stockExistingId
-          ? num(stockRow.quantite) + qty
-          : qty,
+          ? num(stockRow.quantite) + sellableQty
+          : sellableQty,
         prix_unitaire: unitPrice,
         prixUnit: unitPrice,
         prixunit: unitPrice,
@@ -241,7 +278,7 @@ export async function commitCultureHarvest({ form = {}, context = {}, handlers =
         const existing = arr(context.stocks).find((s) => clean(s.id) === clean(workflow.stockExistingId));
         const movement = applyStockMovement(existing || stockPayload, {
           type: 'entree',
-          qty,
+          qty: sellableQty,
           motif: `Récolte ${cultureLabel(culture)}`,
           date,
         });
@@ -250,31 +287,63 @@ export async function commitCultureHarvest({ form = {}, context = {}, handlers =
           ...stockPayload,
           quantite: stockQuantity(movement.stock),
         });
+        newStockQty = stockQuantity(movement.stock);
         if (handlers.onCreateBusinessEvent && movement.event) {
-          await handlers.onCreateBusinessEvent({
+          const stockEventIdentity = { ...identity, eventKey: `${identity.eventKey}:stock` };
+          await handlers.onCreateBusinessEvent(attachDailyEntryMeta({
             ...movement.event,
+            id: dailyEntryRecordId('EVT-Q', stockEventIdentity),
             event_type: 'entree_stock_recolte',
-            issue_key: buildCultureIssueKey(CULTURE_DOMAINS.HARVEST, harvestId, 'stock'),
+            issue_key: stockEventIdentity.eventKey,
             linked_harvest_id: harvestId,
             culture_id: cultureId,
-          });
+          }, stockEventIdentity, form.recorded_by || context.userId));
         }
       } else if (handlers.onCreateStock) {
         await handlers.onCreateStock(stockPayload);
+        newStockQty = num(stockPayload.quantite);
         if (handlers.onCreateBusinessEvent) {
-          await handlers.onCreateBusinessEvent({
-            id: makeId('EVT'),
+          const stockEventIdentity = { ...identity, eventKey: `${identity.eventKey}:stock` };
+          await handlers.onCreateBusinessEvent(attachDailyEntryMeta({
+            id: dailyEntryRecordId('EVT-Q', stockEventIdentity),
             event_type: 'entree_stock_recolte',
             module_source: 'cultures',
             entity_type: 'stock',
             entity_id: stockPayload.id,
             title: `Entrée stock récolte · ${cultureLabel(culture)}`,
-            description: `${qty} ${unit}`,
+            description: `${sellableQty} ${unit}`,
             event_date: date,
-            issue_key: buildCultureIssueKey(CULTURE_DOMAINS.HARVEST, harvestId, 'stock'),
+            issue_key: stockEventIdentity.eventKey,
             linked_harvest_id: harvestId,
-            quantity: qty,
+            quantity: sellableQty,
             side_effects_managed: true,
+          }, stockEventIdentity, form.recorded_by || context.userId));
+        }
+      }
+
+      if (handlers.onCreateStockMovement) {
+        const movementKey = `${identity.eventKey}:stock-movement`;
+        const movementExists = arr(context.stockMovements).some((row) => clean(row.event_key || row.idempotency_key || row.dedupe_key) === movementKey);
+        if (!movementExists) {
+          await handlers.onCreateStockMovement({
+            id: dailyEntryRecordId('STKMVT-Q', { ...identity, eventKey: movementKey }),
+            stock_id: stockPayload.id,
+            movement_type: 'entree',
+            quantity: sellableQty,
+            unit,
+            stock_before: Math.max(0, num(newStockQty) - sellableQty),
+            stock_after: num(newStockQty),
+            stock_delta: sellableQty,
+            source_module: 'cultures',
+            source_record_id: harvestId,
+            notes: `Récolte ${cultureLabel(culture)}`,
+            movement_date: date,
+            farm_id: farmId || null,
+            entry_id: identity.entryId,
+            event_key: movementKey,
+            idempotency_key: movementKey,
+            recorded_by: form.recorded_by || context.userId || 'system',
+            dedupe_key: movementKey,
           });
         }
       }
@@ -288,6 +357,7 @@ export async function commitCultureHarvest({ form = {}, context = {}, handlers =
         } else if (handlers.onCreateOpportunity) {
           await handlers.onCreateOpportunity({
             ...workflow.opportunity,
+            id: dailyEntryRecordId('OPP-Q', { ...identity, eventKey: `${identity.eventKey}:opportunity` }),
             issue_key: buildCultureIssueKey(CULTURE_DOMAINS.HARVEST, harvestId, 'opp'),
             side_effects_managed: true,
           });
@@ -295,27 +365,107 @@ export async function commitCultureHarvest({ form = {}, context = {}, handlers =
       }
 
       if (workflow.event && handlers.onCreateBusinessEvent) {
-        await handlers.onCreateBusinessEvent({
+        const workflowEventIdentity = { ...identity, eventKey: `${identity.eventKey}:workflow` };
+        await handlers.onCreateBusinessEvent(attachDailyEntryMeta({
           ...workflow.event,
-          issue_key: issueKey,
+          id: dailyEntryRecordId('EVT-Q', workflowEventIdentity),
+          issue_key: workflowEventIdentity.eventKey,
           linked_harvest_id: harvestId,
-        });
-      }
-    }
-
-    const harvestRevenue = num(form.prix_vente_unitaire) * qty || cultureUnitPrice(after) * qty;
-    if (harvestRevenue > 0 && handlers.onCreateFinanceTransaction) {
-      const financeRow = buildCultureHarvestFinanceRow({ culture: after, amount: harvestRevenue, date });
-      if (financeRow) {
-        const exists = arr(context.transactions).some((t) => clean(t.id) === clean(financeRow.id));
-        if (!exists) {
-          await handlers.onCreateFinanceTransaction({ ...financeRow, issue_key: issueKey });
-        }
+        }, workflowEventIdentity, form.recorded_by || context.userId));
       }
     }
   }
 
-  return { ok: true, harvestId, issueKey, qty, unitCost };
+  return {
+    ok: true,
+    harvestId,
+    issueKey,
+    eventKey: identity.eventKey,
+    qty,
+    sellableQty,
+    downgradedQty,
+    lossQty,
+    unit,
+    unitCost,
+    newStockQty,
+  };
+}
+
+/** Cultures → Irrigation : coût technique, suivi eau, alerte et traçabilité sans faux décaissement. */
+export async function commitCultureIrrigation({ form = {}, context = {}, handlers = {} } = {}) {
+  const err = validateCultureIrrigationForm(form);
+  if (err) throw new Error(err);
+
+  const cultureId = clean(form.culture_id);
+  const culture = arr(context.cultures).find((row) => clean(row.id) === cultureId);
+  if (!culture) throw new Error('Culture introuvable');
+
+  const date = form.date || today();
+  const farmId = clean(form.farm_id || context.farmId || context.activeFarm?.id || culture.farm_id);
+  const identity = resolveDailyEntryIdentity(DAILY_ENTRY_TYPES.IRRIGATION, form, {
+    farmId,
+    recordId: cultureId,
+  });
+  const replay = findDailyEntryReplay(context.businessEvents, identity.eventKey);
+  const volumeLitres = num(form.volume_litres ?? form.volume_l);
+  if (replay) return { ok: true, replayed: true, eventKey: identity.eventKey, volumeLitres };
+
+  const workflow = buildIrrigationEventWorkflow({
+    culture,
+    payload: form,
+    smartReadings: context.smartReadings,
+    date,
+  });
+
+  if (workflow.culturePatch) {
+    await handlers.onUpdateCulture?.(cultureId, {
+      ...workflow.culturePatch,
+      issue_key: identity.eventKey,
+      event_key: identity.eventKey,
+    });
+  }
+
+  if (workflow.alert && handlers.onCreateAlert) {
+    const key = `${identity.eventKey}:alert`;
+    const exists = arr(context.alertes).some((row) => clean(row.alert_dedupe_key || row.issue_key) === key);
+    if (!exists) {
+      await handlers.onCreateAlert({
+        ...workflow.alert,
+        id: dailyEntryRecordId('ALT-Q', { ...identity, eventKey: key }),
+        alert_dedupe_key: key,
+        issue_key: key,
+      });
+    }
+  }
+
+  if (workflow.task && handlers.onCreateTask) {
+    const key = `${identity.eventKey}:task`;
+    const exists = arr(context.tasks).some((row) => clean(row.task_dedupe_key || row.issue_key) === key);
+    if (!exists) {
+      await handlers.onCreateTask({
+        ...workflow.task,
+        id: dailyEntryRecordId('TSK-Q', { ...identity, eventKey: key }),
+        task_dedupe_key: key,
+        issue_key: key,
+      });
+    }
+  }
+
+  await handlers.onCreateBusinessEvent?.(attachDailyEntryMeta({
+    ...workflow.event,
+    id: identity.eventId,
+    issue_key: identity.eventKey,
+    farm_id: farmId || undefined,
+    side_effects_managed: true,
+  }, identity, form.recorded_by || context.userId));
+
+  return {
+    ok: true,
+    eventKey: identity.eventKey,
+    volumeLitres,
+    cost: num(workflow.reporting?.cout),
+    abnormal: Boolean(workflow.reporting?.abnormal),
+  };
 }
 
 /** Dépense culture liée + preuve document optionnelle. */

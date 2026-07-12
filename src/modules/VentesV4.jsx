@@ -5,14 +5,13 @@ import toast from 'react-hot-toast';
 import { fmtCurrency } from '../utils/format';
 import { calculateSalesMargin } from '../utils/salesMarginEngine';
 import { buildDeliveryHandlers, confirmSaleDelivery } from '../utils/confirmSaleDelivery';
-import { paidForOrder, remainingForOrder } from '../utils/salesStatuses';
+import { remainingForOrder } from '../utils/salesStatuses';
 import { isDelivered, isSaleClosed, linkedPaymentsForOrders, saleAmount } from './commercial/commercialMetrics.js';
 import SalesFollowUpPanel from './SalesFollowUpPanel.jsx';
 import SalesWorkflowHealth from './SalesWorkflowHealth.jsx';
 import CommercialSaleRepairPanel from './commercial/CommercialSaleRepairPanel.jsx';
 import { SaleModal } from './VentesTerrainV3.jsx';
 
-const today = () => new Date().toISOString().slice(0, 10);
 const deliveryStatus = (sale = {}) => sale.statut_livraison || sale.delivery_status || sale.status_livraison || 'a_livrer';
 const statusBadge = (text = '', tone = 'amber') => <span className={`rounded-full px-2 py-1 text-[11px] font-black border ${tone === 'green' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : tone === 'red' ? 'bg-red-50 text-red-700 border-red-200' : 'bg-amber-50 text-amber-700 border-amber-200'}`}>{text}</span>;
 
@@ -55,7 +54,7 @@ function SalesDesk({ props, payments, onShowFollowup, embedded = false }) {
       setDeliveringId(null);
     }
   };
-  const sales = props.rows || [];
+  const sales = useMemo(() => props.rows || [], [props.rows]);
   const linked = useMemo(() => linkedPaymentsForOrders(sales, payments), [sales, payments]);
   const marginContext = useMemo(() => ({
     lots: props.lots || props.avicole || [],
@@ -125,9 +124,8 @@ export default function VentesV4(props) {
 
   const openNewSale = () => { setModalDraft(null); setModalOpen(true); };
   const closeSale = () => { setModalOpen(false); setModalDraft(null); };
-  const onSaleDone = (orderId) => {
+  const onSaleDone = () => {
     closeSale();
-    toast.success(`Vente ${orderId} enregistrée`);
     setView('todo');
   };
 
@@ -154,8 +152,7 @@ export default function VentesV4(props) {
     {view === 'register' ? (
       <div className="rounded-2xl border border-[#d6c3a0] bg-white p-6 text-center shadow-sm">
         <ShoppingCart size={28} className="mx-auto text-[#9a6b12]" />
-        <p className="mt-3 font-black text-[#2f2415]">Formulaire guidé en 5 étapes</p>
-        <p className="mt-1 text-sm text-[#8a7456]">Produit → client → livraison → paiement → validation</p>
+        <p className="mt-3 font-black text-[#2f2415]">Enregistrer une vente</p>
         <button type="button" onClick={openNewSale} className="mt-4 min-h-[44px] rounded-xl bg-[#2f2415] px-6 py-2 text-sm font-black text-white"><CheckCircle2 size={16} className="inline mr-1" /> Ouvrir</button>
       </div>
     ) : null}

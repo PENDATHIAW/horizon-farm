@@ -7,6 +7,7 @@ import ListeTaches from '../../components/shared/ListeTaches.jsx';
 import { resolveDashboardTab } from '../../utils/commercialNavigation.js';
 import BaseAccueil from '../DashboardV2.jsx';
 import AccueilCommercialCard from './AccueilCommercialCard.jsx';
+import DailyQuickActions from './DailyQuickActions.jsx';
 
 const KPI_LINKS = Object.freeze([
   { code: 'chiffre_affaires', label: 'Chiffre d’affaires', module: 'commercial', sensitive: true },
@@ -48,6 +49,7 @@ export default function AccueilRefinedEntry(props) {
       <ModuleTabsBar moduleId="dashboard" active={tab} onChange={setTab} role={role} activeFarm={props.activeFarm} />
       {tab === 'Carnet Horizon' ? (
         <>
+          <DailyQuickActions onNavigate={props.onNavigate} />
           <BaseAccueil {...props} />
           <div className="grid gap-5 lg:grid-cols-2">
             <ListeAlertes title="Alertes critiques" alertes={props.alertes || props.dataMap?.alertes_center || []} farmId={farmId} severities={CRITICAL_SEVERITIES} statuses={OPEN_ALERT_STATUSES} period={period} limit={6} onNavigate={props.onNavigate} />

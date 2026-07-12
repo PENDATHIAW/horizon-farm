@@ -37,6 +37,7 @@ export function buildIssueKey(params = {}) {
 export function recordDedupeKey(row = {}) {
   return clean(
     row.idempotency_key
+    || row.event_key
     || row.issue_key
     || row.task_dedupe_key
     || row.alert_dedupe_key

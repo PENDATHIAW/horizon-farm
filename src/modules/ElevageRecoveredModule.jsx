@@ -55,6 +55,12 @@ const isPondeuse = (row = {}) => lotName(row).includes('pondeuse') || lotName(ro
 const isChair = (row = {}) => lotName(row).includes('chair') || lotName(row).includes('broiler');
 const isHealthLate = (row = {}) => ['retard', 'en_retard', 'a_faire_retard', 'overdue'].includes(lower(row.statut || row.status || row.etat));
 const isBirthLikeEvent = (row = {}) => /naissance|mise bas|veau|agneau|chevreau/.test(lower(`${row.event_type || ''} ${row.title || ''} ${row.description || ''}`));
+const DAILY_ELEVAGE_FORMS = Object.freeze({
+  daily_feeding: 'feeding',
+  daily_eggs: 'eggs',
+  daily_mortality: 'mortality',
+  daily_weighing: 'weighing',
+});
 const isGestanteAnimal = (row = {}) =>
   /gestante|gestation|mise bas prevue|saillie confirm|en gestation/.test(
     lower(`${row.statut_reproduction || ''} ${row.reproduction_status || ''} ${row.statut || ''} ${row.notes || ''}`),
@@ -136,6 +142,13 @@ export default function ElevageRecoveredModule(props) {
       const draft = detail.draft;
       const moduleKey = String(detail.module || draft?.primary_module || '').toLowerCase();
       const formType = draft?.form_type || '';
+      const dailyModal = DAILY_ELEVAGE_FORMS[formType];
+      if (moduleKey === 'elevage' && dailyModal) {
+        setWorkflowScope(draft?.draft_fields?.scope || 'avicole');
+        setTab('Production élevage');
+        setActiveModal(dailyModal);
+        return;
+      }
       const birthModes = ['naissance_ferme', 'reproduction_interne'];
       const mode = String(draft?.draft_fields?.mode_acquisition || '').toLowerCase();
       const isReproModule = moduleKey === 'elevage' || moduleKey === 'reproduction';
@@ -297,6 +310,9 @@ export default function ElevageRecoveredModule(props) {
     productionLogs,
     sante: health,
     stockMovements,
+    user: props.user,
+    activeFarm: props.activeFarm,
+    farm: props.farm,
   });
 
   const elevageHandlers = buildElevageHandlers({
@@ -630,6 +646,7 @@ export default function ElevageRecoveredModule(props) {
       {findActiveWithdrawals(health).length ? <SanitaryWithdrawalBanner healthRows={health} /> : null}
       {content}
       <ElevageWorkflowPanels
+        key={`${activeModal || 'closed'}:${workflowScope}`}
         activeModal={activeModal}
         onClose={closeWorkflow}
         context={workflowContext}
