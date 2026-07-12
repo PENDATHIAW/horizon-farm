@@ -16,6 +16,8 @@ import {
   Wind,
   X,
 } from 'lucide-react';
+import { readOfflineQueue } from '../services/offlineQueueService';
+import { t } from '../i18n/fr/index.js';
 import { useEffect, useMemo, useState } from 'react';
 import BrandLogo from '../components/BrandLogo';
 import GlobalFarmControl from '../components/GlobalFarmControl';
@@ -150,6 +152,20 @@ export default function AppLayout({
   const farmLocation = activeFarm?.name || activeFarm?.location || currentWeather.location || currentWeather.localisation || currentWeather.city || currentWeather.place || currentWeather.nom_ferme || 'Horizon Farm';
   const currentDateTime = useMemo(() => formatDateTime(), []);
   const [globalSearch, setGlobalSearch] = useState('');
+  const [pendingSyncCount, setPendingSyncCount] = useState(() => readOfflineQueue().length);
+  useEffect(() => {
+    const majFileAttente = () => setPendingSyncCount(readOfflineQueue().length);
+    window.addEventListener('online', majFileAttente);
+    window.addEventListener('offline', majFileAttente);
+    window.addEventListener('storage', majFileAttente);
+    const timer = window.setInterval(majFileAttente, 20000);
+    return () => {
+      window.removeEventListener('online', majFileAttente);
+      window.removeEventListener('offline', majFileAttente);
+      window.removeEventListener('storage', majFileAttente);
+      window.clearInterval(timer);
+    };
+  }, []);
   const [mobileSearchOpen, setMobileSearchOpen] = useState(false);
   const [notificationsOpen, setNotificationsOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
@@ -258,6 +274,7 @@ export default function AppLayout({
                 <HeaderPill icon={Droplets}>{currentWeather.humidity}%</HeaderPill>
                 <HeaderPill icon={Wind}>{currentWeather.wind === '-' ? currentWeather.condition : `${currentWeather.wind} km/h`}</HeaderPill>
                 <HeaderPill icon={online ? Wifi : WifiOff}>{online ? 'En ligne' : 'Hors ligne'}</HeaderPill>
+                {pendingSyncCount > 0 ? <HeaderPill icon={WifiOff}>{t('commun.etats.enAttenteEnvoi', { n: pendingSyncCount })}</HeaderPill> : null}
               </div>
               <div className="hidden lg:block relative w-full max-w-sm">
                 <VoiceSearch value={globalSearch} onChange={setGlobalSearch} placeholder="Recherche" />

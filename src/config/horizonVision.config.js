@@ -33,7 +33,7 @@ export const MODULE_TARGET_TABS = {
   equipements: ['Équipements', 'Maintenance', 'Pannes', 'Coûts', 'Disponibilité'],
   smartfarm: ['Capteurs', 'Eau', 'Énergie', 'Alertes techniques', 'Automatisation terrain'],
   sync_activity: ['Vérifications', 'Connexion & envoi', 'Journal d’activité', 'Données hors ligne'],
-  gestion_systeme: ['Utilisateurs', 'Rôles', 'Fermes', 'Sécurité', 'Audit', 'Paramètres'],
+  gestion_systeme: ['Vue admin', 'Utilisateurs', 'Fermes', 'Paramètres', 'Sécurité', 'Synchronisation', 'Audit'],
 };
 
 /** Interconnexions obligatoires. Les clés événementielles viennent de businessInterconnections.config.js. */
