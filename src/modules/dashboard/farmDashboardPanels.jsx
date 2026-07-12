@@ -206,9 +206,6 @@ export function FarmLocationGrid({ cards = [], onNavigate }) {
             </div>
             <p className="mt-2 text-xs text-[#8a7456]">{card.activities}</p>
             <p className="mt-1 text-xs text-[#8a7456]">Statut : {card.status || 'active'}</p>
-            {card.weatherTemp != null ? (
-              <p className="mt-2 text-xs text-sky-800">{card.weatherTemp}°C · {card.weatherCondition || 'Conditions stables'}</p>
-            ) : null}
             <p className="mt-1 text-xs text-[#8a7456]">
               {card.latitude != null && card.longitude != null
                 ? `GPS ${card.latitude}, ${card.longitude}`

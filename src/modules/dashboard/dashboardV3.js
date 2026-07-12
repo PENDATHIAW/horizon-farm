@@ -460,8 +460,6 @@ export function buildSingleFarmLocationCard(farm = {}, summary = {}, weather = {
     status: farm.status || 'active',
     score: summary.exploitationScore ?? null,
     alerts: summary.alertesOuvertes ?? 0,
-    weatherTemp: weather.temp ?? weather.temperature ?? null,
-    weatherCondition: weather.condition || weather.weather || null,
     mainAlerts: adaptedAlerts.slice(0, 3),
   };
 }

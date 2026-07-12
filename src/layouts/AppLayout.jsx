@@ -3,17 +3,14 @@ import {
   Bell,
   Bot,
   CheckCircle,
-  Droplets,
   LogOut,
   MapPin,
   Menu,
   Search,
   Settings,
-  Thermometer,
   UserCog,
   Wifi,
   WifiOff,
-  Wind,
   X,
 } from 'lucide-react';
 import { readOfflineQueue } from '../services/offlineQueueService';
@@ -270,9 +267,6 @@ export default function AppLayout({
               <span className={`hidden sm:inline-flex rounded-full border px-2 py-0.5 text-[10px] font-black uppercase tracking-wide ${simulatedDataMode ? 'border-violet-200 bg-violet-50 text-violet-800' : 'border-sky-200 bg-sky-50 text-sky-800'}`}>{simulatedDataMode ? 'Données simulées' : 'Données réelles'}</span>
               <div className="hidden xl:flex items-center gap-2">
                 <HeaderPill icon={MapPin}>{farmLocation}</HeaderPill>
-                <HeaderPill icon={Thermometer}>{weatherLoading ? 'Météo...' : `${currentWeather.temp}°C`}</HeaderPill>
-                <HeaderPill icon={Droplets}>{currentWeather.humidity}%</HeaderPill>
-                <HeaderPill icon={Wind}>{currentWeather.wind === '-' ? currentWeather.condition : `${currentWeather.wind} km/h`}</HeaderPill>
                 <HeaderPill icon={online ? Wifi : WifiOff}>{online ? 'En ligne' : 'Hors ligne'}</HeaderPill>
                 {pendingSyncCount > 0 ? <HeaderPill icon={WifiOff}>{t('commun.etats.enAttenteEnvoi', { n: pendingSyncCount })}</HeaderPill> : null}
               </div>
