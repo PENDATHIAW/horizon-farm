@@ -42,7 +42,7 @@ const TECH_TERMS = [
   /OCR[^.\n]*/gi, /Horizon Advisor[^.\n]*/gi, /Horizon Forecast[^.\n]*/gi,
   /Smart Farm[^.\n]*/gi, /WhatsApp Horizon[^.\n]*/gi, /pilotage par la donnée/gi,
   /agriculture intelligente/gi, /technologies numériques/gi, /stratégie data/gi,
-  /\bstack\b/gi, /Business Intelligence/gi, /automatisation/gi, /modules IA[^.\n]*/gi,
+  /\bstack\b/gi, /Business Intelligence/gi, /automatisation/gi, /modules d’analyse[^.\n]*/gi,
   /score santé[^.\n]*/gi, /CA ERP/gi, /système de gestion propriétaire/gi,
 ];
 

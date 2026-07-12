@@ -1,5 +1,5 @@
 /**
- * Réponses investisseur / dirigeant — moteurs canoniques uniquement.
+ * Réponses investisseur / dirigeant — moteurs de calcul uniquement.
  * consolidateFinance · buildConsolidatedCommercialKpis · summarizeSalesMargins · buildObjectifsCroissanceData
  */
 
@@ -116,7 +116,7 @@ export function buildInvestorPilotageAnswer(type = 'farm_status', dataMap = {}) 
       break;
     case 'investor_room':
       situation = `CA ${fmtCurrency(ca)} · Trésorerie ${fmtCurrency(treasury)} · Marge ${fmtCurrency(margin)}.`;
-      cause = 'Synthèse issue des moteurs canoniques Finance et Commercial.';
+      cause = 'Synthèse issue des moteurs de calcul Finance et Commercial.';
       action = 'Ouvrir Financements pour le dossier complet ou exporter le rapport financeur.';
       sources = ['consolidateFinance', 'buildConsolidatedCommercialKpis', 'summarizeSalesMargins', 'buildObjectifsCroissanceData'];
       title = 'Vue financeur';
@@ -152,7 +152,7 @@ export function buildInvestorPilotageAnswer(type = 'farm_status', dataMap = {}) 
     case 'investment_capacity':
       situation = `Trésorerie ${fmtCurrency(treasury)} · Marge ${fmtCurrency(margin)} · Dettes ${fmtCurrency(payables)}.`;
       cause = treasury > payables && margin > 0
-        ? 'Capacité d\'investissement favorable sur la base des moteurs canoniques.'
+        ? 'Capacité d\'investissement favorable sur la base des moteurs de calcul.'
         : 'Trésorerie ou marge insuffisante pour un investissement immédiat.';
       action = treasury > payables && margin > 0
         ? 'Étudiez un investissement ciblé dans Investissements ou Objectifs & Croissance.'

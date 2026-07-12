@@ -191,7 +191,7 @@ export default function AchatsStockPurchasesPanel({ data, setTab, onNavigate, on
           {data.supplierDebts?.length || 0} fournisseur(s) · {fmtCurrency(data.debt)} → Fournisseurs
         </button>
         <p className="text-xs text-[#8a7456] flex items-center gap-1 mt-2">
-          <Truck size={13} /> Chaque réception passe par le chemin canonique : stock, finance, mouvement et preuve.
+          <Truck size={13} /> Chaque réception suit le même parcours : stock, finance, mouvement et preuve.
         </p>
       </AchatsStockSection>
     </div>

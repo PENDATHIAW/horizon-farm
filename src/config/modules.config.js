@@ -4,30 +4,35 @@ import {
   UserCog, Warehouse, Wifi, Wrench,
 } from 'lucide-react';
 
-const noIcon = () => null;
+import navigation from '../i18n/fr/navigation.js';
 
-/** Registre central des modules ERP — routes, labels, regroupements. */
+const noIcon = () => null;
+const libelle = (id) => navigation.modules[id] || id;
+
+/** Registre central des modules ERP — routes, labels, regroupements. Libellés : src/i18n. */
 export const MODULE_REGISTRY = {
-  dashboard: { label: 'Accueil', icon: LayoutDashboard, group: 'core' },
-  assistant_erp: { label: 'Assistant ERP', icon: Bot, group: 'core' },
-  centre_ia: { label: 'Centre décisionnel', icon: BrainCircuit, group: 'pilotage' },
-  agri_feeds: { label: 'AGRI FEEDS', icon: noIcon, group: 'pilotage' },
-  objectifs_croissance: { label: 'Objectifs & Croissance', icon: Goal, group: 'pilotage' },
-  elevage: { label: 'Élevage', icon: Beef, group: 'metier' },
-  commercial: { label: 'Commercial', icon: ShoppingCart, group: 'metier' },
-  achats_stock: { label: 'Achats & Stock', icon: Warehouse, group: 'metier' },
-  finance_pilotage: { label: 'Finance & Pilotage', icon: DollarSign, group: 'metier' },
-  activite_suivi: { label: 'Activité & Suivi', icon: ClipboardList, group: 'metier' },
-  documents_rapports: { label: 'Documents & Rapports', icon: FolderOpen, group: 'metier' },
-  financements: { label: 'Financements', icon: Handshake, group: 'pilotage' },
-  impact_business: { label: 'Financements', icon: Handshake, group: 'pilotage', deprecated: true },
-  investisseurs_forums: { label: 'Financements', icon: Handshake, group: 'pilotage', deprecated: true },
-  cultures: { label: 'Cultures', icon: Sprout, group: 'metier' },
-  rh: { label: 'Opérations & Ressources', icon: UserCog, group: 'operations' },
-  equipements: { label: 'Équipements', icon: Wrench, group: 'operations' },
-  smartfarm: { label: 'Smart Farm', icon: Tractor, group: 'operations' },
-  sync_activity: { label: 'Activité & Sync ERP', icon: Wifi, group: 'system' },
-  gestion_systeme: { label: 'Gestion du système', icon: Settings, group: 'system' },
+  dashboard: { label: libelle('dashboard'), icon: LayoutDashboard, group: 'core' },
+  assistant_erp: { label: libelle('assistant_erp'), icon: Bot, group: 'core' },
+  centre_decisionnel: { label: libelle('centre_decisionnel'), icon: BrainCircuit, group: 'pilotage' },
+  centre_ia: { label: libelle('centre_decisionnel'), icon: BrainCircuit, group: 'pilotage', deprecated: true },
+  agri_feeds: { label: libelle('agri_feeds'), icon: noIcon, group: 'pilotage' },
+  objectifs_croissance: { label: libelle('objectifs_croissance'), icon: Goal, group: 'pilotage' },
+  elevage: { label: libelle('elevage'), icon: Beef, group: 'metier' },
+  commercial: { label: libelle('commercial'), icon: ShoppingCart, group: 'metier' },
+  achats_stock: { label: libelle('achats_stock'), icon: Warehouse, group: 'metier' },
+  finance_pilotage: { label: libelle('finance_pilotage'), icon: DollarSign, group: 'metier' },
+  activite_suivi: { label: libelle('activite_suivi'), icon: ClipboardList, group: 'metier' },
+  documents_rapports: { label: libelle('documents_rapports'), icon: FolderOpen, group: 'metier' },
+  financements: { label: libelle('financements'), icon: Handshake, group: 'pilotage' },
+  impact_business: { label: libelle('financements'), icon: Handshake, group: 'pilotage', deprecated: true },
+  investisseurs_forums: { label: libelle('financements'), icon: Handshake, group: 'pilotage', deprecated: true },
+  cultures: { label: libelle('cultures'), icon: Sprout, group: 'metier' },
+  equipe: { label: libelle('equipe'), icon: UserCog, group: 'operations' },
+  rh: { label: libelle('equipe'), icon: UserCog, group: 'operations', deprecated: true },
+  equipements: { label: libelle('equipements'), icon: Wrench, group: 'operations' },
+  smartfarm: { label: libelle('smartfarm'), icon: Tractor, group: 'operations' },
+  sync_activity: { label: libelle('gestion_systeme'), icon: Wifi, group: 'system', deprecated: true },
+  gestion_systeme: { label: libelle('gestion_systeme'), icon: Settings, group: 'system' },
 };
 
 /** Modules historiques — accessibles par route directe, regroupés en « avancés ». */
@@ -38,7 +43,7 @@ export const ADVANCED_MODULE_IDS = [
 ];
 
 export const GRAND_MODULE_IDS = [
-  'centre_ia', 'agri_feeds', 'objectifs_croissance', 'elevage', 'commercial',
+  'centre_decisionnel', 'agri_feeds', 'objectifs_croissance', 'elevage', 'commercial',
   'achats_stock', 'finance_pilotage', 'activite_suivi', 'documents_rapports',
 ];
 
@@ -66,13 +71,13 @@ export const SALES_WORKFLOW_KEYS = [
 ];
 
 export const NAV_MODULE_ORDER = [
-  'dashboard', 'assistant_erp', 'centre_ia', 'agri_feeds', 'objectifs_croissance', 'financements',
+  'dashboard', 'assistant_erp', 'centre_decisionnel', 'agri_feeds', 'objectifs_croissance', 'financements',
   'elevage', 'cultures',
   'commercial', 'achats_stock',
   'finance_pilotage',
   'activite_suivi', 'documents_rapports',
-  'rh', 'equipements', 'smartfarm',
-  'sync_activity', 'gestion_systeme',
+  'equipe', 'equipements', 'smartfarm',
+  'gestion_systeme',
 ];
 
 export const ROUTE_TO_MODULE = {

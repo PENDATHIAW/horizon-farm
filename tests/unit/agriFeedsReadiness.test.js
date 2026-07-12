@@ -37,7 +37,7 @@ test('readiness — retourne toujours la structure riche (jamais binaire)', () =
     assert.ok(k in readiness, `champ manquant : ${k}`);
   });
   assert.equal(readiness.human_validation_required, true);
-  assert.match(readiness.ai_disclaimer, /humain/i);
+  assert.match(readiness.ai_disclaimer, /confirmer/i);
   assert.equal(readiness.recommendedMode, 'REFERENCE');
 });
 

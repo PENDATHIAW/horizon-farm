@@ -1,5 +1,5 @@
 /**
- * Réponses agricoles — lecture seule via moteurs canoniques uniquement.
+ * Réponses agricoles — lecture seule via moteurs de calcul uniquement.
  * consolidateFinance · buildConsolidatedCommercialKpis · summarizeSalesMargins
  * buildObjectifsCroissanceData · computeFarmHeadcount · computeCultureSummary · computeStockSummary
  */

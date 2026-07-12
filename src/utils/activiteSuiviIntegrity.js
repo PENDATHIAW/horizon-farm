@@ -76,7 +76,7 @@ export function buildActiviteGapRows({
     if (recSeen.has(key)) {
       push({
         issue_key: buildActiviteIssueKey('gap', rec.id, 'rec_doublon'),
-        title: 'Recommandation IA doublonnée',
+        title: 'Suggestion doublonnée',
         detail: `${rec.title || rec.id} ≈ ${recSeen.get(key)}`,
         repair: 'dedupe_recommendation',
         record_id: rec.id,

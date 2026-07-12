@@ -1,6 +1,6 @@
 /**
  * Carnet Horizon — version dirigeant agricole.
- * Agrégation lecture seule via moteurs canoniques existants.
+ * Agrégation lecture seule via moteurs de calcul existants.
  */
 
 import { fmtCurrency } from '../../utils/format.js';

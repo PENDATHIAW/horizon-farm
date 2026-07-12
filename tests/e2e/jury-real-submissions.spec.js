@@ -1,8 +1,8 @@
 import { expect, test } from '@playwright/test';
 import { assertNoBadUiText, collectRuntimeErrors, waitForAppReady } from './helpers.js';
 
-const LOGIN = process.env.E2E_LOGIN || 'penda';
-const PASSWORD = process.env.E2E_PASSWORD || 'Mariemediatta10#';
+const LOGIN = process.env.E2E_LOGIN || '';
+const PASSWORD = process.env.E2E_PASSWORD || '';
 const stamp = () => `TEST JURY ${Date.now()}`;
 
 const FORM_ACTIONS = [

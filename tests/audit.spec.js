@@ -1,7 +1,7 @@
 import { test } from '@playwright/test';
 
 const BASE = 'http://localhost:5173';
-const CREDS = { login: 'penda', password: 'Mariemediatta10#' };
+const CREDS = { login: process.env.E2E_LOGIN || '', password: process.env.E2E_PASSWORD || '' };
 
 // ── login helper ─────────────────────────────────────────────────────────────
 async function doLogin(page) {

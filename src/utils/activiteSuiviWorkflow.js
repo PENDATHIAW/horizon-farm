@@ -1,5 +1,5 @@
 /**
- * Chantier 8 — Activité & Suivi : regrouper alertes, tâches et recommandations IA par problème métier.
+ * Chantier 8 — Activité & Suivi : regrouper alertes, tâches et suggestions par problème métier.
  */
 
 import { makeId } from './ids.js';
@@ -159,7 +159,7 @@ export function enrichRecommendationPatch(finding = {}) {
   return normalizeActiviteRecord({
     ...finding,
     id: finding.id || makeId('REC'),
-    title: finding.title || finding.description || 'Recommandation IA',
+    title: finding.title || finding.description || 'Suggestion',
     source_module: finding.module || finding.source_module || 'centre_ia',
     source_record_id: finding.source_records?.[0]?.id || finding.entity_id || finding.id,
     action_key: finding.id,

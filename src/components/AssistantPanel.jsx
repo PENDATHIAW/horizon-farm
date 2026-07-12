@@ -80,7 +80,7 @@ export default function AssistantPanel({ open, onClose, dataMap, onNavigate, onC
 
   const resetConversation = () => { speech.stop(); cancelDraft(); lastHeardRef.current = ''; setMessages([{ role: 'assistant', text: 'Nouvelle demande ouverte. Clique Parler, écris une action ou choisis un raccourci.' }]); setQuery(''); };
 
-  const loadExternalDraft = (nextDraft, sourceLabel = 'Centre IA') => {
+  const loadExternalDraft = (nextDraft, sourceLabel = 'Centre décisionnel') => {
     if (!nextDraft) return;
     loadDraft(nextDraft);
     setLocalOpen(true);
@@ -122,7 +122,7 @@ export default function AssistantPanel({ open, onClose, dataMap, onNavigate, onC
 
   useEffect(() => { if (!terrainMode) { voice.stop(); return; } if (!voice.listening) voice.start(); }, [terrainMode]);
   useEffect(() => () => window.clearTimeout(silenceTimerRef.current), []);
-  useEffect(() => { const handler = (event) => loadExternalDraft(event.detail?.draft, event.detail?.sourceLabel || 'Centre IA'); window.addEventListener('horizon-open-draft', handler); return () => window.removeEventListener('horizon-open-draft', handler); }, [speech, onNavigate]);
+  useEffect(() => { const handler = (event) => loadExternalDraft(event.detail?.draft, event.detail?.sourceLabel || 'Centre décisionnel'); window.addEventListener('horizon-open-draft', handler); return () => window.removeEventListener('horizon-open-draft', handler); }, [speech, onNavigate]);
 
   useEffect(() => {
     const handler = async (event) => {

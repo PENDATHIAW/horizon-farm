@@ -21,7 +21,7 @@ export default function ElevageInsightPanel({
   return (
     <section className="rounded-2xl border border-[#d6c3a0] bg-white p-4 shadow-sm space-y-3">
       <div>
-        <p className="text-[11px] font-black uppercase tracking-wide text-[#9a6b12] flex items-center gap-1"><Bot size={14} /> IA Élevage — coûts complets</p>
+        <p className="text-[11px] font-black uppercase tracking-wide text-[#9a6b12] flex items-center gap-1"><Bot size={14} /> Analyse Élevage — coûts complets</p>
         <p className="text-xs text-[#8a7456] mt-1">Recommandations basées sur alimentation + santé + mortalité — sans inventer si données manquantes.</p>
       </div>
       <div className="space-y-2">

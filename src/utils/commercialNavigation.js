@@ -606,9 +606,17 @@ const INVESTISSEURS_TAB_ALIASES = {
   Documents: 'funder-documents',
 };
 
-export const GESTION_SYSTEME_TABS = ['Vue admin', 'Utilisateurs', 'Fermes', 'Paramètres', 'Sécurité', 'Sauvegardes', 'Réinitialisation', 'Audit'];
+export const GESTION_SYSTEME_TABS = ['Vue admin', 'Utilisateurs', 'Fermes', 'Paramètres', 'Sécurité', 'Synchronisation', 'Sauvegardes', 'Réinitialisation', 'Audit'];
 
 const GESTION_SYSTEME_TAB_ALIASES = {
+  Synchronisation: 'Synchronisation',
+  synchronisation: 'Synchronisation',
+  sync: 'Synchronisation',
+  'Vérifications': 'Synchronisation',
+  'verifications': 'Synchronisation',
+  'Connexion & envoi': 'Synchronisation',
+  "Journal d'activité": 'Synchronisation',
+  'Données hors ligne': 'Synchronisation',
   'Vue admin': 'Vue admin',
   admin: 'Vue admin',
   Résumé: 'Vue admin',
@@ -885,7 +893,7 @@ export function resolveSearchNavigation(moduleKey = '') {
   return { module, tab };
 }
 
-/** Module + onglet pour une recommandation IA / finding ERP. */
+/** Module + onglet pour une suggestion / finding ERP. */
 export function navigationOptionsForFinding(finding = {}) {
   const rawModule = finding.module || finding.module_target || 'objectifs_croissance';
   const module = resolveRouteModule(rawModule);

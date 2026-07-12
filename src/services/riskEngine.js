@@ -21,7 +21,7 @@ function mergeSeverity(a = 'basse', b = 'basse') {
   return severityRank(a) <= severityRank(b) ? a : b;
 }
 
-/** Regroupe alertes, tâches, findings audit et recommandations IA par issue_key. */
+/** Regroupe alertes, tâches, findings audit et suggestions par issue_key. */
 export function buildRiskIssueGroups(data = {}) {
   const groups = new Map();
   const add = (issueKey, payload) => {

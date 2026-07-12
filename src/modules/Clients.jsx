@@ -117,7 +117,6 @@ export default function Clients({ rows = [], loading, salesOrders = [], payments
       !has('type_client') ? { key: 'type_client', label: 'Type client', type: 'select', options: ['Particulier', 'Restaurant', 'Revendeur', 'Entreprise', 'Marché', 'Autre'] } : null,
       !has('contact_principal') ? { key: 'contact_principal', label: 'Contact principal', type: 'text' } : null,
       !has('conditions_paiement') ? { key: 'conditions_paiement', label: 'Conditions paiement', type: 'select', options: ['Comptant', 'Crédit 7 jours', 'Crédit 15 jours', 'Crédit 30 jours', 'Précommande'] } : null,
-      !has('plafond_credit') ? { key: 'plafond_credit', label: 'Plafond crédit', type: 'number' } : null,
       !has('delai_paiement_jours') ? { key: 'delai_paiement_jours', label: 'Délai paiement (jours)', type: 'number' } : null,
     ].filter(Boolean);
   }, []);

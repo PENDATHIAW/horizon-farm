@@ -1,6 +1,7 @@
 /* eslint-disable react-refresh/only-export-components */
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import { ROUTE_TO_MODULE } from '../config/modules.config';
+import { DEPRECATED_MODULE_ALIASES, resolveActiveModuleId } from '../config/moduleEntryPoints';
 import { supabase } from '../lib/supabase';
 import { applyDefaultDataModeForRole } from '../utils/uiPreferences';
 
@@ -294,8 +295,12 @@ export function AuthProvider({ children }) {
     const role = profile?.role || user?.user_metadata?.role || 'visiteur';
     const allowed = ROLE_PERMISSIONS[role] || [];
     if (allowed.includes('*')) return true;
-    const resolved = ROUTE_TO_MODULE[moduleId] || moduleId;
+    const resolved = resolveActiveModuleId(ROUTE_TO_MODULE[moduleId] || moduleId);
     if (allowed.includes(resolved) || allowed.includes(moduleId)) return true;
+    const anciensIds = Object.entries(DEPRECATED_MODULE_ALIASES)
+      .filter(([, cible]) => cible === resolved)
+      .map(([ancien]) => ancien);
+    if (anciensIds.some((ancien) => allowed.includes(ancien))) return true;
     const legacyKeys = LEGACY_KEYS_BY_GRAND_MODULE[resolved] || [];
     return legacyKeys.some((key) => allowed.includes(key));
   }, [profile, user]);

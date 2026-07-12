@@ -94,7 +94,7 @@ const moduleCatalog = {
     aliases: ['assistant erp', 'assistant'],
   },
   centre_ia: {
-    label: 'Centre IA',
+    label: 'Centre décisionnel',
     aliases: ['centre ia', 'ia', 'intelligence artificielle', 'cerveau ia', 'centre intelligence'],
   },
   impact_business: {
@@ -443,7 +443,7 @@ const answerPriorities = (dataMap = {}) => {
     moduleKey: 'centre_ia',
     answer: actions.length
       ? `Priorités du jour : ${actions.join(', ')}.`
-      : 'Aucune urgence majeure détectée aujourd’hui. Le Centre IA reste à jour.',
+      : 'Aucune urgence majeure détectée aujourd’hui. Le Centre décisionnel reste à jour.',
   };
 };
 
@@ -595,7 +595,7 @@ const answerPondeuses = (dataMap = {}) => {
 
   return {
     moduleKey: 'avicole',
-    answer: `IA Pondeuses : ${totals.lots} lot(s), ${formatNumber(totals.sellable_eggs)} œufs vendables, ${formatNumber(totals.tablets, 1)} tablette(s), coût estimé ${formatCurrency(Math.round(totals.cost_per_tablet))}/tablette. ${priceHint} ${topRisk ? `Point prioritaire : ${topRisk.summary}` : 'Aucun point critique IA détecté sur les pondeuses.'}`,
+    answer: `Analyse pondeuses : ${totals.lots} lot(s), ${formatNumber(totals.sellable_eggs)} œufs vendables, ${formatNumber(totals.tablets, 1)} tablette(s), coût estimé ${formatCurrency(Math.round(totals.cost_per_tablet))}/tablette. ${priceHint} ${topRisk ? `Point prioritaire : ${topRisk.summary}` : 'Aucun point critique détecté sur les pondeuses.'}`,
   };
 };
 

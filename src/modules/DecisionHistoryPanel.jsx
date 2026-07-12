@@ -140,7 +140,7 @@ export default function DecisionHistoryPanel({ dataMap = {}, onNavigate, compact
         <Mini icon={CheckCircle2} label="Exécutées / en suivi" value={totals.executed} tone="warn" />
         <Mini icon={TrendingUp} label="Rentables" value={totals.profitable} tone="good" />
         <Mini icon={TrendingDown} label="Non rentables" value={totals.notProfitable} tone="bad" />
-        <Mini icon={BarChart2} label="CA attribué IA" value={`${totals.contributionRate}%`} tone={totals.contributionRate > 0 ? 'good' : 'neutral'} />
+        <Mini icon={BarChart2} label="CA attribué (analyse)" value={`${totals.contributionRate}%`} tone={totals.contributionRate > 0 ? 'good' : 'neutral'} />
       </div>
 
       <div className="lg:hidden space-y-3">

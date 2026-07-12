@@ -34,6 +34,8 @@ export const FARM_COMMON_MODULES = Object.freeze([
 
 /** Modules adaptatifs selon activity_type. */
 export const FARM_ADAPTIVE_MODULES = Object.freeze([
+  'equipe',
+  'centre_decisionnel',
   'elevage',
   'agri_feeds',
   'cultures',

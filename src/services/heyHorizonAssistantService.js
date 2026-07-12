@@ -560,7 +560,7 @@ export async function processHeyHorizonCommandAsync(rawText = '', options = {}) 
           kind: 'draft',
           strategic: null,
           draft: llmDraft,
-          assistantText: enhanced.text || buildHeyHorizonAssistantText(llmDraft) || 'Brouillon IA préparé — vérifie avant validation.',
+          assistantText: enhanced.text || buildHeyHorizonAssistantText(llmDraft) || 'Brouillon préparé — vérifie avant validation.',
           journalEntry,
           source: enhanced.source,
           llmEnhanced: true,

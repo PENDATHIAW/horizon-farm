@@ -40,7 +40,7 @@ function formatMeteo(meteo) {
 
 function formatRecommendations(recommendations = []) {
   if (!recommendations.length) {
-    return section('recommandations', 'Recommandations', MISSING, 'Aucune recommandation IA détectée.');
+    return section('recommandations', 'Recommandations', MISSING, 'Aucune suggestion détectée.');
   }
   const top = recommendations.slice(0, 3).map((r) => r.title || r.summary).filter(Boolean);
   return section(

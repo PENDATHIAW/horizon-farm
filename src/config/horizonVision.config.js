@@ -9,7 +9,7 @@ export const HORIZON_MISSION = [
   'piloter une ferme intégrée à partir des opérations réelles du terrain',
   'réduire les doubles saisies grâce aux événements métier',
   'relier production, stock, commercial, finance, traçabilité et reporting',
-  'calculer des chiffres cohérents depuis une source officielle',
+  'calculer des chiffres cohérents depuis leur source de référence',
   'expliquer les écarts entre prévisionnel et réel',
   'documenter les décisions, les actions et les preuves financeur',
   'préparer la croissance uniquement quand les données le justifient',
@@ -33,7 +33,7 @@ export const MODULE_TARGET_TABS = {
   equipements: ['Équipements', 'Maintenance', 'Pannes', 'Coûts', 'Disponibilité'],
   smartfarm: ['Capteurs', 'Eau', 'Énergie', 'Alertes techniques', 'Automatisation terrain'],
   sync_activity: ['Vérifications', 'Connexion & envoi', 'Journal d’activité', 'Données hors ligne'],
-  gestion_systeme: ['Utilisateurs', 'Rôles', 'Fermes', 'Sécurité', 'Audit', 'Paramètres'],
+  gestion_systeme: ['Vue admin', 'Utilisateurs', 'Fermes', 'Paramètres', 'Sécurité', 'Synchronisation', 'Audit'],
 };
 
 /** Interconnexions obligatoires. Les clés événementielles viennent de businessInterconnections.config.js. */

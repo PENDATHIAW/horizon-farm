@@ -316,9 +316,6 @@ export function DashboardFarmLocationPremiumCard({ card = null }) {
               ? `${card.latitude}, ${card.longitude}`
               : 'Localisation textuelle — GPS à renseigner'}
           </p>
-          {card.weatherTemp != null ? (
-            <p className="mt-2 text-xs text-sky-800">{card.weatherTemp}°C · {card.weatherCondition || 'Conditions stables'}</p>
-          ) : null}
           <p className="mt-2 text-xs text-[#8a7456]">Score {card.score ?? '—'}/100 · {fmtNumber(card.alerts)} alerte(s)</p>
         </div>
       </div>

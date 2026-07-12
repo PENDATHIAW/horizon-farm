@@ -1,5 +1,5 @@
 /**
- * Élevage V3 — recommandations IA basées sur coûts complets.
+ * Élevage V3 — suggestions basées sur coûts complets.
  */
 
 import { calculateUnifiedAnimalCost, calculateUnifiedLotCost } from '../services/unifiedCostService.js';

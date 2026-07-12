@@ -61,7 +61,7 @@ export default function CommercialScheduledRelancesPanel({
   return (
     <div className="space-y-4">
       <section className="rounded-2xl border border-[#d6c3a0] bg-white p-4">
-        <p className="text-xs uppercase tracking-widest text-[#8a7456] font-black">Relances IA planifiées</p>
+        <p className="text-xs uppercase tracking-widest text-[#8a7456] font-black">Relances planifiées</p>
         <p className="mt-1 text-sm text-[#8a7456]">
           Niveaux {RELANCE_LEVELS.map((l) => l.label).join(', ')} — messages WhatsApp, SMS et Email générés automatiquement.
         </p>
@@ -89,7 +89,7 @@ export default function CommercialScheduledRelancesPanel({
             })}
           </div>
         ) : (
-          <p className="mt-2 text-sm text-[#8a7456]">Aucune créance à relancer pour générer un plan IA.</p>
+          <p className="mt-2 text-sm text-[#8a7456]">Aucune créance à relancer pour générer un plan de relance.</p>
         )}
       </section>
 

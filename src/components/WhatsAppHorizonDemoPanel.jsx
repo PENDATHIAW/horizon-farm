@@ -89,7 +89,7 @@ export default function WhatsAppHorizonDemoPanel({
         return;
       }
       if (parsed.drafts?.length) {
-        toast.success('Brouillon IA préparé — validez avant exécution.');
+        toast.success('Brouillon préparé — validez avant exécution.');
       } else {
         toast.error('Message non reconnu.');
       }

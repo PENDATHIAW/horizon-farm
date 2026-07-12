@@ -1,6 +1,6 @@
 const norm = (value = '') => String(value || '').trim().toLowerCase().replace(/\s+/g, '_');
 
-/** Identifiant stable pour regrouper alertes, tâches et recommandations IA sur le même sujet. */
+/** Identifiant stable pour regrouper alertes, tâches et suggestions sur le même sujet. */
 export function buildIssueKey(domain = 'general', sourceModule = 'system', sourceRecordId = 'unknown', kind = 'default') {
   return [norm(domain), norm(sourceModule), norm(sourceRecordId), norm(kind)].join(':');
 }

@@ -1,4 +1,4 @@
-import { ArrowRight, Bot, BrainCircuit, CheckCircle2, Circle, CloudSun, MapPin, Settings2, Target, TrendingUp } from 'lucide-react';
+import { ArrowRight, Bot, BrainCircuit, CheckCircle2, Circle, MapPin, Settings2, Target, TrendingUp } from 'lucide-react';
 import { MODULE_REGISTRY } from '../../config/modules.config';
 import PeriodScopeBadge from '../../components/PeriodScopeBadge.jsx';
 import ModuleTabsBar from '../../components/module/ModuleTabsBar.jsx';
@@ -270,7 +270,7 @@ export function DashboardExploitationScorePanel({ exploitation = {}, onNavigate 
         </p>
       ) : null}
       <button type="button" onClick={() => onNavigate?.('centre_ia', { tab: 'Urgences & risques' })} className="mt-3 text-xs font-black text-[#9a6b12]">
-        Détail pilotage IA →
+        Détail du pilotage →
       </button>
     </section>
   );
@@ -362,26 +362,6 @@ export function DashboardInvestorStrip({ investor = {}, onNavigate }) {
       {investor.gaps?.length ? (
         <p className="mt-2 text-xs text-[#8a7456]">À renforcer : {investor.gaps.join(' · ')}</p>
       ) : null}
-    </section>
-  );
-}
-
-export function DashboardWeatherStrip({ weather = {} }) {
-  if (!weather.dashboardStrip && !weather.loading) return null;
-  return (
-    <section className="rounded-2xl border border-sky-200 bg-sky-50/70 p-4 shadow-sm">
-      <p className="flex items-center gap-2 text-[11px] font-black uppercase tracking-[0.2em] text-sky-900">
-        <CloudSun size={14} />
-        Météo terrain
-      </p>
-      <p className="mt-2 text-sm font-black text-[#2f2415]">
-        {weather.loading ? 'Chargement météo…' : `${weather.temp ?? '—'}°C · ${weather.condition || 'Conditions stables'}`}
-      </p>
-      {weather.riskLevel && weather.riskLevel !== 'stable' ? (
-        <p className="mt-1 text-xs text-amber-800">{weather.impact || 'Surveiller abreuvement et ventilation.'}</p>
-      ) : (
-        <p className="mt-1 text-xs text-sky-900/80">Données partagées avec l&apos;en-tête ERP (useLiveWeather).</p>
-      )}
     </section>
   );
 }
@@ -763,7 +743,7 @@ export function DashboardHealthStrip({ health = {}, onOpenFinding, onNavigate })
       <div className="mb-3 flex items-center justify-between gap-2">
         <div className="inline-flex items-center gap-2">
           <BrainCircuit size={16} className="text-[#9a6b12]" />
-          <h2 className="text-sm font-black text-[#2f2415]">Pilotage IA (détail)</h2>
+          <h2 className="text-sm font-black text-[#2f2415]">Pilotage (détail)</h2>
         </div>
         <button type="button" onClick={() => onNavigate?.('centre_ia', { tab: 'Urgences & risques' })} className="text-xs font-black text-[#9a6b12]">
           Vision →

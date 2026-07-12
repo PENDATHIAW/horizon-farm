@@ -444,7 +444,7 @@ export default function ReproductionWorkflowForm({
 
         {workflow === 'gestation' && predictedDue ? (
           <label className="space-y-1">
-            <span className="text-xs font-bold text-emerald-800">Mise bas prévue (IA règles)</span>
+            <span className="text-xs font-bold text-emerald-800">Mise bas prévue (règles d’élevage)</span>
             <input readOnly value={predictedDue} className="w-full min-h-[48px] rounded-xl border border-emerald-200 bg-[#fffdf8] px-3 py-2 text-sm font-black" />
           </label>
         ) : null}

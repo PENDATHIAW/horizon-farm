@@ -1999,7 +1999,7 @@ function InterventionPanel(props) {
             Préremplir le formulaire depuis l’ordonnance
           </button>
           <p className="text-xs text-[#8a7456]">
-            Le scan préremplit sans enregistrer — validation humaine obligatoire
+            Le scan préremplit sans enregistrer — à confirmer avant enregistrement
             avec photo preuve.
           </p>
         </div>

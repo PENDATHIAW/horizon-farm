@@ -1,6 +1,6 @@
 const rows = (crud) => crud?.rows || [];
 
-/** Compose le dataMap décisionnel partagé entre Vision, Centre IA et Assistant. */
+/** Compose le dataMap décisionnel partagé entre Vision, Centre décisionnel et Assistant. */
 export function composeDecisionDataMap({ crud = {}, dataMap = {}, liveMeteo = null } = {}) {
   return {
     animaux: rows(crud.animaux),

@@ -178,7 +178,7 @@ const detectFinanceAnomalies = (anomalies, transactions = [], payments = [], inv
         entity_id: row.id,
         title: `Transaction non categorisee: ${labelOf(row)}`,
         summary: 'Transaction avec montant mais sans categorie.',
-        action_recommandee: 'Ajouter une categorie pour fiabiliser reporting et IA.',
+        action_recommandee: 'Ajouter une categorie pour fiabiliser reporting et analyses.',
         confidence_score: 70,
         source_data: row,
       });

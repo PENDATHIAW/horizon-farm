@@ -14,7 +14,7 @@ const MODULE_LINKS = [
   { key: 'achats_stock', label: 'Achats & Stock', tab: 'Fournisseurs & dettes', hint: 'Dettes fournisseurs, achats' },
   { key: 'documents_rapports', label: 'Documents', hint: 'Justificatifs et pièces comptables' },
   { key: 'objectifs_croissance', label: 'Objectifs', tab: 'Suivi du Business Plan', hint: 'Plans, financements, rentabilité' },
-  { key: 'centre_ia', label: 'Centre IA', tab: 'Urgences & risques', hint: 'Analyses financières globales' },
+  { key: 'centre_ia', label: 'Centre décisionnel', tab: 'Urgences & risques', hint: 'Analyses financières globales' },
 ];
 
 export default function FinanceInsightPanel({

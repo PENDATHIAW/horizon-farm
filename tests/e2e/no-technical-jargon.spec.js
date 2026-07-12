@@ -5,7 +5,7 @@ const hasE2ECredentials = Boolean(process.env.E2E_LOGIN && process.env.E2E_PASSW
 
 const MODULES = [
   'Accueil',
-  'Assistant ERP',
+  'Assistant',
   'Centre décisionnel',
   'Objectifs',
   'Animaux',
@@ -24,7 +24,7 @@ const MODULES = [
   'Cultures',
   'Documents',
   'Tâches',
-  'RH',
+  'Équipe',
   'Rapports',
   'Équipements',
   'Smart Farm',

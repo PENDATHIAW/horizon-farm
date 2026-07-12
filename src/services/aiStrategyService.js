@@ -283,7 +283,7 @@ export const buildStrategicInsights = ({
       title: 'Données insuffisantes pour arbitrage avancé',
       summary: 'Le moteur stratégique manque encore de données fiables ou récentes.',
       recommendation: 'Continuer la saisie production, ventes, finances, prix marché et Smart Farm.',
-      expected_impact: 'Amélioration progressive de la précision IA.',
+      expected_impact: 'Amélioration progressive de la précision des analyses.',
       confidence_score: 40,
     });
   }

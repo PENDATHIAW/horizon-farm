@@ -7,6 +7,7 @@
 export const CANONICAL_MODULE_FILES = {
   dashboard: 'dashboard/AccueilRefinedEntry.jsx',
   assistant_erp: 'AssistantERPV2.jsx',
+  centre_decisionnel: 'CentreIA.jsx',
   centre_ia: 'CentreIA.jsx',
   objectifs_croissance: 'ObjectifsCroissanceV2.jsx',
   elevage: 'ElevageModule.jsx',
@@ -35,6 +36,7 @@ export const CANONICAL_MODULE_FILES = {
   ventes: 'VentesV5.jsx',
   documents: 'DocumentsV2.jsx',
   taches: 'TachesV3.jsx',
+  equipe: 'RHV2.jsx',
   rh: 'RHV2.jsx',
   rapports: 'RapportsV2.jsx',
   equipements: 'EquipementsV3.jsx',
@@ -62,6 +64,8 @@ export const FORBIDDEN_ENTRY_FILES = [
 export const MODULE_ENTRY_POINTS = {
   dashboard: () => import('../modules/dashboard/AccueilRefinedEntry.jsx'),
   assistant_erp: () => import('../modules/AssistantERPV2.jsx'),
+  centre_decisionnel: () => import('../modules/CentreIA.jsx'),
+  /** @deprecated alias — redirigé vers centre_decisionnel */
   centre_ia: () => import('../modules/CentreIA.jsx'),
   objectifs_croissance: () => import('../modules/ObjectifsCroissanceV2.jsx'),
   elevage: () => import('../modules/ElevageModule.jsx'),
@@ -91,6 +95,8 @@ export const MODULE_ENTRY_POINTS = {
   ventes: () => import('../modules/VentesV5.jsx'),
   documents: () => import('../modules/DocumentsV2.jsx'),
   taches: () => import('../modules/TachesV3.jsx'),
+  equipe: () => import('../modules/RHV2.jsx'),
+  /** @deprecated alias — redirigé vers equipe */
   rh: () => import('../modules/RHV2.jsx'),
   rapports: () => import('../modules/RapportsV2.jsx'),
   equipements: () => import('../modules/EquipementsV3.jsx'),
@@ -105,6 +111,11 @@ export const DEPRECATED_MODULE_ALIASES = {
   impact_business: 'financements',
   investisseurs_forums: 'financements',
   financeurs: 'financements',
+  centre_ia: 'centre_decisionnel',
+  rh: 'equipe',
+  sync: 'gestion_systeme',
+  sync_activity: 'gestion_systeme',
+  audit_logs: 'gestion_systeme',
 };
 
 export function resolveActiveModuleId(moduleId = '') {

@@ -6,7 +6,7 @@ test.describe('Assistant ERP — Horizon Chat Native V7', () => {
 
   test('module chat natif Horizon', async ({ page }) => {
     await login(page);
-    await goToModule(page, 'Assistant ERP');
+    await goToModule(page, 'Assistant');
 
     await expect(page.getByText(/^Horizon$/).first()).toBeVisible();
     await expect(page.getByText(/Connecté à votre exploitation/i).first()).toBeVisible();
@@ -25,7 +25,7 @@ test.describe('Assistant ERP — Horizon Chat Native V7', () => {
 
   test('comprend une question stock en langage naturel', async ({ page }) => {
     await login(page);
-    await goToModule(page, 'Assistant ERP');
+    await goToModule(page, 'Assistant');
 
     const textarea = page.getByPlaceholder(/Parlez à votre ferme/i);
     await textarea.fill("qu'est-ce qu'il me reste en magasin ?");
@@ -35,7 +35,7 @@ test.describe('Assistant ERP — Horizon Chat Native V7', () => {
 
   test('question production répond avec un conseil calendrier', async ({ page }) => {
     await login(page);
-    await goToModule(page, 'Assistant ERP');
+    await goToModule(page, 'Assistant');
 
     const textarea = page.getByPlaceholder(/Parlez à votre ferme/i);
     await textarea.fill('Quand ajouter une nouvelle bande pondeuse ?');

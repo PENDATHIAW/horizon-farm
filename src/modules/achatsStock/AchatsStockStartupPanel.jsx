@@ -81,7 +81,7 @@ export default function AchatsStockStartupPanel({ progress, setTab, onNavigate }
       </ul>
       <p className="mt-4 flex items-center gap-2 text-xs text-emerald-900/80">
         <CheckCircle2 size={14} />
-        Chaque réception passe par le chemin canonique : stock, finance, mouvement et preuve.
+        Chaque réception suit le même parcours : stock, finance, mouvement et preuve.
       </p>
     </section>
   );

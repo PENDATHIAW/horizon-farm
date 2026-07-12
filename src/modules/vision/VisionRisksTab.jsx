@@ -81,7 +81,7 @@ export default function VisionRisksTab({ data = {}, onNavigate, setTab, onCreate
           title={urgentOnly ? 'Urgences terrain & risques critiques' : 'Registre des risques'}
           detail={urgentOnly
             ? 'Ventes urgentes, stock aliment, BFR et risques critiques — le registre complet reste dans Activité & Suivi.'
-            : 'Matrice IA + risques opérationnels détectés sur alertes, stock, élevage, trésorerie et documents.'}
+            : 'Matrice d’analyse + risques opérationnels détectés sur alertes, stock, élevage, trésorerie et documents.'}
           action={onNavigate ? <Btn onClick={() => onNavigate('activite_suivi', { tab: 'Alertes' })}>Centre alertes</Btn> : null}
         />
       ) : (
@@ -98,7 +98,7 @@ export default function VisionRisksTab({ data = {}, onNavigate, setTab, onCreate
         <div className="grid grid-cols-2 gap-3 xl:grid-cols-5">
           <VisionKpi label="Risques ouverts" value={fmtNumber(allRisks.length)} tone={allRisks.length ? 'warn' : 'good'} />
           <VisionKpi label="Critiques / élevés" value={fmtNumber(criticalCount)} tone={criticalCount ? 'bad' : 'good'} onClick={() => setTab?.('Urgences & risques')} />
-          <VisionKpi label="Signaux IA" value={fmtNumber(engineRisks.length)} tone={engineRisks.length ? 'warn' : 'good'} />
+          <VisionKpi label="Signaux d’analyse" value={fmtNumber(engineRisks.length)} tone={engineRisks.length ? 'warn' : 'good'} />
           <VisionKpi label="Exposition finance" value={fmtCurrency(financeExposure)} tone={financeExposure ? 'warn' : 'good'} onClick={() => onNavigate?.('finance_pilotage', { tab: 'Trésorerie' })} />
           <VisionKpi label="Preuves manquantes" value={fmtNumber(data.missingProof)} tone={data.missingProof ? 'warn' : 'good'} onClick={() => onNavigate?.('documents_rapports', { tab: 'Preuves' })} />
         </div>

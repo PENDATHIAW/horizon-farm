@@ -68,6 +68,7 @@ import {
 import { supabase } from '../lib/supabase';
 import { normalizeByModule } from '../utils/normalize.js';
 import { clearOfflineQueue, enqueueOfflineMutation, isBrowserOffline, readOfflineQueue, saveOfflineQueue } from '../services/offlineQueueService';
+import { isDataKeyEnabled, resolveModuleFlags } from '../config/moduleFlags';
 
 const AppDataContext = createContext(null);
 
@@ -197,6 +198,7 @@ export function AppProvider({ children, initialDataMap = null }) {
   const fetchModuleData = useCallback(async (moduleKey) => {
     const service = serviceMap[moduleKey];
     if (!service) return;
+    if (!isDataKeyEnabled(moduleKey, resolveModuleFlags(null))) return;
     setModuleLoading(moduleKey, true);
     setModuleError(moduleKey, null);
     try {

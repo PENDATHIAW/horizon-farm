@@ -186,7 +186,7 @@ export default function VisionPrioritiesTab({
     <div className="space-y-5">
       <TabIntro
         title="Priorités actionnables"
-        detail={data.periodLabel ? `Lecture financière sur ${data.periodLabel} — créances sur l'historique complet.` : 'Signaux IA et alertes terrain à traiter en priorité.'}
+        detail={data.periodLabel ? `Lecture financière sur ${data.periodLabel} — créances sur l'historique complet.` : 'Signaux d’analyse et alertes terrain à traiter en priorité.'}
         action={onNavigate ? <Btn onClick={() => onNavigate('activite_suivi', { tab: 'Tâches' })}>Activité & Suivi</Btn> : null}
       />
       <div className="grid grid-cols-2 gap-3 xl:grid-cols-5">
@@ -216,7 +216,7 @@ export default function VisionPrioritiesTab({
               />
             ))}
           </DataTable>
-        ) : <Empty>Aucune recommandation IA active. Le moteur analyse ventes, stock, trésorerie et santé en continu.</Empty>}
+        ) : <Empty>Aucune suggestion active. Le moteur analyse ventes, stock, trésorerie et santé en continu.</Empty>}
       </Section>
       <Section icon={AlertTriangle} title="Ce qu'il faut traiter maintenant">
         {manualRows.length ? (

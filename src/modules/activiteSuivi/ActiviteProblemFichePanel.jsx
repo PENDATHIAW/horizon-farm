@@ -6,7 +6,7 @@ export default function ActiviteProblemFichePanel({ fiches = [], selectedKey = '
   if (!fiches.length) {
     return (
       <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-800">
-        Aucun problème métier ouvert — alertes, tâches et recommandations IA sont alignées.
+        Aucun problème métier ouvert — alertes, tâches et suggestions sont alignées.
       </div>
     );
   }
@@ -18,7 +18,7 @@ export default function ActiviteProblemFichePanel({ fiches = [], selectedKey = '
           <ClipboardList size={15} /> Fiches problème
         </p>
         <h3 className="mt-1 text-lg font-black text-[#2f2415]">Regroupement par issue_key</h3>
-        <p className="mt-1 text-sm text-[#8a7456]">Alerte, tâche, recommandation IA, événement, documents et transactions liés.</p>
+        <p className="mt-1 text-sm text-[#8a7456]">Alerte, tâche, suggestion, événement, documents et transactions liés.</p>
       </div>
       <div className="grid grid-cols-1 gap-4 xl:grid-cols-[280px_1fr]">
         <div className="space-y-2">

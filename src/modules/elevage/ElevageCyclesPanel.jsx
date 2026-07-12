@@ -311,7 +311,7 @@ export default function ElevageCyclesPanel({
               onClick={() => onNavigate('centre_ia', { tab: 'Saisons & marchés' })}
               className="rounded-xl bg-[#2f2415] px-3 py-2 text-xs font-black text-white"
             >
-              Ouvrir Saisons & marchés (Centre IA)
+              Ouvrir Saisons & marchés (Centre décisionnel)
             </button>
           ) : null}
         </div>
@@ -352,7 +352,7 @@ export default function ElevageCyclesPanel({
               }, 120);
             }}
           />
-          <ElevageActionCard icon={ShoppingCart} title="Préparer vente" text="Commercial pré-rempli — validation humaine obligatoire." onClick={() => onNavigate?.('commercial', { tab: 'Ventes' })} />
+          <ElevageActionCard icon={ShoppingCart} title="Préparer vente" text="Commercial pré-rempli — à confirmer avant enregistrement." onClick={() => onNavigate?.('commercial', { tab: 'Ventes' })} />
         </div>
         {v1Kpis.lateCount > 0 ? (
           <p className="mt-3 rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-900">
@@ -372,7 +372,7 @@ export default function ElevageCyclesPanel({
             </p>
           ) : (
             <p className="rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-amber-900">
-              Données météo non disponibles pour cette ferme — connectez Smart Farm ou vérifiez le module Centre IA.
+              Données météo non disponibles pour cette ferme — connectez Smart Farm ou vérifiez le module Centre décisionnel.
             </p>
           )}
         </div>

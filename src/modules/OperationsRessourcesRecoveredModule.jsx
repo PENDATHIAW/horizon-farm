@@ -65,7 +65,7 @@ export default function OperationsRessourcesRecoveredModule(props) {
     setBusyId(finding.id);
     try {
       const result = await applyOneClickRecommendation(finding, actionHandlers);
-      if (result.createdTasks || result.createdAlerts) toast.success('Action IA créée');
+      if (result.createdTasks || result.createdAlerts) toast.success('Action suggérée créée');
       else {
         toast.success('Onglet ouvert');
         navigateRh('Parc Matériel & Maintenance');

@@ -14,7 +14,7 @@ const MODULE_LINKS = [
   { key: 'finance_pilotage', label: 'Finance', tab: 'Trésorerie', hint: 'Preuves, paiements, créances' },
   { key: 'elevage', label: 'Élevage', tab: 'Cycles & Reproduction', hint: 'Bandes, santé, production' },
   { key: 'achats_stock', label: 'Stock', tab: 'Stock', hint: 'Réappro, seuils, fournisseurs' },
-  { key: 'centre_ia', label: 'Centre IA', tab: 'Risques', hint: 'Analyses et priorités globales' },
+  { key: 'centre_ia', label: 'Centre décisionnel', tab: 'Risques', hint: 'Analyses et priorités globales' },
 ];
 
 export default function ActiviteSuiviInsightPanel({
@@ -37,7 +37,7 @@ export default function ActiviteSuiviInsightPanel({
       <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
         <div>
           <p className="text-[11px] font-black uppercase tracking-wide text-[#9a6b12] flex items-center gap-1">
-            <Bot size={14} /> Pilotage IA activité
+            <Bot size={14} /> Pilotage activité
           </p>
           <p className="text-sm text-[#8a7456] mt-1">
             Signaux terrain — priorités globales et risques sur Centre décisionnel.

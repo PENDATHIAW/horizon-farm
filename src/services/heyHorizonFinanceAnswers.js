@@ -280,7 +280,7 @@ export function buildFinancePilotageAnswer(type = '', dataMap = {}) {
       return buildFinanceAnswerPayload({
         type,
         title: 'Dettes à payer',
-        situation: `Dettes canoniques ${fmtCurrency(treasury.payables)} · échéances 7 jours ${fmtCurrency(weekTotal)}.`,
+        situation: `Dettes consolidées ${fmtCurrency(treasury.payables)} · échéances 7 jours ${fmtCurrency(weekTotal)}.`,
         cause: weekTotal > treasury.treasuryAvailable
           ? 'Les paiements de la semaine dépassent la trésorerie disponible (cashNet).'
           : 'Dettes fournisseurs et charges impayées suivies dans payablesTotal.',
@@ -582,7 +582,7 @@ export function buildFinancePilotageAnswer(type = '', dataMap = {}) {
         type,
         title: 'Rentabilité',
         situation: `Résultat opérationnel ${fmtCurrency(profitability.profit.operatingResult)} · CA ${fmtCurrency(profitability.profit.caTotal)}.`,
-        cause: `Marge réelle canonique ${fmtCurrency(treasury.realMargin)}.`,
+        cause: `Marge réelle consolidée ${fmtCurrency(treasury.realMargin)}.`,
         action: profitability.profit.operatingResult >= 0
           ? 'Consolider les marges par activité (onglet Rentabilité).'
           : 'Analyser charges directes et structure (onglet Rentabilité).',
