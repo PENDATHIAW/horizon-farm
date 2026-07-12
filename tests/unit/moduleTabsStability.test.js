@@ -83,7 +83,7 @@ test('Documents & Rapports — onglets critiques', async () => {
 
 test('RH — onglets critiques', async () => {
   for (const tab of ['Cockpit RH & Maintenance', 'Personnel & Paie', 'Parc Matériel & Maintenance', 'Registres & Analyses']) {
-    await assertModuleTabStable('rh', tab, buildSimulatedProps());
+    await assertModuleTabStable('equipe', tab, buildSimulatedProps());
   }
 });
 
@@ -95,7 +95,7 @@ test('Objectifs & Croissance — onglets critiques', async () => {
 
 test('Centre décisionnel — onglets critiques', async () => {
   for (const tab of ['Urgences & risques', 'Croissance & opportunités', 'Saisons & marchés']) {
-    await assertModuleTabStable('centre_ia', tab, buildSimulatedProps());
+    await assertModuleTabStable('centre_decisionnel', tab, buildSimulatedProps());
   }
 });
 
@@ -106,6 +106,6 @@ test('Matrice modules couverte', () => {
   assert.equal(MODULE_TAB_MATRIX.elevage.length, 4);
   assert.equal(MODULE_TAB_MATRIX.cultures.length, 3);
   assert.equal(MODULE_TAB_MATRIX.objectifs_croissance.length, 4);
-  assert.equal(MODULE_TAB_MATRIX.centre_ia.length, 3);
-  assert.equal(MODULE_TAB_MATRIX.sync_activity.length, 3);
+  assert.equal(MODULE_TAB_MATRIX.centre_decisionnel.length, 3);
+  assert.equal(MODULE_TAB_MATRIX.gestion_systeme.length, 8);
 });

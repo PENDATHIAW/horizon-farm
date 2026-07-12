@@ -4,7 +4,7 @@ const today = () => new Date().toISOString().slice(0, 10);
 const clean = (value = '') => String(value || '').trim();
 
 export function decisionRecommendationSource(item = {}) {
-  const module = item.source_module || item.module || item.activity || 'centre_ia';
+  const module = item.source_module || item.module || item.activity || 'centre_decisionnel';
   const id = item.source_id || item.entity_id || item.related_id || item.id || clean(item.title);
   return { module, id, key: `decision:${module}:${id}` };
 }
@@ -14,13 +14,13 @@ export function buildDecisionRecommendationTask(item = {}, { date = today() } = 
   const source = decisionRecommendationSource(item);
   const taskId = makeId('TSK');
   const priority = item.priority === 'haute' || item.severity === 'critique' ? 'haute' : item.priority === 'moyenne' ? 'moyenne' : 'normale';
-  const moduleLie = item.target_module || item.source_module || (item.activity === 'stock' ? 'stock' : item.activity === 'cultures' ? 'cultures' : item.activity === 'oeufs' || item.activity === 'poulets_chair' ? 'avicole' : item.activity === 'finances' ? 'finances' : 'centre_ia');
+  const moduleLie = item.target_module || item.source_module || (item.activity === 'stock' ? 'stock' : item.activity === 'cultures' ? 'cultures' : item.activity === 'oeufs' || item.activity === 'poulets_chair' ? 'avicole' : item.activity === 'finances' ? 'finances' : 'centre_decisionnel');
   return {
     task: {
       id: taskId,
       title: item.title || 'Action Centre décisionnel',
       module_lie: moduleLie,
-      source_module: 'centre_ia',
+      source_module: 'centre_decisionnel',
       source_record_id: source.id,
       related_id: source.id,
       task_dedupe_key: source.key,
@@ -34,7 +34,7 @@ export function buildDecisionRecommendationTask(item = {}, { date = today() } = 
     event: {
       id: makeId('EVT'),
       event_type: 'decision_action_task_created',
-      module_source: 'centre_ia',
+      module_source: 'centre_decisionnel',
       entity_type: 'recommendation',
       entity_id: source.id,
       title: `Tâche créée depuis Centre décisionnel · ${item.title || source.id}`,

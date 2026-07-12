@@ -3,9 +3,9 @@
  */
 
 export const CENTRE_HEY_HORIZON_QUESTIONS = [
-  { id: 'urgences', label: 'Urgences', query: 'Que dois-je faire aujourd hui ?', moduleId: 'centre_ia', tab: 'Urgences & risques' },
-  { id: 'croissance', label: 'Croissance', query: 'Quelles recommandations pour la ferme ?', moduleId: 'centre_ia', tab: 'Croissance & opportunités' },
-  { id: 'saisons', label: 'Saisons', query: 'Quand lancer une nouvelle bande ?', moduleId: 'centre_ia', tab: 'Saisons & marchés' },
+  { id: 'urgences', label: 'Urgences', query: 'Que dois-je faire aujourd hui ?', moduleId: 'centre_decisionnel', tab: 'Urgences & risques' },
+  { id: 'croissance', label: 'Croissance', query: 'Quelles recommandations pour la ferme ?', moduleId: 'centre_decisionnel', tab: 'Croissance & opportunités' },
+  { id: 'saisons', label: 'Saisons', query: 'Quand lancer une nouvelle bande ?', moduleId: 'centre_decisionnel', tab: 'Saisons & marchés' },
 ];
 
 /** @deprecated — alias legacy pour tests / liens externes */

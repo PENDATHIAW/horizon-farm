@@ -46,23 +46,23 @@ const formatDateTime = () => new Intl.DateTimeFormat('fr-FR', {
 }).format(new Date());
 
 const NAV_GROUPS = [
-  { key: 'pilotage', label: 'Pilotage', ids: ['dashboard', 'assistant_erp', 'centre_ia', 'agri_feeds', 'objectifs_croissance', 'financements'] },
+  { key: 'pilotage', label: 'Pilotage', ids: ['dashboard', 'assistant_erp', 'centre_decisionnel', 'agri_feeds', 'objectifs_croissance', 'financements'] },
   { key: 'production', label: 'Production', ids: ['elevage', 'cultures'] },
   { key: 'commerce', label: 'Commerce', ids: ['commercial', 'achats_stock'] },
   { key: 'finance', label: 'Finance', ids: ['finance_pilotage'] },
   { key: 'suivi', label: 'Suivi', ids: ['activite_suivi', 'documents_rapports'] },
-  { key: 'ressources', label: 'Ressources', ids: ['rh', 'equipements'] },
+  { key: 'ressources', label: 'Ressources', ids: ['equipe', 'equipements'] },
   { key: 'iot', label: 'Terrain & IoT', ids: ['smartfarm'] },
-  { key: 'administration', label: 'Administration', ids: ['sync', 'sync_activity', 'audit_logs', 'gestion_systeme'] },
+  { key: 'administration', label: 'Administration', ids: ['gestion_systeme'] },
 ];
 
 function collapseNavItems(navItems = []) {
-  const opsIds = new Set(['rh', 'equipements']);
+  const opsIds = new Set(['equipe', 'equipements']);
   const opsItems = navItems.filter((item) => opsIds.has(item.id));
   const collapsed = navItems.filter((item) => item.id !== 'equipements');
   return collapsed.map((item) => {
-    if (item.id === 'centre_ia') return { ...item, label: 'Centre décisionnel' };
-    if (item.id === 'rh') return { ...item, label: 'Opérations & Ressources', icon: UserCog, hasAlert: opsItems.some((entry) => entry.hasAlert) };
+    if (item.id === 'centre_decisionnel') return { ...item, label: 'Centre décisionnel' };
+    if (item.id === 'equipe') return { ...item, label: 'Équipe & Ressources', icon: UserCog, hasAlert: opsItems.some((entry) => entry.hasAlert) };
     if (item.id === 'smartfarm') return { ...item, label: 'Smart Farm' };
     return item;
   });
@@ -99,7 +99,7 @@ function buildAlerts(dataMap = {}, online = true, meteo = {}) {
   const meteoAlert = meteo?.riskLevel && meteo.riskLevel !== 'stable'
     ? [{ id: 'meteo-risk', type: 'Météo / terrain', text: meteo.impact || 'Vérifier abreuvement, ventilation et parcelles.', moduleKey: 'dashboard', severity: 'amber' }]
     : [];
-  const offline = online ? [] : [{ id: 'offline', type: 'Connexion', text: 'Mode hors ligne actif', moduleKey: 'sync_activity', severity: 'amber' }];
+  const offline = online ? [] : [{ id: 'offline', type: 'Connexion', text: 'Mode hors ligne actif', moduleKey: 'gestion_systeme', severity: 'amber' }];
   return [...offline, ...meteoAlert, ...sante, ...stock, ...animaux, ...finances].slice(0, 18);
 }
 

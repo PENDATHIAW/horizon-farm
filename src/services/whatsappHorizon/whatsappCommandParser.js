@@ -300,7 +300,7 @@ function buildDeliveryParse(raw = '', dataMap = {}) {
     missing_fields: missing,
     warnings: missing.length ? ['Complétez client ou quantité avant validation.'] : ['Livraison enregistrée via workflow commercial (sans doublon finance).'],
     draft_fields: fields,
-    impacted_modules: ['commercial', 'stock', 'tracabilite', 'centre_ia'],
+    impacted_modules: ['commercial', 'stock', 'tracabilite', 'centre_decisionnel'],
     ui: {
       title: 'Livraison WhatsApp à valider',
       subtitle: destination ? `Destination : ${destination}` : 'Précisez le client / point de vente',

@@ -6,7 +6,7 @@ const n = (v = 0) => Number(v || 0) || 0;
 const low = (v) => String(v || '').toLowerCase();
 const isClosedGoal = (row = {}) => ['termine', 'terminé', 'closed', 'clos', 'done'].includes(low(row.status || row.statut || row.state));
 
-const TAB_ALIASES = {
+const STRATEGIC_TAB_ALIASES = {
   Performance: 'Suivi du Business Plan',
   Prévisions: 'Efficacité Technique & Zootechnique',
   Plans: 'Sécurisation des Flux',
@@ -17,6 +17,9 @@ const TAB_ALIASES = {
   'Efficacité Technique': 'Efficacité Technique & Zootechnique',
   'Flux & Équilibres': 'Sécurisation des Flux',
   'Maraîchage & Diversification': 'Simulateur Sandbox',
+};
+
+const OPERATIONAL_TAB_ALIASES = {
   Opportunités: 'Croissance & opportunités',
   'Opportunités & cycles': 'Croissance & opportunités',
   'À traiter': 'Urgences & risques',
@@ -27,6 +30,11 @@ const TAB_ALIASES = {
   Cycles: 'Saisons & marchés',
   Historique: 'Saisons & marchés',
   Annexe: 'Saisons & marchés',
+};
+
+const resolveVisionAlias = (moduleId = 'centre_decisionnel', requestedTab = '') => {
+  const aliases = moduleId === 'centre_decisionnel' ? OPERATIONAL_TAB_ALIASES : STRATEGIC_TAB_ALIASES;
+  return aliases[requestedTab] || STRATEGIC_TAB_ALIASES[requestedTab] || OPERATIONAL_TAB_ALIASES[requestedTab] || requestedTab;
 };
 
 const STRATEGIC_TABS = new Set([
@@ -59,13 +67,13 @@ const OPERATIONAL_TABS = new Set([
 export function resolveVisionTab(moduleId, requestedTab, onNavigate) {
   const tabs = MODULE_TARGET_TABS[moduleId] || [];
   const fallback = tabs[0] || 'Urgences & risques';
-  const mapped = requestedTab ? (TAB_ALIASES[requestedTab] || requestedTab) : null;
+  const mapped = requestedTab ? resolveVisionAlias(moduleId, requestedTab) : null;
   if (!mapped || tabs.includes(mapped)) {
     return mapped && tabs.includes(mapped) ? mapped : fallback;
   }
-  const sibling = moduleId === 'centre_ia' ? 'objectifs_croissance' : 'centre_ia';
+  const sibling = moduleId === 'centre_decisionnel' ? 'objectifs_croissance' : 'centre_decisionnel';
   const siblingTabs = MODULE_TARGET_TABS[sibling] || [];
-  const siblingMapped = TAB_ALIASES[mapped] || mapped;
+  const siblingMapped = resolveVisionAlias(sibling, mapped);
   if (siblingTabs.includes(siblingMapped)) {
     onNavigate?.(sibling, { tab: siblingMapped });
     return fallback;
@@ -74,31 +82,31 @@ export function resolveVisionTab(moduleId, requestedTab, onNavigate) {
 }
 
 /** Ouvre l'onglet priorité sur le bon module (Centre vs Objectifs). */
-export function openVisionPriority(item = {}, moduleId = 'centre_ia', { setTab, onNavigate } = {}) {
+export function openVisionPriority(item = {}, moduleId = 'centre_decisionnel', { setTab, onNavigate } = {}) {
   const targetTab = item.tab || item.targetTab;
   const targetModule = item.navModule || item.sourceModule;
-  const mappedTab = targetTab ? (TAB_ALIASES[targetTab] || targetTab) : null;
+  const mappedTab = targetTab ? resolveVisionAlias(moduleId, targetTab) : null;
 
   if (mappedTab && STRATEGIC_TABS.has(mappedTab)) {
-    onNavigate?.('objectifs_croissance', { tab: TAB_ALIASES[mappedTab] || mappedTab });
+    onNavigate?.('objectifs_croissance', { tab: resolveVisionAlias('objectifs_croissance', mappedTab) });
     return;
   }
   if (mappedTab && OPERATIONAL_TABS.has(mappedTab)) {
-    const resolvedTab = TAB_ALIASES[mappedTab] || mappedTab;
+    const resolvedTab = resolveVisionAlias('centre_decisionnel', mappedTab);
     const localTabs = MODULE_TARGET_TABS[moduleId] || [];
     if (localTabs.includes(resolvedTab)) {
       setTab?.(resolvedTab);
     } else if (localTabs.includes(mappedTab)) {
       setTab?.(mappedTab);
     } else {
-      onNavigate?.('centre_ia', { tab: resolvedTab });
+      onNavigate?.('centre_decisionnel', { tab: resolvedTab });
     }
     return;
   }
   if (targetModule) onNavigate?.(targetModule);
 }
 
-export function buildVisionBadges(data = {}, moduleId = 'centre_ia') {
+export function buildVisionBadges(data = {}, moduleId = 'centre_decisionnel') {
   const treatCount = arr(data.priorities).length;
   const risksCount = arr(data.risks).length;
   const criticalRisks = arr(data.risks).filter((r) => r.tone === 'bad').length;
@@ -109,7 +117,7 @@ export function buildVisionBadges(data = {}, moduleId = 'centre_ia') {
   const openPlans = arr(data.goals).filter((g) => !isClosedGoal(g)).length;
 
   const tabs = {};
-  if (moduleId === 'centre_ia') {
+  if (moduleId === 'centre_decisionnel') {
     const urgentBadge = treatCount + criticalRisks;
     if (urgentBadge > 0) tabs['Urgences & risques'] = urgentBadge;
     const cycleSignals = n(data.criticalStockCount) + n(data.openAlertsCount);

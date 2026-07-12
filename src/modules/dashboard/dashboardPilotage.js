@@ -152,10 +152,10 @@ export function buildDashboardPriorities(summary = {}, props = {}, health = {}) 
       tone: 'amber',
       title: criticalFindings[0].title,
       detail: criticalFindings[0].recommended_action || criticalFindings[0].description || 'Voir le détail ERP',
-      moduleKey: criticalFindings[0].module || 'centre_ia',
+      moduleKey: criticalFindings[0].module || 'centre_decisionnel',
       tab: 'Urgences & risques',
       finding: criticalFindings[0],
-      action: { moduleKey: criticalFindings[0].module || 'centre_ia', category: 'Pilotage' },
+      action: { moduleKey: criticalFindings[0].module || 'centre_decisionnel', category: 'Pilotage' },
     });
   }
 
@@ -169,9 +169,9 @@ export function buildDashboardPriorities(summary = {}, props = {}, health = {}) 
       tone: 'amber',
       title: `${orphanPayments.length} paiement(s) restent à rapprocher`,
       detail: 'Vérifier les ventes liées',
-      moduleKey: 'sync_activity',
+      moduleKey: 'gestion_systeme',
       tab: 'Vérifications',
-      action: { moduleKey: 'sync_activity', category: 'Contrôle ERP' },
+      action: { moduleKey: 'gestion_systeme', tab: 'Audit', category: 'Contrôle ERP' },
     });
   }
 

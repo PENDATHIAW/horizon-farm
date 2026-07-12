@@ -45,7 +45,7 @@ export default function RegistresAnalysesTab({ data, onNavigate, periodFiltered,
         onNavigate={onNavigate}
       />
       <ModuleGraphiquesTab
-        moduleId="rh"
+        moduleId="equipe"
         periodFiltered={periodFiltered}
         equipements={equipment}
         transactions={transactions}

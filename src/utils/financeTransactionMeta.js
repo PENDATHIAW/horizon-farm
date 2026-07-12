@@ -164,10 +164,10 @@ export function classifyOperationalChargeRedirect(payload = {}) {
   if (/paie|salaire|rémunération|remuneration|rh|employe|employé/.test(text)) {
     return {
       block: true,
-      module: 'rh',
+      module: 'equipe',
       tab: null,
-      label: 'RH / Paie',
-      message: 'La paie et les salaires se gèrent dans RH, pas comme charge simple en finance.',
+      label: 'Équipe / Paie',
+      message: 'La paie et les salaires se gèrent dans Équipe, pas comme charge simple en finance.',
     };
   }
 

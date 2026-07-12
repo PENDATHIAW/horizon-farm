@@ -27,5 +27,5 @@ export function openElevageCyclesWithQuestion({
 export function shouldHandleProductionQuestionEvent(detail = {}) {
   const moduleId = String(detail.moduleId || detail.module || '').toLowerCase();
   if (!moduleId) return true;
-  return ['elevage', 'centre_ia', 'objectifs_croissance'].includes(moduleId);
+  return ['elevage', 'centre_decisionnel', 'objectifs_croissance'].includes(moduleId);
 }

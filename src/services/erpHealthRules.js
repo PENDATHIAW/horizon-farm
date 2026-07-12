@@ -36,7 +36,7 @@ export function computeNavAlertCounts(crudRows = {}) {
 /** Badges hasAlert par module de navigation. */
 export function navAlertFlags(counts = {}, online = true) {
   return {
-    centre_ia: counts.stocksCritiques > 0 || counts.lotsAlerte > 0 || counts.financesAlerte > 0 || counts.culturesRisque > 0,
+    centre_decisionnel: counts.stocksCritiques > 0 || counts.lotsAlerte > 0 || counts.financesAlerte > 0 || counts.culturesRisque > 0,
     objectifs_croissance: counts.financesAlerte > 0 || counts.lotsAlerte > 0 || counts.culturesRisque > 0,
     elevage: counts.vaccinsRetard > 0 || counts.animauxMalades > 0 || counts.lotsAlerte > 0,
     commercial: counts.ventesAlerte > 0,
@@ -46,7 +46,7 @@ export function navAlertFlags(counts = {}, online = true) {
     documents_rapports: counts.documentsRapportsAlerte > 0,
     impact_business: counts.vaccinsRetard > 0 || counts.stocksCritiques > 0 || counts.animauxMalades > 0 || counts.lotsAlerte > 0,
     cultures: counts.culturesRisque > 0,
-    sync_activity: !online,
+    gestion_systeme: !online,
   };
 }
 

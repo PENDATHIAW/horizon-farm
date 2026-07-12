@@ -14,7 +14,7 @@ const MODULE_LINKS = [
   { key: 'finance_pilotage', label: 'Finance', tab: 'Trésorerie', hint: 'Preuves, paiements, créances' },
   { key: 'elevage', label: 'Élevage', tab: 'Cycles & Reproduction', hint: 'Bandes, santé, production' },
   { key: 'achats_stock', label: 'Stock', tab: 'Stock', hint: 'Réappro, seuils, fournisseurs' },
-  { key: 'centre_ia', label: 'Centre IA', tab: 'Risques', hint: 'Analyses et priorités globales' },
+  { key: 'centre_decisionnel', label: 'Centre IA', tab: 'Risques', hint: 'Analyses et priorités globales' },
 ];
 
 export default function ActiviteSuiviInsightPanel({
@@ -45,7 +45,7 @@ export default function ActiviteSuiviInsightPanel({
         </div>
         <button
           type="button"
-          onClick={() => onNavigate?.('centre_ia', { tab: 'Risques' })}
+          onClick={() => onNavigate?.('centre_decisionnel', { tab: 'Risques' })}
           className="text-xs font-black text-[#9a6b12] underline"
         >
           Centre décisionnel →

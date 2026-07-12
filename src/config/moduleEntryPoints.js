@@ -7,6 +7,7 @@
 export const CANONICAL_MODULE_FILES = {
   dashboard: 'dashboard/AccueilRefinedEntry.jsx',
   assistant_erp: 'AssistantERPV2.jsx',
+  centre_decisionnel: 'CentreIA.jsx',
   centre_ia: 'CentreIA.jsx',
   objectifs_croissance: 'ObjectifsCroissanceV2.jsx',
   elevage: 'ElevageModule.jsx',
@@ -35,12 +36,13 @@ export const CANONICAL_MODULE_FILES = {
   ventes: 'VentesV5.jsx',
   documents: 'DocumentsV2.jsx',
   taches: 'TachesV3.jsx',
+  equipe: 'RHV2.jsx',
   rh: 'RHV2.jsx',
   rapports: 'RapportsV2.jsx',
   equipements: 'EquipementsV3.jsx',
-  sync: 'SyncActivityCenter.jsx',
-  sync_activity: 'SyncActivityCenter.jsx',
-  audit_logs: 'SyncActivityCenter.jsx',
+  sync: 'GestionSystemeV2.jsx',
+  sync_activity: 'GestionSystemeV2.jsx',
+  audit_logs: 'GestionSystemeV2.jsx',
   gestion_systeme: 'GestionSystemeV2.jsx',
 };
 
@@ -50,6 +52,7 @@ export const FORBIDDEN_ENTRY_FILES = [
   'ImpactBusiness.jsx',
   'ImpactBusinessShell.jsx',
   'GestionSysteme.jsx',
+  'SyncActivityCenter.jsx',
   'SyncActivityCenterV2.jsx',
   'VentesV2.jsx',
   'VentesV3.jsx',
@@ -62,6 +65,7 @@ export const FORBIDDEN_ENTRY_FILES = [
 export const MODULE_ENTRY_POINTS = {
   dashboard: () => import('../modules/dashboard/AccueilRefinedEntry.jsx'),
   assistant_erp: () => import('../modules/AssistantERPV2.jsx'),
+  centre_decisionnel: () => import('../modules/CentreIA.jsx'),
   centre_ia: () => import('../modules/CentreIA.jsx'),
   objectifs_croissance: () => import('../modules/ObjectifsCroissanceV2.jsx'),
   elevage: () => import('../modules/ElevageModule.jsx'),
@@ -91,17 +95,23 @@ export const MODULE_ENTRY_POINTS = {
   ventes: () => import('../modules/VentesV5.jsx'),
   documents: () => import('../modules/DocumentsV2.jsx'),
   taches: () => import('../modules/TachesV3.jsx'),
+  equipe: () => import('../modules/RHV2.jsx'),
   rh: () => import('../modules/RHV2.jsx'),
   rapports: () => import('../modules/RapportsV2.jsx'),
   equipements: () => import('../modules/EquipementsV3.jsx'),
-  sync: () => import('../modules/SyncActivityCenter.jsx'),
-  sync_activity: () => import('../modules/SyncActivityCenter.jsx'),
-  audit_logs: () => import('../modules/SyncActivityCenter.jsx'),
+  sync: () => import('../modules/GestionSystemeV2.jsx'),
+  sync_activity: () => import('../modules/GestionSystemeV2.jsx'),
+  audit_logs: () => import('../modules/GestionSystemeV2.jsx'),
   gestion_systeme: () => import('../modules/GestionSystemeV2.jsx'),
 };
 
 /** Routes historiques → module actif (navigation + chargement). */
 export const DEPRECATED_MODULE_ALIASES = {
+  centre_ia: 'centre_decisionnel',
+  rh: 'equipe',
+  sync: 'gestion_systeme',
+  sync_activity: 'gestion_systeme',
+  audit_logs: 'gestion_systeme',
   impact_business: 'financements',
   investisseurs_forums: 'financements',
   financeurs: 'financements',

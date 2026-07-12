@@ -47,8 +47,8 @@ export default function RapportsExportsTab({
       <Section icon={Download} title="Feuille de route data-driven (DER/FJ)">
         <p className="text-sm text-[#8a7456] leading-relaxed">{gp.valorisation.roadmapNote}</p>
         <p className="mt-2 text-sm text-[#2f2415]">
-          Tallow & Go : <b>{gp.valorisation.phase2_tallow_go.score}/100</b> ({gp.valorisation.phase2_tallow_go.statusLabel}) ·
-          BOVINIA : <b>{gp.valorisation.phase3_bovinia.score}/100</b> ({gp.valorisation.phase3_bovinia.statusLabel})
+          Phase 2 future : <b>{gp.valorisation.phase2_tallow_go.score}/100</b> ({gp.valorisation.phase2_tallow_go.statusLabel}) ·
+          Phase 3 future : <b>{gp.valorisation.phase3_bovinia.score}/100</b> ({gp.valorisation.phase3_bovinia.statusLabel})
         </p>
       </Section>
       <Section icon={Download} title="Exports & dossier financeur">

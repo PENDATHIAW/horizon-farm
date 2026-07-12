@@ -3,7 +3,7 @@ export const HORIZON_INTENT_CATALOG = {
     label: 'Achat stock / intrants',
     primary_module: 'stock',
     form_type: 'stock_purchase',
-    impacted_modules: ['stock', 'finances', 'fournisseurs', 'tracabilite', 'centre_ia'],
+    impacted_modules: ['stock', 'finances', 'fournisseurs', 'tracabilite', 'centre_decisionnel'],
     examples: [
       'Enregistre un achat de 20 sacs d aliment de 50 kg chez NMA Sanders',
       'J ai achete 10 sacs de mais a credit',
@@ -17,7 +17,7 @@ export const HORIZON_INTENT_CATALOG = {
     label: 'Vente / commande client',
     primary_module: 'commercial',
     form_type: 'sale_record',
-    impacted_modules: ['commercial', 'stock', 'clients', 'finances', 'tracabilite', 'centre_ia'],
+    impacted_modules: ['commercial', 'stock', 'clients', 'finances', 'tracabilite', 'centre_decisionnel'],
     examples: [
       'Enregistre une vente de 15 tablettes d oeufs au client Mariama',
       'J ai vendu 3 moutons payes cash',
@@ -31,7 +31,7 @@ export const HORIZON_INTENT_CATALOG = {
     label: 'Production oeufs',
     primary_module: 'avicole',
     form_type: 'egg_production_log',
-    impacted_modules: ['avicole', 'stock', 'ventes', 'tracabilite', 'centre_ia'],
+    impacted_modules: ['avicole', 'stock', 'ventes', 'tracabilite', 'centre_decisionnel'],
     examples: [
       'Ponte P1 aujourd hui 980 oeufs 12 casses',
       'Enregistre 1200 oeufs produits pour le lot pondeuses A',
@@ -46,7 +46,7 @@ export const HORIZON_INTENT_CATALOG = {
     label: 'Mortalite / perte animaux',
     primary_module: 'avicole',
     form_type: 'mortality_event',
-    impacted_modules: ['avicole', 'animaux', 'sante', 'tracabilite', 'centre_ia', 'alertes'],
+    impacted_modules: ['avicole', 'animaux', 'sante', 'tracabilite', 'centre_decisionnel', 'alertes'],
     examples: [
       'Il y a 2 morts dans le lot poulets de chair B',
       'Enregistre 1 chevre morte aujourd hui',
@@ -61,7 +61,7 @@ export const HORIZON_INTENT_CATALOG = {
     label: 'Soin / vaccin / traitement',
     primary_module: 'sante',
     form_type: 'health_treatment',
-    impacted_modules: ['sante', 'avicole', 'animaux', 'stock', 'finances', 'tracabilite', 'centre_ia'],
+    impacted_modules: ['sante', 'avicole', 'animaux', 'stock', 'finances', 'tracabilite', 'centre_decisionnel'],
     examples: [
       'Enregistre un vaccin Newcastle pour le lot P1',
       'Le veterinaire a traite la vache Awa aujourd hui',
@@ -76,7 +76,7 @@ export const HORIZON_INTENT_CATALOG = {
     label: 'Distribution alimentation',
     primary_module: 'stock',
     form_type: 'feed_distribution',
-    impacted_modules: ['stock', 'avicole', 'animaux', 'tracabilite', 'centre_ia'],
+    impacted_modules: ['stock', 'avicole', 'animaux', 'tracabilite', 'centre_decisionnel'],
     examples: [
       'Distribue 3 sacs d aliment au lot pondeuses A',
       'Aujourd hui les moutons ont consomme 50 kg d aliment',
@@ -90,7 +90,7 @@ export const HORIZON_INTENT_CATALOG = {
     label: 'Activite culture / maraichage',
     primary_module: 'cultures',
     form_type: 'culture_activity',
-    impacted_modules: ['cultures', 'stock', 'finances', 'tracabilite', 'centre_ia'],
+    impacted_modules: ['cultures', 'stock', 'finances', 'tracabilite', 'centre_decisionnel'],
     examples: [
       'Enregistre semis tomate sur parcelle 1',
       'J ai recolte 40 kg de piment aujourd hui',
@@ -105,7 +105,7 @@ export const HORIZON_INTENT_CATALOG = {
     label: 'Maintenance equipement',
     primary_module: 'equipements',
     form_type: 'equipment_maintenance',
-    impacted_modules: ['equipements', 'finances', 'taches', 'tracabilite', 'centre_ia'],
+    impacted_modules: ['equipements', 'finances', 'taches', 'tracabilite', 'centre_decisionnel'],
     examples: [
       'Le groupe electrogene est en panne',
       'Programme maintenance pompe demain',
@@ -120,7 +120,7 @@ export const HORIZON_INTENT_CATALOG = {
     label: 'Evenement Smart Farm',
     primary_module: 'smartfarm',
     form_type: 'smartfarm_event',
-    impacted_modules: ['smartfarm', 'alertes', 'taches', 'tracabilite', 'centre_ia'],
+    impacted_modules: ['smartfarm', 'alertes', 'taches', 'tracabilite', 'centre_decisionnel'],
     examples: [
       'Camera stock hors ligne',
       'Temperature poulailler 37 degres',
@@ -136,7 +136,7 @@ export const HORIZON_INTENT_CATALOG = {
     label: 'Creation tache',
     primary_module: 'taches',
     form_type: 'task',
-    impacted_modules: ['taches', 'tracabilite', 'centre_ia'],
+    impacted_modules: ['taches', 'tracabilite', 'centre_decisionnel'],
     examples: [
       'Cree une tache pour verifier le stock demain',
       'Rappelle a Moussa de nettoyer le poulailler',
@@ -151,7 +151,7 @@ export const HORIZON_INTENT_CATALOG = {
     label: 'Document / justificatif',
     primary_module: 'documents',
     form_type: 'document',
-    impacted_modules: ['documents', 'finances', 'fournisseurs', 'clients', 'tracabilite', 'centre_ia'],
+    impacted_modules: ['documents', 'finances', 'fournisseurs', 'clients', 'tracabilite', 'centre_decisionnel'],
     examples: [
       'Ajoute cette facture fournisseur',
       'Enregistre le recu de paiement client',
@@ -166,7 +166,7 @@ export const HORIZON_INTENT_CATALOG = {
     label: 'Entree / sortie finance',
     primary_module: 'finances',
     form_type: 'finance_transaction',
-    impacted_modules: ['finances', 'comptabilite', 'tracabilite', 'centre_ia'],
+    impacted_modules: ['finances', 'comptabilite', 'tracabilite', 'centre_decisionnel'],
     examples: [
       'Enregistre une depense de 25000 FCFA pour transport',
       'J ai encaisse 50000 FCFA du client Fatou',

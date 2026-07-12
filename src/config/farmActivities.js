@@ -29,7 +29,6 @@ export const FARM_COMMON_MODULES = Object.freeze([
   'documents_rapports',
   'activite_suivi',
   'gestion_systeme',
-  'sync_activity',
 ]);
 
 /** Modules adaptatifs selon activity_type. */
@@ -38,10 +37,10 @@ export const FARM_ADAPTIVE_MODULES = Object.freeze([
   'agri_feeds',
   'cultures',
   'smartfarm',
-  'rh',
+  'equipe',
   'rapports',
   'financements',
-  'centre_ia',
+  'centre_decisionnel',
   'objectifs_croissance',
   'impact_business',
 ]);

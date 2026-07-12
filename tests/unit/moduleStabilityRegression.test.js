@@ -49,12 +49,11 @@ const CRITICAL_MODULES = [
   'cultures',
   'documents_rapports',
   'financements',
-  'rh',
+  'equipe',
   'smartfarm',
   'gestion_systeme',
-  'centre_ia',
+  'centre_decisionnel',
   'activite_suivi',
-  'sync_activity',
 ];
 
 const TAB_OVERRIDES = {
@@ -62,9 +61,8 @@ const TAB_OVERRIDES = {
   commercial: { initialTab: 'Résumé' },
   achats_stock: { initialTab: 'Stock' },
   elevage: { initialTab: 'Résumé' },
-  centre_ia: { initialTab: 'Urgences & risques' },
+  centre_decisionnel: { initialTab: 'Urgences & risques' },
   activite_suivi: { initialTab: 'Cockpit & décisions' },
-  sync_activity: { initialTab: 'Vérifications' },
   gestion_systeme: { initialTab: 'Vue admin' },
 };
 

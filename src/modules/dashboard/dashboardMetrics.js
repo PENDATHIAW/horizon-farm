@@ -586,7 +586,7 @@ export const DASHBOARD_MODULE_LABELS = {
   smartfarm: 'Smart Farm',
   sync_activity: 'Sync ERP',
   objectifs_croissance: 'Vision',
-  centre_ia: 'Décisions',
+  centre_decisionnel: 'Décisions',
   assistant_erp: 'Assistant',
 };
 
@@ -596,6 +596,6 @@ export const DASHBOARD_MODULES = [
   { id: 'achats_stock', label: 'Achats & Stock', hint: 'Inventaire · fournisseurs', tab: 'Inventaire' },
   { id: 'finance_pilotage', label: 'Finance', hint: 'Trésorerie · créances', tab: 'Résumé' },
   { id: 'activite_suivi', label: 'Activité', hint: 'Tâches · alertes', tab: 'Cockpit & décisions' },
-  { id: 'centre_ia', label: 'Décisions', hint: 'Urgences · croissance', tab: 'Urgences & risques' },
+  { id: 'centre_decisionnel', label: 'Décisions', hint: 'Urgences · croissance', tab: 'Urgences & risques' },
   { id: 'objectifs_croissance', label: 'Vision', hint: 'Objectifs · financeurs', tab: 'Suivi du Business Plan' },
 ];

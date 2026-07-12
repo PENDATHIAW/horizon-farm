@@ -675,7 +675,7 @@ export function resolveRhNavigation(value = '') {
 export function navigateRhTab(onNavigate, tab = '', options = {}) {
   const raw = String(tab || '').trim() || 'Cockpit RH & Maintenance';
   if (typeof onNavigate === 'function') {
-    onNavigate('rh', { tab: raw, ...options });
+    onNavigate('equipe', { tab: raw, ...options });
   }
   return resolveRhTab(raw);
 }
@@ -707,7 +707,7 @@ export function resolveCentreTab(value = '') {
 /** Navigation externe vers le Centre avec résolution d'onglet legacy. */
 export function navigateCentreTab(onNavigate, tab = '') {
   const resolved = resolveCentreTab(tab);
-  if (typeof onNavigate === 'function') onNavigate('centre_ia', { tab: resolved });
+  if (typeof onNavigate === 'function') onNavigate('centre_decisionnel', { tab: resolved });
   return resolved;
 }
 
@@ -727,7 +727,7 @@ export function resolveSyncActivityNavigation(value = '') {
 export function navigateSyncActivityTab(onNavigate, tab = '', options = {}) {
   const raw = String(tab || '').trim() || 'Vérifications';
   if (typeof onNavigate === 'function') {
-    onNavigate('sync_activity', { tab: raw, ...options });
+    onNavigate('gestion_systeme', { tab: raw === 'Vérifications' ? 'Audit' : raw, ...options });
   }
   return resolveSyncActivityTab(raw);
 }
@@ -834,6 +834,8 @@ export function resolveRouteModule(moduleId = '') {
 
 /** Onglet par défaut quand on entre via un alias legacy. */
 export function defaultTabForLegacyModule(moduleId = '') {
+  if (moduleId === 'centre_decisionnel' || moduleId === 'centre_decisionnel') return 'Urgences & risques';
+  if (moduleId === 'rh' || moduleId === 'equipe') return 'Cockpit RH & Maintenance';
   if (moduleId === 'clients') return 'Clients & créances';
   if (moduleId === 'ventes' || moduleId === 'sales_orders') return 'Ventes';
   if (moduleId === 'sales_opportunities') return 'Opportunités';
@@ -847,7 +849,8 @@ export function defaultTabForLegacyModule(moduleId = '') {
   if (moduleId === 'payments') return 'Créances';
   if (moduleId === 'invoices') return 'Ventes';
   if (moduleId === 'deliveries') return 'Livraisons';
-  if (moduleId === 'audit_logs' || moduleId === 'sync') return 'Vérifications';
+  if (moduleId === 'audit_logs') return 'Audit';
+  if (moduleId === 'sync' || moduleId === 'sync_activity') return 'Sauvegardes';
   if (moduleId === 'financements' || moduleId === 'investisseurs_forums' || moduleId === 'financeurs' || moduleId === 'impact_business') return 'cockpit-dashboard';
   return null;
 }
@@ -932,7 +935,7 @@ export function navigationOptionsForFinding(finding = {}) {
       tab: explicitTab || defaultTabForLegacyModule(rawModule) || 'Cockpit & décisions',
     };
   }
-  if (module === 'rh') {
+  if (module === 'equipe') {
     return {
       module,
       tab: explicitTab || defaultTabForLegacyModule(rawModule) || 'Cockpit RH & Maintenance',
@@ -954,12 +957,6 @@ export function navigationOptionsForFinding(finding = {}) {
     return {
       module,
       tab: explicitTab || defaultTabForLegacyModule(rawModule) || 'Objets connectés',
-    };
-  }
-  if (module === 'sync_activity' || module === 'audit_logs' || module === 'sync') {
-    return {
-      module: 'sync_activity',
-      tab: explicitTab || defaultTabForLegacyModule(rawModule) || 'Vérifications',
     };
   }
   if (module === 'gestion_systeme') {
@@ -1003,8 +1000,8 @@ export function navigateForIaFinding(finding = {}, onNavigate) {
     onNavigate('activite_suivi', { tab: finding.tab || 'À traiter maintenant' });
     return;
   }
-  if (module === 'rh') {
-    onNavigate('rh', { tab: finding.tab || 'Cockpit RH & Maintenance' });
+  if (module === 'equipe') {
+    onNavigate('equipe', { tab: finding.tab || 'Cockpit RH & Maintenance' });
     return;
   }
   if (module === 'objectifs_croissance') {
@@ -1017,10 +1014,6 @@ export function navigateForIaFinding(finding = {}, onNavigate) {
   }
   if (module === 'smartfarm') {
     onNavigate('smartfarm', { tab: finding.tab || 'Objets connectés' });
-    return;
-  }
-  if (module === 'sync_activity' || module === 'audit_logs' || module === 'sync') {
-    onNavigate('sync_activity', { tab: finding.tab || 'Vérifications' });
     return;
   }
   if (module === 'gestion_systeme') {

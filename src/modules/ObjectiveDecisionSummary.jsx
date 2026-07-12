@@ -17,7 +17,7 @@ export default function ObjectiveDecisionSummary({ plan, onNavigate }) {
           <h3 className="text-xl font-black text-[#2f2415] mt-1">Ce que les objectifs exigent réellement</h3>
           <p className="text-sm text-[#8a7456] mt-1">Cette synthèse montre si la ferme peut couvrir la demande prévue ou s’il faut vendre, précommander, investir ou sécuriser une deadline.</p>
         </div>
-        <button type="button" onClick={() => onNavigate?.('centre_ia')} className="rounded-xl bg-[#2f2415] px-4 py-2 text-xs font-black text-white hover:bg-[#3d2f1d] flex items-center gap-2">
+        <button type="button" onClick={() => onNavigate?.('centre_decisionnel')} className="rounded-xl bg-[#2f2415] px-4 py-2 text-xs font-black text-white hover:bg-[#3d2f1d] flex items-center gap-2">
           Voir Centre décisionnel <ArrowRight size={14} />
         </button>
       </div>
@@ -47,7 +47,7 @@ export default function ObjectiveDecisionSummary({ plan, onNavigate }) {
 
             <p className="mt-3 text-xs text-[#7d6a4a] line-clamp-3">{item.recommendation}</p>
             <div className="mt-3 grid grid-cols-2 gap-2">
-              <button type="button" onClick={() => onNavigate?.('centre_ia')} className="rounded-xl border border-[#d6c3a0] px-2 py-2 text-[11px] font-black text-[#7d6a4a] hover:border-emerald-400 hover:text-emerald-700">Reco détaillée</button>
+              <button type="button" onClick={() => onNavigate?.('centre_decisionnel')} className="rounded-xl border border-[#d6c3a0] px-2 py-2 text-[11px] font-black text-[#7d6a4a] hover:border-emerald-400 hover:text-emerald-700">Reco détaillée</button>
               <button type="button" onClick={() => onNavigate?.('investissements')} className="rounded-xl bg-[#f6c453] px-2 py-2 text-[11px] font-black text-[#2f2415] hover:bg-[#ffe08a]">BP / Investir</button>
             </div>
           </div>

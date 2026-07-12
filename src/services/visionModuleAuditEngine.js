@@ -8,21 +8,18 @@ const n = (v = 0) => Number(v || 0);
 const MODULE_DATA_KEYS = {
   dashboard: ['sales_orders', 'payments', 'finances', 'animaux', 'avicole', 'stock', 'taches', 'alertes_center'],
   assistant_erp: ['sales_orders', 'finances', 'stock', 'taches', 'alertes_center'],
-  centre_ia: ['sales_orders', 'finances', 'alertes_center', 'business_events', 'taches'],
+  centre_decisionnel: ['sales_orders', 'finances', 'alertes_center', 'business_events', 'taches'],
   objectifs_croissance: ['sales_orders', 'finances', 'business_plans', 'investissements'],
   elevage: ['animaux', 'avicole', 'sante', 'alimentation_logs', 'production_oeufs_logs'],
   commercial: ['sales_orders', 'clients', 'payments', 'sales_opportunities'],
   achats_stock: ['stock', 'fournisseurs', 'finances', 'alimentation_logs'],
   finance_pilotage: ['finances', 'payments', 'investissements', 'business_plans'],
   activite_suivi: ['alertes_center', 'taches', 'tracabilite', 'business_events'],
-  sync_activity: ['audit_logs', 'business_events', 'taches', 'alertes_center'],
   documents_rapports: ['documents', 'rapports', 'finances'],
-  rh: ['equipements', 'finances', 'documents'],
-  gestion_systeme: ['audit_logs'],
+  equipe: ['equipements', 'finances', 'documents'],
+  gestion_systeme: ['audit_logs', 'business_events', 'taches', 'alertes_center'],
   smartfarm: ['sensor_devices', 'camera_devices', 'alertes_center'],
-  sync_activity: ['audit_logs'],
   impact_business: ['business_events', 'documents', 'finances'],
-  centre_ia: ['sales_orders', 'finances', 'alertes_center', 'business_events'],
 };
 
 function scoreFromIssues(issues) {
@@ -76,7 +73,7 @@ export function runVisionModuleAudit(data = {}) {
     if (moduleId === 'impact_business' && !arr(data.business_events).length) lost.push('Impacts métier non structurés');
 
     const redundancies = [];
-    if (moduleId === 'objectifs_croissance' && MODULE_REGISTRY.centre_ia) redundancies.push('Centre décisionnel parallèle — vérifier non-duplication des recommandations');
+    if (moduleId === 'objectifs_croissance' && MODULE_REGISTRY.centre_decisionnel) redundancies.push('Centre décisionnel parallèle — vérifier non-duplication des recommandations');
 
     const { status, label: statusLabel, score } = scoreFromIssues(issues);
 

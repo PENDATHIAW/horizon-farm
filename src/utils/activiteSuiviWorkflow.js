@@ -160,7 +160,7 @@ export function enrichRecommendationPatch(finding = {}) {
     ...finding,
     id: finding.id || makeId('REC'),
     title: finding.title || finding.description || 'Recommandation IA',
-    source_module: finding.module || finding.source_module || 'centre_ia',
+    source_module: finding.module || finding.source_module || 'centre_decisionnel',
     source_record_id: finding.source_records?.[0]?.id || finding.entity_id || finding.id,
     action_key: finding.id,
   }, ACTIVITE_ORIGIN_TYPES.RECOMMENDATION);

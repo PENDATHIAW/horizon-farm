@@ -237,7 +237,7 @@ export async function executeGuidedRepairAction(issue = {}, actionId = '', props
         await props.onCreateBusinessEvent?.({
           id: makeId('EVT'),
           event_type: 'paiement_hors_erp',
-          module_source: 'sync_activity',
+          module_source: 'gestion_systeme',
           entity_type: 'payment',
           entity_id: payment.id,
           title: 'Paiement marqué hors ERP',

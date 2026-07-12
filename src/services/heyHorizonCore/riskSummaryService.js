@@ -53,7 +53,7 @@ export function getRiskSummary(dataMap = {}) {
   }));
 
   return {
-    ...metaBase({ module: 'centre_ia' }),
+    ...metaBase({ module: 'centre_decisionnel' }),
     health_score: health.score ?? 0,
     counts: {
       findings_total: health.counts?.total ?? arr(health.findings).length,

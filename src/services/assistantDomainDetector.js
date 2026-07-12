@@ -13,7 +13,7 @@ const DOMAIN_MODULE_MAP = Object.freeze({
   COMMERCIAL: 'commercial',
   FINANCE: 'finance_pilotage',
   OBJECTIFS: 'objectifs_croissance',
-  DECISION: 'centre_ia',
+  DECISION: 'centre_decisionnel',
   INVESTISSEUR: 'financements',
   SALUTATION: 'assistant_erp',
 });

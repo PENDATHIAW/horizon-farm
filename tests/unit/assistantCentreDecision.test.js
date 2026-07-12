@@ -23,7 +23,7 @@ test('buildCentreDecisionAnswer — priorités avec lien centre', () => {
   const answer = buildCentreDecisionAnswer('today_priorities', mockDataMap);
   assert.ok(answer);
   assert.equal(answer.centreLinked, true);
-  assert.equal(answer.navigation?.moduleId, 'centre_ia');
+  assert.equal(answer.navigation?.moduleId, 'centre_decisionnel');
   assert.match(answer.situation || '', /conseille|priorit|aujourd/i);
 });
 

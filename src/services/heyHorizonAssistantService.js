@@ -66,7 +66,7 @@ export const HEY_HORIZON_MODULE_LABELS = {
   finance_pilotage: 'Finance & Pilotage',
   activite_suivi: 'Activité & Suivi',
   documents_rapports: 'Documents & Rapports',
-  rh: 'Opérations & Ressources',
+  equipe: 'Équipe & Ressources',
   ventes: 'Commercial',
   finances: 'Finance & Pilotage',
   clients: 'Commercial',
@@ -81,12 +81,12 @@ export const HEY_HORIZON_MODULE_LABELS = {
   documents: 'Documents & Rapports',
   taches: 'Activité & Suivi',
   alertes: 'Activité & Suivi',
-  sync_activity: 'Vérifications',
+  gestion_systeme: 'Gestion du système',
   impact_business: 'Financements',
   financements: 'Financements',
   fournisseurs: 'Achats & Stock',
   tracabilite: 'Traçabilité',
-  centre_ia: 'Centre décisionnel',
+  centre_decisionnel: 'Centre décisionnel',
   rapports: 'Rapports',
   equipements: 'Opérations & Ressources',
   smartfarm: 'Smart Farm',
@@ -102,7 +102,7 @@ export const AUTO_OPEN_FORM_TYPES = new Set([
 
 const REFRESH_KEYS_BY_MODULE = {
   dashboard: ['animaux', 'avicole', 'sante', 'finances', 'stock', 'clients', 'fournisseurs', 'cultures', 'taches', 'alertes_center', 'business_events', 'sales_orders', 'payments'],
-  centre_ia: ['stock', 'finances', 'avicole', 'animaux', 'cultures', 'alertes_center', 'business_events', 'sales_orders', 'payments', 'sensor_devices', 'camera_devices'],
+  centre_decisionnel: ['stock', 'finances', 'avicole', 'animaux', 'cultures', 'alertes_center', 'business_events', 'sales_orders', 'payments', 'sensor_devices', 'camera_devices'],
   stock: ['stock', 'alimentation_logs', 'business_events'],
   finances: ['finances', 'payments', 'business_events'],
   fournisseurs: ['fournisseurs', 'finances', 'stock', 'business_events'],
@@ -118,7 +118,7 @@ const REFRESH_KEYS_BY_MODULE = {
   tracabilite: ['tracabilite', 'business_events'],
   smartfarm: ['sensor_devices', 'camera_devices', 'alertes_center', 'taches', 'business_events'],
   equipements: ['equipements', 'taches', 'finances', 'documents', 'business_events'],
-  rh: ['finances', 'taches', 'business_events'],
+  equipe: ['finances', 'taches', 'business_events'],
   elevage: ['animaux', 'avicole', 'sante', 'alimentation_logs', 'production_oeufs_logs', 'business_events', 'alertes_center', 'documents'],
 };
 
@@ -167,7 +167,7 @@ export function buildHeyHorizonRefreshKeys(result = {}, draft = {}) {
     ...(result.impacted_modules || []),
     draft.primary_module,
     'dashboard',
-    'centre_ia',
+    'centre_decisionnel',
     'alertes',
     'tracabilite',
   ].filter(Boolean));
@@ -190,8 +190,8 @@ const PILOTAGE_REDIRECTS = {
   clients_debt: { module: 'commercial', tab: 'Clients & créances', label: 'Commercial' },
   lot_profitability: { module: 'elevage', tab: 'Cycles & Reproduction', productionQuestion: 'reform_lot', label: 'Élevage → Cycles' },
   margin_drop: { module: 'finance_pilotage', tab: 'Rentabilité', label: 'Finance & Pilotage' },
-  equipment_cost: { module: 'rh', tab: 'Coûts', label: 'Opérations & Ressources' },
-  monthly_risks: { module: 'centre_ia', tab: 'Urgences & risques', label: 'Centre décisionnel' },
+  equipment_cost: { module: 'equipe', tab: 'Coûts', label: 'Équipe & Ressources' },
+  monthly_risks: { module: 'centre_decisionnel', tab: 'Urgences & risques', label: 'Centre décisionnel' },
 };
 
 const PRODUCTION_LABELS = {

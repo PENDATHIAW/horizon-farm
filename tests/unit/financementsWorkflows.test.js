@@ -138,7 +138,7 @@ test('funder permissions are strictly read-only', () => {
   assert.equal(canFunderAccess({ account: { status: 'active' }, resource: { visibility: 'internal' }, action: 'read' }), false);
 });
 
-test('demo dataset is fictive and excludes operational BOVINIA/Tallow relics', () => {
+test('demo dataset is fictive and excludes operational future-extension relics', () => {
   const demo = createFundingDemoDataset();
   const serialized = JSON.stringify(demo);
   assert.match(serialized, /exemple/i);

@@ -85,7 +85,7 @@ export default function ElevageCyclesReproductionTab({
         {onNavigate ? (
           <button
             type="button"
-            onClick={() => onNavigate('centre_ia', { tab: 'Saisons & marchés' })}
+            onClick={() => onNavigate('centre_decisionnel', { tab: 'Saisons & marchés' })}
             className="mt-3 rounded-xl bg-[#2f2415] px-4 py-2 text-xs font-black text-white"
           >
             Centre décisionnel → Saisons & marchés

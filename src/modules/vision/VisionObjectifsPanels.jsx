@@ -59,7 +59,7 @@ export default function VisionObjectifsPanels({ plan, onNavigate }) {
         </div>
         <button
           type="button"
-          onClick={() => onNavigate?.('centre_ia', { tab: 'À traiter' })}
+          onClick={() => onNavigate?.('centre_decisionnel', { tab: 'À traiter' })}
           className="inline-flex items-center gap-2 rounded-xl border border-[#d6c3a0] bg-[#fffdf8] px-4 py-2 text-xs font-black text-[#2f2415] hover:bg-[#dcfce7]"
         >
           Voir actions Centre décisionnel <ArrowRight size={14} />

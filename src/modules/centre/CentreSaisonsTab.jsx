@@ -100,7 +100,7 @@ export default function CentreSaisonsTab({
         open={annexeOpen}
         onToggle={() => setAnnexeOpen((v) => !v)}
       >
-        <DecisionAnnexeTab moduleLabel="Centre décisionnel" moduleId="centre_ia" dataMap={dataMap} onNavigate={onNavigate} />
+        <DecisionAnnexeTab moduleLabel="Centre décisionnel" moduleId="centre_decisionnel" dataMap={dataMap} onNavigate={onNavigate} />
       </AccordionSection>
     </div>
   );

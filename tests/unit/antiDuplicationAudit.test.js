@@ -87,7 +87,7 @@ test('joindre preuve ouvre formulaire document (pas tâche seule)', () => {
 });
 
 test('alertes Centre décisionnel redirigent vers Activité & Suivi', () => {
-  assert.equal(shouldBlockInlineAlertCreation('centre_ia'), true);
+  assert.equal(shouldBlockInlineAlertCreation('centre_decisionnel'), true);
   assert.equal(shouldBlockInlineAlertCreation('activite_suivi'), false);
   const calls = [];
   redirectToSource((m, o) => calls.push({ m, tab: o?.tab }), 'alertes_centre_activite');

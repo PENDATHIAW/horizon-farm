@@ -14,7 +14,7 @@ const MODULE_LINKS = [
   { key: 'commercial', label: 'Commercial', tab: 'Opportunités', hint: 'Vendre stock / produits finis' },
   { key: 'finance_pilotage', label: 'Finance', tab: 'Dépenses', hint: 'Achats, paiements fournisseurs' },
   { key: 'documents_rapports', label: 'Documents', hint: 'Factures & bons de livraison' },
-  { key: 'centre_ia', label: 'Centre décisionnel', tab: 'Risques', hint: 'Analyses stock & fournisseurs' },
+  { key: 'centre_decisionnel', label: 'Centre décisionnel', tab: 'Risques', hint: 'Analyses stock & fournisseurs' },
 ];
 
 export default function AchatsStockInsightPanel({
@@ -45,7 +45,7 @@ export default function AchatsStockInsightPanel({
         </div>
         <button
           type="button"
-          onClick={() => onNavigate?.('centre_ia', { tab: 'Risques' })}
+          onClick={() => onNavigate?.('centre_decisionnel', { tab: 'Risques' })}
           className="text-xs font-black text-[#9a6b12] underline"
         >
           Centre décisionnel →

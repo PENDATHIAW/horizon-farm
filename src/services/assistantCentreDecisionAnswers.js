@@ -16,7 +16,7 @@ import { enrichTerrainAnswer } from './assistantTerrainAnswers.js';
 const arr = (v) => (Array.isArray(v) ? v : []);
 const n = (v) => Number(v || 0);
 
-function withCentreMeta(answer = {}, tab = '', moduleKey = 'centre_ia') {
+function withCentreMeta(answer = {}, tab = '', moduleKey = 'centre_decisionnel') {
   if (!answer) return null;
   return {
     ...answer,

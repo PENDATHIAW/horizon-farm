@@ -22,7 +22,7 @@ export const PILOTAGE_NAV_TARGETS = {
   financeur: { module: 'financements', tab: 'cockpit-dashboard' },
   objectifs_croissance: { module: 'objectifs_croissance', tab: 'Suivi du Business Plan' },
   activite_suivi: { module: 'activite_suivi', tab: 'À traiter maintenant' },
-  centre_ia: { module: 'centre_ia', tab: 'Urgences & risques' },
+  centre_decisionnel: { module: 'centre_decisionnel', tab: 'Urgences & risques' },
 };
 
 export function buildPilotageIssueKey(scope = 'item', id = '') {
@@ -44,7 +44,7 @@ export function inferPilotageNavKey(item = {}) {
   if (domain.includes('élevage') || domain.includes('elevage') || domain.includes('santé') || domain.includes('sante') || title.includes('santé') || moduleHint.includes('elevage') || moduleHint.includes('sante')) return 'sante';
   if (domain.includes('financeur') || title.includes('financeur') || title.includes('dossier')) return 'financeur';
 
-  return moduleHint || 'centre_ia';
+  return moduleHint || 'centre_decisionnel';
 }
 
 export function resolvePilotageNavigation(item = {}) {
@@ -61,7 +61,7 @@ export function resolvePilotageNavigation(item = {}) {
   }
 
   const key = inferPilotageNavKey(item);
-  const target = PILOTAGE_NAV_TARGETS[key] || PILOTAGE_NAV_TARGETS.centre_ia;
+  const target = PILOTAGE_NAV_TARGETS[key] || PILOTAGE_NAV_TARGETS.centre_decisionnel;
   const tab = item.navTab || item.tab || target.tab;
   return { module: item.navModule || item.module || item.sourceModule || item.source_module || target.module, tab };
 }
@@ -74,7 +74,7 @@ export function navigateFromPilotageItem(onNavigate, item = {}) {
   return { module, tab };
 }
 
-export function pilotageSourceFromItem(item = {}, fallbackModule = 'centre_ia') {
+export function pilotageSourceFromItem(item = {}, fallbackModule = 'centre_decisionnel') {
   const nav = resolvePilotageNavigation(item);
   const sourceModule = item.source_module || item.sourceModule || nav.module || fallbackModule;
   const sourceId = item.source_record_id || item.source_id || item.entity_id || item.record?.id || item.id || clean(item.title);
@@ -88,7 +88,7 @@ export function pilotageSourceFromItem(item = {}, fallbackModule = 'centre_ia') 
 }
 
 export function buildRiskFollowUpTask(risk = {}, options = {}) {
-  const source = pilotageSourceFromItem({ ...risk, kind: 'risk' }, risk.module || 'centre_ia');
+  const source = pilotageSourceFromItem({ ...risk, kind: 'risk' }, risk.module || 'centre_decisionnel');
   const built = buildDecisionRecommendationTask({
     id: source.sourceId,
     title: `Risque : ${risk.title || 'Sans titre'}`,
@@ -115,14 +115,14 @@ export function buildRiskFollowUpTask(risk = {}, options = {}) {
 }
 
 export function buildRiskFollowUpAlert(risk = {}, options = {}) {
-  const source = pilotageSourceFromItem({ ...risk, kind: 'risk' }, risk.module || 'centre_ia');
+  const source = pilotageSourceFromItem({ ...risk, kind: 'risk' }, risk.module || 'centre_decisionnel');
   const severity = risk.tone === 'bad' ? 'critique' : 'warning';
   return {
     alert: {
       id: options.alertId || makeId('ALR'),
       title: `Risque : ${risk.title || 'Sans titre'}`,
       message: `${risk.cause || 'Cause non précisée'} → ${risk.impact || 'Impact à évaluer'}`,
-      module_source: 'centre_ia',
+      module_source: 'centre_decisionnel',
       source_module: source.sourceModule,
       source_record_id: source.sourceId,
       issue_key: source.issueKey,
@@ -136,7 +136,7 @@ export function buildRiskFollowUpAlert(risk = {}, options = {}) {
     event: {
       id: makeId('EVT'),
       event_type: 'decision_risk_alert_created',
-      module_source: 'centre_ia',
+      module_source: 'centre_decisionnel',
       entity_type: 'risque',
       entity_id: source.sourceId,
       title: `Alerte risque · ${risk.title || source.sourceId}`,
@@ -217,7 +217,7 @@ export function buildPriorityFollowUpAlert(item = {}, options = {}) {
       id: options.alertId || makeId('ALR'),
       title: item.title || 'Priorité Centre décisionnel',
       message: item.detail || 'Priorité à traiter',
-      module_source: 'centre_ia',
+      module_source: 'centre_decisionnel',
       source_module: source.sourceModule,
       source_record_id: source.sourceId,
       issue_key: source.issueKey,

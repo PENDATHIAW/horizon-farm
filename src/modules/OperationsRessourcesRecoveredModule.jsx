@@ -13,7 +13,7 @@ import RegistresAnalysesTab from './rh/tabs/RegistresAnalysesTab.jsx';
 function Tabs({ active, onChange, tabBadges = {} }) {
   return (
     <div className="space-y-2">
-      <ModuleTabsBar moduleId="rh" active={active} onChange={onChange} tabBadges={tabBadges} />
+      <ModuleTabsBar moduleId="equipe" active={active} onChange={onChange} tabBadges={tabBadges} />
     </div>
   );
 }

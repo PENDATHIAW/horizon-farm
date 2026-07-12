@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { MODULE_TARGET_TABS } from '../../src/config/horizonVision.config.js';
 import { CENTRE_HEY_HORIZON_QUESTIONS } from '../../src/utils/centreHeyHorizon.js';
 
-const TAB_IDS = MODULE_TARGET_TABS.centre_ia;
+const TAB_IDS = MODULE_TARGET_TABS.centre_decisionnel;
 
 const LEGACY_ALIASES = {
   'À traiter': 'Urgences & risques',
@@ -27,7 +27,7 @@ function resolveTab(initial) {
   return TAB_IDS[0];
 }
 
-test('centre_ia exposes 3 target tabs', () => {
+test('centre_decisionnel exposes 3 target tabs', () => {
   assert.deepEqual(TAB_IDS, [
     'Urgences & risques',
     'Croissance & opportunités',

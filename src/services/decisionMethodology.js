@@ -56,7 +56,7 @@ export const DECISION_METHODOLOGY_SECTIONS = [
 export const FORMULA_BLOCKS = [
   {
     id: "hijri_calendar",
-    modules: ["centre_ia", "objectifs_croissance"],
+    modules: ["centre_decisionnel", "objectifs_croissance"],
     category: "calendrier",
     title: "Dates des fêtes (calendrier musulman)",
     summary: "Le système calcule tout seul la date de Tabaski, Korité, Ramadan, Magal, Gamou et fin d'année, sans que vous ayez à les saisir.",
@@ -69,7 +69,7 @@ export const FORMULA_BLOCKS = [
   },
   {
     id: "launch_timing",
-    modules: ["centre_ia"],
+    modules: ["centre_decisionnel"],
     category: "calendrier",
     title: "Quand lancer une bande avant une fête ?",
     summary: "Pour vendre au bon moment (Tabaski, Korité, Magal…), il faut lancer ou acheter assez tôt. Le Centre vous donne la dernière date possible.",
@@ -83,7 +83,7 @@ export const FORMULA_BLOCKS = [
   },
   {
     id: "date_pivot",
-    modules: ["centre_ia", "objectifs_croissance"],
+    modules: ["centre_decisionnel", "objectifs_croissance"],
     category: "calendrier",
     title: "Âge d'une bande et objectif du catalogue",
     summary: "On compte combien de jours se sont écoulés depuis l'arrivée des poussins ou pondeuses, puis on compare à ce que la race devrait produire à cet âge.",
@@ -97,7 +97,7 @@ export const FORMULA_BLOCKS = [
   },
   {
     id: "lead_times",
-    modules: ["centre_ia", "objectifs_croissance"],
+    modules: ["centre_decisionnel", "objectifs_croissance"],
     category: "calendrier",
     title: "Combien de jours avant une vente ?",
     summary: "Délai moyen pour qu'un produit soit prêt : œufs ~150 j, poulet ~40 j, bœuf ~90 j.",
@@ -111,7 +111,7 @@ export const FORMULA_BLOCKS = [
   },
   {
     id: "commercial_calendar",
-    modules: ["centre_ia"],
+    modules: ["centre_decisionnel"],
     category: "calendrier",
     title: "Objectif de vente mois par mois",
     summary: "Chaque mois a un chiffre d'affaires cible issu du business plan. Le Centre indique où concentrer les efforts (œufs, chair, bœufs).",
@@ -123,7 +123,7 @@ export const FORMULA_BLOCKS = [
   },
   {
     id: "sell_now",
-    modules: ["centre_ia"],
+    modules: ["centre_decisionnel"],
     category: "commerce",
     title: "Quand vendre tout de suite ? (bœuf ou poulet)",
     summary: "Si l'animal coûte plus cher à nourrir chaque jour qu'il ne prend en valeur, il vaut mieux le vendre maintenant.",
@@ -138,7 +138,7 @@ export const FORMULA_BLOCKS = [
   },
   {
     id: "commercial_gap",
-    modules: ["centre_ia", "objectifs_croissance"],
+    modules: ["centre_decisionnel", "objectifs_croissance"],
     category: "commerce",
     title: "Écart entre objectif de vente et réalisé",
     summary: "Compare ce que vous deviez vendre ce mois et ce que vous avez vraiment encaissé, par activité (œufs, chair, bœufs…).",
@@ -151,7 +151,7 @@ export const FORMULA_BLOCKS = [
   },
   {
     id: "production_capacity",
-    modules: ["centre_ia", "objectifs_croissance"],
+    modules: ["centre_decisionnel", "objectifs_croissance"],
     category: "commerce",
     title: "Combien d'œufs produisez-vous par jour ?",
     summary: "Compte les pondeuses actives et la moyenne d'œufs des 14 derniers jours pour estimer tablettes/jour et taux de ponte.",
@@ -190,7 +190,7 @@ export const FORMULA_BLOCKS = [
   },
   {
     id: "break_even",
-    modules: ["centre_ia", "objectifs_croissance"],
+    modules: ["centre_decisionnel", "objectifs_croissance"],
     category: "commerce",
     title: "Point mort du mois (seuil de rentabilité)",
     summary: "Montant minimum à vendre ce mois pour couvrir salaires, charges fixes et variables.",
@@ -204,7 +204,7 @@ export const FORMULA_BLOCKS = [
   },
   {
     id: "demand_coverage",
-    modules: ["centre_ia", "objectifs_croissance"],
+    modules: ["centre_decisionnel", "objectifs_croissance"],
     category: "demande",
     title: "Assez de stock pour la demande ?",
     summary: "Estime combien les clients vont demander (fêtes, saison) et vérifie si votre stock ou production peut couvrir.",
@@ -218,7 +218,7 @@ export const FORMULA_BLOCKS = [
   },
   {
     id: "demand_forecast",
-    modules: ["centre_ia", "objectifs_croissance"],
+    modules: ["centre_decisionnel", "objectifs_croissance"],
     category: "demande",
     title: "Prévision de demande du mois",
     summary: "Anticipe les ventes du mois selon la saison et les fêtes à venir.",
@@ -231,7 +231,7 @@ export const FORMULA_BLOCKS = [
   },
   {
     id: "supply_coverage",
-    modules: ["centre_ia", "objectifs_croissance"],
+    modules: ["centre_decisionnel", "objectifs_croissance"],
     category: "demande",
     title: "Ce que la ferme peut livrer",
     summary: "Additionne stock prêt à vendre + production à venir, moins les commandes déjà promises.",
@@ -244,7 +244,7 @@ export const FORMULA_BLOCKS = [
   },
   {
     id: "zootechnical",
-    modules: ["centre_ia", "objectifs_croissance"],
+    modules: ["centre_decisionnel", "objectifs_croissance"],
     category: "zootechnie",
     title: "Performance réelle vs fiche race",
     summary: "Compare ponte, poids ou croissance réels à ce que la race devrait faire à le même âge.",
@@ -258,7 +258,7 @@ export const FORMULA_BLOCKS = [
   },
   {
     id: "laying_rate",
-    modules: ["centre_ia", "objectifs_croissance"],
+    modules: ["centre_decisionnel", "objectifs_croissance"],
     category: "zootechnie",
     title: "Taux de ponte (% d'œufs par poule)",
     summary: "Sur 7 jours : combien d'œufs par poule par jour, comparé à la fiche race (ex. Lohmann ~92 % au pic).",
@@ -271,7 +271,7 @@ export const FORMULA_BLOCKS = [
   },
   {
     id: "gmq_real",
-    modules: ["centre_ia", "objectifs_croissance"],
+    modules: ["centre_decisionnel", "objectifs_croissance"],
     category: "zootechnie",
     title: "Prise de poids par jour",
     summary: "Combien l'animal ou le lot grossit chaque jour. Sert aussi à décider de vendre si la ration coûte trop cher.",
@@ -285,7 +285,7 @@ export const FORMULA_BLOCKS = [
   },
   {
     id: "ic_chair",
-    modules: ["centre_ia", "objectifs_croissance"],
+    modules: ["centre_decisionnel", "objectifs_croissance"],
     category: "zootechnie",
     title: "Kilos d'aliment pour 1 kg de viande (poulet chair)",
     summary: "Plus ce chiffre est élevé, plus vous gaspillez d'aliment. Cible habituelle : 1,6 à 1,9 kg d'aliment par kg de poulet.",
@@ -298,7 +298,7 @@ export const FORMULA_BLOCKS = [
   },
   {
     id: "ith_heat",
-    modules: ["centre_ia", "objectifs_croissance"],
+    modules: ["centre_decisionnel", "objectifs_croissance"],
     category: "zootechnie",
     title: "Chaleur ressentie (température + humidité)",
     summary: "En canicule, les animaux mangent moins et coûtent plus cher à nourrir. Le Centre peut conseiller de reporter un lancement ou réduire la densité.",
@@ -312,7 +312,7 @@ export const FORMULA_BLOCKS = [
   },
   {
     id: "theoretical_standard",
-    modules: ["centre_ia", "objectifs_croissance"],
+    modules: ["centre_decisionnel", "objectifs_croissance"],
     category: "zootechnie",
     title: "Courbe de référence de la race",
     summary: "Chaque race a une courbe (ponte ou poids selon l'âge). Le système lit la fiche race pour savoir ce qui est normal à J+30, J+60…",
@@ -325,7 +325,7 @@ export const FORMULA_BLOCKS = [
   },
   {
     id: "cost_animal",
-    modules: ["centre_ia", "objectifs_croissance"],
+    modules: ["centre_decisionnel", "objectifs_croissance"],
     category: "couts",
     title: "Coût total d'un bœuf (ou mouton) jusqu'à la vente",
     summary: "Additionne achat de la bête, aliment, soins vétérinaires et autres frais directs.",
@@ -339,7 +339,7 @@ export const FORMULA_BLOCKS = [
   },
   {
     id: "cost_avicole",
-    modules: ["centre_ia", "objectifs_croissance"],
+    modules: ["centre_decisionnel", "objectifs_croissance"],
     category: "couts",
     title: "Coût total d'une bande avicole",
     summary: "Poussins achetés + aliment + santé + divers, réparti par œuf ou par kg de poulet.",
@@ -367,7 +367,7 @@ export const FORMULA_BLOCKS = [
   },
   {
     id: "mca_rentabilite",
-    modules: ["centre_ia", "objectifs_croissance"],
+    modules: ["centre_decisionnel", "objectifs_croissance"],
     category: "couts",
     title: "Gain après coût de l'aliment seul",
     summary: "Montant qu'il vous reste si on ne compte que le coût de l'aliment (hors achat poussins ou bête).",
@@ -380,7 +380,7 @@ export const FORMULA_BLOCKS = [
   },
   {
     id: "rentabilite_ranking",
-    modules: ["centre_ia", "objectifs_croissance"],
+    modules: ["centre_decisionnel", "objectifs_croissance"],
     category: "couts",
     title: "Classement des lots et fournisseurs",
     summary: "Quels lots perdent de l'argent ? Quels fournisseurs d'aliment ou poussins donnent les meilleures marges ?",
@@ -392,7 +392,7 @@ export const FORMULA_BLOCKS = [
   },
   {
     id: "bfr",
-    modules: ["centre_ia"],
+    modules: ["centre_decisionnel"],
     category: "flux",
     title: "Assez d'argent pour acheter l'aliment du prochain cycle ? (BFR)",
     summary: "BFR = argent disponible (caisse + créances clients VIP) comparé au coût aliment d'un cycle complet. Si couverture < 50 %, le lancement est bloqué.",
@@ -407,7 +407,7 @@ export const FORMULA_BLOCKS = [
   },
   {
     id: "stock_audit",
-    modules: ["centre_ia", "objectifs_croissance"],
+    modules: ["centre_decisionnel", "objectifs_croissance"],
     category: "flux",
     title: "Surconsommation d'aliment suspecte (coulage ?)",
     summary: "Compare aliment réellement sorti du silo à ce que les poules/bœufs devraient manger selon la fiche race.",
@@ -421,7 +421,7 @@ export const FORMULA_BLOCKS = [
   },
   {
     id: "flux_silo",
-    modules: ["centre_ia", "objectifs_croissance"],
+    modules: ["centre_decisionnel", "objectifs_croissance"],
     category: "flux",
     title: "Combien de jours reste l'aliment en silo ?",
     summary: "Stock en kg ÷ consommation moyenne par jour = jours restants. Alerte si moins de 5 jours.",
@@ -434,7 +434,7 @@ export const FORMULA_BLOCKS = [
   },
   {
     id: "flux_occupation",
-    modules: ["centre_ia", "objectifs_croissance"],
+    modules: ["centre_decisionnel", "objectifs_croissance"],
     category: "flux",
     title: "Remplissage des bâtiments et pertes",
     summary: "Combien de sujets par bâtiment ? Mortalité et valeur des pertes.",
@@ -447,7 +447,7 @@ export const FORMULA_BLOCKS = [
   },
   {
     id: "sanitary",
-    modules: ["centre_ia", "objectifs_croissance"],
+    modules: ["centre_decisionnel", "objectifs_croissance"],
     category: "flux",
     title: "Pause obligatoire entre deux bandes (vide sanitaire)",
     summary: "Minimum 10 jours sans animaux entre deux lots dans le même bâtiment pour nettoyer et désinfecter.",
@@ -459,7 +459,7 @@ export const FORMULA_BLOCKS = [
   },
   {
     id: "sanitary_extended",
-    modules: ["centre_ia"],
+    modules: ["centre_decisionnel"],
     category: "flux",
     title: "Pause prolongée après forte mortalité",
     summary: "Si la bande précédente a perdu plus de 5 % des sujets (maladie), ajouter 7 jours de pause et désinfection renforcée.",
@@ -472,7 +472,7 @@ export const FORMULA_BLOCKS = [
   },
   {
     id: "shrinkage",
-    modules: ["centre_ia", "objectifs_croissance"],
+    modules: ["centre_decisionnel", "objectifs_croissance"],
     category: "flux",
     title: "Écart entre production et ventes (œufs ou aliment)",
     summary: "Œufs produits vs œufs vendus : écart > 2 % → casse, vol ou oubli de saisie. Même logique sur l'aliment global.",
@@ -537,7 +537,7 @@ export const FORMULA_BLOCKS = [
   },
   {
     id: "scissors_effect",
-    modules: ["centre_ia"],
+    modules: ["centre_decisionnel"],
     category: "analytique",
     title: "Prix du maïs / soja qui monte (effet ciseau)",
     summary: "Si les intrants alimentaires augmentent fortement, le Centre propose d'acheter 3 mois de stock maintenant pour économiser.",
@@ -550,7 +550,7 @@ export const FORMULA_BLOCKS = [
   },
   {
     id: "transformation_arbitrage",
-    modules: ["centre_ia"],
+    modules: ["centre_decisionnel"],
     category: "analytique",
     title: "Mieux vendre les œufs ou les incuber en poussins ?",
     summary: "Compare marge tablette d'œufs vs poussin d'un jour (électricité couvoir incluse).",
@@ -565,7 +565,7 @@ export const FORMULA_BLOCKS = [
   },
   {
     id: "vet_comparison",
-    modules: ["centre_ia", "objectifs_croissance"],
+    modules: ["centre_decisionnel", "objectifs_croissance"],
     category: "analytique",
     title: "Comparer les vétérinaires (même intervention)",
     summary: "Pour la même maladie ou vaccin : qui coûte moins cher ? Qui guérit plus vite ?",
@@ -578,7 +578,7 @@ export const FORMULA_BLOCKS = [
   },
   {
     id: "feed_inflation",
-    modules: ["centre_ia", "objectifs_croissance"],
+    modules: ["centre_decisionnel", "objectifs_croissance"],
     category: "analytique",
     title: "Aliment plus cher qu'avant ?",
     summary: "Compare prix d'achat aliment des 30 derniers jours vs les 30 jours d'avant. Alerte si +10 %.",
@@ -590,7 +590,7 @@ export const FORMULA_BLOCKS = [
   },
   {
     id: "feed_supplier_ranking",
-    modules: ["centre_ia"],
+    modules: ["centre_decisionnel"],
     category: "analytique",
     title: "Quel fournisseur d'aliment est le moins cher ?",
     summary: "Même produit, plusieurs fournisseurs : écart de prix et alerte si spread ≥ 5 %.",
@@ -629,7 +629,7 @@ export const FORMULA_BLOCKS = [
   },
   {
     id: "maraichage_biomass",
-    modules: ["centre_ia", "objectifs_croissance"],
+    modules: ["centre_decisionnel", "objectifs_croissance"],
     category: "analytique",
     title: "Fumier et litière = engrais gratuit",
     summary: "Estime kg de fumier/litière par an et équivalent sacs NPK économisés pour le maraîchage.",
@@ -668,7 +668,7 @@ export const FORMULA_BLOCKS = [
   },
   {
     id: "charts_centre",
-    modules: ["centre_ia"],
+    modules: ["centre_decisionnel"],
     category: "graphiques",
     title: "Graphiques du Centre décisionnel",
     summary: "Ponte vs aliment, indice consommation chair, croissance bovins, niveau silo, maraîchage.",
@@ -681,7 +681,7 @@ export const FORMULA_BLOCKS = [
   },
   {
     id: "technical_farming",
-    modules: ["centre_ia"],
+    modules: ["centre_decisionnel"],
     category: "pilotage",
     title: "Alertes du quotidien (technique)",
     summary: "Rappels concrets : stock bas, santé, capteurs, anomalies de saisie — issus des règles métier de la ferme.",
@@ -729,7 +729,7 @@ export function buildAnnexeSnapshot(dataMap = {}) {
   };
 }
 
-export function formulasForModule(moduleId = 'centre_ia') {
+export function formulasForModule(moduleId = 'centre_decisionnel') {
   const preset = annexePresetForModule(moduleId);
   if (preset) {
     const ids = new Set(preset.blockIds || []);
@@ -738,7 +738,7 @@ export function formulasForModule(moduleId = 'centre_ia') {
   return FORMULA_BLOCKS.filter((block) => block.modules.includes(moduleId));
 }
 
-export function formulasGroupedByCategory(moduleId = 'centre_ia') {
+export function formulasGroupedByCategory(moduleId = 'centre_decisionnel') {
   const formulas = formulasForModule(moduleId);
   const groups = new Map();
   formulas.forEach((block) => {

@@ -17,7 +17,7 @@ function canAccess(role, moduleKey) {
 }
 
 test('App — ERP permissions incluent les grands modules', () => {
-  ['centre_ia', 'objectifs_croissance', 'elevage', 'commercial', 'achats_stock', 'finance_pilotage'].forEach((id) => {
+  ['centre_decisionnel', 'objectifs_croissance', 'elevage', 'commercial', 'achats_stock', 'finance_pilotage', 'equipe'].forEach((id) => {
     assert.ok(ERP_MODULE_PERMISSIONS.includes(id), `manager doit voir ${id}`);
   });
 });
@@ -25,7 +25,7 @@ test('App — ERP permissions incluent les grands modules', () => {
 test('App — manager accède aux grands modules via permissions directes', () => {
   assert.equal(canAccess('manager', 'elevage'), true);
   assert.equal(canAccess('manager', 'commercial'), true);
-  assert.equal(canAccess('manager', 'centre_ia'), true);
+  assert.equal(canAccess('manager', 'centre_decisionnel'), true);
 });
 
 test('App — employé accède à Élevage via legacy animaux/avicole/santé', () => {

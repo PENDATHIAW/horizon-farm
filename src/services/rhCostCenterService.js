@@ -68,7 +68,7 @@ export function buildRhFinancePayload({ person = {}, payment = {}, amount = 0, d
     categorie: 'Rémunérations',
     module_lie: 'rh',
     related_id: person.id,
-    source_module: 'rh',
+    source_module: 'equipe',
     source_record_id: person.id,
     statut: 'paye',
     equipe_id: person.equipe_id || '',

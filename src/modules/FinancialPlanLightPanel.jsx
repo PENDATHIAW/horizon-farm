@@ -35,7 +35,7 @@ export default function FinancialPlanLightPanel({ dataMap = {}, salesOrders = []
             . Objectifs mensuels calés sur M1 = mois de démarrage.
           </p>
         </div>
-        <button type="button" onClick={() => onNavigate?.('centre_ia')} className="min-h-[44px] rounded-xl bg-[#2f2415] px-4 py-2 text-sm font-black text-white hover:bg-[#3d2f1d]">Voir décisions</button>
+        <button type="button" onClick={() => onNavigate?.('centre_decisionnel')} className="min-h-[44px] rounded-xl bg-[#2f2415] px-4 py-2 text-sm font-black text-white hover:bg-[#3d2f1d]">Voir décisions</button>
       </div>
 
       <div className="grid grid-cols-2 xl:grid-cols-4 gap-3">

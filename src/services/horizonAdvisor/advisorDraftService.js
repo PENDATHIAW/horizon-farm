@@ -88,7 +88,7 @@ export async function executeAdvisorDraft(draft = {}, handlers = {}, options = {
     || 'task';
   const finding = validated.draft?.preview?.finding
     || recommendationToFinding(validated.draft?.preview?.recommendation || {}, actionType);
-  const moduleId = options.moduleId || 'centre_ia';
+  const moduleId = options.moduleId || 'centre_decisionnel';
 
   if (actionType === 'alert' && shouldBlockInlineAlertCreation(moduleId)) {
     redirectToSource(handlers.onNavigate, 'alertes_centre_activite');

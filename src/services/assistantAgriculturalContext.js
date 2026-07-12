@@ -711,7 +711,7 @@ function buildAgriculturalAnswerCore(intent = '', dataMap = {}, options = {}) {
           situation: `${fmt(maintenanceStaff.length)} personne(s) avec accès équipements / Smart Farm : ${names.join(', ')}.`,
           cause: 'Annuaire RH — modules equipements, smartfarm ou rôles terrain technique.',
           action: 'Assignez la tâche maintenance depuis Personnel & Paie ou créez une tâche sur le parc matériel.',
-          sources: ['rh', 'equipements'],
+          sources: ['equipe', 'equipements'],
           confidence: 88,
         };
       }
@@ -729,7 +729,7 @@ function buildAgriculturalAnswerCore(intent = '', dataMap = {}, options = {}) {
         action: wantsMaintenance
           ? 'Vérifiez les modules assignés (equipements, smartfarm) pour chaque membre.'
           : open.length ? 'Priorisez les tâches équipe avant les sorties terrain.' : 'Planifiez les équipes dans Personnel & Paie.',
-        sources: ['rh', 'taches'],
+        sources: ['equipe', 'taches'],
         confidence: team.length ? 88 : 82,
       };
     }
@@ -758,7 +758,7 @@ function buildAgriculturalAnswerCore(intent = '', dataMap = {}, options = {}) {
         situation: 'État de synchronisation consultable dans Activité & Sync ERP.',
         cause: 'Intégrité des flux terrain → ERP.',
         action: 'Ouvrez Activité & Sync pour l\'historique des synchronisations.',
-        sources: ['sync_activity'],
+        sources: ['gestion_systeme'],
         confidence: 78,
       };
 

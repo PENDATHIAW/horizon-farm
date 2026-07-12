@@ -337,7 +337,7 @@ export default function CarnetHorizon({ carnet, onNavigate, simulatedMode = fals
           {onNavigate ? (
             <button
               type="button"
-              onClick={() => onNavigate('sync_activity')}
+              onClick={() => onNavigate('gestion_systeme', { tab: 'Audit' })}
               className="text-[10px] font-black text-[#9a6b12] hover:underline"
             >
               Voir tout →

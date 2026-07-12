@@ -67,7 +67,7 @@ export function analyzePilotageIntegrity({
   gaps.push(...comparePilotageKpis(visionData, sharedKpis));
 
   openTasks
-    .filter((task) => lower(task.source_module || task.module_lie) === 'centre_ia' && !clean(task.source_record_id))
+    .filter((task) => lower(task.source_module || task.module_lie) === 'centre_decisionnel' && !clean(task.source_record_id))
     .forEach((task) => {
       gaps.push({
         id: `task-no-source-${task.id}`,

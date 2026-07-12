@@ -142,7 +142,7 @@ export function buildDashboardTodayActions(data = {}) {
       category: 'Contrôle ERP',
       title: orphanPayments.length === 1 ? '1 paiement reste à rapprocher' : `${orphanPayments.length} paiements restent à rapprocher`,
       detail: 'Vérifier la vente liée ou régulariser',
-      moduleKey: 'sync_activity',
+      moduleKey: 'gestion_systeme',
       tone: 'amber',
       priority: 70,
     } : null,

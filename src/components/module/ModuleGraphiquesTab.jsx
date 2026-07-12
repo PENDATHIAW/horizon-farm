@@ -42,7 +42,7 @@ export default function ModuleGraphiquesTab({ moduleId, periodFiltered, ...props
           onNavigate={onNavigate}
         />
       ), periodFiltered);
-    case 'centre_ia':
+    case 'centre_decisionnel':
       return withChartPeriod((
         <div className="space-y-6">
           <section className="rounded-2xl border border-[#d6c3a0] bg-white p-4 shadow-sm">

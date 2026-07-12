@@ -55,7 +55,7 @@ export default function CentreDecisionModule({
     setInternalTab(resolveCentreTab(initialTab));
   }, [controlled, initialTab]);
 
-  const visionProps = useMemo(() => ({ ...props, dataMap, moduleId: 'centre_ia', meteo }), [props, dataMap, meteo]);
+  const visionProps = useMemo(() => ({ ...props, dataMap, moduleId: 'centre_decisionnel', meteo }), [props, dataMap, meteo]);
   const data = useMemo(() => {
     try {
       return buildVisionData(visionProps);
@@ -261,7 +261,7 @@ export default function CentreDecisionModule({
           ) : null}
         </div>
       </details>
-      <ModuleTabsBar moduleId="centre_ia" active={tab} onChange={setTab} tabBadges={tabBadges} />
+      <ModuleTabsBar moduleId="centre_decisionnel" active={tab} onChange={setTab} tabBadges={tabBadges} />
       {content}
     </div>
   );

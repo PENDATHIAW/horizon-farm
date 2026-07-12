@@ -5,7 +5,7 @@ import { NAV_MODULE_ORDER, ADVANCED_MODULE_IDS, GRAND_MODULE_IDS } from '../../c
 export function evaluateErpUxAuditRules() {
   const findings = [];
   const visionSet = new Set(MODULE_AUDIT_ORDER);
-  const navOutsideVision = NAV_MODULE_ORDER.filter((id) => !visionSet.has(id) && id !== 'centre_ia' && id !== 'impact_business' && id !== 'cultures' && id !== 'agri_feeds' && id !== 'equipements' && id !== 'smartfarm' && id !== 'sync_activity');
+  const navOutsideVision = NAV_MODULE_ORDER.filter((id) => !visionSet.has(id) && id !== 'centre_decisionnel' && id !== 'impact_business' && id !== 'cultures' && id !== 'agri_feeds' && id !== 'equipements' && id !== 'smartfarm' && id !== 'sync_activity');
 
   GRAND_MODULE_IDS.forEach((grandId) => {
     const advancedOverlap = ADVANCED_MODULE_IDS.filter((adv) => {

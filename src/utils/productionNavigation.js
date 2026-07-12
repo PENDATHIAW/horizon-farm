@@ -20,7 +20,7 @@ export function launchProductionQuestion({
 
 /** Ouvre le pilotage stratégique (objectifs, performance, risques). */
 export function launchPilotageModule({
-  moduleId = 'centre_ia',
+  moduleId = 'centre_decisionnel',
   tab = 'Rentabilité lots',
   onNavigate,
 } = {}) {

@@ -2,7 +2,7 @@ import { DATA_SOURCES_OF_TRUTH } from './dataSourcesOfTruth.js';
 
 const ENRICHED_MODULES = [
   'dashboard',
-  'centre_ia',
+  'centre_decisionnel',
   'objectifs_croissance',
   'commercial',
   'finance_pilotage',

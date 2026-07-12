@@ -45,7 +45,7 @@ function migrateLegacyIgnoredIssues(rows = []) {
         commentaire: 'Migré depuis un masquage local précédent.',
         utilisateur: 'system',
         date: nowIso(),
-        source_module: 'sync_activity',
+        source_module: 'gestion_systeme',
         source_record_id: '',
         type_exception: JUSTIFIED_EXCEPTION_TYPES.INTERCONNECTION,
         active: true,

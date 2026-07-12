@@ -1,11 +1,13 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { SYNC_ACTIVITY_TABS, resolveSyncActivityTab, resolveSyncActivityNavigation } from '../../src/utils/commercialNavigation.js';
+import { GESTION_SYSTEME_TABS, SYNC_ACTIVITY_TABS, resolveSyncActivityTab, resolveSyncActivityNavigation } from '../../src/utils/commercialNavigation.js';
 import { MODULE_TARGET_TABS } from '../../src/config/horizonVision.config.js';
 
-test('sync_activity — 3 onglets canoniques', () => {
+test('gestion_systeme — onglets canoniques incluant sync et audit', () => {
   assert.equal(SYNC_ACTIVITY_TABS.length, 3);
-  assert.deepEqual(MODULE_TARGET_TABS.sync_activity, SYNC_ACTIVITY_TABS);
+  assert.deepEqual(MODULE_TARGET_TABS.gestion_systeme, GESTION_SYSTEME_TABS);
+  assert.ok(MODULE_TARGET_TABS.gestion_systeme.includes('Sauvegardes'));
+  assert.ok(MODULE_TARGET_TABS.gestion_systeme.includes('Audit'));
 });
 
 test('resolveSyncActivityTab — aliases navigation', () => {

@@ -22,7 +22,7 @@ export const TRACE_ROUTE_BY_MODULE = {
   rh: 'rh',
   smartfarm: 'smartfarm',
   objectifs_croissance: 'objectifs_croissance',
-  centre_ia: 'centre_ia',
+  centre_decisionnel: 'centre_decisionnel',
   gestion_systeme: 'gestion_systeme',
   sync_activity: 'sync_activity',
 };

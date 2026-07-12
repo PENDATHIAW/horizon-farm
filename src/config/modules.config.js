@@ -10,7 +10,8 @@ const noIcon = () => null;
 export const MODULE_REGISTRY = {
   dashboard: { label: 'Accueil', icon: LayoutDashboard, group: 'core' },
   assistant_erp: { label: 'Assistant ERP', icon: Bot, group: 'core' },
-  centre_ia: { label: 'Centre décisionnel', icon: BrainCircuit, group: 'pilotage' },
+  centre_decisionnel: { label: 'Centre décisionnel', icon: BrainCircuit, group: 'pilotage' },
+  centre_ia: { label: 'Centre décisionnel', icon: BrainCircuit, group: 'pilotage', deprecated: true, aliasOf: 'centre_decisionnel' },
   agri_feeds: { label: 'AGRI FEEDS', icon: noIcon, group: 'pilotage' },
   objectifs_croissance: { label: 'Objectifs & Croissance', icon: Goal, group: 'pilotage' },
   elevage: { label: 'Élevage', icon: Beef, group: 'metier' },
@@ -23,10 +24,11 @@ export const MODULE_REGISTRY = {
   impact_business: { label: 'Financements', icon: Handshake, group: 'pilotage', deprecated: true },
   investisseurs_forums: { label: 'Financements', icon: Handshake, group: 'pilotage', deprecated: true },
   cultures: { label: 'Cultures', icon: Sprout, group: 'metier' },
-  rh: { label: 'Opérations & Ressources', icon: UserCog, group: 'operations' },
+  equipe: { label: 'Équipe & Ressources', icon: UserCog, group: 'operations' },
+  rh: { label: 'Équipe & Ressources', icon: UserCog, group: 'operations', deprecated: true, aliasOf: 'equipe' },
   equipements: { label: 'Équipements', icon: Wrench, group: 'operations' },
   smartfarm: { label: 'Smart Farm', icon: Tractor, group: 'operations' },
-  sync_activity: { label: 'Activité & Sync ERP', icon: Wifi, group: 'system' },
+  sync_activity: { label: 'Gestion du système', icon: Wifi, group: 'system', deprecated: true, aliasOf: 'gestion_systeme' },
   gestion_systeme: { label: 'Gestion du système', icon: Settings, group: 'system' },
 };
 
@@ -38,7 +40,7 @@ export const ADVANCED_MODULE_IDS = [
 ];
 
 export const GRAND_MODULE_IDS = [
-  'centre_ia', 'agri_feeds', 'objectifs_croissance', 'elevage', 'commercial',
+  'centre_decisionnel', 'agri_feeds', 'objectifs_croissance', 'elevage', 'commercial',
   'achats_stock', 'finance_pilotage', 'activite_suivi', 'documents_rapports',
 ];
 
@@ -66,16 +68,17 @@ export const SALES_WORKFLOW_KEYS = [
 ];
 
 export const NAV_MODULE_ORDER = [
-  'dashboard', 'assistant_erp', 'centre_ia', 'agri_feeds', 'objectifs_croissance', 'financements',
+  'dashboard', 'assistant_erp', 'centre_decisionnel', 'agri_feeds', 'objectifs_croissance', 'financements',
   'elevage', 'cultures',
   'commercial', 'achats_stock',
   'finance_pilotage',
   'activite_suivi', 'documents_rapports',
-  'rh', 'equipements', 'smartfarm',
-  'sync_activity', 'gestion_systeme',
+  'equipe', 'equipements', 'smartfarm',
+  'gestion_systeme',
 ];
 
 export const ROUTE_TO_MODULE = {
+  centre_ia: 'centre_decisionnel',
   ventes: 'commercial',
   stock: 'achats_stock',
   animaux: 'elevage',
@@ -90,8 +93,12 @@ export const ROUTE_TO_MODULE = {
   alertes: 'activite_suivi',
   taches: 'activite_suivi',
   tracabilite: 'activite_suivi',
+  sync: 'gestion_systeme',
+  sync_activity: 'gestion_systeme',
+  audit_logs: 'gestion_systeme',
   documents: 'documents_rapports',
   rapports: 'documents_rapports',
+  rh: 'equipe',
   clients: 'commercial',
   fournisseurs: 'achats_stock',
   sales_orders: 'commercial',

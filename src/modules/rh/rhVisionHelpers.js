@@ -36,7 +36,7 @@ export function buildRhCoherenceRows(team = [], equipment = [], transactions = [
         detail: eq.status || eq.statut || eq.etat || 'Hors service',
         finding: {
           id: `rh-maint-${eq.id}`,
-          module: 'rh',
+          module: 'equipe',
           severity: 'haute',
           auto_action: 'create_task',
           title: `Maintenance équipement : ${name}`,
@@ -60,7 +60,7 @@ export function buildRhCoherenceRows(team = [], equipment = [], transactions = [
         detail: person.role || person.fonction || 'Membre actif',
         finding: {
           id: `rh-no-modules-${person.id}`,
-          module: 'rh',
+          module: 'equipe',
           severity: 'moyenne',
           auto_action: 'create_task',
           title: `Affectation incomplète : ${person.nom || person.id}`,
@@ -85,7 +85,7 @@ export function buildRhCoherenceRows(team = [], equipment = [], transactions = [
         value: val,
         finding: {
           id: `rh-no-proof-${trx.id}`,
-          module: 'rh',
+          module: 'equipe',
           severity: 'moyenne',
           auto_action: 'create_task',
           title: `Justificatif RH manquant : ${trx.libelle || trx.id}`,

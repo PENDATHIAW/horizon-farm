@@ -17,7 +17,7 @@ import { buildVisionBadges, resolveVisionTab } from './vision/visionMetrics.js';
 import { buildVisionData } from './vision/visionUtils';
 
 const MODULE_COPY = {
-  centre_ia: {
+  centre_decisionnel: {
     kicker: 'Intelligence décisionnelle',
     title: 'Centre décisionnel',
     subtitle: 'Priorités du jour, risques, opportunités commerciales et cycles production — actions concrètes.',
@@ -118,20 +118,20 @@ export default function VisionCroissanceModule(props) {
             <p className="text-xs uppercase tracking-[0.25em] text-[#9a6b12] font-black">{copy.kicker}</p>
             <h1 className="mt-1 text-3xl font-black text-[#2f2415]">{copy.title}</h1>
             <p className="mt-2 text-sm text-[#8a7456] max-w-3xl">{copy.subtitle}</p>
-            {moduleId === 'centre_ia' ? (
-              <HeyHorizonQuickAsk moduleKey="centre_ia" onNavigate={onNavigate} onOpenAssistant={props.onOpenAssistant} className="mt-2" />
+            {moduleId === 'centre_decisionnel' ? (
+              <HeyHorizonQuickAsk moduleKey="centre_decisionnel" onNavigate={onNavigate} onOpenAssistant={props.onOpenAssistant} className="mt-2" />
             ) : null}
             {props.periodLabel ? <div className="mt-2"><PeriodScopeBadge label={props.periodLabel} /></div> : null}
           </div>
           <div className="flex flex-col gap-2">
             <div className="rounded-2xl border border-[#eadcc2] bg-white px-4 py-3 text-sm"><span className="text-[#8a7456]">Santé exploitation </span><b className="text-[#2f2415]">{data.healthScore ?? data.globalScore}/100</b></div>
-            {moduleId === 'centre_ia' && onNavigate ? (
+            {moduleId === 'centre_decisionnel' && onNavigate ? (
               <button type="button" onClick={() => onNavigate('objectifs_croissance', { tab: 'Performance' })} className="rounded-2xl border border-[#d6c3a0] bg-white px-4 py-3 text-left text-sm text-[#2f2415] hover:bg-[#dcfce7]">
                 <span className="text-[#8a7456]">Pilotage long terme → </span><b>Objectifs & Croissance</b>
               </button>
             ) : null}
             {moduleId === 'objectifs_croissance' && onNavigate ? (
-              <button type="button" onClick={() => onNavigate('centre_ia', { tab: 'À traiter' })} className="rounded-2xl border border-[#d6c3a0] bg-white px-4 py-3 text-left text-sm text-[#2f2415] hover:bg-[#dcfce7]">
+              <button type="button" onClick={() => onNavigate('centre_decisionnel', { tab: 'À traiter' })} className="rounded-2xl border border-[#d6c3a0] bg-white px-4 py-3 text-left text-sm text-[#2f2415] hover:bg-[#dcfce7]">
                 <span className="text-[#8a7456]">Actions du jour → </span><b>Centre décisionnel</b>
               </button>
             ) : null}

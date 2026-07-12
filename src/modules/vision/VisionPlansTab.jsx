@@ -13,7 +13,7 @@ export default function VisionPlansTab({ data, onCreateBusinessPlan, onNavigate 
         <Row key={r.activity || r.label} title={r.label} detail={`Réalisé ${fmtCurrency(r.realized || 0)} · reste ${fmtCurrency(r.remaining || 0)}`} value={`${r.attainment || 0}%`} tone={(r.attainment || 0) >= 100 ? 'good' : 'warn'} onClick={() => onNavigate?.('commercial', { tab: 'Graphiques' })} />
       )) : null}
       {recommendations.length ? recommendations.slice(0, 4).map((r) => (
-        <Row key={r.id || r.title} title={r.title} detail={r.recommendation || r.timing || 'Recommandation croissance'} value={r.priority || 'Plan'} tone={r.priority === 'haute' ? 'warn' : 'neutral'} onClick={() => onNavigate?.('centre_ia', { tab: 'Cycles' })} />
+        <Row key={r.id || r.title} title={r.title} detail={r.recommendation || r.timing || 'Recommandation croissance'} value={r.priority || 'Plan'} tone={r.priority === 'haute' ? 'warn' : 'neutral'} onClick={() => onNavigate?.('centre_decisionnel', { tab: 'Cycles' })} />
       )) : null}
       {rows.length ? rows.slice(0, 12).map((r) => (
         <Row key={r.id || label(r)} title={label(r)} detail={`${r.status || r.statut || 'Objectif'} · ${dateOf(r)}`} value={fmtCurrency(r.montant || r.amount || r.budget || 0)} onClick={() => onNavigate?.('finance_pilotage')} />

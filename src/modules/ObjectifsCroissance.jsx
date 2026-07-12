@@ -20,7 +20,7 @@ export default function ObjectifsCroissance({ dataMap = {}, onNavigate }) {
       <SectionHeader
         title="Objectifs & Croissance"
         sub="Objectifs issus du plan financier Horizon Farm : annuel, mensuel, activité par activité, avec le réalisé et le reste à vendre."
-        actions={<Btn onClick={() => onNavigate?.('centre_ia')}>Décisions & recommandations</Btn>}
+        actions={<Btn onClick={() => onNavigate?.('centre_decisionnel')}>Décisions & recommandations</Btn>}
       />
 
       <GrowthPrioritySummary goal={goal} lateActivities={lateActivities} onNavigate={onNavigate} />
@@ -59,7 +59,7 @@ export default function ObjectifsCroissance({ dataMap = {}, onNavigate }) {
           <h3 className="font-black text-[#2f2415]">Objectifs ici, décisions dans le Centre décisionnel</h3>
           <p className="text-sm text-[#8a7456] mt-1">Pour savoir quoi faire concrètement — investir, relancer, acheter, vendre ou sécuriser une échéance — ouvre le Centre décisionnel.</p>
         </div>
-        <Btn onClick={() => onNavigate?.('centre_ia')}>Ouvrir Centre décisionnel</Btn>
+        <Btn onClick={() => onNavigate?.('centre_decisionnel')}>Ouvrir Centre décisionnel</Btn>
       </div>
     </div>
   );

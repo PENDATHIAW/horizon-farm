@@ -36,7 +36,7 @@ export default function CentreUrgencesTab({
 
   const priorityProps = {
     data,
-    moduleId: 'centre_ia',
+    moduleId: 'centre_decisionnel',
     setTab,
     onNavigate,
     onCreateTask,

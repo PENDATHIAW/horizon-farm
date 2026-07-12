@@ -1,4 +1,4 @@
-import { CRUD_KEYS, SALES_WORKFLOW_KEYS } from '../config/modules.config.js';
+import { CRUD_KEYS, ROUTE_TO_MODULE, SALES_WORKFLOW_KEYS } from '../config/modules.config.js';
 import { BUSINESS_EVENT_REFRESH_CLUSTERS } from '../config/businessInterconnections.config.js';
 
 /** Rafraîchit tous les modules CRUD. */
@@ -16,7 +16,7 @@ export async function refreshSalesWorkflow(crud = {}) {
 export const MODULE_REFRESH_CLUSTERS = Object.freeze({
   dashboard: ['sales_orders', 'payments', 'finances', 'stock', 'avicole', 'animaux', 'cultures', 'alertes_center', 'taches', 'business_events'],
   assistant_erp: ['business_events', 'alertes_center', 'taches', 'documents', 'rapports', 'audit_logs'],
-  centre_ia: ['alertes_center', 'taches', 'business_events', 'stock', 'sales_orders', 'payments', 'finances', 'avicole', 'animaux', 'cultures', 'alimentation_logs', 'production_oeufs_logs', 'equipements', 'sensor_devices'],
+  centre_decisionnel: ['alertes_center', 'taches', 'business_events', 'stock', 'sales_orders', 'payments', 'finances', 'avicole', 'animaux', 'cultures', 'alimentation_logs', 'production_oeufs_logs', 'equipements', 'sensor_devices'],
   elevage: ['animaux', 'avicole', 'sante', 'veterinaires', 'alimentation_logs', 'production_oeufs_logs', 'stock', 'stock_movements', 'finances', 'taches', 'alertes_center', 'business_events', 'documents'],
   cultures: ['cultures', 'stock', 'stock_movements', 'finances', 'taches', 'alertes_center', 'business_events', 'documents', 'sensor_devices'],
   commercial: SALES_WORKFLOW_KEYS,
@@ -32,17 +32,17 @@ export const MODULE_REFRESH_CLUSTERS = Object.freeze({
     'rapports', 'documents', 'finances', 'investissements', 'business_plans',
     'sales_orders', 'payments', 'business_events', 'audit_logs',
   ],
-  rh: ['taches', 'business_events', 'equipements', 'documents', 'alertes_center'],
+  equipe: ['taches', 'business_events', 'equipements', 'documents', 'alertes_center'],
   equipements: ['equipements', 'finances', 'investissements', 'taches', 'business_events', 'documents', 'alertes_center', 'sensor_devices'],
   smartfarm: ['sensor_devices', 'camera_devices', 'business_events', 'alertes_center', 'taches', 'equipements', 'cultures', 'avicole', 'animaux'],
   agri_feeds: ['feed_raw_materials', 'feed_raw_batches', 'feed_formulas', 'feed_formula_versions', 'feed_formula_ingredients', 'feed_facility_zones', 'feed_production_orders', 'feed_finished_batches', 'feed_quality_checks', 'feed_trials', 'feed_phase1_comparisons', 'stock', 'stock_movements', 'finances', 'fournisseurs', 'clients', 'sales_orders', 'sales_order_items', 'payments', 'business_events', 'alertes_center', 'audit_logs', 'rapports'],
-  sync_activity: ['audit_logs', 'business_events', 'alertes_center', 'taches'],
-  gestion_systeme: ['audit_logs', 'business_events'],
+  gestion_systeme: ['audit_logs', 'business_events', 'alertes_center', 'taches'],
 });
 
 /** Rafraîchit un module métier et ses dépendances croisées. */
 export async function refreshModuleCluster(moduleId, crud = {}) {
-  const keys = MODULE_REFRESH_CLUSTERS[moduleId] || [moduleId];
+  const resolvedModuleId = ROUTE_TO_MODULE[moduleId] || moduleId;
+  const keys = MODULE_REFRESH_CLUSTERS[resolvedModuleId] || MODULE_REFRESH_CLUSTERS[moduleId] || [resolvedModuleId];
   return Promise.allSettled(keys.map((key) => crud[key]?.refresh?.()).filter(Boolean));
 }
 

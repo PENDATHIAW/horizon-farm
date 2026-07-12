@@ -50,9 +50,9 @@ export default function RHUnified({ onRefresh, onCreateFinanceTransaction, onRef
     const m = money(p); if (m.net <= 0) return toast.error('Aucun net à payer');
     if (!window.confirm(`Enregistrer ${fmtCurrency(m.net)} pour ${p.nom} ?`)) return;
     try {
-      const tx = { id: makeId('TRX'), type: 'sortie', libelle: `Rémunération ${p.nom}`, montant: m.net, date: today(), categorie: 'Rémunérations', module_lie: 'rh', related_id: p.id, source_module: 'rh', source_record_id: p.id, statut: 'paye' };
+      const tx = { id: makeId('TRX'), type: 'sortie', libelle: `Rémunération ${p.nom}`, montant: m.net, date: today(), categorie: 'Rémunérations', module_lie: 'rh', related_id: p.id, source_module: 'equipe', source_record_id: p.id, statut: 'paye' };
       await onCreateFinanceTransaction?.(tx);
-      await onCreateBusinessEvent?.({ id: makeId('EVT'), event_type: 'paiement_remuneration', module_source: 'rh', entity_type: 'personne', entity_id: p.id, title: `Rémunération payée — ${p.nom}`, description: fmtCurrency(m.net), event_date: today(), severity: 'info', amount: m.net });
+      await onCreateBusinessEvent?.({ id: makeId('EVT'), event_type: 'paiement_remuneration', module_source: 'equipe', entity_type: 'personne', entity_id: p.id, title: `Rémunération payée — ${p.nom}`, description: fmtCurrency(m.net), event_date: today(), severity: 'info', amount: m.net });
       persist(people.map((x) => x.id === p.id ? { ...x, avance_mois: 0, dernier_paiement: today(), last_payment_amount: m.net } : x));
       await Promise.allSettled([onRefreshFinances?.(), onRefreshBusinessEvents?.(), onRefresh?.()]);
       toast.success('Paiement RH enregistré en Finance');

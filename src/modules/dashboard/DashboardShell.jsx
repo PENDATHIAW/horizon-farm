@@ -269,7 +269,7 @@ export function DashboardExploitationScorePanel({ exploitation = {}, onNavigate 
           Points faibles : {exploitation.weakPoints.join(' · ')}
         </p>
       ) : null}
-      <button type="button" onClick={() => onNavigate?.('centre_ia', { tab: 'Urgences & risques' })} className="mt-3 text-xs font-black text-[#9a6b12]">
+      <button type="button" onClick={() => onNavigate?.('centre_decisionnel', { tab: 'Urgences & risques' })} className="mt-3 text-xs font-black text-[#9a6b12]">
         Détail pilotage IA →
       </button>
     </section>
@@ -317,7 +317,7 @@ export function DashboardExploitationScoreCompact({ exploitation = {}, onNavigat
         </div>
         <p className="text-3xl font-black">{score}/100</p>
       </div>
-      <button type="button" onClick={() => onNavigate?.('centre_ia', { tab: 'Urgences & risques' })} className="mt-2 text-xs font-black underline opacity-80">
+      <button type="button" onClick={() => onNavigate?.('centre_decisionnel', { tab: 'Urgences & risques' })} className="mt-2 text-xs font-black underline opacity-80">
         Détail pilotage →
       </button>
     </section>
@@ -428,7 +428,7 @@ export function DashboardModuleHeader({
             ) : null}
             <button
               type="button"
-              onClick={() => onNavigate?.('centre_ia', { tab: 'Urgences & risques' })}
+              onClick={() => onNavigate?.('centre_decisionnel', { tab: 'Urgences & risques' })}
               className="inline-flex items-center gap-1 rounded-full border border-[#d6c3a0] bg-[#dcfce7] px-3 py-1.5 text-xs font-black text-[#14532d]"
             >
               <Target size={13} />
@@ -765,7 +765,7 @@ export function DashboardHealthStrip({ health = {}, onOpenFinding, onNavigate })
           <BrainCircuit size={16} className="text-[#9a6b12]" />
           <h2 className="text-sm font-black text-[#2f2415]">Pilotage IA (détail)</h2>
         </div>
-        <button type="button" onClick={() => onNavigate?.('centre_ia', { tab: 'Urgences & risques' })} className="text-xs font-black text-[#9a6b12]">
+        <button type="button" onClick={() => onNavigate?.('centre_decisionnel', { tab: 'Urgences & risques' })} className="text-xs font-black text-[#9a6b12]">
           Vision →
         </button>
       </div>

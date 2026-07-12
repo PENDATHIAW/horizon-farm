@@ -10,7 +10,7 @@ const QUICK_LINKS = [
     id: 'centre',
     label: 'Centre décisionnel',
     detail: 'Urgences et opportunités',
-    module: 'centre_ia',
+    module: 'centre_decisionnel',
     tab: 'Urgences & risques',
   },
   {

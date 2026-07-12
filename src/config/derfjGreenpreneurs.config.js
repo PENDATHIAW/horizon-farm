@@ -29,7 +29,7 @@ export const GREENPRENEURS_STATUS_THRESHOLDS = {
   pret_renforcer: 55,
 };
 
-/** Seuils phases valorisation Tallow & Go / BOVINIA */
+/** Seuils des phases futures de valorisation */
 export const VALORISATION_READINESS_THRESHOLDS = {
   non_pret: 39,
   a_preparer: 59,

@@ -9,7 +9,7 @@ const clean = (value = '') => String(value || '').trim().toLowerCase();
 const MODULE_LABELS = {
   dashboard: 'Accueil',
   assistant_erp: 'Hey Horizon',
-  centre_ia: 'Centre décisionnel',
+  centre_decisionnel: 'Centre décisionnel',
   gestion_systeme: 'Gestion système',
   finance_pilotage: 'Finance',
   smartfarm: 'Smart Farm',

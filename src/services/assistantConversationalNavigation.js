@@ -1,10 +1,12 @@
+import { ROUTE_TO_MODULE } from '../config/modules.config.js';
+
 /**
  * Navigation conversationnelle V7 — sans noms de modules ERP.
  */
 
 const NAV_PHRASES = Object.freeze({
   dashboard: 'Revenons à la vue d\'ensemble de la ferme.',
-  centre_ia: 'Regardons ce qui demande votre attention en priorité.',
+  centre_decisionnel: 'Regardons ce qui demande votre attention en priorité.',
   objectifs_croissance: 'Voyons où vous en êtes sur vos objectifs.',
   financements: 'Je vous prépare la vue pour vos financeurs.',
   elevage: 'Allons voir votre cheptel et vos lots.',
@@ -14,14 +16,14 @@ const NAV_PHRASES = Object.freeze({
   finance_pilotage: 'Passons en revue votre situation financière.',
   activite_suivi: 'Je vous montre l\'activité récente de la ferme.',
   documents_rapports: 'Voici vos documents et rapports.',
-  rh: 'Regardons vos équipes et ressources.',
-  sync_activity: 'Je vérifie la synchronisation de la ferme.',
+  equipe: 'Regardons vos équipes et ressources.',
   gestion_systeme: 'J\'ouvre les paramètres de la ferme.',
   assistant_erp: 'Je suis là — continuez à me parler.',
 });
 
 export function buildConversationalNavigationReply(moduleId = '') {
-  const phrase = NAV_PHRASES[moduleId] || 'Très bien — je vous y emmène.';
+  const resolvedModuleId = ROUTE_TO_MODULE[moduleId] || moduleId;
+  const phrase = NAV_PHRASES[resolvedModuleId] || 'Très bien — je vous y emmène.';
   return {
     title: 'Horizon',
     situation: phrase,

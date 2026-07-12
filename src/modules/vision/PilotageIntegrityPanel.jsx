@@ -24,7 +24,7 @@ export default function PilotageIntegrityPanel({ audit, onNavigate, compact = fa
       onNavigate?.('activite_suivi', { tab: 'Tâches' });
       return;
     }
-    onNavigate?.('centre_ia', { tab: 'À traiter' });
+    onNavigate?.('centre_decisionnel', { tab: 'À traiter' });
   };
 
   return (

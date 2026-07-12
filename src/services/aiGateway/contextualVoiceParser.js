@@ -135,7 +135,7 @@ function buildFeedingLegacyDraft(rawInput = '', dataMap = {}) {
     missing_fields: missing,
     warnings: missing.includes('lot_ambiguous') ? ['Plusieurs lots correspondent — précisez le lot.'] : [],
     draft_fields: fields,
-    impacted_modules: ['elevage', 'stock', 'finances', 'centre_ia'],
+    impacted_modules: ['elevage', 'stock', 'finances', 'centre_decisionnel'],
     proposed_actions: [],
     ui: {
       title: 'Distribution aliment à valider',
@@ -174,7 +174,7 @@ function buildIsolationHealthLegacy(rawInput = '', dataMap = {}) {
     missing_fields: missing,
     warnings: [],
     draft_fields: fields,
-    impacted_modules: ['elevage', 'sante', 'taches', 'centre_ia'],
+    impacted_modules: ['elevage', 'sante', 'taches', 'centre_decisionnel'],
     ui: { title: 'Isolement sanitaire à valider', subtitle: 'Événement santé + suivi' },
   };
 }

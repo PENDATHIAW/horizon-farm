@@ -147,7 +147,7 @@ export const FARM_TOOL_CATALOG = Object.freeze([
     id: FARM_TOOL_IDS.PRIORITIES,
     label: 'Priorités et pilotage',
     description: 'Urgences du jour, journal d\'activité, que faire',
-    moduleKey: 'centre_ia',
+    moduleKey: 'centre_decisionnel',
     intents: [
       'today_priorities', 'priorites_du_jour', 'comment_va_la_ferme', 'farm_overview',
       'farm_status', 'activity_journal', 'main_risk', 'farm_risks', 'farm_opportunities',
@@ -169,7 +169,7 @@ export const FARM_TOOL_CATALOG = Object.freeze([
     id: FARM_TOOL_IDS.RH,
     label: 'RH et équipements',
     description: 'Personnel, équipes, tracteurs, maintenance matériel',
-    moduleKey: 'rh',
+    moduleKey: 'equipe',
     intents: ['rh_personnel', 'equipment_overview', 'equipment_action', 'rh_staff_availability'],
     patterns: [/personnel|equipes?|équipes?|employe|employé|tracteur|equipement|équipement|maintenance|panne|ressources humaines|disponible.*maintenance|qui.*maintenance|maintenance.*tracteur/i],
   },

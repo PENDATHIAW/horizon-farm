@@ -93,7 +93,7 @@ const moduleCatalog = {
     label: 'Assistant ERP',
     aliases: ['assistant erp', 'assistant'],
   },
-  centre_ia: {
+  centre_decisionnel: {
     label: 'Centre IA',
     aliases: ['centre ia', 'ia', 'intelligence artificielle', 'cerveau ia', 'centre intelligence'],
   },
@@ -173,23 +173,19 @@ const moduleCatalog = {
     label: 'Smart Farm',
     aliases: ['smart farm', 'capteur', 'capteurs', 'meteo', 'camera', 'cameras', 'iot'],
   },
-  rh: {
-    label: 'RH & Équipe',
+  equipe: {
+    label: 'Équipe & Ressources',
     aliases: ['rh', 'equipe', 'employe', 'personnel', 'salarie'],
-  },
-  sync_activity: {
-    label: 'Activité & Sync ERP',
-    aliases: ['sync', 'synchronisation', 'audit', 'activite', 'activité', 'interconnexion', 'interconnexions'],
   },
   gestion_systeme: {
     label: 'Gestion du système',
-    aliases: ['gestion systeme', 'gestion du systeme', 'parametres', 'permissions', 'configuration', 'reglages'],
+    aliases: ['gestion systeme', 'gestion du systeme', 'parametres', 'permissions', 'configuration', 'reglages', 'sync', 'synchronisation', 'audit', 'interconnexion', 'interconnexions'],
   },
 };
 
 const dataKeysByModule = {
   dashboard: ['stock', 'clients', 'finances', 'avicole', 'sante', 'cultures', 'sales_orders', 'payments', 'alertes_center'],
-  centre_ia: ['stock', 'finances', 'payments', 'sales_orders', 'alertes_center', 'sante', 'taches', 'business_events'],
+  centre_decisionnel: ['stock', 'finances', 'payments', 'sales_orders', 'alertes_center', 'sante', 'taches', 'business_events'],
   impact_business: ['stock', 'finances', 'payments', 'sales_orders', 'alertes_center', 'sante', 'taches', 'audit_logs', 'business_events'],
   stock: ['stock'],
   clients: ['clients', 'whatsapp_logs', 'sales_orders', 'payments'],
@@ -209,8 +205,7 @@ const dataKeysByModule = {
   rapports: ['rapports'],
   equipements: ['equipements'],
   smartfarm: ['sensor_devices', 'camera_devices'],
-  rh: ['rh'],
-  sync_activity: ['audit_logs', 'business_events'],
+  equipe: ['taches', 'finances', 'equipements', 'documents', 'business_events'],
   gestion_systeme: [],
 };
 
@@ -440,7 +435,7 @@ const answerPriorities = (dataMap = {}) => {
   if (tasks.length) actions.push(`terminer ${tasks.length} tâche(s) urgente(s)`);
 
   return {
-    moduleKey: 'centre_ia',
+    moduleKey: 'centre_decisionnel',
     answer: actions.length
       ? `Priorités du jour : ${actions.join(', ')}.`
       : 'Aucune urgence majeure détectée aujourd’hui. Le Centre IA reste à jour.',
@@ -457,7 +452,7 @@ const answerRisks = (dataMap = {}) => {
   ];
 
   return {
-    moduleKey: 'centre_ia',
+    moduleKey: 'centre_decisionnel',
     answer: `Risques ERP détectés : ${parts.join(', ')}.`,
   };
 };
@@ -820,7 +815,7 @@ const answerDecision = (dataMap = {}, command = '') => {
   }
 
   return {
-    moduleKey: 'centre_ia',
+    moduleKey: 'centre_decisionnel',
     answer: `Décision ERP : ${actions.join(', ')}. Points favorables : ${positives.join(', ') || 'données encore limitées'}. Points à surveiller : ${cautions.join(', ') || 'aucun blocage majeur détecté'}.`,
   };
 };
@@ -838,7 +833,7 @@ const summarizeModule = (moduleKey, dataMap = {}) => {
   if (moduleKey === 'smartfarm') return answerSmartFarm(dataMap);
   if (moduleKey === 'investissements') return answerInvestments(dataMap);
   if (moduleKey === 'tracabilite') return answerTraceability(dataMap);
-  if (moduleKey === 'centre_ia') return answerPriorities(dataMap);
+  if (moduleKey === 'centre_decisionnel') return answerPriorities(dataMap);
   if (moduleKey === 'impact_business') return answerErpValue(dataMap);
   if (moduleKey === 'dashboard') return answerGlobal(dataMap);
 

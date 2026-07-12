@@ -134,10 +134,10 @@ const MODULE_LABELS = Object.freeze({
   elevage: 'Élevage',
   cultures: 'Cultures',
   smartfarm: 'Smart Farm',
-  rh: 'RH',
+  equipe: 'Équipe & Ressources',
   rapports: 'Rapports',
   financements: 'Financements',
-  centre_ia: 'Centre décisionnel',
+  centre_decisionnel: 'Centre décisionnel',
   objectifs_croissance: 'Objectifs & Croissance',
   impact_business: 'Impact business',
 });

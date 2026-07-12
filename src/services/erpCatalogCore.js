@@ -23,10 +23,9 @@ export const ERP_BUSINESS_CATALOG = [
 export const ERP_SYSTEM_CATALOG = [
   { module: 'smartfarm', tables: ['sensor_devices', 'camera_devices', 'smartfarm_events'], purpose: 'Capteurs, cameras, donnees terrain.' },
   { module: 'tracabilite', tables: ['tracabilite', 'business_events'], purpose: 'Tracabilite, operations, evenements metier.' },
-  { module: 'rh', tables: ['profiles'], purpose: 'Equipe, utilisateurs, roles.' },
+  { module: 'equipe', tables: ['profiles'], purpose: 'Equipe, utilisateurs, roles.' },
   { module: 'audit_logs', tables: ['audit_logs'], purpose: 'Historique des actions, audit.' },
-  { module: 'sync_activity', tables: ['audit_logs'], purpose: 'Synchronisation, erreurs, activite.' },
-  { module: 'gestion_systeme', tables: ['profiles'], purpose: 'Administration systeme et configuration.' },
+  { module: 'gestion_systeme', tables: ['profiles', 'audit_logs'], purpose: 'Administration systeme, configuration, audit et synchronisation.' },
 ];
 
 export const ERP_FULL_CATALOG = [...ERP_CORE_CATALOG, ...ERP_BUSINESS_CATALOG, ...ERP_SYSTEM_CATALOG];

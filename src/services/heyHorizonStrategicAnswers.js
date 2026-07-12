@@ -235,7 +235,7 @@ export function buildStrategicAnswer(type, dataMap = {}) {
         ),
         rows: [
           ...profitFindings.slice(0, 4).map((f) => ({ title: f.title, detail: f.description, value: f.recommended_action, module: f.module || 'finance_pilotage' })),
-          ...riskFindings.slice(0, 3).map((r) => ({ title: r.title, detail: r.detail, value: r.level, module: r.module || 'centre_ia' })),
+          ...riskFindings.slice(0, 3).map((r) => ({ title: r.title, detail: r.detail, value: r.level, module: r.module || 'centre_decisionnel' })),
         ],
         route: 'finance_pilotage',
         confidence: 88,
@@ -248,7 +248,7 @@ export function buildStrategicAnswer(type, dataMap = {}) {
         detail: eq.type || eq.status || 'Équipement',
         value: fmtCurrency(n(eq.purchase_cost ?? eq.cout_achat) + n(eq.fuel_cost)),
         cost: n(eq.purchase_cost) + n(eq.fuel_cost),
-        module: 'rh',
+        module: 'equipe',
       })).sort((a, b) => b.cost - a.cost);
       const txTotal = txCosts.reduce((s, t) => s + amount(t), 0);
       return {
@@ -262,7 +262,7 @@ export function buildStrategicAnswer(type, dataMap = {}) {
           ...eqRows.slice(0, 5),
           ...txCosts.slice(0, 4).map((t) => ({ title: t.libelle || t.title || 'Dépense', detail: t.date || t.created_at || '—', value: fmtCurrency(amount(t)), module: 'finance_pilotage' })),
         ],
-        route: 'rh',
+        route: 'equipe',
         confidence: 86,
       };
     }
@@ -277,10 +277,10 @@ export function buildStrategicAnswer(type, dataMap = {}) {
           risks.length ? `${risks.length} risque(s) actif(s), dont ${risks.filter((r) => r.level === 'critique' || r.level === 'eleve').length} élevé(s) ou critique(s).` : 'Aucun risque élevé détecté ce mois.',
         ),
         rows: [
-          ...risks.map((r) => ({ title: r.title, detail: r.detail, value: r.level, module: r.module || 'centre_ia' })),
-          ...preds.map((p) => ({ title: p.title, detail: p.description, value: p.horizon || 'Prévision', module: p.module || 'centre_ia' })),
+          ...risks.map((r) => ({ title: r.title, detail: r.detail, value: r.level, module: r.module || 'centre_decisionnel' })),
+          ...preds.map((p) => ({ title: p.title, detail: p.description, value: p.horizon || 'Prévision', module: p.module || 'centre_decisionnel' })),
         ],
-        route: 'centre_ia',
+        route: 'centre_decisionnel',
         confidence: 90,
       };
     }

@@ -26,12 +26,11 @@ const MODULE_ENGINES = Object.freeze({
   finance_pilotage: ['consolidateFinance'],
   objectifs_croissance: ['buildObjectifsCroissanceData', 'buildConsolidatedCommercialKpis'],
   financements: ['consolidateFinance', 'buildConsolidatedCommercialKpis', 'summarizeSalesMargins', 'buildObjectifsCroissanceData'],
-  centre_ia: ['buildCarnetDomainCards'],
+  centre_decisionnel: ['buildCarnetDomainCards'],
   activite_suivi: ['buildCarnetDomainCards'],
   documents_rapports: ['business_events'],
-  rh: ['taches'],
-  sync_activity: ['buildCarnetDomainCards'],
-  gestion_systeme: [],
+  equipe: ['taches'],
+  gestion_systeme: ['buildCarnetDomainCards'],
   assistant_erp: ['buildCarnetDomainCards'],
 });
 

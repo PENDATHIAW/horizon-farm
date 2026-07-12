@@ -75,7 +75,7 @@ export const SYNC_ISSUE_TABS = {
 };
 
 export function routeForSyncIssue(issue = {}) {
-  return SYNC_ISSUE_ROUTES[issue.module] || issue.module || 'sync_activity';
+  return SYNC_ISSUE_ROUTES[issue.module] || issue.module || 'gestion_systeme';
 }
 
 export function tabForSyncIssue(issue = {}) {
@@ -121,7 +121,7 @@ export function buildSyncRepairTask(issue = {}, options = {}) {
     priority: issue.severity === 'critical' ? 'critique' : 'haute',
     status: 'a_faire',
     notes: issue.message || 'Tâche créée depuis Activité & Sync ERP.',
-    source_module: 'sync_activity',
+    source_module: 'gestion_systeme',
     source_record_id: issue.row_id || issue.linked_id || issue.flow || '',
     action_key: options.actionKey || `sync:${issue.flow || 'erp'}:${issue.module || 'module'}:${issue.row_id || issue.linked_id || 'row'}`,
   };

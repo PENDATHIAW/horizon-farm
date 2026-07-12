@@ -54,8 +54,8 @@ export default function ValorisationPhaseAdvisor({
     return (
       <div className="rounded-2xl border border-[#d6c3a0] bg-[#fffdf8] p-4 space-y-2 text-sm">
         <p className="font-black">Phases 2 & 3 — décision data-driven</p>
-        <p>Tallow & Go : <b>{readiness.phase2_tallow_go.score}/100</b> — {readiness.phase2_tallow_go.statusLabel}</p>
-        <p>BOVINIA : <b>{readiness.phase3_bovinia.score}/100</b> — {readiness.phase3_bovinia.statusLabel}</p>
+        <p>Phase 2 future : <b>{readiness.phase2_tallow_go.score}/100</b> — {readiness.phase2_tallow_go.statusLabel}</p>
+        <p>Phase 3 future : <b>{readiness.phase3_bovinia.score}/100</b> — {readiness.phase3_bovinia.statusLabel}</p>
       </div>
     );
   }
@@ -67,12 +67,12 @@ export default function ValorisationPhaseAdvisor({
           <Route size={20} /> Phases 2 & 3 — Décision data-driven
         </p>
         <p className="text-sm text-[#8a7456] mt-1">
-          Tallow & Go et BOVINIA ne démarrent pas à une date fixe — l&apos;ERP évalue les conditions.
+          Les extensions futures ne démarrent pas à une date fixe — l&apos;ERP évalue les conditions.
         </p>
       </div>
 
-      <PhaseBlock title="Tallow & Go — Phase 2 (cosmétique / suif)" phase={readiness.phase2_tallow_go} />
-      <PhaseBlock title="BOVINIA — Phase 3 (nutrition / os)" phase={readiness.phase3_bovinia} />
+      <PhaseBlock title="Phase 2 future — valorisation du suif" phase={readiness.phase2_tallow_go} />
+      <PhaseBlock title="Phase 3 future — valorisation des os" phase={readiness.phase3_bovinia} />
 
       <p className="text-xs text-[#8a7456] rounded-xl border border-[#eadcc2] bg-[#fffdf8] p-3 leading-relaxed">
         {readiness.roadmapNote}

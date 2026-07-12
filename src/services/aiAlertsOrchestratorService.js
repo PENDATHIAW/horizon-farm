@@ -38,7 +38,7 @@ export const mapAiAlertToAlertCenterPayload = (alert = {}) => ({
   severity: alert.severity,
   status: alert.status || 'nouvelle',
   action_recommandee: alert.action_recommandee,
-  source: alert.source || 'centre_ia',
+  source: alert.source || 'centre_decisionnel',
   confidence_score: alert.confidence_score,
   source_data: alert.source_data || {},
   created_at: alert.created_at || new Date().toISOString(),

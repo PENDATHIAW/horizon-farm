@@ -112,7 +112,7 @@ export default function DeviceManagerTab({
         <button type="button" onClick={() => handlers.onNavigate?.('activite_suivi', { tab: 'À traiter maintenant' })} className="inline-flex items-center gap-2 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-2 text-xs font-black text-emerald-800">
           Voir alertes IoT
         </button>
-        <button type="button" onClick={() => handlers.onNavigate?.('rh', { tab: 'Parc Matériel & Maintenance' })} className="inline-flex items-center gap-2 rounded-xl border border-[#eadcc2] bg-[#fffdf8] px-4 py-2 text-xs font-black text-[#7d6a4a]">
+        <button type="button" onClick={() => handlers.onNavigate?.('equipe', { tab: 'Parc Matériel & Maintenance' })} className="inline-flex items-center gap-2 rounded-xl border border-[#eadcc2] bg-[#fffdf8] px-4 py-2 text-xs font-black text-[#7d6a4a]">
           Parc mécanique →
         </button>
       </div>

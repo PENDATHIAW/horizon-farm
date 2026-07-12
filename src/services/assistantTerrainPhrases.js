@@ -350,7 +350,7 @@ export const TERRAIN_PHRASE_BUNDLES = Object.freeze([
     ],
   },
   {
-    module: 'rh',
+    module: 'equipe',
     family: F.DECISION,
     intent: 'rh_personnel',
     phrases: [
@@ -360,7 +360,7 @@ export const TERRAIN_PHRASE_BUNDLES = Object.freeze([
     ],
   },
   {
-    module: 'rh',
+    module: 'equipe',
     family: F.DECISION,
     intent: 'equipment_overview',
     phrases: [
@@ -370,7 +370,7 @@ export const TERRAIN_PHRASE_BUNDLES = Object.freeze([
     ],
   },
   {
-    module: 'centre_ia',
+    module: 'centre_decisionnel',
     family: F.DECISION,
     intent: 'today_priorities',
     phrases: [
@@ -381,7 +381,7 @@ export const TERRAIN_PHRASE_BUNDLES = Object.freeze([
     ],
   },
   {
-    module: 'centre_ia',
+    module: 'centre_decisionnel',
     family: F.INVESTISSEUR,
     intent: 'main_risk',
     phrases: [
@@ -391,7 +391,7 @@ export const TERRAIN_PHRASE_BUNDLES = Object.freeze([
     ],
   },
   {
-    module: 'centre_ia',
+    module: 'centre_decisionnel',
     family: F.DECISION,
     intent: 'centre_recommendations',
     phrases: [
@@ -401,7 +401,7 @@ export const TERRAIN_PHRASE_BUNDLES = Object.freeze([
     ],
   },
   {
-    module: 'centre_ia',
+    module: 'centre_decisionnel',
     family: F.DECISION,
     intent: 'centre_cycles',
     phrases: [

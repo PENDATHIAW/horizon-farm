@@ -776,7 +776,7 @@ test.describe('Audit métier avec données simulées Horizon Farm', () => {
       date: today(),
     });
     expect(workflow.financeTransaction).toMatchObject({ type: 'sortie', module_lie: 'rh', source_record_id: 'RH-AWA-001', montant: 85000, cash_effect: true });
-    expect(workflow.document).toMatchObject({ module_source: 'rh', entity_id: 'RH-AWA-001', status: 'manquant', verification_status: 'preuve_manquante', montant: 85000 });
+    expect(workflow.document).toMatchObject({ module_source: 'equipe', entity_id: 'RH-AWA-001', status: 'manquant', verification_status: 'preuve_manquante', montant: 85000 });
     expect(workflow.personPatch).toMatchObject({ avance_mois: 0, dernier_paiement: today(), last_payment_amount: 85000 });
     expect(workflow.event).toMatchObject({ event_type: 'paiement_remuneration', linked_transaction_id: workflow.financeTransaction.id, linked_document_id: workflow.document.id });
   });
@@ -790,7 +790,7 @@ test.describe('Audit métier avec données simulées Horizon Farm', () => {
 
   test('tâche RH assignée reste visible dans le module métier', () => {
     const workflow = buildRhAssignedTask({ person: { id: 'RH-CULT-001', nom: 'Mamadou Culture' }, module: 'cultures', title: 'Arroser parcelle tomates', dueDate: today() });
-    expect(workflow.task).toMatchObject({ module_lie: 'cultures', source_module: 'rh', assigned_to: 'RH-CULT-001', status: 'a_faire' });
+    expect(workflow.task).toMatchObject({ module_lie: 'cultures', source_module: 'equipe', assigned_to: 'RH-CULT-001', status: 'a_faire' });
     expect(workflow.event).toMatchObject({ event_type: 'tache_rh_assignee', linked_task_id: workflow.task.id });
   });
 
@@ -841,8 +841,8 @@ test.describe('Audit métier avec données simulées Horizon Farm', () => {
       priority: 'haute',
       recommendation: 'Commander 5 sacs avant rupture.',
     }, { date: today() });
-    expect(workflow.task).toMatchObject({ module_lie: 'stock', source_module: 'centre_ia', source_record_id: 'STK-ALIM-001', status: 'a_faire', priority: 'haute' });
-    expect(workflow.event).toMatchObject({ event_type: 'decision_action_task_created', module_source: 'centre_ia', source_module: 'stock', source_record_id: 'STK-ALIM-001', linked_task_id: workflow.task.id });
+    expect(workflow.task).toMatchObject({ module_lie: 'stock', source_module: 'centre_decisionnel', source_record_id: 'STK-ALIM-001', status: 'a_faire', priority: 'haute' });
+    expect(workflow.event).toMatchObject({ event_type: 'decision_action_task_created', module_source: 'centre_decisionnel', source_module: 'stock', source_record_id: 'STK-ALIM-001', linked_task_id: workflow.task.id });
   });
 
   test('Objectifs & Croissance marque atteint et crée une action si objectif en retard', () => {
@@ -899,7 +899,7 @@ test.describe('Audit métier avec données simulées Horizon Farm', () => {
     expect(staleOpportunity).toBeTruthy();
     expect(routeForSyncIssue(orphanPayment)).toBe('ventes');
     expect(syncIssueActionLabel(missingDocument)).toBe('Créer preuve / facture');
-    expect(buildSyncRepairTask(staleOpportunity, { date: today() })).toMatchObject({ module_lie: 'ventes', source_module: 'sync_activity', status: 'a_faire' });
+    expect(buildSyncRepairTask(staleOpportunity, { date: today() })).toMatchObject({ module_lie: 'ventes', source_module: 'gestion_systeme', status: 'a_faire' });
   });
 
   test('Gestion système protège les actions admin et trace les changements', () => {

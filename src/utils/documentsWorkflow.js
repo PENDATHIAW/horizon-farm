@@ -101,7 +101,7 @@ const TARGET_META = {
   },
   [DOCUMENT_TARGET_TYPES.PAYROLL]: {
     label: 'Paie RH',
-    source_module: 'rh',
+    source_module: 'equipe',
     entity_type: 'personne',
     contextKey: 'people',
     proofField: 'proof_document_id',

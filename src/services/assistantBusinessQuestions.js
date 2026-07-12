@@ -44,7 +44,7 @@ const BASE_MODULE_BUSINESS_QUESTIONS = Object.freeze({
   assistant_erp: [
     q(F.SALUTATION, 'greeting', 'Accueil', ['bonjour', 'salut', 'coucou'], [], []),
   ],
-  centre_ia: [
+  centre_decisionnel: [
     q(F.DECISION, 'today_priorities', 'Décisions', ['qu est ce qui est urgent', 'que traiter en priorité', 'risques a traiter', 'centre decisionnel', 'cerveau ferme'], ['décisions prioritaires', 'risques à traiter'], []),
     q(F.INVESTISSEUR, 'main_risk', 'Risques', ['quel est le principal risque', 'risque principal', 'plus gros risque', 'alerte critique'], ['risques exploitation'], ['principal risque financier']),
     q(F.DECISION, 'centre_recommendations', 'Recommandations', ['recommandations ferme', 'que me conseille le centre', 'axes prioritaires exploitation', 'recommandations du jour'], ['recommandations centre'], []),
@@ -129,14 +129,12 @@ const BASE_MODULE_BUSINESS_QUESTIONS = Object.freeze({
   documents_rapports: [
     q(F.DECISION, 'documents_summary', 'Documents', ['quels documents ont ete generes', 'mes rapports', 'rapports', 'exports documents', 'documents', 'derniers rapports'], [], []),
   ],
-  rh: [
+  equipe: [
     q(F.DECISION, 'rh_personnel', 'Personnel', ['personnel', 'mes equipes', 'equipes', 'effectif personnel', 'ressources humaines', 'qui travaille', 'employes'], [], []),
     q(F.DECISION, 'equipment_overview', 'Équipements', ['mes equipements', 'tracteurs', 'maintenance equipements', 'etat equipements', 'materiel en panne', 'pompe cassee'], [], []),
   ],
-  sync_activity: [
-    q(F.DECISION, 'sync_status', 'Synchronisation', ['synchronisations', 'etat sync erp', 'integrite donnees', 'donnees coherentes', 'sync ok'], [], []),
-  ],
   gestion_systeme: [
+    q(F.DECISION, 'sync_status', 'Synchronisation', ['synchronisations', 'etat sync erp', 'integrite donnees', 'donnees coherentes', 'sync ok'], [], []),
     q(F.DECISION, 'system_overview', 'Administration', ['utilisateurs', 'roles permissions', 'parametres systeme', 'gestion systeme', 'config erp'], [], []),
   ],
 });

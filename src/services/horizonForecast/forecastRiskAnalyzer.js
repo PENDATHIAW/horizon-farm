@@ -108,7 +108,7 @@ export function analyzeForecastRisks(engineResult = {}, dataMap = {}) {
       f.title,
       f.recommended_action || f.description || 'Signal ERP Health',
       'moyen',
-      f.module || 'centre_ia',
+      f.module || 'centre_decisionnel',
     ));
   });
 

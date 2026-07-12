@@ -2,7 +2,7 @@
 
 export const MODULE_ANNEXE_LABELS = {
   dashboard: 'Accueil',
-  centre_ia: 'Centre décisionnel',
+  centre_decisionnel: 'Centre décisionnel',
   objectifs_croissance: 'Objectifs & Croissance',
   elevage: 'Élevage',
   commercial: 'Commercial',

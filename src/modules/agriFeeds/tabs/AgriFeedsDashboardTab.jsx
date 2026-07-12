@@ -16,13 +16,13 @@ function Card({ title, value, hint }) {
 
 const extensionReadiness = [
   {
-    name: 'BOVINIA',
+    name: 'Phase 3 future',
     stage: 'Extension future',
     role: 'Valorisation alimentaire des coproduits animaux en bone broth, après stabilisation de la ferme.',
     gates: ['Volume de matière première traçable', 'Rendement transformation', 'Coût par stick / boîte', 'Conformité alimentaire', 'Ventes pilotes et réachat'],
   },
   {
-    name: 'tallow & go',
+    name: 'Phase 2 future',
     stage: 'Extension future',
     role: 'Valorisation cosmétique du suif, à lancer seulement lorsque la chaîne matière, qualité et marge est sécurisée.',
     gates: ['Approvisionnement suif', 'Qualité / conservation', 'Coût formule', 'Packaging', 'Tests clients et marge'],
@@ -189,7 +189,7 @@ export default function AgriFeedsDashboardTab({ dataMap = {}, onNavigateTab }) {
         <div>
           <p className="font-black text-[#2f2415]">Extensions futures — aide à la décision uniquement</p>
           <p className="text-sm text-[#8a7456] mt-1 leading-relaxed max-w-3xl">
-            BOVINIA et tallow & go ne sont pas des modules opérationnels séparés. L’ERP doit seulement aider à décider quand ces extensions pourront être lancées, à partir des données réelles de la ferme, des coûts, de la qualité, de la traçabilité et de la marge.
+            Ces extensions ne sont pas des modules opérationnels séparés. L’ERP doit seulement aider à décider quand elles pourront être lancées, à partir des données réelles de la ferme, des coûts, de la qualité, de la traçabilité et de la marge.
           </p>
         </div>
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">

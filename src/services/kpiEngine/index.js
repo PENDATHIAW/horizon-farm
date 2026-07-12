@@ -52,7 +52,7 @@ export function runKpiEngine(data = {}, { module = 'dashboard', periodScope = {}
     risks: computeRiskKpis(data),
   };
 
-  if (module === 'objectifs_croissance' || module === 'centre_ia') {
+  if (module === 'objectifs_croissance' || module === 'centre_decisionnel') {
     return { ...common, growth: computeGrowthKpis(data, periodScope) };
   }
   if (module === 'dashboard') {

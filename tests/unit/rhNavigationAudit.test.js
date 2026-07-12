@@ -21,12 +21,12 @@ test('resolveRhTab — alias Équipements et Affectations', () => {
 test('navigateRhTab — conserve alias brut', () => {
   const calls = [];
   navigateRhTab((module, opts) => calls.push({ module, ...opts }), 'Équipements');
-  assert.deepEqual(calls, [{ module: 'rh', tab: 'Équipements' }]);
+  assert.deepEqual(calls, [{ module: 'equipe', tab: 'Équipements' }]);
 });
 
-test('navigationOptionsForFinding — alias rh conservé', () => {
+test('navigationOptionsForFinding — alias rh vers equipe', () => {
   const nav = navigationOptionsForFinding({ module: 'rh', tab: 'Maintenance' });
-  assert.equal(nav.module, 'rh');
+  assert.equal(nav.module, 'equipe');
   assert.equal(nav.tab, 'Maintenance');
 });
 

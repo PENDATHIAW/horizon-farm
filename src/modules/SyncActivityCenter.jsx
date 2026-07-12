@@ -53,7 +53,7 @@ function repairLabel(issue = {}) {
 function canRepair(issue = {}, props = {}) { const label = repairLabel(issue); if (label === 'Mettre à jour la vente') return Boolean(props.onUpdateSalesOrder); if (label === 'Fermer l’opportunité') return Boolean(props.onUpdateOpportunity); if (label === 'Créer preuve / facture') return Boolean(props.onCreateDocument); if (label === 'Créer une tâche') return Boolean(props.onCreateTask); return Boolean(props.onCreateAlert); }
 
 async function createRepairTrace(props, issue, title) {
-  await props.onCreateBusinessEvent?.({ id: makeRepairId('EVT'), event_type: 'audit_interconnexion_repare', module_source: 'sync_activity', entity_type: issue.module || 'erp_issue', entity_id: issue.row_id || issue.linked_id || issue.flow || 'audit', title, description: issue.message || 'Action effectuée depuis les vérifications', event_date: today(), severity: issue.severity || 'info', saisies_evitees: 1 });
+  await props.onCreateBusinessEvent?.({ id: makeRepairId('EVT'), event_type: 'audit_interconnexion_repare', module_source: 'gestion_systeme', entity_type: issue.module || 'erp_issue', entity_id: issue.row_id || issue.linked_id || issue.flow || 'audit', title, description: issue.message || 'Action effectuée depuis les vérifications', event_date: today(), severity: issue.severity || 'info', saisies_evitees: 1 });
   await props.onRefreshBusinessEvents?.();
 }
 
@@ -79,7 +79,7 @@ async function repairIssue(issue, props) {
     return 'Opportunité fermée';
   }
   if (label === 'Créer preuve / facture') {
-    await props.onCreateDocument?.({ id: makeRepairId('DOC'), title: `Preuve / facture à compléter`, document_category: 'preuve_facture', module_source: issue.module || 'sync_activity', entity_type: issue.module || 'erp_issue', entity_id: issue.row_id || issue.linked_id || '', related_id: issue.linked_id || issue.row_id || '', notes: issue.message || 'Preuve créée depuis les vérifications.', status: 'a_completer' });
+    await props.onCreateDocument?.({ id: makeRepairId('DOC'), title: `Preuve / facture à compléter`, document_category: 'preuve_facture', module_source: issue.module || 'gestion_systeme', entity_type: issue.module || 'erp_issue', entity_id: issue.row_id || issue.linked_id || '', related_id: issue.linked_id || issue.row_id || '', notes: issue.message || 'Preuve créée depuis les vérifications.', status: 'a_completer' });
     await props.onRefreshDocuments?.();
     await createRepairTrace(props, issue, 'Preuve / facture créée');
     return 'Preuve / facture créée';
@@ -90,7 +90,7 @@ async function repairIssue(issue, props) {
     await createRepairTrace(props, issue, 'Tâche créée');
     return 'Tâche créée';
   }
-  await props.onCreateAlert?.({ id: makeRepairId('ALERT'), title: 'Point à vérifier', message: issue.message || 'Un point demande ton attention.', module_source: issue.module || 'sync_activity', entity_type: issue.module || 'erp_issue', entity_id: issue.row_id || issue.linked_id || '', severity: issue.severity === 'critical' ? 'critique' : 'warning', status: 'nouvelle', action_recommandee: 'Vérifier et corriger ce point.', alert_dedupe_key: issueKey(issue) });
+  await props.onCreateAlert?.({ id: makeRepairId('ALERT'), title: 'Point à vérifier', message: issue.message || 'Un point demande ton attention.', module_source: issue.module || 'gestion_systeme', entity_type: issue.module || 'erp_issue', entity_id: issue.row_id || issue.linked_id || '', severity: issue.severity === 'critical' ? 'critique' : 'warning', status: 'nouvelle', action_recommandee: 'Vérifier et corriger ce point.', alert_dedupe_key: issueKey(issue) });
   await props.onRefreshAlertes?.();
   await createRepairTrace(props, issue, 'Alerte créée');
   return 'Alerte créée';
@@ -171,7 +171,7 @@ function InterconnectionAudit(props) {
         raison,
         commentaire,
         utilisateur: user?.email || user?.user_metadata?.full_name || 'utilisateur',
-        source_module: pendingIssue.module || 'sync_activity',
+        source_module: pendingIssue.module || 'gestion_systeme',
         source_record_id: String(pendingIssue.row_id || pendingIssue.linked_id || ''),
         type_exception: JUSTIFIED_EXCEPTION_TYPES.INTERCONNECTION,
       });
@@ -279,7 +279,7 @@ export default function SyncActivityCenter(props) {
           <p className="mt-1 text-sm text-[#8a7456]">Vérifications inter-modules, connexion terrain et journal d’activité.</p>
         </div>
       </section>
-      <ModuleTabsBar moduleId="sync_activity" active={tab} onChange={setTab} tabBadges={tabBadges} />
+      <ModuleTabsBar moduleId="gestion_systeme" active={tab} onChange={setTab} tabBadges={tabBadges} />
       {content}
     </div>
   );

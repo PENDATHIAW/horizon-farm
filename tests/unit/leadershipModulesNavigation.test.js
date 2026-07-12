@@ -34,7 +34,7 @@ test('navigateSyncActivityTab — conserve alias audit', () => {
   const calls = [];
   const resolved = navigateSyncActivityTab((module, opts) => calls.push({ module, ...opts }), 'audit');
   assert.equal(resolved, 'Vérifications');
-  assert.deepEqual(calls, [{ module: 'sync_activity', tab: 'audit' }]);
+  assert.deepEqual(calls, [{ module: 'gestion_systeme', tab: 'audit' }]);
 });
 
 test('resolveGestionSystemeTab — alias Paramètres', () => {
@@ -49,11 +49,11 @@ test('navigateGestionSystemeTab — conserve alias brut', () => {
   assert.deepEqual(calls, [{ module: 'gestion_systeme', tab: 'Audit' }]);
 });
 
-test('navigationOptionsForFinding — financements et sync_activity', () => {
+test('navigationOptionsForFinding — financements et audit système', () => {
   const inv = navigationOptionsForFinding({ module: 'financements', tab: 'Préparation' });
   assert.equal(inv.module, 'financements');
   assert.equal(inv.tab, 'Préparation');
   const sync = navigationOptionsForFinding({ module: 'audit_logs', tab: 'journal' });
-  assert.equal(sync.module, 'sync_activity');
+  assert.equal(sync.module, 'gestion_systeme');
   assert.equal(sync.tab, 'journal');
 });

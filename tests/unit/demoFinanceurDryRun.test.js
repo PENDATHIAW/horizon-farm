@@ -216,5 +216,5 @@ test('parcours 5 — sync ERP détecte écart et propose réparation guidée', (
   const task = buildSyncRepairTask(issue);
   assert.ok(task.title);
   assert.equal(task.module_lie, 'ventes');
-  assert.equal(task.source_module, 'sync_activity');
+  assert.equal(task.source_module, 'gestion_systeme');
 });

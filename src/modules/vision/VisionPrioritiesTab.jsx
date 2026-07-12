@@ -34,7 +34,7 @@ function formatHealthLabel(data = {}) {
 export default function VisionPrioritiesTab({
   data,
   dataMap = {},
-  moduleId = 'centre_ia',
+  moduleId = 'centre_decisionnel',
   setTab,
   onNavigate,
   onCreateTask,

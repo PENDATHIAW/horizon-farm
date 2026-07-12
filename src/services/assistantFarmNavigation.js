@@ -9,7 +9,7 @@ import { normalizeAgriculturalText } from './assistantUniversalIntents.js';
 export const FARM_NAV_SECTIONS = Object.freeze({
   pilotage: {
     label: 'Pilotage',
-    modules: ['dashboard', 'assistant_erp', 'centre_ia', 'objectifs_croissance', 'financements'],
+    modules: ['dashboard', 'assistant_erp', 'centre_decisionnel', 'objectifs_croissance', 'financements'],
   },
   production: {
     label: 'Production',
@@ -29,24 +29,25 @@ export const FARM_NAV_SECTIONS = Object.freeze({
   },
   ressources: {
     label: 'Ressources',
-    modules: ['rh'],
+    modules: ['equipe'],
   },
   administration: {
     label: 'Administration',
-    modules: ['sync_activity', 'gestion_systeme'],
+    modules: ['gestion_systeme'],
   },
 });
 
 const MODULE_ALIASES = Object.entries(MODULE_REGISTRY).flatMap(([id, meta]) => {
+  const moduleId = meta.aliasOf || id;
   const label = normalizeAgriculturalText(meta.label || id);
   const aliases = [id.replace(/_/g, ' '), label];
-  if (id === 'centre_ia') aliases.push('centre decisionnel', 'centre ia');
+  if (moduleId === 'centre_decisionnel') aliases.push('centre decisionnel', 'centre ia');
   if (id === 'achats_stock') aliases.push('achats stock', 'stock', 'achats');
   if (id === 'finance_pilotage') aliases.push('finance', 'finance pilotage', 'tresorerie module');
   if (id === 'financements') aliases.push('financements', 'financeurs', 'dossier financement', 'subventions', 'impact business', 'investisseurs');
-  if (id === 'sync_activity') aliases.push('sync erp', 'activite sync', 'activite sync erp');
-  if (id === 'rh') aliases.push('operations ressources', 'operations et ressources', 'rh equipe');
-  return aliases.map((alias) => ({ alias: normalizeAgriculturalText(alias), moduleId: id }));
+  if (moduleId === 'gestion_systeme') aliases.push('sync erp', 'activite sync', 'activite sync erp', 'audit systeme');
+  if (moduleId === 'equipe') aliases.push('operations ressources', 'operations et ressources', 'rh equipe', 'rh');
+  return aliases.map((alias) => ({ alias: normalizeAgriculturalText(alias), moduleId }));
 });
 
 const OPEN_PATTERNS = [

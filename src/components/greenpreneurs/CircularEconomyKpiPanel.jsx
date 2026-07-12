@@ -93,8 +93,8 @@ export default function CircularEconomyKpiPanel({
       ) : null}
 
       <div className="grid grid-cols-2 gap-3">
-        <KpiTile label="Suif (coproduit)" value={`${fmtNumber(circular.coproduits.suifKg)} kg`} hint="Phase 2 Tallow & Go" />
-        <KpiTile label="Os (coproduit)" value={`${fmtNumber(circular.coproduits.osKg)} kg`} hint="Phase 3 BOVINIA" />
+        <KpiTile label="Suif (coproduit)" value={`${fmtNumber(circular.coproduits.suifKg)} kg`} hint="Phase 2 future" />
+        <KpiTile label="Os (coproduit)" value={`${fmtNumber(circular.coproduits.osKg)} kg`} hint="Phase 3 future" />
       </div>
 
       {showPlannedVsRealized ? (

@@ -246,7 +246,7 @@ export default function ElevageCyclesPanel({
           {onNavigate ? (
             <button
               type="button"
-              onClick={() => onNavigate('centre_ia', { tab: 'Saisons & marchés' })}
+              onClick={() => onNavigate('centre_decisionnel', { tab: 'Saisons & marchés' })}
               className="shrink-0 rounded-xl border border-[#d6c3a0] bg-[#fffdf8] px-3 py-2 text-xs font-black text-[#2f2415] hover:bg-[#dcfce7]"
             >
               Centre décisionnel → Saisons & marchés
@@ -308,7 +308,7 @@ export default function ElevageCyclesPanel({
           {onNavigate ? (
             <button
               type="button"
-              onClick={() => onNavigate('centre_ia', { tab: 'Saisons & marchés' })}
+              onClick={() => onNavigate('centre_decisionnel', { tab: 'Saisons & marchés' })}
               className="rounded-xl bg-[#2f2415] px-3 py-2 text-xs font-black text-white"
             >
               Ouvrir Saisons & marchés (Centre IA)

@@ -42,12 +42,12 @@ export async function applyOneClickRecommendation(finding, handlers = {}) {
 export async function createMaintenanceTask({ equipmentName, equipmentId, statusLabel, handlers = {} }) {
   const { onCreateTask, existingTasks = [], onNavigate } = handlers;
   if (typeof onCreateTask !== 'function') {
-    onNavigate?.('rh');
+    onNavigate?.('equipe');
     return { ok: false };
   }
   const finding = {
     id: `maint-task-${equipmentId || equipmentName}`,
-    module: 'rh',
+    module: 'equipe',
     severity: 'haute',
     category: 'coherence',
     title: `Maintenance : ${equipmentName}`,

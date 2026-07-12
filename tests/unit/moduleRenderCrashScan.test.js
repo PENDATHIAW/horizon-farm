@@ -48,7 +48,7 @@ const baseProps = {
 
 const CRITICAL = [
   'dashboard', 'assistant_erp', 'commercial', 'achats_stock', 'finance_pilotage',
-  'financements', 'rh', 'equipements', 'investissements',
+  'financements', 'equipe', 'equipements', 'investissements',
 ];
 
 for (const moduleId of CRITICAL) {
@@ -57,7 +57,7 @@ for (const moduleId of CRITICAL) {
     assert.ok(loader, `missing entry for ${moduleId}`);
     const mod = await loader();
     const Component = mod.default;
-    const extra = moduleId === 'centre_ia' ? { initialTab: 'Urgences & risques' } : {};
+    const extra = moduleId === 'centre_decisionnel' ? { initialTab: 'Urgences & risques' } : {};
     const html = renderToString(
       React.createElement(
         AuthProvider,

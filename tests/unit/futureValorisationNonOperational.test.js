@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync, existsSync } from 'node:fs';
 
-test('BOVINIA/Tallow — no operational module or centre action is exposed', () => {
+test('phases futures — no operational module or centre action is exposed', () => {
   assert.equal(existsSync('src/modules/BoviniaModule.jsx'), false);
   assert.equal(existsSync('src/modules/TallowModule.jsx'), false);
 

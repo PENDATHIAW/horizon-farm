@@ -106,7 +106,7 @@ export const SMART_ALERT_RULE_CATALOG = [
     triggerLabel: 'capteur hors ligne depuis plus de 30 min',
     severity: 'warning',
     actions: ['alerte_center', 'tache_maintenance', 'equipements'],
-    targetModule: 'rh',
+    targetModule: 'equipe',
   },
   {
     id: 'battery_low',

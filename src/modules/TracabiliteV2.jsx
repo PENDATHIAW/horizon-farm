@@ -46,6 +46,6 @@ function TraceCoveragePanel({ coverage, onNavigate }) {
         <p className="text-xs mt-1">{event.module_source} · source à compléter</p>
       </div>)}
     </div> : <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-700">Les faits importants visibles ont une source exploitable.</div>}
-    <div className="flex justify-end"><Btn small variant="outline" onClick={() => onNavigate?.('sync_activity')}><ExternalLink size={14} /> Vérifier anomalies</Btn></div>
+    <div className="flex justify-end"><Btn small variant="outline" onClick={() => onNavigate?.('gestion_systeme', { tab: 'Audit' })}><ExternalLink size={14} /> Vérifier anomalies</Btn></div>
   </section>;
 }

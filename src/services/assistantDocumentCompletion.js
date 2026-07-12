@@ -515,8 +515,8 @@ export function analyzeDocumentForCompletion(text = '', dataMap = {}, options = 
     warnings: inconsistencies.length ? ['Incohérence de montants détectée'] : [],
     draft_fields: fields,
     impacted_modules: intent === 'sale_record'
-      ? ['commercial', 'stock', 'finances', 'clients', 'tracabilite', 'centre_ia']
-      : ['stock', 'finances', 'fournisseurs', 'tracabilite', 'centre_ia'],
+      ? ['commercial', 'stock', 'finances', 'clients', 'tracabilite', 'centre_decisionnel']
+      : ['stock', 'finances', 'fournisseurs', 'tracabilite', 'centre_decisionnel'],
     documentCompletion,
     ui: {
       title: intent === 'sale_record' ? 'Brouillon vente' : 'Brouillon achat',

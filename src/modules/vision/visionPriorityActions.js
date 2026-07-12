@@ -15,10 +15,10 @@ const MODULE_TO_TASK = {
   elevage: 'avicole',
   activite_suivi: 'taches',
   documents_rapports: 'documents',
+  equipe: 'equipements',
   rh: 'equipements',
   objectifs_croissance: 'objectifs_croissance',
   centre_decisionnel: 'taches',
-  centre_ia: 'taches',
   alertes: 'taches',
   taches: 'taches',
   ventes: 'ventes',
@@ -36,7 +36,6 @@ const MODULE_TO_ALERT = {
   activite_suivi: 'taches',
   documents_rapports: 'documents',
   centre_decisionnel: 'centre_decisionnel',
-  centre_ia: 'centre_decisionnel',
   objectifs_croissance: 'autre',
 };
 
@@ -139,7 +138,7 @@ export function buildAlertPayloadFromPriorityItem(item = {}, existingAlerts = []
   };
 }
 
-export function navigateFromPriorityItem(item = {}, { onNavigate, setTab, moduleId = 'centre_ia' } = {}) {
+export function navigateFromPriorityItem(item = {}, { onNavigate, setTab, moduleId = 'centre_decisionnel' } = {}) {
   if (item.targetTab && setTab) {
     setTab(item.targetTab);
     return;
@@ -157,7 +156,7 @@ export function navigateFromPriorityItem(item = {}, { onNavigate, setTab, module
     return;
   }
   const module = resolveRouteModule(item.navModule || item.sourceModule || '');
-  if (module === 'centre_ia' || module === 'centre_decisionnel') {
+  if (module === 'centre_decisionnel') {
     if (item.tab && setTab) setTab(item.tab);
     else if (setTab) setTab('Risques');
     return;
@@ -267,7 +266,7 @@ export async function runPriorityFindingAction(item, handlers = {}) {
 }
 
 export async function runPriorityTreatedAction(item, handlers = {}) {
-  const { onCreateBusinessEvent, moduleId = 'centre_ia' } = handlers;
+  const { onCreateBusinessEvent, moduleId = 'centre_decisionnel' } = handlers;
   if (typeof onCreateBusinessEvent !== 'function') {
     toast.error('Marquage indisponible');
     return false;
@@ -304,4 +303,3 @@ export async function runPriorityDismissAction(item, handlers = {}) {
     return false;
   }
 }
-

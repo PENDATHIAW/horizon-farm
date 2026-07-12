@@ -75,6 +75,6 @@ export default function ActionTraceHealth({ tasks = [], alertes = [], alerts = [
       </div>
     </div>
 
-    <div className="flex flex-wrap justify-end gap-2"><Btn small variant="outline" onClick={() => onNavigate?.('taches')}>Ouvrir tâches</Btn><Btn small variant="outline" onClick={() => onNavigate?.('alertes')}>Ouvrir alertes</Btn><Btn small variant="outline" onClick={() => onNavigate?.('tracabilite')}>Ouvrir traçabilité</Btn><Btn small variant="outline" onClick={() => onNavigate?.('sync_activity')}>Ouvrir sync</Btn></div>
+    <div className="flex flex-wrap justify-end gap-2"><Btn small variant="outline" onClick={() => onNavigate?.('taches')}>Ouvrir tâches</Btn><Btn small variant="outline" onClick={() => onNavigate?.('alertes')}>Ouvrir alertes</Btn><Btn small variant="outline" onClick={() => onNavigate?.('tracabilite')}>Ouvrir traçabilité</Btn><Btn small variant="outline" onClick={() => onNavigate?.('gestion_systeme', { tab: 'Audit' })}>Ouvrir audit</Btn></div>
   </section>;
 }

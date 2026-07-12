@@ -142,10 +142,10 @@ function scoreCompliance(documents, taches, phase = 'cosmetique') {
   return { score, blockers };
 }
 
-function scoreMarketDemand(opportunities, phase = 'tallow') {
-  const patterns = phase === 'tallow'
-    ? ['tallow', 'suif', 'cosmetique', 'cosmétique', 'beurre']
-    : ['bovinia', 'os', 'collagene', 'collagène', 'nutrition', 'bien-etre', 'bien-être'];
+function scoreMarketDemand(opportunities, phase = 'phase2') {
+  const patterns = phase === 'phase2'
+    ? ['suif', 'cosmetique', 'cosmétique', 'beurre']
+    : ['os', 'collagene', 'collagène', 'nutrition', 'bien-etre', 'bien-être'];
   const matches = arr(opportunities).filter((o) => {
     const text = norm(`${o.title || ''} ${o.nom || ''} ${o.notes || ''} ${o.activity || ''} ${o.type || ''}`);
     const isFuture = norm(o.phase || o.statut_activite).includes('phase_future')
@@ -161,8 +161,8 @@ function scoreMarketDemand(opportunities, phase = 'tallow') {
   return { score, blockers, opportunities: opportunitiesOut };
 }
 
-function scoreTransformationCapacity(investissements, stocks, phase = 'tallow') {
-  const patterns = phase === 'tallow'
+function scoreTransformationCapacity(investissements, stocks, phase = 'phase2') {
+  const patterns = phase === 'phase2'
     ? ['emballage', 'packaging', 'laboratoire', 'transformation', 'local']
     : ['deshydrat', 'déshydrat', 'sechoir', 'séchoir', 'transformation', 'packaging'];
   const inv = arr(investissements).filter((i) => patterns.some((p) => norm(`${i.designation || ''} ${i.categorie || ''}`).includes(p)));
@@ -195,14 +195,14 @@ function buildPhaseResult({
   };
 }
 
-function buildTallowGoReadiness(dataMap) {
+function buildPhase2Readiness(dataMap) {
   const bovin = scoreBovinFlow(dataMap.animaux);
   const suif = scoreCoproductAvailability(dataMap.business_events, dataMap.stocks, dataMap.animaux, 'suif');
   const treasury = scoreTreasury(dataMap.payments, dataMap.finances);
   const ops = scoreOperationalStability(dataMap);
   const compliance = scoreCompliance(dataMap.documents, dataMap.taches, 'cosmetique');
-  const market = scoreMarketDemand(dataMap.sales_opportunities, 'tallow');
-  const transform = scoreTransformationCapacity(dataMap.investissements, dataMap.stocks, 'tallow');
+  const market = scoreMarketDemand(dataMap.sales_opportunities, 'phase2');
+  const transform = scoreTransformationCapacity(dataMap.investissements, dataMap.stocks, 'phase2');
 
   const total = bovin.score + suif.score + treasury.score + ops.score + compliance.score + market.score + transform.score;
   const blockers = [...bovin.blockers, ...suif.blockers, ...treasury.blockers, ...ops.blockers, ...compliance.blockers, ...market.blockers, ...transform.blockers];
@@ -220,20 +220,20 @@ function buildTallowGoReadiness(dataMap) {
   nextActions.push('Critère futur : traçabilité suif à documenter');
 
   const bestMoment = total >= 75
-    ? 'Conditions réunies — pilote Tallow & Go envisageable'
-    : 'Tallow & Go pourra passer en pilote lorsque : rotation bovine stable ≥ 3 cycles, suif collecté régulièrement, trésorerie phase 1 positive, conformité cosmétique prête, alertes critiques maîtrisées, demande commerciale minimale identifiée.';
+    ? 'Conditions réunies — pilote phase 2 de valorisation envisageable'
+    : 'La phase 2 de valorisation pourra passer en pilote lorsque : rotation bovine stable ≥ 3 cycles, suif collecté régulièrement, trésorerie phase 1 positive, conformité prête, alertes critiques maîtrisées, demande commerciale minimale identifiée.';
 
   return buildPhaseResult({ score: total, blockers, opportunities, nextActions, bestMoment, readyItems });
 }
 
-function buildBoviniaReadiness(dataMap) {
+function buildPhase3Readiness(dataMap) {
   const bovin = scoreBovinFlow(dataMap.animaux);
   const os = scoreCoproductAvailability(dataMap.business_events, dataMap.stocks, dataMap.animaux, 'os');
   const treasury = scoreTreasury(dataMap.payments, dataMap.finances);
   const ops = scoreOperationalStability(dataMap);
   const compliance = scoreCompliance(dataMap.documents, dataMap.taches, 'alimentaire');
-  const market = scoreMarketDemand(dataMap.sales_opportunities, 'bovinia');
-  const transform = scoreTransformationCapacity(dataMap.investissements, dataMap.stocks, 'bovinia');
+  const market = scoreMarketDemand(dataMap.sales_opportunities, 'phase3');
+  const transform = scoreTransformationCapacity(dataMap.investissements, dataMap.stocks, 'phase3');
   const traceability = arr(dataMap.documents).some((d) => norm(`${d.title || ''}`).includes('trac'))
     || arr(dataMap.business_events).some((e) => norm(e.event_type).includes('lot')) ? 10 : 0;
 
@@ -249,8 +249,8 @@ function buildBoviniaReadiness(dataMap) {
   ];
 
   const bestMoment = total >= 75
-    ? 'Conditions réunies — pilote BOVINIA envisageable'
-    : 'BOVINIA pourra passer en pilote lorsque : flux d\'os bovins régulier, conformité alimentaire cadrée, équipement déshydratation disponible, traçabilité lots prête, phase 1 financièrement stable, demande marché identifiée.';
+    ? 'Conditions réunies — pilote phase 3 de valorisation envisageable'
+    : 'La phase 3 de valorisation pourra passer en pilote lorsque : flux d\'os bovins régulier, conformité alimentaire cadrée, équipement de transformation disponible, traçabilité lots prête, phase 1 financièrement stable, demande marché identifiée.';
 
   return buildPhaseResult({
     score: total,
@@ -263,12 +263,12 @@ function buildBoviniaReadiness(dataMap) {
 }
 
 /**
- * Diagnostic data-driven Tallow & Go (phase 2) et BOVINIA (phase 3).
+ * Diagnostic data-driven des phases futures de valorisation.
  */
 export function computeValorisationReadiness(dataMap = {}) {
   return {
-    phase2_tallow_go: buildTallowGoReadiness(dataMap),
-    phase3_bovinia: buildBoviniaReadiness(dataMap),
-    roadmapNote: 'Les phases Tallow & Go et BOVINIA ne sont pas déclenchées à une date arbitraire. Elles seront activées selon des indicateurs suivis par l\'ERP : stabilité de la production bovine, disponibilité des coproduits, trésorerie, conformité, demande marché et niveau de risque.',
+    phase2_tallow_go: buildPhase2Readiness(dataMap),
+    phase3_bovinia: buildPhase3Readiness(dataMap),
+    roadmapNote: 'Les phases futures de valorisation ne sont pas déclenchées à une date arbitraire. Elles seront activées selon des indicateurs suivis par l\'ERP : stabilité de la production bovine, disponibilité des coproduits, trésorerie, conformité, demande marché et niveau de risque.',
   };
 }

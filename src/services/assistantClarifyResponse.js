@@ -109,7 +109,7 @@ export function buildAssistantClarifyResponse(query = '', dataMap = {}) {
   }
 
   const domain = detectBusinessDomain(text);
-  const domainKey = domain?.domain === 'centre_ia' ? 'centre' : (domain?.domain || 'pilotage');
+  const domainKey = domain?.domain === 'centre_decisionnel' ? 'centre' : (domain?.domain || 'pilotage');
   const hint = DOMAIN_HINTS[domainKey] || DOMAIN_HINTS.pilotage;
 
   return {

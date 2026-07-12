@@ -7,7 +7,7 @@ import {
 
 test('maps sidebar sections to module ids', () => {
   assert.deepEqual(FARM_NAV_SECTIONS.pilotage.modules, [
-    'dashboard', 'assistant_erp', 'centre_ia', 'objectifs_croissance', 'financements',
+    'dashboard', 'assistant_erp', 'centre_decisionnel', 'objectifs_croissance', 'financements',
   ]);
   assert.deepEqual(FARM_NAV_SECTIONS.production.modules, ['elevage', 'cultures']);
 });
@@ -18,6 +18,9 @@ test('resolves natural language module navigation', () => {
   assert.equal(resolveFarmModuleNavigation('montre mes ventes')?.moduleId, 'commercial');
   assert.equal(resolveFarmModuleNavigation('montre mes animaux')?.moduleId, 'elevage');
   assert.equal(resolveFarmModuleNavigation('ouvre les objectifs')?.moduleId, 'objectifs_croissance');
+  assert.equal(resolveFarmModuleNavigation('ouvre le centre IA')?.moduleId, 'centre_decisionnel');
+  assert.equal(resolveFarmModuleNavigation('ouvre RH')?.moduleId, 'equipe');
+  assert.equal(resolveFarmModuleNavigation('ouvre sync erp')?.moduleId, 'gestion_systeme');
   assert.equal(resolveFarmModuleNavigation('va dans les cultures')?.moduleId, 'cultures');
   assert.equal(resolveFarmModuleNavigation('combien de ventes ce mois'), null);
 });

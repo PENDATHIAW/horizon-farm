@@ -75,5 +75,5 @@ export function resolveFinanceEntryTarget(payload = {}, onNavigate) {
 }
 
 export function shouldBlockInlineAlertCreation(moduleId = '') {
-  return moduleId === 'centre_ia';
+  return moduleId === 'centre_decisionnel';
 }

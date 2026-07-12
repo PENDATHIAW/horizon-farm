@@ -31,14 +31,14 @@ export default function VisionForecastsTab({ data, dataMap = {}, moduleId = 'obj
             detail={`${p.description}${p.days_left != null ? ` · horizon ${p.days_left} j` : ''}`}
             value={p.horizon || 'Prévision'}
             tone={p.severity === 'critique' || p.severity === 'haute' ? 'bad' : 'warn'}
-            onClick={() => onNavigate?.(p.module || 'centre_ia', { tab: p.module === 'objectifs_croissance' ? 'Performance' : undefined })}
+            onClick={() => onNavigate?.(p.module || 'centre_decisionnel', { tab: p.module === 'objectifs_croissance' ? 'Performance' : undefined })}
           />
         )) : <Empty>Aucune prévision critique. Le moteur analyse stock, trésorerie et paiements en continu.</Empty>}
       </Section>
       {recommendations.length ? (
         <Section icon={LineChart} title="Recommandations croissance">
           {recommendations.slice(0, 6).map((r) => (
-            <Row key={r.id || r.title} title={r.title} detail={r.recommendation || r.timing || 'Action recommandée'} value={r.priority || 'Plan'} tone={r.priority === 'haute' ? 'warn' : 'neutral'} onClick={() => onNavigate?.('centre_ia', { tab: 'Cycles' })} />
+            <Row key={r.id || r.title} title={r.title} detail={r.recommendation || r.timing || 'Action recommandée'} value={r.priority || 'Plan'} tone={r.priority === 'haute' ? 'warn' : 'neutral'} onClick={() => onNavigate?.('centre_decisionnel', { tab: 'Cycles' })} />
           ))}
         </Section>
       ) : null}

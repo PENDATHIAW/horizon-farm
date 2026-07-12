@@ -114,7 +114,7 @@ function buildLotRentabilite({ lots, alimentationLogs, productionLogs, salesOrde
       costComplete: cost.costComplete,
       tone: mca < 0 ? 'bad' : ic > BROILER_IC_TARGET.max && type === 'chair' ? 'warn' : 'good',
       recommendedAction: mca < 0 ? 'Analyser coûts lot' : ic > BROILER_IC_TARGET.max && type === 'chair' ? 'Voir efficacité IC' : null,
-      actionModule: mca < 0 ? 'elevage' : 'centre_ia',
+      actionModule: mca < 0 ? 'elevage' : 'centre_decisionnel',
       actionTab: mca < 0 ? 'Avicole' : 'Efficacité',
     };
   }).sort((a, b) => a.mca - b.mca);

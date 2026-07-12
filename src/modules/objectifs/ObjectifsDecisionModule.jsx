@@ -202,7 +202,7 @@ export default function ObjectifsDecisionModule({
             </div>
             <button
               type="button"
-              onClick={() => onNavigate?.('centre_ia', { tab: 'Croissance & opportunités' })}
+              onClick={() => onNavigate?.('centre_decisionnel', { tab: 'Croissance & opportunités' })}
               className="rounded-2xl border border-[#d6c3a0] bg-white px-4 py-3 text-left text-sm hover:bg-[#dcfce7]"
             >
               <span className="text-[#8a7456]">Actions du jour → </span><b>Centre décisionnel</b>

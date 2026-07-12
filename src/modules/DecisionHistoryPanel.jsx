@@ -29,7 +29,7 @@ const moduleLabel = {
   santé: 'Santé',
   investissements: 'Investissements',
   objectifs_croissance: 'Objectifs & Croissance',
-  centre_ia: 'Centre décisionnel',
+  centre_decisionnel: 'Centre décisionnel',
 };
 const activityLabel = {
   oeufs: 'Œufs / pondeuses',

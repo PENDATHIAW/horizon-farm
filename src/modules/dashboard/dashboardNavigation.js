@@ -8,7 +8,7 @@ const ACTION_TABS = {
   smart: { module: 'smartfarm' },
   task: { module: 'activite_suivi', tab: 'À traiter maintenant' },
   document: { module: 'documents_rapports', tab: 'Rapprochement & preuves' },
-  sync: { module: 'sync_activity' },
+  sync: { module: 'gestion_systeme', tab: 'Sauvegardes' },
 };
 
 export function navigateForDashboardAction(action = {}, onNavigate) {

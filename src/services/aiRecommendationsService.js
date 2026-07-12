@@ -82,7 +82,7 @@ export function draftToFormRequest(draft = {}) {
     vente: { module: 'commercial', form_type: 'sale_record' },
     achat_stock: { module: 'achats_stock', form_type: 'stock_movement' },
     elevage: { module: 'elevage', form_type: 'animal_action' },
-    maintenance: { module: 'rh', form_type: 'maintenance' },
+    maintenance: { module: 'equipe', form_type: 'maintenance' },
     finance: { module: 'finance_pilotage', form_type: 'finance_transaction' },
     suivi: { module: 'activite_suivi', form_type: 'task' },
     document: { module: 'documents_rapports', form_type: 'document' },

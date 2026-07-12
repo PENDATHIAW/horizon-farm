@@ -9,7 +9,7 @@ export const VISION_MODULE_TABS = {
   elevage: 'Résumé',
   documents_rapports: 'Preuves',
   objectifs_croissance: 'Suivi du Business Plan',
-  centre_ia: 'Urgences & risques',
+  centre_decisionnel: 'Urgences & risques',
 };
 
 export function navigateVision(onNavigate, module = '', tab = null) {

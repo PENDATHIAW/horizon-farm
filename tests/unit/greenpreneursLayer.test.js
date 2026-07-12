@@ -71,10 +71,10 @@ test('valorisation readiness — statuts sans date fixe', () => {
   assert.ok(readiness.phase3_bovinia.score >= 0);
   assert.ok(['non_pret', 'a_preparer', 'pilote_possible', 'lancement_recommande'].includes(readiness.phase2_tallow_go.status));
   assert.match(readiness.roadmapNote, /date arbitraire/i);
-  assert.match(readiness.phase2_tallow_go.bestMoment, /lorsque|Tallow/i);
+  assert.match(readiness.phase2_tallow_go.bestMoment, /lorsque|phase 2/i);
 });
 
-test('valorisation — flux bovin améliore le score Tallow & Go', () => {
+test('valorisation — flux bovin améliore le score phase 2', () => {
   const low = computeValorisationReadiness({}).phase2_tallow_go.score;
   const high = computeValorisationReadiness({
     animaux: [

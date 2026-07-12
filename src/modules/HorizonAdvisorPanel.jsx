@@ -97,7 +97,7 @@ export default function HorizonAdvisorPanel({
   };
 
   const openModule = (recommendation) => {
-    const mod = recommendation.module_target || recommendation.module || 'centre_ia';
+    const mod = recommendation.module_target || recommendation.module || 'centre_decisionnel';
     onNavigate?.(mod);
   };
 

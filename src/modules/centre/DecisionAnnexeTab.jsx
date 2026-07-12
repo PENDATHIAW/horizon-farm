@@ -82,7 +82,7 @@ function FormulaBlock({ block, onNavigate }) {
 
 export default function DecisionAnnexeTab({
   moduleLabel = 'Centre décisionnel',
-  moduleId = 'centre_ia',
+  moduleId = 'centre_decisionnel',
   dataMap = {},
   onNavigate,
 }) {
@@ -129,7 +129,7 @@ export default function DecisionAnnexeTab({
               {' '}
               <button
                 type="button"
-                onClick={() => onNavigate('centre_ia', { tab: 'À traiter' })}
+                onClick={() => onNavigate('centre_decisionnel', { tab: 'À traiter' })}
                 className="font-black text-emerald-800 hover:underline"
               >
                 Aller au Centre →

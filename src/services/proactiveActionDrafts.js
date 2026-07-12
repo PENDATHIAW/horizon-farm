@@ -31,7 +31,7 @@ export function buildDraftFromProactiveInsight(insight = {}, dataMap = {}) {
         date: '',
         notes: `Action proposée par Horizon : ${insight.title}`,
       },
-      impacted_modules: ['stock', 'finances', 'fournisseurs', 'tracabilite', 'centre_ia'],
+      impacted_modules: ['stock', 'finances', 'fournisseurs', 'tracabilite', 'centre_decisionnel'],
       proposed_actions: [
         { module: 'stock', action: 'prepare_restock', label: 'Préparer réapprovisionnement' },
         { module: 'finances', action: 'estimate_cash_impact', label: 'Estimer impact trésorerie' },
@@ -61,7 +61,7 @@ export function buildDraftFromProactiveInsight(insight = {}, dataMap = {}) {
         priority: insight.severity === 'critique' ? 'critique' : 'haute',
         due_date: new Date().toISOString().slice(0, 10),
       },
-      impacted_modules: ['taches', 'finances', 'tracabilite', 'centre_ia'],
+      impacted_modules: ['taches', 'finances', 'tracabilite', 'centre_decisionnel'],
       proposed_actions: [{ module: 'taches', action: 'create_task', label: 'Créer une tâche finance' }],
       ui: {
         title: 'Action finance proposée',
@@ -87,7 +87,7 @@ export function buildDraftFromProactiveInsight(insight = {}, dataMap = {}) {
         priority: insight.severity === 'critique' ? 'critique' : insight.severity === 'haute' ? 'haute' : 'normale',
         due_date: new Date().toISOString().slice(0, 10),
       },
-      impacted_modules: ['taches', insight.module, 'tracabilite', 'centre_ia'],
+      impacted_modules: ['taches', insight.module, 'tracabilite', 'centre_decisionnel'],
       proposed_actions: [{ module: 'taches', action: 'create_task', label: 'Créer une tâche terrain' }],
       ui: {
         title: 'Action terrain proposée',
@@ -112,7 +112,7 @@ export function buildDraftFromProactiveInsight(insight = {}, dataMap = {}) {
       priority: 'normale',
       due_date: new Date().toISOString().slice(0, 10),
     },
-    impacted_modules: ['taches', 'tracabilite', 'centre_ia'],
+    impacted_modules: ['taches', 'tracabilite', 'centre_decisionnel'],
   };
 }
 

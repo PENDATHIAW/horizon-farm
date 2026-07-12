@@ -626,7 +626,7 @@ export function buildCarnetConseil(summary = {}, priorities = [], props = {}) {
     situation: 'L\'exploitation est calme.',
     cause: 'Aucune alerte critique sur les domaines suivis.',
     action: 'Consultez les modules pour agir au bon moment.',
-    navigate: { module: 'centre_ia', tab: 'Urgences & risques' },
+    navigate: { module: 'centre_decisionnel', tab: 'Urgences & risques' },
   };
 }
 

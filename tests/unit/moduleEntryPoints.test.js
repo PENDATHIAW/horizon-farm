@@ -19,6 +19,24 @@ test('impact_business redirigé vers financements', () => {
   assert.equal(resolveActiveModuleId('impact_business'), 'financements');
 });
 
+test('anciens modules structurels retirés de la navigation active', () => {
+  assert.ok(NAV_MODULE_ORDER.includes('centre_decisionnel'));
+  assert.ok(NAV_MODULE_ORDER.includes('equipe'));
+  assert.ok(NAV_MODULE_ORDER.includes('gestion_systeme'));
+  assert.ok(!NAV_MODULE_ORDER.includes('centre_ia'));
+  assert.ok(!NAV_MODULE_ORDER.includes('rh'));
+  assert.ok(!NAV_MODULE_ORDER.includes('sync_activity'));
+});
+
+test('aliases legacy redirigés vers les modules canoniques', () => {
+  assert.equal(ROUTE_TO_MODULE.centre_ia, 'centre_decisionnel');
+  assert.equal(ROUTE_TO_MODULE.rh, 'equipe');
+  assert.equal(ROUTE_TO_MODULE.sync_activity, 'gestion_systeme');
+  assert.equal(resolveActiveModuleId('centre_ia'), 'centre_decisionnel');
+  assert.equal(resolveActiveModuleId('rh'), 'equipe');
+  assert.equal(resolveActiveModuleId('sync_activity'), 'gestion_systeme');
+});
+
 test('chaque entry point référence un fichier canonique à jour', () => {
   for (const [moduleId, expectedFile] of Object.entries(CANONICAL_MODULE_FILES)) {
     assert.ok(MODULE_ENTRY_POINTS[moduleId], `entry manquant pour ${moduleId}`);
@@ -42,9 +60,11 @@ test('modules critiques — versions les plus récentes', () => {
   assert.match(entryPointSource('alertes'), /AlertesCenterV3\.jsx$/);
   assert.match(entryPointSource('ventes'), /VentesV5\.jsx$/);
   assert.match(entryPointSource('equipements'), /EquipementsV3\.jsx$/);
-  assert.match(entryPointSource('sync'), /SyncActivityCenter\.jsx$/);
+  assert.match(entryPointSource('sync'), /GestionSystemeV2\.jsx$/);
   assert.match(entryPointSource('cultures'), /CulturesRecoveredModule\.jsx$/);
   assert.match(entryPointSource('dashboard'), /AccueilRefinedEntry\.jsx$/);
   assert.match(entryPointSource('finances'), /FinancesV12\.jsx$/);
   assert.match(entryPointSource('financements'), /FinancementsModule\.jsx$/);
+  assert.match(entryPointSource('centre_decisionnel'), /CentreIA\.jsx$/);
+  assert.match(entryPointSource('equipe'), /RHV2\.jsx$/);
 });
