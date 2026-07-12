@@ -8,6 +8,7 @@ import { shouldHandleProductionQuestionEvent } from '../utils/elevageCyclesNavig
 import PeriodScopeBadge from '../components/PeriodScopeBadge.jsx';
 import HeyHorizonQuickAsk from '../components/HeyHorizonQuickAsk.jsx';
 import ModuleProjectionsStrip from '../components/module/ModuleProjectionsStrip.jsx';
+import JournalEvenements from '../components/shared/JournalEvenements.jsx';
 import { buildElevageModuleProjections } from '../utils/moduleProjections.js';
 import {
   resolveElevageTab,
@@ -63,23 +64,6 @@ function Tabs({ active, onChange, activeFarm }) {
     <div className="space-y-2">
       <ModuleTabsBar moduleId="elevage" active={active} onChange={onChange} activeFarm={activeFarm} />
     </div>
-  );
-}
-
-function ElevageHistory({ events = [] }) {
-  const rows = events.filter((event) => {
-    const source = lower(`${event.source_module || ''} ${event.module || ''} ${event.event_type || ''}`);
-    return /elevage|animal|avicole|ponte|mortalite|alimentation|sante/.test(source);
-  });
-  return (
-    <section aria-label="Historique élevage">
-      {rows.length ? rows.slice(0, 100).map((event) => (
-        <div key={event.id || event.event_key} className="border-b border-[#eadcc2] py-3">
-          <strong className="text-sm text-[#2f2415]">{event.title || event.event_type || 'Événement élevage'}</strong>
-          <p className="mt-1 text-xs text-[#8a7456]">{event.occurred_at || event.created_at || event.event_date || 'Date inconnue'}</p>
-        </div>
-      )) : <p className="py-8 text-center text-sm text-[#8a7456]">Rien à afficher pour l’instant.</p>}
-    </section>
   );
 }
 
@@ -635,7 +619,7 @@ export default function ElevageRecoveredModule(props) {
   const content = tab === 'Santé & Biosécurité' ? (
     <SanteV8 {...healthProps} healthBlocks={evaluateElevageHealthBlocks({ healthRows: health })} sanitaryAlerts={buildSanitaryAlertsPanel(health)} />
   ) : tab === 'Production élevage' ? productionContent
-    : tab === 'Historique élevage' ? <ElevageHistory events={businessEvents} />
+    : tab === 'Historique élevage' ? <JournalEvenements events={businessEvents} farmId={props.activeFarm?.id || props.farm?.id} module="elevage" recordType={props.recordType} recordId={props.recordId} period={props.periodScope} limit={150} onNavigate={props.onNavigate} />
       : tab === 'Lots & animaux' ? lotsContent('animaux')
         : lotsContent();
   return (

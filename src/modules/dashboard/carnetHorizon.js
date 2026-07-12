@@ -631,6 +631,7 @@ export function buildCarnetConseil(summary = {}, priorities = [], props = {}) {
 }
 
 export function buildCarnetAttentionItems(summary = {}, _priorities = [], props = {}) {
+  void _priorities;
   const cards = buildCarnetDomainCards(summary, props);
   return cards
     .flatMap((card) => card.alerts.map((alert) => ({ text: alert.text })))
@@ -666,7 +667,6 @@ export function buildCarnetHorizonView({ summary = {}, priorities = [], investor
     priorities: arr(priorities).slice(0, 5),
     investorReadiness,
     conseil: buildCarnetConseil(summary, priorities, props),
-    journal: buildCarnetTodayJournal(props),
     startupMode: Boolean(summary.startupMode),
   };
 }

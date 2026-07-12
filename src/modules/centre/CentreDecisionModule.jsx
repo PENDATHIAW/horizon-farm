@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import ModuleTabsBar from '../../components/module/ModuleTabsBar.jsx';
 import PeriodScopeBadge from '../../components/PeriodScopeBadge.jsx';
+import ListeAlertes from '../../components/shared/ListeAlertes.jsx';
+import ListeTaches from '../../components/shared/ListeTaches.jsx';
 import { Bot } from 'lucide-react';
 import { resolveCentreTab } from '../../utils/commercialNavigation.js';
 import { buildDecisionCenterPlan } from '../../services/growthDecisionEngine.js';
@@ -15,6 +17,12 @@ import { syncStrategicAlertsToCenter } from '../../services/strategicAlertBridge
 import Btn from '../../components/Btn.jsx';
 import toast from 'react-hot-toast';
 import { exportCentreDecisionCsv, exportCentreDecisionExcel } from '../../services/centreDecisionExport.js';
+import { createAlertResolutionTask } from '../../services/heyHorizonRecommendationActions.js';
+
+const OPEN_ALERT_STATUSES = ['nouvelle', 'ouverte', 'open', 'pending', 'a_traiter'];
+const OPEN_TASK_STATUSES = ['a_faire', 'en_cours', 'todo', 'pending', 'in_progress'];
+const arr = (value) => (Array.isArray(value) ? value : []);
+const isOpen = (row = {}) => !['traitee', 'traitée', 'resolue', 'résolue', 'fermee', 'fermée', 'closed', 'done'].includes(String(row.status || row.statut || '').toLowerCase());
 
 const EMPTY_STRATEGIC_PLAN = {
   sellNow: [],
@@ -52,7 +60,7 @@ export default function CentreDecisionModule({
 
   useEffect(() => {
     if (controlled || !initialTab) return;
-    setInternalTab(resolveCentreTab(initialTab));
+    queueMicrotask(() => setInternalTab(resolveCentreTab(initialTab)));
   }, [controlled, initialTab]);
 
   const visionProps = useMemo(() => ({ ...props, dataMap, moduleId: 'centre_ia', meteo }), [props, dataMap, meteo]);
@@ -64,26 +72,29 @@ export default function CentreDecisionModule({
       return { priorities: [], risks: [], predictions: [], healthScore: 0 };
     }
   }, [visionProps]);
-  const enrichedDataMap = useMemo(() => mergePilotageIntoDataMap({
-    ...dataMap,
-    animaux: props.animaux || dataMap.animaux,
-    avicole: props.lots || dataMap.avicole,
-    lots: props.lots || dataMap.avicole,
-    stocks: props.stocks || dataMap.stock || dataMap.stocks,
-    stock: props.stocks || dataMap.stock,
-    clients: props.clients || dataMap.clients,
-    sante: props.sante || dataMap.sante,
-    alimentation_logs: props.alimentationLogs || dataMap.alimentation_logs,
-    production_oeufs_logs: props.productionLogs || dataMap.production_oeufs_logs,
-    sales_orders: props.salesOrdersAll || props.salesOrders || dataMap.sales_orders,
-    payments: props.paymentsAll || props.payments || dataMap.payments,
-    finances: props.transactionsAll || props.transactions || dataMap.finances,
-    sales_opportunities: props.opportunities || dataMap.sales_opportunities,
-    business_events: props.businessEvents || dataMap.business_events,
-    market_prices: props.marketPrices || dataMap.market_prices,
-    market_calendar_events: props.marketCalendarEvents || dataMap.market_calendar_events,
-    meteo: meteo || dataMap.meteo,
-  }), [dataMap, props, meteo, pilotageVersion]);
+  const enrichedDataMap = useMemo(() => {
+    void pilotageVersion;
+    return mergePilotageIntoDataMap({
+      ...dataMap,
+      animaux: props.animaux || dataMap.animaux,
+      avicole: props.lots || dataMap.avicole,
+      lots: props.lots || dataMap.avicole,
+      stocks: props.stocks || dataMap.stock || dataMap.stocks,
+      stock: props.stocks || dataMap.stock,
+      clients: props.clients || dataMap.clients,
+      sante: props.sante || dataMap.sante,
+      alimentation_logs: props.alimentationLogs || dataMap.alimentation_logs,
+      production_oeufs_logs: props.productionLogs || dataMap.production_oeufs_logs,
+      sales_orders: props.salesOrdersAll || props.salesOrders || dataMap.sales_orders,
+      payments: props.paymentsAll || props.payments || dataMap.payments,
+      finances: props.transactionsAll || props.transactions || dataMap.finances,
+      sales_opportunities: props.opportunities || dataMap.sales_opportunities,
+      business_events: props.businessEvents || dataMap.business_events,
+      market_prices: props.marketPrices || dataMap.market_prices,
+      market_calendar_events: props.marketCalendarEvents || dataMap.market_calendar_events,
+      meteo: meteo || dataMap.meteo,
+    });
+  }, [dataMap, props, meteo, pilotageVersion]);
 
   const strategicPlan = useMemo(() => {
     try {
@@ -111,26 +122,70 @@ export default function CentreDecisionModule({
     };
   }, [enrichedDataMap, strategicPlan]);
 
-  const urgentCount = (strategicPlan.sellNow?.length || 0)
-    + (strategicPlan.stockAudit?.alerts?.length || 0)
-    + (strategicPlan.bfr?.blocked ? 1 : 0)
-    + (data.priorities?.length || 0);
+  const centralAlerts = arr(props.alertes).length ? arr(props.alertes) : arr(dataMap.alertes_center || dataMap.alertes);
+  const centralTasks = arr(props.taches || props.tasks).length ? arr(props.taches || props.tasks) : arr(dataMap.taches || dataMap.tasks);
+  const openCentralAlerts = centralAlerts.filter(isOpen);
+  const farmId = props.activeFarm?.id || props.farm?.id;
 
-  const tabBadges = useMemo(() => ({
+  const createTaskForAlert = async (alert) => {
+    try {
+      const result = await createAlertResolutionTask({
+        alertTitle: alert.title || alert.titre || alert.message,
+        alertId: alert.id,
+        actionLabel: alert.action_recommandee || alert.message,
+        handlers: {
+          onCreateTask: props.onCreateTask,
+          onCreateBusinessEvent: props.onCreateBusinessEvent,
+          existingTasks: centralTasks,
+          onNavigate,
+        },
+      });
+      if (result?.ok !== false) toast.success('Tâche créée dans Activité & Suivi');
+    } catch (error) {
+      toast.error(error?.message || 'Création de tâche impossible');
+    }
+  };
+
+  const urgentCount = openCentralAlerts.length;
+
+  const tabBadges = {
     'Urgences & risques': urgentCount,
     'Croissance & opportunités': (decisionPlan.commercialRecommendations?.length || 0)
       + (decisionPlan.recommendations?.filter((r) => r.should_recommend_investment || r.technical_rule).length || 0),
     'Saisons & marchés': (strategicPlan.launch?.alerts?.length || 0)
       + (strategicPlan.launch?.cycleDecisions?.filter((d) => d.priority === 'critique').length || 0)
       + (strategicPlan.sanitary?.filter((s) => s.blocking).length || 0),
-  }), [decisionPlan, strategicPlan, urgentCount]);
+  };
 
   const risksData = useMemo(() => ({
     ...data,
     risks: [...(data.risks || []), ...(strategicPlan.risks || [])],
   }), [data, strategicPlan.risks]);
 
-  const content = ['Urgences & risques', 'Risques'].includes(tab)
+  const content = tab === 'Urgences & risques'
+    ? (
+      <div className="grid gap-5 xl:grid-cols-2">
+        <ListeAlertes
+          title="Alertes à traiter"
+          alertes={centralAlerts}
+          farmId={farmId}
+          statuses={OPEN_ALERT_STATUSES}
+          period={props.periodScope}
+          onNavigate={onNavigate}
+          onAction={props.onCreateTask ? createTaskForAlert : undefined}
+        />
+        <ListeTaches
+          title="Tâches liées aux alertes"
+          tasks={centralTasks}
+          farmId={farmId}
+          alertId={openCentralAlerts.map((alert) => alert.id).filter(Boolean)}
+          statuses={OPEN_TASK_STATUSES}
+          period={props.periodScope}
+          onNavigate={onNavigate}
+        />
+      </div>
+    )
+    : tab === 'Risques'
     ? (
       <CentreUrgencesTab
         data={data}
@@ -147,6 +202,7 @@ export default function CentreDecisionModule({
         existingTasks={props.existingTasks}
         existingAlerts={props.existingAlerts}
         enrichedDataMap={enrichedDataMap}
+        risksOnly
       />
     )
     : ['Écarts & cohérence', 'Actions prioritaires'].includes(tab)

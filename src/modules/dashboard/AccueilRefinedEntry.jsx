@@ -1,5 +1,9 @@
-import { useMemo, useState } from 'react';
+import { useState } from 'react';
 import ModuleTabsBar from '../../components/module/ModuleTabsBar.jsx';
+import CarteKPI from '../../components/shared/CarteKPI.jsx';
+import JournalEvenements from '../../components/shared/JournalEvenements.jsx';
+import ListeAlertes from '../../components/shared/ListeAlertes.jsx';
+import ListeTaches from '../../components/shared/ListeTaches.jsx';
 import { resolveDashboardTab } from '../../utils/commercialNavigation.js';
 import BaseAccueil from '../DashboardV2.jsx';
 import AccueilCommercialCard from './AccueilCommercialCard.jsx';
@@ -15,64 +19,45 @@ const KPI_LINKS = Object.freeze([
   { code: 'mortalite_ponte', label: 'Mortalité ou ponte', module: 'elevage' },
 ]);
 
-function Pilotage({ kpiValues = [], onNavigate, role }) {
-  const byCode = useMemo(() => new Map(kpiValues.map((item) => [item.code, item])), [kpiValues]);
+const OPEN_TASK_STATUSES = ['a_faire', 'en_cours', 'todo', 'pending', 'in_progress'];
+const OPEN_ALERT_STATUSES = ['nouvelle', 'ouverte', 'open', 'pending', 'a_traiter'];
+const CRITICAL_SEVERITIES = ['urgence', 'critique', 'critical', 'haute', 'warning'];
+
+function Pilotage({ kpiValues = [], kpiCatalog = [], onNavigate, role, farmId, period }) {
   const visible = role === 'terrain' ? KPI_LINKS.filter((item) => !item.sensitive) : KPI_LINKS;
   return (
-    <section className="space-y-3" aria-label="Pilotage">
-      {visible.map((definition) => {
-        const item = byCode.get(definition.code) || {};
-        return (
-          <button
-            key={definition.code}
-            type="button"
-            onClick={() => onNavigate?.(definition.module)}
-            className="grid w-full grid-cols-[1fr_auto] items-center gap-4 border-b border-[#eadcc2] px-1 py-3 text-left"
-          >
-            <span>
-              <strong className="block text-sm text-[#2f2415]">{definition.label}</strong>
-              <span className="text-xs text-[#8a7456]">{item.period || 'Période active'} · {item.source || definition.module}</span>
-            </span>
-            <span className="text-right font-black text-[#2f2415]">{item.value ?? 'Non disponible'} {item.unit || ''}</span>
-          </button>
-        );
-      })}
+    <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4" aria-label="Pilotage">
+      {visible.map((definition) => <CarteKPI key={definition.code} code={definition.code} values={kpiValues} catalog={kpiCatalog} label={definition.label} ownerModule={definition.module} sensitive={definition.sensitive} role={role} farmId={farmId} period={period} onNavigate={onNavigate} />)}
     </section>
   );
 }
 
-function MesActions({ tasks = [], userId }) {
-  const assigned = tasks.filter((task) => {
-    const assignee = task.assigned_to || task.assignedTo || task.user_id;
-    return userId ? String(assignee || '') === String(userId) : true;
-  });
-  return (
-    <section className="space-y-2" aria-label="Mes actions">
-      {assigned.length ? assigned.slice(0, 20).map((task) => (
-        <div key={task.id} className="border-b border-[#eadcc2] px-1 py-3">
-          <strong className="text-sm text-[#2f2415]">{task.title || task.titre || task.description}</strong>
-          <p className="mt-1 text-xs text-[#8a7456]">{task.due_date || task.date_echeance || 'Sans échéance'} · {task.priority || task.priorite || 'normale'}</p>
-        </div>
-      )) : <p className="py-8 text-center text-sm text-[#8a7456]">Rien à afficher pour l’instant.</p>}
-    </section>
-  );
+function MesActions({ tasks = [], userId, farmId, period, onNavigate }) {
+  return <ListeTaches title="Mes actions" tasks={userId ? tasks : []} farmId={farmId} assignedTo={userId} statuses={OPEN_TASK_STATUSES} period={period} limit={20} onNavigate={onNavigate} />;
 }
 
 export default function AccueilRefinedEntry(props) {
   const [tab, setTab] = useState(() => resolveDashboardTab(props.initialTab));
   const role = props.role || props.user?.user_metadata?.role || null;
   const kpiValues = props.kpiValues || props.dataMap?.kpi_values || [];
+  const kpiCatalog = props.kpiCatalog || props.dataMap?.kpi_catalog || [];
+  const farmId = props.activeFarm?.id || props.farm?.id || props.ferme?.id;
+  const period = props.periodScope;
   return (
     <div className="space-y-3">
       <ModuleTabsBar moduleId="dashboard" active={tab} onChange={setTab} role={role} activeFarm={props.activeFarm} />
       {tab === 'Carnet Horizon' ? (
         <>
           <BaseAccueil {...props} />
+          <div className="grid gap-5 lg:grid-cols-2">
+            <ListeAlertes title="Alertes critiques" alertes={props.alertes || props.dataMap?.alertes_center || []} farmId={farmId} severities={CRITICAL_SEVERITIES} statuses={OPEN_ALERT_STATUSES} period={period} limit={6} onNavigate={props.onNavigate} />
+            <JournalEvenements events={props.businessEvents || props.dataMap?.business_events || []} farmId={farmId} period={period} limit={8} onNavigate={props.onNavigate} compact />
+          </div>
           <AccueilCommercialCard onNavigate={props.onNavigate} />
         </>
       ) : null}
-      {tab === 'Indicateurs ferme' ? <Pilotage kpiValues={kpiValues} onNavigate={props.onNavigate} role={role} /> : null}
-      {tab === 'Mes actions' ? <MesActions tasks={props.taches || []} userId={props.user?.id} /> : null}
+      {tab === 'Indicateurs ferme' ? <Pilotage kpiValues={kpiValues} kpiCatalog={kpiCatalog} onNavigate={props.onNavigate} role={role} farmId={farmId} period={props.periodLabel} /> : null}
+      {tab === 'Mes actions' ? <MesActions tasks={props.taches || []} userId={props.user?.id} farmId={farmId} period={period} onNavigate={props.onNavigate} /> : null}
     </div>
   );
 }

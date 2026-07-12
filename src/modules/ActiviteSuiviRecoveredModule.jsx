@@ -47,13 +47,11 @@ export default function ActiviteSuiviRecoveredModule(props) {
     data,
     alertes,
     tasks,
-    traceRows,
     actionHandlers,
     bridgeProps,
     shared,
     workflowBridgeProps,
     refresh,
-    crud,
   } = useActiviteSuivi(props);
 
   const applyFinding = async (finding) => {
@@ -110,7 +108,7 @@ export default function ActiviteSuiviRecoveredModule(props) {
       <AlertesLieesTab shared={shared} bridgeProps={bridgeProps} />
     </div>
   ) : tab === 'ActiviteJournalView' ? (
-    <RegistreTracabiliteTab shared={shared} traceRows={traceRows} traceCrud={crud.traceCrud} props={props} />
+    <RegistreTracabiliteTab shared={shared} props={props} />
   ) : tab === 'ActiviteHistoryView' ? (
     <PerformanceAnalytiqueTab data={data} tasks={tasks} alertes={alertes} onNavigate={props.onNavigate} />
   ) : (

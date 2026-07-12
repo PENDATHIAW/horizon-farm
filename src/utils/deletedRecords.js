@@ -1,4 +1,4 @@
-import { safeLocalStorageSetJson } from './safeLocalStorage';
+import { safeLocalStorageSetJson } from './safeLocalStorage.js';
 
 const tombstoneKey = (moduleKey) => `horizon_farm_deleted_ids:${moduleKey}`;
 const tombstoneMetaKey = (moduleKey) => `horizon_farm_deleted_records:${moduleKey}`;

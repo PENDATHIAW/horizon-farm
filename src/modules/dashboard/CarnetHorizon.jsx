@@ -49,15 +49,6 @@ function DomainCard({ card, onNavigate }) {
           </li>
         ))}
       </ul>
-      {card.alerts?.length ? (
-        <ul className="mt-2 space-y-0.5 border-t border-emerald-200/40 pt-2">
-          {card.alerts.map((alert, index) => (
-            <li key={`${card.id}-alert-${index}`} className="text-[10px] font-semibold leading-snug text-amber-800">
-              ⚠ {alert.text}
-            </li>
-          ))}
-        </ul>
-      ) : null}
       {clickable ? (
         <p className="mt-2 text-[10px] font-black text-emerald-800/70">Ouvrir le module →</p>
       ) : null}
@@ -243,7 +234,6 @@ export function CarnetHorizonHeader({
 export default function CarnetHorizon({ carnet, onNavigate, simulatedMode = false }) {
   if (!carnet) return null;
 
-  const journalItems = carnet.journal?.items || [];
   const showProjectionsEmpty = !carnet.projections?.hasData && (carnet.startupMode || !simulatedMode);
 
   return (
@@ -324,35 +314,6 @@ export default function CarnetHorizon({ carnet, onNavigate, simulatedMode = fals
 
       <ConseilHorizonBlock conseil={carnet.conseil} onNavigate={onNavigate} />
 
-      <section className="rounded-xl border border-[#e5dcc8] bg-[#fffdf8] px-3 py-3">
-        <div className="mb-2 flex items-center justify-between gap-2">
-          <div>
-            <h2 className="text-[10px] font-black uppercase tracking-wide text-[#8a7456]">Journal d&apos;exploitation</h2>
-            <p className="mt-0.5 text-[10px] text-[#8a7456]">
-              {carnet.journal?.scope === 'recent'
-                ? 'Aucun événement aujourd\'hui — derniers événements terrain'
-                : 'Événements terrain du jour'}
-            </p>
-          </div>
-          {onNavigate ? (
-            <button
-              type="button"
-              onClick={() => onNavigate('sync_activity')}
-              className="text-[10px] font-black text-[#9a6b12] hover:underline"
-            >
-              Voir tout →
-            </button>
-          ) : null}
-        </div>
-        <ul className="grid grid-cols-1 gap-0.5 sm:grid-cols-2">
-          {journalItems.map((item, index) => (
-            <li key={`journal-${index}`} className="flex items-start gap-1.5 text-[11px] leading-snug text-[#2f2415]">
-              <span className="shrink-0 font-black text-emerald-700" aria-hidden="true">{item.icon}</span>
-              <span>{item.text}</span>
-            </li>
-          ))}
-        </ul>
-      </section>
     </div>
   );
 }

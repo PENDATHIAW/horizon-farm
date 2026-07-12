@@ -46,7 +46,7 @@ const FICHIERS_EXCLUS = {
 };
 
 /** Chemins dont les chaînes visibles sont migrées vers src/i18n/fr/. */
-const CHEMINS_MIGRES = ['i18n/'];
+const CHEMINS_MIGRES = ['i18n/', 'components/shared/'];
 
 const listerFichiers = (dossier) => {
   const resultat = [];

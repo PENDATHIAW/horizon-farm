@@ -61,7 +61,8 @@ test('V2 — computeLotOfficialLayingRate depuis logs', () => {
 });
 
 test('V2 — agrégat résumé ponte', () => {
-  const summary = aggregateSummaryLayingRate([LOT], [{ lot_id: 'LOT-PONTE', date: '2026-06-04', oeufs_produits: 480 }], 7);
+  const today = new Date().toISOString().slice(0, 10);
+  const summary = aggregateSummaryLayingRate([LOT], [{ lot_id: 'LOT-PONTE', date: today, oeufs_produits: 480 }], 7);
   assert.equal(summary.calculable, true);
   assert.equal(summary.rate, 100);
 });

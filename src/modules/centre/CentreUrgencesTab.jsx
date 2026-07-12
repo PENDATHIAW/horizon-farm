@@ -23,6 +23,7 @@ export default function CentreUrgencesTab({
   existingTasks = [],
   existingAlerts = [],
   enrichedDataMap = {},
+  risksOnly = false,
 }) {
   const excludeTitleKeys = useMemo(
     () => buildTitleKeys(data?.priorities || []),
@@ -65,6 +66,8 @@ export default function CentreUrgencesTab({
     compact: true,
     excludeTitleKeys,
   };
+
+  if (risksOnly) return <VisionRisksTab {...riskProps} />;
 
   return (
     <div className="space-y-4">
