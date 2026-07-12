@@ -52,6 +52,12 @@ test('chaque onglet définit id, libellé, composant, rôles, flag et ordre', ()
   }
 });
 
+test('chaque onglet d’un module possède une vue canonique distincte', () => {
+  for (const [moduleId, tabs] of Object.entries(MODULE_TAB_CONFIGS)) {
+    assert.equal(new Set(tabs.map((tab) => tab.component)).size, tabs.length, moduleId);
+  }
+});
+
 test('les anciens identifiants et libellés restent des alias de navigation', () => {
   assert.equal(getModuleTabs('centre_ia'), getModuleTabs('centre_decisionnel'));
   assert.equal(getModuleTabs('rh'), getModuleTabs('equipe'));

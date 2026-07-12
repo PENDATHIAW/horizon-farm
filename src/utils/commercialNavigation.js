@@ -116,7 +116,7 @@ const COMMERCIAL_TAB_ALIASES = {
   devis: 'Ventes',
   prospects: 'Clients & créances',
 };
-export const ACTIVITE_SUIVI_TABS = ['Cockpit & décisions', 'À traiter maintenant', 'Registre & traçabilité', 'Performance & analytique'];
+export const ACTIVITE_SUIVI_TABS = ['ActiviteTodoView', 'ActiviteCalendarView', 'ActiviteAlertsView', 'ActiviteJournalView', 'ActiviteHistoryView'];
 
 const ACTIVITE_SUIVI_TAB_ALIASES = {
   'Cockpit & décisions': 'Cockpit & décisions',
@@ -346,12 +346,12 @@ export function navigateFinanceTab(onNavigate, tab = '', options = {}) {
 
 export function resolveActiviteSuiviTab(value = '') {
   const tab = String(value || '').trim();
-  if (ACTIVITE_SUIVI_TABS.includes(tab)) return tab;
-  const fromAlias = ACTIVITE_SUIVI_TAB_ALIASES[tab] || ACTIVITE_SUIVI_TAB_ALIASES[lower(tab)];
-  if (fromAlias) return fromAlias;
   const configured = configuredComponent('activite_suivi', tab);
   if (configured) return configured;
-  return 'Cockpit & décisions';
+  if (ACTIVITE_SUIVI_TABS.includes(tab)) return tab;
+  const fromAlias = ACTIVITE_SUIVI_TAB_ALIASES[tab] || ACTIVITE_SUIVI_TAB_ALIASES[lower(tab)];
+  if (fromAlias) return configuredComponent('activite_suivi', fromAlias) || 'ActiviteTodoView';
+  return 'ActiviteTodoView';
 }
 
 export function resolveActiviteSuiviNavigation(value = '') {
@@ -360,14 +360,14 @@ export function resolveActiviteSuiviNavigation(value = '') {
 
 /** Navigation externe — conserve alias legacy (Alertes, Traçabilité…). */
 export function navigateActiviteSuiviTab(onNavigate, tab = '', options = {}) {
-  const raw = String(tab || '').trim() || 'Cockpit & décisions';
+  const raw = String(tab || '').trim() || 'À faire';
   if (typeof onNavigate === 'function') {
     onNavigate('activite_suivi', { tab: raw, ...options });
   }
   return resolveActiviteSuiviTab(raw);
 }
 
-export const DOCUMENTS_RAPPORTS_TABS = ['Centre de contrôle', 'Gestionnaire & OCR', 'Rapprochement & preuves', 'Rapports & exports'];
+export const DOCUMENTS_RAPPORTS_TABS = ['DocumentsLibraryView', 'DocumentsEvidenceView', 'ReportsLifecycleView', 'ReportsPublicationsView', 'ReportsArchivesView'];
 
 const DOCUMENTS_TAB_ALIASES = {
   'Centre de contrôle': 'Centre de contrôle',
@@ -392,7 +392,7 @@ const DOCUMENTS_TAB_ALIASES = {
   Graphiques: 'Rapports & exports',
   graphiques: 'Rapports & exports',
 };
-export const RH_TABS = ['Cockpit RH & Maintenance', 'Personnel & Paie', 'Parc Matériel & Maintenance', 'Registres & Analyses'];
+export const RH_TABS = ['TeamOverviewView', 'TeamMembersView', 'TeamAssignmentsView', 'TeamAbsencesView'];
 
 export const OBJECTIFS_TABS = ['Suivi du Business Plan', 'Efficacité Technique & Zootechnique', 'Simulateur Sandbox', 'Sécurisation des Flux'];
 
@@ -657,12 +657,12 @@ const GESTION_SYSTEME_TAB_ALIASES = {
 
 export function resolveDocumentsTab(value = '') {
   const tab = String(value || '').trim();
-  if (DOCUMENTS_RAPPORTS_TABS.includes(tab)) return tab;
-  const fromAlias = DOCUMENTS_TAB_ALIASES[tab] || DOCUMENTS_TAB_ALIASES[lower(tab)];
-  if (fromAlias) return fromAlias;
   const configured = configuredComponent('documents_rapports', tab);
   if (configured) return configured;
-  return 'Centre de contrôle';
+  if (DOCUMENTS_RAPPORTS_TABS.includes(tab)) return tab;
+  const fromAlias = DOCUMENTS_TAB_ALIASES[tab] || DOCUMENTS_TAB_ALIASES[lower(tab)];
+  if (fromAlias) return configuredComponent('documents_rapports', fromAlias) || 'DocumentsLibraryView';
+  return 'DocumentsLibraryView';
 }
 
 export function resolveDocumentsNavigation(value = '') {
@@ -672,7 +672,7 @@ export function resolveDocumentsNavigation(value = '') {
 
 /** Navigation externe — conserve alias legacy (Preuves, Rapports…). */
 export function navigateDocumentsTab(onNavigate, tab = '', options = {}) {
-  const raw = String(tab || '').trim() || 'Centre de contrôle';
+  const raw = String(tab || '').trim() || 'Bibliothèque';
   if (typeof onNavigate === 'function') {
     onNavigate('documents_rapports', { tab: raw, ...options });
   }
@@ -681,13 +681,12 @@ export function navigateDocumentsTab(onNavigate, tab = '', options = {}) {
 
 export function resolveRhTab(value = '') {
   const tab = String(value || '').trim();
-  if (RH_TABS.includes(tab)) return tab;
-  const fromAlias = RH_TAB_ALIASES[tab] || RH_TAB_ALIASES[lower(tab)];
-  if (fromAlias) return fromAlias;
   const configured = configuredComponent('equipe', tab);
   if (configured) return configured;
-  if (lower(tab) === 'resume') return 'Cockpit RH & Maintenance';
-  return 'Cockpit RH & Maintenance';
+  if (RH_TABS.includes(tab)) return tab;
+  const fromAlias = RH_TAB_ALIASES[tab] || RH_TAB_ALIASES[lower(tab)];
+  if (fromAlias) return configuredComponent('equipe', fromAlias) || 'TeamOverviewView';
+  return 'TeamOverviewView';
 }
 
 export function resolveRhNavigation(value = '') {
@@ -697,9 +696,9 @@ export function resolveRhNavigation(value = '') {
 
 /** Navigation externe — conserve alias legacy (Affectations, Équipements…). */
 export function navigateRhTab(onNavigate, tab = '', options = {}) {
-  const raw = String(tab || '').trim() || 'Cockpit RH & Maintenance';
+  const raw = String(tab || '').trim() || 'Vue d’ensemble';
   if (typeof onNavigate === 'function') {
-    onNavigate('rh', { tab: raw, ...options });
+    onNavigate('equipe', { tab: raw, ...options });
   }
   return resolveRhTab(raw);
 }

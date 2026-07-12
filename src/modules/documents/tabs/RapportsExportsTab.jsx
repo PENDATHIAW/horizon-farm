@@ -2,7 +2,6 @@ import { BarChart3, Download } from 'lucide-react';
 import ModuleGraphiquesTab from '../../../components/module/ModuleGraphiquesTab.jsx';
 import CircularEconomyKpiPanel from '../../../components/greenpreneurs/CircularEconomyKpiPanel.jsx';
 import GreenpreneursReadinessCard from '../../../components/greenpreneurs/GreenpreneursReadinessCard.jsx';
-import { computeGreenpreneursMetrics } from '../../../services/greenpreneurs/greenpreneursMetrics.js';
 import { fmtNumber } from '../../../utils/format';
 import { isSimulatedDataModeEnabled } from '../../../utils/uiPreferences.js';
 import { Button, Empty, Field, Row, Section, labelOf, typeOf, dateOf, detailOf } from '../documentsModuleUi.jsx';
@@ -30,8 +29,6 @@ export default function RapportsExportsTab({
     investissements: data.investissements,
     ...greenpreneursExtras,
   };
-  const gp = computeGreenpreneursMetrics(greenpreneursDataMap, { simulatedMode: isSimulatedDataModeEnabled() });
-
   return (
     <div className="space-y-5">
       <GreenpreneursReadinessCard
@@ -44,13 +41,6 @@ export default function RapportsExportsTab({
         simulatedMode={isSimulatedDataModeEnabled()}
         compact
       />
-      <Section icon={Download} title="Feuille de route data-driven (DER/FJ)">
-        <p className="text-sm text-[#8a7456] leading-relaxed">{gp.valorisation.roadmapNote}</p>
-        <p className="mt-2 text-sm text-[#2f2415]">
-          Tallow & Go : <b>{gp.valorisation.phase2_tallow_go.score}/100</b> ({gp.valorisation.phase2_tallow_go.statusLabel}) ·
-          BOVINIA : <b>{gp.valorisation.phase3_bovinia.score}/100</b> ({gp.valorisation.phase3_bovinia.statusLabel})
-        </p>
-      </Section>
       <Section icon={Download} title="Exports & dossier financeur">
         <div className="mb-4 flex flex-col gap-3 rounded-2xl border border-emerald-200 bg-emerald-50 p-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
@@ -59,7 +49,7 @@ export default function RapportsExportsTab({
           </div>
           <div className="flex flex-wrap gap-2">
             <Button primary onClick={() => onNavigate?.('financements', { tab: 'export' })}>Générer pack investisseur</Button>
-            <Button onClick={() => onNavigate?.('rapports')}>Dossier financeur (legacy)</Button>
+            <Button onClick={() => onNavigate?.('financements', { tab: 'documents' })}>Ouvrir les documents du dossier</Button>
           </div>
         </div>
         <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3">
@@ -71,16 +61,16 @@ export default function RapportsExportsTab({
           <Field label="Export clients" value={`${fmtNumber(data.clients.length)} client(s)`} />
         </div>
       </Section>
-      <Section icon={BarChart3} title="Rapports archivés">
+      <Section icon={BarChart3} title="Sources et modèles de rapport">
         <div className="grid grid-cols-2 gap-3 xl:grid-cols-4 mb-4">
           <Field label="Rapports" value={fmtNumber(data.reports.length)} />
           <Field label="Modules couverts" value={fmtNumber(data.coveredModules.length)} />
           <Field label="Exports" value={fmtNumber(data.exports.length)} />
           <Field label="Modèles" value={fmtNumber(data.templates.length)} />
         </div>
-        {data.reports.length ? data.reports.slice(0, 14).map((row) => (
-          <Row key={row.id || labelOf(row)} title={labelOf(row)} detail={`${typeOf(row)} · ${dateOf(row)} · ${detailOf(row)}`} value="Rapport" />
-        )) : <Empty label="Aucun rapport enregistré." />}
+        {data.templates.length ? data.templates.slice(0, 14).map((row) => (
+          <Row key={row.id || labelOf(row)} title={labelOf(row)} detail={`${typeOf(row)} · ${dateOf(row)} · ${detailOf(row)}`} value="Modèle" />
+        )) : <Empty label="Aucun modèle enregistré." />}
       </Section>
       <Section icon={BarChart3} title="Couverture analytique">
         <p className="mb-4 text-sm text-[#8a7456]">Évolutions finance et clients intégrées — l’onglet Graphiques technique est fusionné ici.</p>

@@ -1,1 +1,1 @@
-export { default } from './OperationsRessourcesRecoveredModule';
+export { default } from './EquipeV1Module.jsx';

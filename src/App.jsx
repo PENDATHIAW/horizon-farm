@@ -58,9 +58,10 @@ export default function App() {
   const [financeTab, setFinanceTab] = useState('Résumé');
   const [culturesTab, setCulturesTab] = useState('Parcelles & campagnes');
   const [agriFeedsTab, setAgriFeedsTab] = useState('Tableau de bord');
-  const [activiteSuiviTab, setActiviteSuiviTab] = useState('Cockpit & décisions');
-  const [documentsRapportsTab, setDocumentsRapportsTab] = useState('Centre de contrôle');
-  const [rhTab, setRhTab] = useState('Cockpit RH & Maintenance');
+  const [activiteSuiviTab, setActiviteSuiviTab] = useState('À faire');
+  const [documentsRapportsTab, setDocumentsRapportsTab] = useState('Bibliothèque');
+  const [rhTab, setRhTab] = useState('Vue d’ensemble');
+  const [equipementsTab, setEquipementsTab] = useState('Parc');
   const [gestionSystemeTab, setGestionSystemeTab] = useState('Vue admin');
   const [financementsTab, setFinancementsTab] = useState('cockpit-dashboard');
   const [smartfarmTab, setSmartfarmTab] = useState('Objets connectés');
@@ -141,21 +142,27 @@ export default function App() {
       return;
     }
     if (resolved === 'activite_suivi') {
-      setActiviteSuiviTab(tab || defaultTabForLegacyModule(moduleId) || 'Cockpit & décisions');
+      setActiviteSuiviTab(tab || defaultTabForLegacyModule(moduleId) || 'À faire');
       trackNavOpen('activite_suivi');
       setActiveState('activite_suivi');
       return;
     }
     if (resolved === 'documents_rapports') {
-      setDocumentsRapportsTab(tab || defaultTabForLegacyModule(moduleId) || 'Centre de contrôle');
+      setDocumentsRapportsTab(tab || defaultTabForLegacyModule(moduleId) || 'Bibliothèque');
       trackNavOpen('documents_rapports');
       setActiveState('documents_rapports');
       return;
     }
     if (resolved === 'equipe') {
-      setRhTab(tab || defaultTabForLegacyModule(moduleId) || 'Cockpit RH & Maintenance');
+      setRhTab(tab || defaultTabForLegacyModule(moduleId) || 'Vue d’ensemble');
       trackNavOpen('equipe');
       setActiveState('equipe');
+      return;
+    }
+    if (resolved === 'equipements') {
+      setEquipementsTab(tab || 'Parc');
+      trackNavOpen('equipements');
+      setActiveState('equipements');
       return;
     }
     if (resolved === 'gestion_systeme') {
@@ -733,6 +740,7 @@ export default function App() {
       businessPlans: rows(c.business_plans),
       investissements: rows(c.investissements),
       businessEvents: rows(c.business_events),
+      user,
       onNavigate: setActive,
       onCreateTask: c.taches.create,
       onCreateAlert: c.alertes_center.create,
@@ -740,6 +748,9 @@ export default function App() {
       onCreateBusinessEvent: c.business_events.create,
       onCreateDocument: c.documents.create,
       onRefreshDocuments: c.documents.refresh,
+      onCreateReport: c.rapports.create,
+      onUpdateReport: c.rapports.update,
+      onRefreshReports: c.rapports.refresh,
       existingTasks: rows(c.taches),
       existingAlerts: rows(c.alertes_center),
     },
@@ -762,6 +773,8 @@ export default function App() {
     taches: { ...base('taches'), ...actionTraceShared, alertes: rows(c.alertes_center), animaux: rows(c.animaux), lots: rows(c.avicole), stocks: rows(c.stock), sensorDevices: rows(c.sensor_devices), onUpdateAlert: c.alertes_center.update, onRefreshAlertes: c.alertes_center.refresh, ...shared },
     equipe: {
       ...internalResourcesShared,
+      activeFarm,
+      user,
       initialTab: rhTab,
       onTabChange: (nextTab) => setRhTab(nextTab),
       alertes: rows(c.alertes_center),
@@ -784,7 +797,7 @@ export default function App() {
       ...shared,
     },
     rapports: { ...base('rapports'), data: reportData, onCreateDocument: c.documents.create, onRefreshDocuments: c.documents.refresh, onCreateTask: c.taches.create, onRefreshTasks: c.taches.refresh, onCreateAuditLog: c.audit_logs.create, onRefreshAuditLogs: c.audit_logs.refresh, ...shared },
-    equipements: { ...base('equipements'), ...internalResourcesShared, fournisseurs: rows(c.fournisseurs), bpFundingSources: rows(c.bp_funding_sources), tasks: rows(c.taches), alertes: rows(c.alertes_center), onCreateTask: c.taches.create, onUpdateTask: c.taches.update, onRefreshTasks: c.taches.refresh, onCreateAlert: c.alertes_center.create, onUpdateAlert: c.alertes_center.update, onRefreshAlertes: c.alertes_center.refresh, onCreateFinanceTransaction: c.finances.create, onRefreshFinances: c.finances.refresh, onCreateDocument: c.documents.create, onRefreshDocuments: c.documents.refresh, ...shared },
+    equipements: { ...base('equipements'), ...internalResourcesShared, initialTab: equipementsTab, onTabChange: (nextTab) => setEquipementsTab(nextTab), activeFarm, fournisseurs: rows(c.fournisseurs), bpFundingSources: rows(c.bp_funding_sources), tasks: rows(c.taches), alertes: rows(c.alertes_center), onCreateTask: c.taches.create, onUpdateTask: c.taches.update, onRefreshTasks: c.taches.refresh, onCreateAlert: c.alertes_center.create, onUpdateAlert: c.alertes_center.update, onRefreshAlertes: c.alertes_center.refresh, onCreateFinanceTransaction: c.finances.create, onRefreshFinances: c.finances.refresh, onCreateDocument: c.documents.create, onRefreshDocuments: c.documents.refresh, ...shared },
     smartfarm: {
       initialTab: smartfarmTab,
       onTabChange: (nextTab) => setSmartfarmTab(nextTab),
@@ -847,7 +860,7 @@ export default function App() {
       existingAlerts: rows(c.alertes_center),
     },
   };
-  }, [c, user, liveMeteo, decisionDataMapRaw, crudFingerprint, centreTab, objectifsTab, commercialTab, elevageTab, agriFeedsTab, culturesTab, achatsStockTab, achatsStockContext, financeTab, activiteSuiviTab, documentsRapportsTab, rhTab, gestionSystemeTab, financementsTab, smartfarmTab, farmsPanelAction, effectiveAccessibleFarms, refreshAccessibleFarms, online, lastOnlineAt, dataMap, refreshAll, refreshSalesWorkflowFn, navigateModule, setActive, flushOfflineQueue, handleManageFarms, farmComparisonData, openAssistantWithQuery, base, weatherLoading]);
+  }, [c, user, liveMeteo, decisionDataMapRaw, crudFingerprint, centreTab, objectifsTab, commercialTab, elevageTab, agriFeedsTab, culturesTab, achatsStockTab, achatsStockContext, financeTab, activiteSuiviTab, documentsRapportsTab, rhTab, equipementsTab, gestionSystemeTab, financementsTab, smartfarmTab, farmsPanelAction, effectiveAccessibleFarms, activeFarm, refreshAccessibleFarms, online, lastOnlineAt, dataMap, refreshAll, refreshSalesWorkflowFn, navigateModule, setActive, flushOfflineQueue, handleManageFarms, farmComparisonData, openAssistantWithQuery, base, weatherLoading]);
 
   const activeModuleId0 = resolveActiveModuleId(active);
   const activeModuleId = isModuleEnabled(activeModuleId0, moduleFlags) ? activeModuleId0 : 'dashboard';

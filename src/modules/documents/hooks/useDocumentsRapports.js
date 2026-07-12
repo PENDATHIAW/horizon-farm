@@ -12,12 +12,21 @@ import {
   arr,
   docIsMedia,
   docIsProof,
-  docIsReport,
   labelOf,
   typeOf,
   dateOf,
   low,
 } from '../documentsModuleUi.jsx';
+
+function uniqueRows(rows = []) {
+  const seen = new Set();
+  return rows.filter((row) => {
+    const key = String(row?.id || `${labelOf(row)}:${dateOf(row)}`);
+    if (!key || seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+}
 
 export function useDocumentsRapports(props = {}) {
   const docsCrud = useCrudModule('documents');
@@ -32,6 +41,7 @@ export function useDocumentsRapports(props = {}) {
   const santeCrud = useCrudModule('sante');
   const equipementsCrud = useCrudModule('equipements');
   const culturesCrud = useCrudModule('cultures');
+  const reportsCrud = useCrudModule('rapports');
 
   const periodFiltered = Boolean(props.periodFiltered);
   const documents = rowsOf(props.documents, docsCrud, periodFiltered);
@@ -44,13 +54,14 @@ export function useDocumentsRapports(props = {}) {
   const equipment = rowsOf(props.equipements || props.equipment, equipementsCrud, periodFiltered);
   const cultures = rowsOf(props.cultures, culturesCrud, periodFiltered);
   const businessEvents = rowsOf(props.businessEvents, eventsCrud, periodFiltered);
+  const reportRows = uniqueRows(rowsOf(props.rapports || props.reports, reportsCrud, periodFiltered));
 
   const data = useMemo(() => {
-    const docs = [...documents, ...arr(props.rapports), ...arr(props.reports)].filter(Boolean);
+    const docs = uniqueRows(documents.filter(Boolean));
     const tx = transactions.length ? transactions : [];
     const proofs = docs.filter(docIsProof);
     const invoiceDocs = docs.filter((d) => /facture|recu|reçu|paiement/.test(low(`${typeOf(d)} ${labelOf(d)}`)));
-    const reportDocs = docs.filter(docIsReport);
+    const reportDocs = reportRows;
     const media = docs.filter(docIsMedia);
     const templates = docs.filter((d) => /modele|modèle|template/.test(low(`${typeOf(d)} ${labelOf(d)}`)));
     const exportsList = docs.filter((d) => /export|csv|excel|pdf/.test(low(`${typeOf(d)} ${labelOf(d)}`)));
@@ -75,7 +86,7 @@ export function useDocumentsRapports(props = {}) {
       amount: row.amount,
       trxId: row.id,
     }));
-    const history = [...docs, ...businessEvents].sort((a, b) => String(dateOf(b)).localeCompare(String(dateOf(a))));
+    const history = [...docs, ...reportDocs, ...businessEvents].sort((a, b) => String(dateOf(b)).localeCompare(String(dateOf(a))));
 
     return {
       documents: docs,
@@ -115,12 +126,15 @@ export function useDocumentsRapports(props = {}) {
     };
   }, [
     documents,
-    props.rapports,
-    props.reports,
+    reportRows,
     transactions,
     salesOrders,
     payments,
     invoices,
+    stocks,
+    healthRecords,
+    equipment,
+    cultures,
     businessEvents,
     props.animaux,
     props.lots,
@@ -174,6 +188,7 @@ export function useDocumentsRapports(props = {}) {
       salesCrud.refresh?.(),
       paymentsCrud.refresh?.(),
       eventsCrud.refresh?.(),
+      reportsCrud.refresh?.(),
     ]);
     props.onRefresh?.();
   };
@@ -185,6 +200,6 @@ export function useDocumentsRapports(props = {}) {
     scannerHandlers,
     scannerContext,
     refresh,
-    crud: { docsCrud, financesCrud, salesCrud, paymentsCrud, invoicesCrud, stockCrud, santeCrud, equipementsCrud, culturesCrud, eventsCrud, tasksCrud, alertsCrud },
+    crud: { docsCrud, financesCrud, salesCrud, paymentsCrud, invoicesCrud, stockCrud, santeCrud, equipementsCrud, culturesCrud, eventsCrud, tasksCrud, alertsCrud, reportsCrud },
   };
 }

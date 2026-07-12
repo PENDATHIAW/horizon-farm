@@ -1,7 +1,7 @@
 import { syncFinanceSideEffects } from '../services/erpInterconnectionEngine';
 import {
   buildEquipmentBreakdownFollowUp,
-  buildEquipmentRepairWorkflow,
+  buildValidatedEquipmentRepairWorkflow,
   findOpenEquipmentAlert,
   findOpenEquipmentTask,
 } from './equipmentWorkflows';
@@ -68,6 +68,9 @@ export async function runEquipmentRepairSideEffects({
   equipment = {},
   cost = 0,
   note = '',
+  result = '',
+  responsible = '',
+  validated = false,
   date = '',
   tasks = [],
   alertes = [],
@@ -76,7 +79,8 @@ export async function runEquipmentRepairSideEffects({
 } = {}) {
   const task = findOpenEquipmentTask(equipment, tasks);
   const alert = findOpenEquipmentAlert(equipment, alertes);
-  const raw = buildEquipmentRepairWorkflow({ equipment, task, alert, cost: num(cost), note, date: date || today() });
+  const raw = buildValidatedEquipmentRepairWorkflow({ equipment, task, alert, cost: num(cost), result: result || note, date: date || today(), responsible, validated });
+  if (raw?.ok === false) throw new Error(raw.error);
   const workflow = withDeterministicEquipmentIds(raw, equipment);
   if (!workflow) return null;
 
