@@ -6,19 +6,19 @@ import { CENTRE_HEY_HORIZON_QUESTIONS } from '../../src/utils/centreHeyHorizon.j
 const TAB_IDS = MODULE_TARGET_TABS.centre_ia;
 
 const LEGACY_ALIASES = {
-  'À traiter': 'Urgences & risques',
-  Risques: 'Urgences & risques',
-  Priorités: 'Urgences & risques',
-  'Priorités & risques': 'Urgences & risques',
-  Recommandations: 'Croissance & opportunités',
-  Opportunités: 'Croissance & opportunités',
-  Performance: 'Croissance & opportunités',
-  'Rentabilité lots': 'Croissance & opportunités',
-  'Flux & stocks': 'Urgences & risques',
-  Cycles: 'Saisons & marchés',
-  Historique: 'Saisons & marchés',
-  Annexe: 'Saisons & marchés',
-  Graphiques: 'Croissance & opportunités',
+  'Urgences & risques': 'À traiter',
+  'Croissance & opportunités': 'Décisions',
+  'Saisons & marchés': 'Historique',
+  Priorités: 'À traiter',
+  'Priorités & risques': 'À traiter',
+  Recommandations: 'Décisions',
+  Opportunités: 'Décisions',
+  Performance: 'Écarts',
+  'Rentabilité lots': 'Écarts',
+  'Flux & stocks': 'À traiter',
+  Cycles: 'Historique',
+  Annexe: 'Historique',
+  Graphiques: 'Écarts',
 };
 
 function resolveTab(initial) {
@@ -27,21 +27,23 @@ function resolveTab(initial) {
   return TAB_IDS[0];
 }
 
-test('centre_ia exposes 3 target tabs', () => {
+test('centre décisionnel expose les 5 onglets cibles', () => {
   assert.deepEqual(TAB_IDS, [
-    'Urgences & risques',
-    'Croissance & opportunités',
-    'Saisons & marchés',
+    'À traiter',
+    'Écarts',
+    'Risques',
+    'Décisions',
+    'Historique',
   ]);
 });
 
 test('legacy initialTab aliases resolve to new tabs', () => {
-  assert.equal(resolveTab('À traiter'), 'Urgences & risques');
-  assert.equal(resolveTab('Risques'), 'Urgences & risques');
-  assert.equal(resolveTab('Recommandations'), 'Croissance & opportunités');
-  assert.equal(resolveTab('Cycles'), 'Saisons & marchés');
-  assert.equal(resolveTab('Graphiques'), 'Croissance & opportunités');
-  assert.equal(resolveTab('unknown'), 'Urgences & risques');
+  assert.equal(resolveTab('Urgences & risques'), 'À traiter');
+  assert.equal(resolveTab('Risques'), 'Risques');
+  assert.equal(resolveTab('Recommandations'), 'Décisions');
+  assert.equal(resolveTab('Cycles'), 'Historique');
+  assert.equal(resolveTab('Graphiques'), 'Écarts');
+  assert.equal(resolveTab('unknown'), 'À traiter');
 });
 
 test('hey horizon centre presets use valid tabs', () => {
@@ -51,8 +53,8 @@ test('hey horizon centre presets use valid tabs', () => {
   assert.equal(CENTRE_HEY_HORIZON_QUESTIONS.length, 3);
 });
 
-test('alias Performance et Flux & stocks vers les 3 onglets', () => {
-  assert.equal(resolveTab('Performance'), 'Croissance & opportunités');
-  assert.equal(resolveTab('Rentabilité lots'), 'Croissance & opportunités');
-  assert.equal(resolveTab('Flux & stocks'), 'Urgences & risques');
+test('les alias Performance et Flux & stocks ouvrent les vues cibles', () => {
+  assert.equal(resolveTab('Performance'), 'Écarts');
+  assert.equal(resolveTab('Rentabilité lots'), 'Écarts');
+  assert.equal(resolveTab('Flux & stocks'), 'À traiter');
 });

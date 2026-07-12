@@ -1,6 +1,8 @@
 import { ROUTE_TO_MODULE } from '../config/modules.config.js';
+import { matchModuleTab } from '../config/moduleTabs/index.js';
 
 const lower = (value = '') => String(value || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+const configuredComponent = (moduleId, value) => matchModuleTab(moduleId, value)?.component || '';
 
 /** Module Horizon à ouvrir selon la source d'une vente / coût. */
 export function moduleForSaleSource(order = {}) {
@@ -253,6 +255,8 @@ export function resolveElevageTab(value = '') {
   if (ELEVAGE_TABS.includes(tab)) return tab;
   const fromElevage = ELEVAGE_TAB_ALIASES[tab] || ELEVAGE_TAB_ALIASES[lower(tab)];
   if (fromElevage) return fromElevage;
+  const configured = configuredComponent('elevage', tab);
+  if (configured) return configured;
   const fromGeneric = tabAliases[lower(tab)];
   if (fromGeneric && ELEVAGE_TABS.includes(fromGeneric)) return fromGeneric;
   return 'Lots & bandes';
@@ -272,6 +276,8 @@ export function resolveAchatsStockTab(value = '') {
   if (ACHATS_STOCK_TABS.includes(tab)) return tab;
   const fromAlias = ACHATS_STOCK_TAB_ALIASES[tab] || ACHATS_STOCK_TAB_ALIASES[lower(tab)];
   if (fromAlias) return fromAlias;
+  const configured = configuredComponent('achats_stock', tab);
+  if (configured) return configured;
   return tabAliases[lower(tab)] || 'Inventaire';
 }
 
@@ -286,6 +292,8 @@ export function resolveCommercialTab(value = '') {
   if (isCommercialReconciliationAlias(tab)) return 'Ventes';
   const fromAlias = COMMERCIAL_TAB_ALIASES[tab] || COMMERCIAL_TAB_ALIASES[lower(tab)];
   if (fromAlias) return fromAlias;
+  const configured = configuredComponent('commercial', tab);
+  if (configured) return configured;
   const legacy = tabAliases[lower(tab)];
   if (legacy) {
     const fromLegacy = COMMERCIAL_TAB_ALIASES[legacy] || COMMERCIAL_TAB_ALIASES[lower(legacy)];
@@ -306,6 +314,8 @@ export function resolveFinanceTab(value = '') {
   if (FINANCE_TABS.includes(tab)) return tab;
   const fromAlias = FINANCE_TAB_ALIASES[tab] || FINANCE_TAB_ALIASES[lower(tab)];
   if (fromAlias) return fromAlias;
+  const configured = configuredComponent('finance_pilotage', tab);
+  if (configured) return configured;
   return 'Résumé';
 }
 
@@ -339,6 +349,8 @@ export function resolveActiviteSuiviTab(value = '') {
   if (ACTIVITE_SUIVI_TABS.includes(tab)) return tab;
   const fromAlias = ACTIVITE_SUIVI_TAB_ALIASES[tab] || ACTIVITE_SUIVI_TAB_ALIASES[lower(tab)];
   if (fromAlias) return fromAlias;
+  const configured = configuredComponent('activite_suivi', tab);
+  if (configured) return configured;
   return 'Cockpit & décisions';
 }
 
@@ -648,6 +660,8 @@ export function resolveDocumentsTab(value = '') {
   if (DOCUMENTS_RAPPORTS_TABS.includes(tab)) return tab;
   const fromAlias = DOCUMENTS_TAB_ALIASES[tab] || DOCUMENTS_TAB_ALIASES[lower(tab)];
   if (fromAlias) return fromAlias;
+  const configured = configuredComponent('documents_rapports', tab);
+  if (configured) return configured;
   return 'Centre de contrôle';
 }
 
@@ -670,6 +684,8 @@ export function resolveRhTab(value = '') {
   if (RH_TABS.includes(tab)) return tab;
   const fromAlias = RH_TAB_ALIASES[tab] || RH_TAB_ALIASES[lower(tab)];
   if (fromAlias) return fromAlias;
+  const configured = configuredComponent('equipe', tab);
+  if (configured) return configured;
   if (lower(tab) === 'resume') return 'Cockpit RH & Maintenance';
   return 'Cockpit RH & Maintenance';
 }
@@ -693,6 +709,8 @@ export function resolveObjectifsTab(value = '') {
   if (OBJECTIFS_TABS.includes(tab)) return tab;
   const fromAlias = OBJECTIFS_TAB_ALIASES[tab] || OBJECTIFS_TAB_ALIASES[lower(tab)];
   if (fromAlias) return fromAlias;
+  const configured = configuredComponent('objectifs_croissance', tab);
+  if (configured) return configured;
   return OBJECTIFS_TABS[0];
 }
 
@@ -709,13 +727,15 @@ export function resolveCentreTab(value = '') {
   if (CENTRE_IA_TABS.includes(tab)) return tab;
   const fromAlias = CENTRE_IA_TAB_ALIASES[tab] || CENTRE_IA_TAB_ALIASES[lower(tab)];
   if (fromAlias) return fromAlias;
+  const configured = configuredComponent('centre_decisionnel', tab);
+  if (configured) return configured;
   return CENTRE_IA_TABS[0];
 }
 
 /** Navigation externe vers le Centre avec résolution d'onglet legacy. */
 export function navigateCentreTab(onNavigate, tab = '') {
   const resolved = resolveCentreTab(tab);
-  if (typeof onNavigate === 'function') onNavigate('centre_ia', { tab: resolved });
+  if (typeof onNavigate === 'function') onNavigate('centre_decisionnel', { tab: resolved });
   return resolved;
 }
 
@@ -745,6 +765,8 @@ export function resolveSmartFarmTab(value = '') {
   if (SMARTFARM_TABS.includes(tab)) return tab;
   const fromAlias = SMARTFARM_TAB_ALIASES[tab] || SMARTFARM_TAB_ALIASES[lower(tab)];
   if (fromAlias) return fromAlias;
+  const configured = configuredComponent('smartfarm', tab);
+  if (configured) return configured;
   if (lower(tab) === 'resume') return 'Objets connectés';
   return 'Objets connectés';
 }
@@ -768,6 +790,8 @@ export function resolveGestionSystemeTab(value = '') {
   if (GESTION_SYSTEME_TABS.includes(tab)) return tab;
   const fromAlias = GESTION_SYSTEME_TAB_ALIASES[tab] || GESTION_SYSTEME_TAB_ALIASES[lower(tab)];
   if (fromAlias) return fromAlias;
+  const configured = configuredComponent('gestion_systeme', tab);
+  if (configured) return configured;
   return 'Vue admin';
 }
 
@@ -789,6 +813,8 @@ export function resolveCulturesTab(value = '') {
   if (CULTURES_TABS.includes(tab)) return tab;
   const fromAlias = CULTURES_TAB_ALIASES[tab] || CULTURES_TAB_ALIASES[lower(tab)];
   if (fromAlias) return fromAlias;
+  const configured = configuredComponent('cultures', tab);
+  if (configured) return configured;
   if (lower(tab) === 'resume') return 'Parcelles & campagnes';
   const legacy = tabAliases[lower(tab)];
   if (legacy && CULTURES_TABS.includes(legacy)) return legacy;
@@ -809,6 +835,8 @@ export function resolveDashboardTab(value = '') {
   if (DASHBOARD_TABS.includes(tab)) return tab;
   const fromAlias = DASHBOARD_TAB_ALIASES[tab] || DASHBOARD_TAB_ALIASES[lower(tab)];
   if (fromAlias) return fromAlias;
+  const configured = configuredComponent('dashboard', tab);
+  if (configured) return configured;
   return 'Carnet Horizon';
 }
 
@@ -817,6 +845,8 @@ export function resolveInvestisseursTab(value = '') {
   if (FINANCEMENTS_TABS.includes(tab)) return tab;
   const fromAlias = INVESTISSEURS_TAB_ALIASES[tab] || INVESTISSEURS_TAB_ALIASES[lower(tab)];
   if (fromAlias) return fromAlias;
+  const configured = configuredComponent('financements', tab);
+  if (configured) return configured;
   const legacy = tabAliases[lower(tab)];
   if (legacy && FINANCEMENTS_TABS.includes(legacy)) return legacy;
   return 'cockpit-dashboard';

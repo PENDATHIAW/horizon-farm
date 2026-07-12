@@ -1,21 +1,12 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import toast from 'react-hot-toast';
-import HeyHorizonDraftSummary from '../components/HeyHorizonDraftSummary.jsx';
-import HorizonDraftPanel from '../components/HorizonDraftPanel.jsx';
 import { useAuth } from '../context/AuthContext.jsx';
 import useHeyHorizonCommand from '../hooks/useHeyHorizonCommand.js';
 import { buildAssistantWelcomeMessage } from '../services/assistantFarmSecretary.js';
 import { fetchLlmStatus } from '../services/heyHorizonLlmService.js';
-import {
-  analyzeDocumentForCompletion,
-  applyDocumentCompletionChoice,
-  applyDocumentCompletionReply,
-} from '../services/assistantDocumentCompletion.js';
 import { isDetailFollowUp } from '../services/assistantProgressiveResponse.js';
 import { formatStrategicHorizonAnswer, stripTechnicalLeaks } from '../services/assistantResponseFormatter.js';
 import { shouldRouteToAssistant } from '../services/assistantChatRouting.js';
-import { processContextualVoiceInput } from '../services/aiGateway/contextualVoiceService.js';
-import { extractTextFromDocument } from '../services/aiGateway/documentTextExtraction.js';
 import { enrichAssistantDataMap } from '../utils/assistantDataMap.js';
 import { HORIZON_DESIGN as D } from './assistant/horizonDesignTokens.js';
 import HorizonPhoneShell, {
@@ -38,22 +29,6 @@ function displayNameFromUser(user = {}) {
 
 function messageTime() {
   return new Date().toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
-}
-
-function ChatDraftBlock({ draft, isValidating, onValidate, onCancel, onCompletionChoice }) {
-  return (
-    <HorizonAssistantBubble>
-      <HeyHorizonDraftSummary draft={draft} variant="inline" />
-      <HorizonDraftPanel
-        draft={draft}
-        variant="inline"
-        isValidating={isValidating}
-        onValidate={onValidate}
-        onCancel={onCancel}
-        onCompletionChoice={onCompletionChoice}
-      />
-    </HorizonAssistantBubble>
-  );
 }
 
 function ThinkingBubble() {
@@ -87,7 +62,6 @@ export default function HeyHorizonModule({
   periodLabel = '',
   periodScope,
   onNavigate,
-  onCreateBusinessEvent,
   animaux,
   cultures,
   stocks,
@@ -107,7 +81,6 @@ export default function HeyHorizonModule({
   const chatScrollRef = useRef(null);
   const stickToBottomRef = useRef(true);
   const pendingProgressiveRef = useRef(null);
-  const fileInputRef = useRef(null);
 
   const enrichedDataMap = useMemo(
     () => enrichAssistantDataMap(dataMap, {
@@ -188,16 +161,11 @@ export default function HeyHorizonModule({
     });
   }, [welcomeMessage]);
 
-  const {
-    draft,
-    isValidating,
-    isProcessing,
-    runCommand,
-    cancelDraft,
-    validateDraft,
-    loadDraft,
-    setDraft,
-  } = useHeyHorizonCommand({ dataMap: enrichedDataMap, onNavigate, allowWeakDraft: true, onCreateBusinessEvent });
+  const { isProcessing, runCommand, cancelDraft } = useHeyHorizonCommand({
+    dataMap: enrichedDataMap,
+    onNavigate,
+    allowWeakDraft: false,
+  });
 
   const appendMessage = useCallback((role, text, extra = {}) => {
     const cleanText = stripTechnicalLeaks(String(text || ''));
@@ -225,7 +193,7 @@ export default function HeyHorizonModule({
 
   useEffect(() => {
     scrollToBottom();
-  }, [messages, draft, scrollToBottom]);
+  }, [messages, scrollToBottom]);
 
   const handleSubmit = useCallback(async (text = command) => {
     const query = String(text || '').trim();
@@ -247,47 +215,9 @@ export default function HeyHorizonModule({
     scrollToBottom(true);
     setVoiceBusy(true);
     try {
-      if (draft?.documentCompletion?.awaitingReply) {
-        const result = applyDocumentCompletionReply(draft, query, enrichedDataMap);
-        if (result.draft) {
-          setDraft(result.draft);
-          appendMessage('assistant', result.assistantText || 'Merci, je complète le brouillon.', { plain: true });
-        }
-        return;
-      }
-
       if (!shouldRouteToAssistant(query)) {
-        const parsed = await processContextualVoiceInput({
-          phrase: query,
-          dataMap: enrichedDataMap,
-          handlers: { onCreateBusinessEvent },
-        });
-        if (parsed.drafts?.length) {
-          const primary = parsed.primaryDraft;
-          if (primary?.draft?.legacy_hey) {
-            loadDraft(primary.draft.legacy_hey);
-          } else if (primary) {
-            loadDraft({
-              status: primary.status,
-              intent: primary.intent,
-              confidence: primary.confidence,
-              raw_input: query,
-              primary_module: primary.draft?.primary_module,
-              form_type: primary.draft?.form_type,
-              draft_fields: primary.draft?.fields || primary.draft?.draft_fields || {},
-              missing_fields: primary.missing_fields || [],
-              warnings: primary.warnings || [],
-              requires_validation: true,
-              impacted_modules: primary.draft?.impacted_modules || [],
-              ui: primary.draft?.ui,
-            });
-          }
-          return;
-        }
-        if (parsed.clarify && !parsed.drafts?.length) {
-          appendMessage('assistant', parsed.clarify, { plain: true });
-          return;
-        }
+        appendMessage('assistant', 'Je peux expliquer la marche à suivre, mais aucune saisie ne peut être créée depuis la conversation.', { plain: true });
+        return;
       }
 
       const result = await runCommand(query, { autoOpenForm: false, navigateOnDraft: false });
@@ -319,6 +249,8 @@ export default function HeyHorizonModule({
         return;
       }
       if (result.kind === 'draft') {
+        cancelDraft();
+        appendMessage('assistant', 'Suggestion préparée. Ouvrez le module concerné pour enregistrer la saisie.', { plain: true });
         return;
       }
       if (result.kind === 'error' || result.kind === 'empty') {
@@ -332,7 +264,7 @@ export default function HeyHorizonModule({
     } finally {
       setVoiceBusy(false);
     }
-  }, [appendMessage, command, draft, enrichedDataMap, isProcessing, loadDraft, onCreateBusinessEvent, runCommand, setDraft, voiceBusy]);
+  }, [appendMessage, cancelDraft, command, isProcessing, runCommand, voiceBusy]);
 
   useEffect(() => {
     const handler = (event) => {
@@ -345,64 +277,8 @@ export default function HeyHorizonModule({
     return () => window.removeEventListener('horizon-assistant-query', handler);
   }, [handleSubmit]);
 
-  const handleValidate = async () => {
-    try {
-      await validateDraft();
-      appendMessage('assistant', 'C\'est noté — tout est enregistré dans le carnet de la ferme.');
-      cancelDraft();
-    } catch {
-      // toast handled in hook
-    }
-  };
-
-  const handleCancel = () => {
-    cancelDraft();
-    appendMessage('assistant', 'D\'accord, je n\'ai rien enregistré. On continue — que voulez-vous faire ?');
-  };
-
-  const handleAttach = () => {
-    fileInputRef.current?.click();
-  };
-
   const handleMic = () => {
-    toast('Micro bientôt disponible — écrivez votre message pour l\'instant.');
-  };
-
-  const handleCompletionChoice = useCallback((choice) => {
-    if (!draft?.documentCompletion) return;
-    const result = applyDocumentCompletionChoice(draft, choice, enrichedDataMap);
-    if (result.draft) {
-      setDraft(result.draft);
-      appendMessage('assistant', result.assistantText || 'Choix enregistré.', { plain: true });
-    }
-  }, [appendMessage, draft, enrichedDataMap, setDraft]);
-
-  const handleFileChange = async (event) => {
-    const file = event.target.files?.[0];
-    if (!file) return;
-    event.target.value = '';
-    stickToBottomRef.current = true;
-    setVoiceBusy(true);
-    try {
-      appendMessage('user', `Document : ${file.name}`);
-      const extraction = await extractTextFromDocument(file);
-      if (!extraction.text) {
-        appendMessage('assistant', extraction.hint || 'Je n\'ai pas pu lire ce document. Collez le texte de la facture ou envoyez une photo plus nette.');
-        return;
-      }
-      const analysis = analyzeDocumentForCompletion(extraction.text, enrichedDataMap);
-      if (!analysis.ok || !analysis.draft) {
-        appendMessage('assistant', analysis.assistantText || 'Document non reconnu.');
-        return;
-      }
-      loadDraft(analysis.draft);
-      appendMessage('assistant', analysis.assistantText, { plain: true });
-    } catch (error) {
-      toast.error(error.message || 'Analyse document impossible');
-      appendMessage('assistant', 'Je n\'ai pas pu analyser ce document. Décrivez l\'achat ou la vente en une phrase.');
-    } finally {
-      setVoiceBusy(false);
-    }
+    toast('Micro bientôt disponible. Écrivez votre message pour l\'instant.');
   };
 
   const busy = voiceBusy || isProcessing;
@@ -431,34 +307,16 @@ export default function HeyHorizonModule({
           )
         ))}
 
-        {busy && !draft ? <ThinkingBubble /> : null}
-
-        {draft ? (
-          <ChatDraftBlock
-            draft={draft}
-            isValidating={isValidating}
-            onValidate={handleValidate}
-            onCancel={handleCancel}
-            onCompletionChoice={handleCompletionChoice}
-          />
-        ) : null}
+        {busy ? <ThinkingBubble /> : null}
 
         <div className="h-2 shrink-0" aria-hidden />
       </HorizonChatCanvas>
-
-      <input
-        ref={fileInputRef}
-        type="file"
-        className="hidden"
-        accept="image/*,.pdf,.doc,.docx"
-        onChange={handleFileChange}
-      />
 
       <HorizonChatComposer
         value={command}
         onChange={setCommand}
         onSubmit={() => handleSubmit()}
-        onAttach={handleAttach}
+        onAttach={() => toast('La conversation est en lecture seule. Ouvrez Documents & Rapports pour ajouter un fichier.')}
         onMic={handleMic}
         disabled={busy}
         placeholder="Parlez à votre ferme..."

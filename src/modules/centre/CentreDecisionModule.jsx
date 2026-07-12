@@ -29,7 +29,7 @@ const EMPTY_STRATEGIC_PLAN = {
   ith: null,
 };
 
-/** Centre décisionnel — 3 onglets : urgences terrain, croissance, saisons & marchés. */
+/** Centre décisionnel : traitement, écarts, risques, décisions et historique. */
 export default function CentreDecisionModule({
   dataMap = {},
   onNavigate,
@@ -130,7 +130,7 @@ export default function CentreDecisionModule({
     risks: [...(data.risks || []), ...(strategicPlan.risks || [])],
   }), [data, strategicPlan.risks]);
 
-  const content = tab === 'Urgences & risques'
+  const content = ['Urgences & risques', 'Risques'].includes(tab)
     ? (
       <CentreUrgencesTab
         data={data}
@@ -149,7 +149,7 @@ export default function CentreDecisionModule({
         enrichedDataMap={enrichedDataMap}
       />
     )
-    : tab === 'Croissance & opportunités'
+    : ['Écarts & cohérence', 'Actions prioritaires'].includes(tab)
       ? (
         <CentreCroissanceTab
           plan={decisionPlan}
@@ -261,7 +261,7 @@ export default function CentreDecisionModule({
           ) : null}
         </div>
       </details>
-      <ModuleTabsBar moduleId="centre_ia" active={tab} onChange={setTab} tabBadges={tabBadges} />
+      <ModuleTabsBar moduleId="centre_decisionnel" active={tab} onChange={setTab} tabBadges={tabBadges} />
       {content}
     </div>
   );
