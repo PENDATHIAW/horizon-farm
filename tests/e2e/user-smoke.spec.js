@@ -3,7 +3,7 @@ import { assertNoBadUiText, collectRuntimeErrors, goToModule, login } from './he
 
 const MODULE_LABELS = [
   'Accueil',
-  'Assistant ERP',
+  'Assistant',
   'Centre décisionnel',
   'Objectifs',
   'Animaux',
@@ -22,7 +22,7 @@ const MODULE_LABELS = [
   'Cultures',
   'Documents',
   'Tâches',
-  'RH',
+  'Équipe',
   'Rapports',
   'Équipements',
   'Smart Farm',

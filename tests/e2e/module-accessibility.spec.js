@@ -1,11 +1,11 @@
 import { expect, test } from '@playwright/test';
 
-const LOGIN = process.env.E2E_LOGIN || 'penda';
-const PASSWORD = process.env.E2E_PASSWORD || 'Mariemediatta10#';
+const LOGIN = process.env.E2E_LOGIN || '';
+const PASSWORD = process.env.E2E_PASSWORD || '';
 
 const MODULE_LABELS = [
   'Accueil',
-  'Assistant ERP',
+  'Assistant',
   'Centre décisionnel',
   'AGRI FEEDS',
   'Objectifs & Croissance',
@@ -17,9 +17,8 @@ const MODULE_LABELS = [
   'Finance & Pilotage',
   'Activité & Suivi',
   'Documents & Rapports',
-  'Opérations & Ressources',
+  'Équipe',
   'Smart Farm',
-  'Activité & Sync ERP',
   'Gestion du système',
 ];
 
@@ -37,7 +36,6 @@ const MODULE_TABS = {
   'Documents & Rapports': ['Documents', 'Justificatifs', 'Rapports financeur', 'Exports', 'Audit documentaire'],
   'Opérations & Ressources': ['Équipe', 'Responsabilités', 'Planning', 'Temps de travail', 'Incidents'],
   'Smart Farm': ['Capteurs', 'Eau', 'Énergie', 'Alertes techniques', 'Automatisation terrain'],
-  'Activité & Sync ERP': ['Vérifications', 'Connexion & envoi', 'Journal d’activité', 'Données hors ligne'],
 };
 
 const escapeRegExp = (value) => String(value).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
