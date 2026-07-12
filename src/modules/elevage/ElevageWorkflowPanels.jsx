@@ -2,6 +2,7 @@ import { X } from 'lucide-react';
 /* eslint-disable react-refresh/only-export-components */
 import { useMemo, useState } from 'react';
 import toast from 'react-hot-toast';
+import { t } from '../../i18n/fr/index.js';
 import {
   connectedUserId,
   DAILY_ENTRY_TYPES,
@@ -26,19 +27,19 @@ function Field({ label, children }) {
   return <label className="block text-sm"><span className="mb-1 block text-xs font-bold text-[#7d6a4a]">{label}</span>{children}</label>;
 }
 
-function Modal({ open, title, onClose, children, onSubmit, submitLabel = 'Enregistrer', busy, testId }) {
+function Modal({ open, title, onClose, children, onSubmit, submitLabel = t('dailyEntries.common.save'), busy, testId }) {
   if (!open) return null;
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" data-testid={`${testId}-modal`}>
       <form className="max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-lg border border-[#d6c3a0] bg-[#fffdf8] p-5 shadow-xl" onSubmit={(event) => { event.preventDefault(); onSubmit?.(); }} data-testid={`${testId}-form`}>
         <div className="mb-4 flex items-center justify-between gap-3">
           <h3 className="text-lg font-black text-[#2f2415]">{title}</h3>
-          <button type="button" onClick={onClose} aria-label="Fermer"><X size={18} /></button>
+          <button type="button" onClick={onClose} aria-label={t('dailyEntries.common.close')}><X size={18} /></button>
         </div>
         <div className="space-y-3">{children}</div>
         <div className="mt-5 flex justify-end gap-2">
-          <button type="button" onClick={onClose} className="min-h-[42px] rounded-lg border border-[#d6c3a0] px-4 text-sm font-black">Annuler</button>
-          <button type="submit" disabled={busy} className="min-h-[42px] rounded-lg bg-[#22c55e] px-4 text-sm font-black text-[#052e16] disabled:opacity-50" data-testid={`${testId}-submit`}>{busy ? 'Enregistrement...' : submitLabel}</button>
+          <button type="button" onClick={onClose} className="min-h-[42px] rounded-lg border border-[#d6c3a0] px-4 text-sm font-black">{t('dailyEntries.common.cancel')}</button>
+          <button type="submit" disabled={busy} className="min-h-[42px] rounded-lg bg-[#22c55e] px-4 text-sm font-black text-[#052e16] disabled:opacity-50" data-testid={`${testId}-submit`}>{busy ? t('dailyEntries.common.saving') : submitLabel}</button>
         </div>
       </form>
     </div>
@@ -47,9 +48,9 @@ function Modal({ open, title, onClose, children, onSubmit, submitLabel = 'Enregi
 
 function TargetField({ isAnimaux, lots, animaux, value, onChange }) {
   return (
-    <Field label={isAnimaux ? 'Animal' : 'Lot'}>
+    <Field label={isAnimaux ? t('dailyEntries.elevage.animal') : t('dailyEntries.elevage.lot')}>
       <select className={inputClass} value={value || ''} onChange={(event) => onChange(event.target.value)} required data-testid="daily-elevage-target">
-        <option value="">Choisir</option>
+        <option value="">{t('dailyEntries.common.choose')}</option>
         {(isAnimaux ? animaux : lots).map((row) => <option key={row.id} value={row.id}>{row.nom || row.name || row.id}</option>)}
       </select>
     </Field>
@@ -131,7 +132,7 @@ export default function ElevageWorkflowPanels({
       await onSuccess?.();
       onClose?.();
     } catch (error) {
-      toast.error(error.message || 'Enregistrement impossible');
+      toast.error(error.message || t('dailyEntries.common.registrationError'));
     } finally {
       setBusy(false);
     }
@@ -139,34 +140,34 @@ export default function ElevageWorkflowPanels({
 
   return (
     <>
-      <Modal open={activeModal === 'feeding'} title="Distribution aliment" onClose={onClose} busy={busy} testId="daily-feeding" onSubmit={() => run(DAILY_ENTRY_TYPES.FEEDING, () => commitElevageFeeding({ form: { ...feeding, quantite: num(feeding.quantite), recorded_by: context.userId }, context, handlers }))}>
-        <Field label="Aliment"><select className={inputClass} value={feeding.stock_id || ''} onChange={(event) => setFeeding({ ...feeding, stock_id: event.target.value })} required data-testid="daily-feeding-stock"><option value="">Choisir</option>{feedStocks.map((stock) => <option key={stock.id} value={stock.id}>{stock.produit || stock.nom || stock.id} · {stock.quantite} {stock.unite}</option>)}</select></Field>
+      <Modal open={activeModal === 'feeding'} title={t('dailyEntries.elevage.feedTitle')} onClose={onClose} busy={busy} testId="daily-feeding" onSubmit={() => run(DAILY_ENTRY_TYPES.FEEDING, () => commitElevageFeeding({ form: { ...feeding, quantite: num(feeding.quantite), recorded_by: context.userId }, context, handlers }))}>
+        <Field label={t('dailyEntries.elevage.feed')}><select className={inputClass} value={feeding.stock_id || ''} onChange={(event) => setFeeding({ ...feeding, stock_id: event.target.value })} required data-testid="daily-feeding-stock"><option value="">{t('dailyEntries.common.choose')}</option>{feedStocks.map((stock) => <option key={stock.id} value={stock.id}>{stock.produit || stock.nom || stock.id} · {stock.quantite} {stock.unite}</option>)}</select></Field>
         <TargetField isAnimaux={isAnimaux} lots={lots} animaux={animaux} value={isAnimaux ? feeding.animal_id : feeding.lot_id} onChange={(value) => setFeeding({ ...feeding, lot_id: isAnimaux ? '' : value, animal_id: isAnimaux ? value : '' })} />
-        <Field label={`Quantité (${feedingStock?.unite || 'kg'})`}><input className={inputClass} type="number" min="0.01" step="0.01" value={feeding.quantite || ''} onChange={(event) => setFeeding({ ...feeding, quantite: event.target.value })} required data-testid="daily-feeding-quantity" /></Field>
-        <details className="rounded-lg border border-[#eadcc2] p-3"><summary className="cursor-pointer text-sm font-black">Détails</summary><div className="mt-3 grid gap-3 sm:grid-cols-2"><Field label="Date"><input className={inputClass} type="date" value={feeding.date || ''} onChange={(event) => setFeeding({ ...feeding, date: event.target.value })} /></Field><Field label="Notes"><input className={inputClass} value={feeding.notes || ''} onChange={(event) => setFeeding({ ...feeding, notes: event.target.value })} /></Field></div></details>
+        <Field label={t('dailyEntries.common.quantityWithUnit', { unit: feedingStock?.unite || 'kg' })}><input className={inputClass} type="number" min="0.01" step="0.01" value={feeding.quantite || ''} onChange={(event) => setFeeding({ ...feeding, quantite: event.target.value })} required data-testid="daily-feeding-quantity" /></Field>
+        <details className="rounded-lg border border-[#eadcc2] p-3"><summary className="cursor-pointer text-sm font-black">{t('dailyEntries.common.details')}</summary><div className="mt-3 grid gap-3 sm:grid-cols-2"><Field label={t('dailyEntries.common.date')}><input className={inputClass} type="date" value={feeding.date || ''} onChange={(event) => setFeeding({ ...feeding, date: event.target.value })} /></Field><Field label={t('dailyEntries.common.notes')}><input className={inputClass} value={feeding.notes || ''} onChange={(event) => setFeeding({ ...feeding, notes: event.target.value })} /></Field></div></details>
       </Modal>
 
-      <Modal open={activeModal === 'mortality'} title="Mortalité" onClose={onClose} busy={busy} testId="daily-mortality" onSubmit={() => run(DAILY_ENTRY_TYPES.MORTALITY, () => commitElevageMortality({ form: { ...mortality, quantite: num(mortality.quantite), recorded_by: context.userId }, context, handlers }))}>
+      <Modal open={activeModal === 'mortality'} title={t('dailyEntries.elevage.mortalityTitle')} onClose={onClose} busy={busy} testId="daily-mortality" onSubmit={() => run(DAILY_ENTRY_TYPES.MORTALITY, () => commitElevageMortality({ form: { ...mortality, quantite: num(mortality.quantite), recorded_by: context.userId }, context, handlers }))}>
         <TargetField isAnimaux={isAnimaux} lots={lots} animaux={animaux} value={isAnimaux ? mortality.animal_id : mortality.lot_id} onChange={(value) => setMortality({ ...mortality, lot_id: isAnimaux ? '' : value, animal_id: isAnimaux ? value : '' })} />
-        <Field label="Nombre"><input className={inputClass} type="number" min="1" value={mortality.quantite || ''} onChange={(event) => setMortality({ ...mortality, quantite: event.target.value })} required data-testid="daily-mortality-quantity" /></Field>
-        <details className="rounded-lg border border-[#eadcc2] p-3"><summary className="cursor-pointer text-sm font-black">Détails</summary><div className="mt-3 grid gap-3 sm:grid-cols-2"><Field label="Date"><input className={inputClass} type="date" value={mortality.date || ''} onChange={(event) => setMortality({ ...mortality, date: event.target.value })} /></Field><Field label="Motif"><input className={inputClass} value={mortality.notes || ''} onChange={(event) => setMortality({ ...mortality, notes: event.target.value })} /></Field></div></details>
+        <Field label={t('dailyEntries.elevage.count')}><input className={inputClass} type="number" min="1" value={mortality.quantite || ''} onChange={(event) => setMortality({ ...mortality, quantite: event.target.value })} required data-testid="daily-mortality-quantity" /></Field>
+        <details className="rounded-lg border border-[#eadcc2] p-3"><summary className="cursor-pointer text-sm font-black">{t('dailyEntries.common.details')}</summary><div className="mt-3 grid gap-3 sm:grid-cols-2"><Field label={t('dailyEntries.common.date')}><input className={inputClass} type="date" value={mortality.date || ''} onChange={(event) => setMortality({ ...mortality, date: event.target.value })} /></Field><Field label={t('dailyEntries.elevage.reason')}><input className={inputClass} value={mortality.notes || ''} onChange={(event) => setMortality({ ...mortality, notes: event.target.value })} /></Field></div></details>
       </Modal>
 
-      <Modal open={activeModal === 'eggs'} title="Ramassage œufs" onClose={onClose} busy={busy} testId="daily-eggs" onSubmit={() => run(DAILY_ENTRY_TYPES.EGGS, () => commitElevageEggProduction({ form: { ...eggs, oeufs_produits: num(eggs.oeufs_produits), oeufs_casses: num(eggs.oeufs_casses), packaging_qty: num(eggs.packaging_qty), recorded_by: context.userId }, context, handlers }))}>
-        <Field label="Lot pondeuse"><select className={inputClass} value={eggs.lot_id || ''} onChange={(event) => setEggs({ ...eggs, lot_id: event.target.value })} required data-testid="daily-eggs-target"><option value="">Choisir</option>{pondeuseLots.map((lot) => <option key={lot.id} value={lot.id}>{lot.name || lot.nom || lot.id}</option>)}</select></Field>
-        <Field label="Œufs ramassés"><input className={inputClass} type="number" min="1" value={eggs.oeufs_produits || ''} onChange={(event) => setEggs({ ...eggs, oeufs_produits: event.target.value })} required data-testid="daily-eggs-quantity" /></Field>
-        <details className="rounded-lg border border-[#eadcc2] p-3"><summary className="cursor-pointer text-sm font-black">Détails</summary><div className="mt-3 grid gap-3 sm:grid-cols-2"><Field label="Date"><input className={inputClass} type="date" value={eggs.date || ''} onChange={(event) => setEggs({ ...eggs, date: event.target.value })} /></Field><Field label="Cassés"><input className={inputClass} type="number" min="0" value={eggs.oeufs_casses || ''} onChange={(event) => setEggs({ ...eggs, oeufs_casses: event.target.value })} /></Field><Field label="Emballage"><select className={inputClass} value={eggs.packaging_stock_id || ''} onChange={(event) => setEggs({ ...eggs, packaging_stock_id: event.target.value })}><option value="">Aucun</option>{packagingStocks.map((stock) => <option key={stock.id} value={stock.id}>{stock.produit || stock.nom || stock.id}</option>)}</select></Field><Field label="Quantité emballages"><input className={inputClass} type="number" min="0" value={eggs.packaging_qty || ''} onChange={(event) => setEggs({ ...eggs, packaging_qty: event.target.value })} /></Field></div></details>
+      <Modal open={activeModal === 'eggs'} title={t('dailyEntries.elevage.eggsTitle')} onClose={onClose} busy={busy} testId="daily-eggs" onSubmit={() => run(DAILY_ENTRY_TYPES.EGGS, () => commitElevageEggProduction({ form: { ...eggs, oeufs_produits: num(eggs.oeufs_produits), oeufs_casses: num(eggs.oeufs_casses), packaging_qty: num(eggs.packaging_qty), recorded_by: context.userId }, context, handlers }))}>
+        <Field label={t('dailyEntries.elevage.layingLot')}><select className={inputClass} value={eggs.lot_id || ''} onChange={(event) => setEggs({ ...eggs, lot_id: event.target.value })} required data-testid="daily-eggs-target"><option value="">{t('dailyEntries.common.choose')}</option>{pondeuseLots.map((lot) => <option key={lot.id} value={lot.id}>{lot.name || lot.nom || lot.id}</option>)}</select></Field>
+        <Field label={t('dailyEntries.elevage.eggsCollected')}><input className={inputClass} type="number" min="1" value={eggs.oeufs_produits || ''} onChange={(event) => setEggs({ ...eggs, oeufs_produits: event.target.value })} required data-testid="daily-eggs-quantity" /></Field>
+        <details className="rounded-lg border border-[#eadcc2] p-3"><summary className="cursor-pointer text-sm font-black">{t('dailyEntries.common.details')}</summary><div className="mt-3 grid gap-3 sm:grid-cols-2"><Field label={t('dailyEntries.common.date')}><input className={inputClass} type="date" value={eggs.date || ''} onChange={(event) => setEggs({ ...eggs, date: event.target.value })} /></Field><Field label={t('dailyEntries.elevage.broken')}><input className={inputClass} type="number" min="0" value={eggs.oeufs_casses || ''} onChange={(event) => setEggs({ ...eggs, oeufs_casses: event.target.value })} /></Field><Field label={t('dailyEntries.elevage.packaging')}><select className={inputClass} value={eggs.packaging_stock_id || ''} onChange={(event) => setEggs({ ...eggs, packaging_stock_id: event.target.value })}><option value="">{t('dailyEntries.common.none')}</option>{packagingStocks.map((stock) => <option key={stock.id} value={stock.id}>{stock.produit || stock.nom || stock.id}</option>)}</select></Field><Field label={t('dailyEntries.elevage.packagingQuantity')}><input className={inputClass} type="number" min="0" value={eggs.packaging_qty || ''} onChange={(event) => setEggs({ ...eggs, packaging_qty: event.target.value })} /></Field></div></details>
       </Modal>
 
-      <Modal open={activeModal === 'transform'} title="Transformation" onClose={onClose} busy={busy} testId="daily-transform" submitLabel="Ouvrir" onSubmit={() => { onClose?.(); handlers?.onNavigate?.('elevage', { tab: 'Transformation' }); }}>
-        <Field label="Type"><select className={inputClass} value={transform.kind || 'pret_vente'} onChange={(event) => setTransform({ ...transform, kind: event.target.value })}><option value="pret_vente">Prêt vente</option><option value="reforme">Réforme</option><option value="abattage">Abattage</option></select></Field>
-        <Field label="Lot"><select className={inputClass} value={transform.lot_id || ''} onChange={(event) => setTransform({ ...transform, lot_id: event.target.value })}><option value="">Choisir</option>{lots.map((lot) => <option key={lot.id} value={lot.id}>{lot.name || lot.nom || lot.id}</option>)}</select></Field>
+      <Modal open={activeModal === 'transform'} title={t('dailyEntries.elevage.transformTitle')} onClose={onClose} busy={busy} testId="daily-transform" submitLabel={t('dailyEntries.common.open')} onSubmit={() => { onClose?.(); handlers?.onNavigate?.('elevage', { tab: t('dailyEntries.elevage.transformTab') }); }}>
+        <Field label={t('dailyEntries.elevage.type')}><select className={inputClass} value={transform.kind || 'pret_vente'} onChange={(event) => setTransform({ ...transform, kind: event.target.value })}><option value="pret_vente">{t('dailyEntries.elevage.readyForSale')}</option><option value="reforme">{t('dailyEntries.elevage.cull')}</option><option value="abattage">{t('dailyEntries.elevage.slaughter')}</option></select></Field>
+        <Field label={t('dailyEntries.elevage.lot')}><select className={inputClass} value={transform.lot_id || ''} onChange={(event) => setTransform({ ...transform, lot_id: event.target.value })}><option value="">{t('dailyEntries.common.choose')}</option>{lots.map((lot) => <option key={lot.id} value={lot.id}>{lot.name || lot.nom || lot.id}</option>)}</select></Field>
       </Modal>
 
-      <Modal open={activeModal === 'weighing'} title="Pesée" onClose={onClose} busy={busy} testId="daily-weighing" onSubmit={() => run(DAILY_ENTRY_TYPES.WEIGHING, () => commitElevageWeighing({ form: { ...weighing, poids: num(weighing.poids), recorded_by: context.userId }, context, handlers }))}>
+      <Modal open={activeModal === 'weighing'} title={t('dailyEntries.elevage.weighingTitle')} onClose={onClose} busy={busy} testId="daily-weighing" onSubmit={() => run(DAILY_ENTRY_TYPES.WEIGHING, () => commitElevageWeighing({ form: { ...weighing, poids: num(weighing.poids), recorded_by: context.userId }, context, handlers }))}>
         <TargetField isAnimaux={isAnimaux} lots={lots} animaux={animaux} value={isAnimaux ? weighing.animal_id : weighing.lot_id} onChange={(value) => setWeighing({ ...weighing, lot_id: isAnimaux ? '' : value, animal_id: isAnimaux ? value : '' })} />
-        <Field label="Poids (kg)"><input className={inputClass} type="number" min="0.01" step="0.01" value={weighing.poids || ''} onChange={(event) => setWeighing({ ...weighing, poids: event.target.value })} required data-testid="daily-weighing-weight" /></Field>
-        <details className="rounded-lg border border-[#eadcc2] p-3"><summary className="cursor-pointer text-sm font-black">Détails</summary><div className="mt-3 grid gap-3 sm:grid-cols-2"><Field label="Date"><input className={inputClass} type="date" value={weighing.date || ''} onChange={(event) => setWeighing({ ...weighing, date: event.target.value })} /></Field><Field label="Commentaire"><input className={inputClass} value={weighing.notes || ''} onChange={(event) => setWeighing({ ...weighing, notes: event.target.value })} /></Field></div></details>
+        <Field label={t('dailyEntries.elevage.weightKg')}><input className={inputClass} type="number" min="0.01" step="0.01" value={weighing.poids || ''} onChange={(event) => setWeighing({ ...weighing, poids: event.target.value })} required data-testid="daily-weighing-weight" /></Field>
+        <details className="rounded-lg border border-[#eadcc2] p-3"><summary className="cursor-pointer text-sm font-black">{t('dailyEntries.common.details')}</summary><div className="mt-3 grid gap-3 sm:grid-cols-2"><Field label={t('dailyEntries.common.date')}><input className={inputClass} type="date" value={weighing.date || ''} onChange={(event) => setWeighing({ ...weighing, date: event.target.value })} /></Field><Field label={t('dailyEntries.elevage.comment')}><input className={inputClass} value={weighing.notes || ''} onChange={(event) => setWeighing({ ...weighing, notes: event.target.value })} /></Field></div></details>
       </Modal>
     </>
   );

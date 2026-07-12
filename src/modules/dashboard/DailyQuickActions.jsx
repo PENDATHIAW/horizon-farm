@@ -1,15 +1,16 @@
 import { CircleMinus, CreditCard, Droplets, Egg, PackageCheck, Scale, Wheat } from 'lucide-react';
+import { t } from '../../i18n/fr/index.js';
 import { openFormModal } from '../../services/formModalManager.js';
 import { makeId } from '../../utils/ids.js';
 
 const ACTIONS = Object.freeze([
-  { id: 'feeding', label: 'Aliment', icon: Wheat, module: 'elevage', tab: 'Production élevage', formType: 'daily_feeding' },
-  { id: 'eggs', label: 'Œufs', icon: Egg, module: 'elevage', tab: 'Production élevage', formType: 'daily_eggs' },
-  { id: 'mortality', label: 'Mortalité', icon: CircleMinus, module: 'elevage', tab: 'Production élevage', formType: 'daily_mortality' },
-  { id: 'weighing', label: 'Pesée', icon: Scale, module: 'elevage', tab: 'Production élevage', formType: 'daily_weighing' },
-  { id: 'irrigation', label: 'Irrigation', icon: Droplets, module: 'cultures', tab: 'Irrigation cultures', formType: 'daily_irrigation' },
-  { id: 'harvest', label: 'Récolte', icon: PackageCheck, module: 'cultures', tab: 'Récoltes cultures', formType: 'daily_harvest' },
-  { id: 'sale', label: 'Vente', icon: CreditCard, module: 'commercial', tab: 'Ventes', formType: 'sale_record' },
+  { id: 'feeding', label: t('dailyEntries.actions.feeding'), icon: Wheat, module: 'elevage', tab: t('dailyEntries.actions.elevageTab'), formType: 'daily_feeding' },
+  { id: 'eggs', label: t('dailyEntries.actions.eggs'), icon: Egg, module: 'elevage', tab: t('dailyEntries.actions.elevageTab'), formType: 'daily_eggs' },
+  { id: 'mortality', label: t('dailyEntries.actions.mortality'), icon: CircleMinus, module: 'elevage', tab: t('dailyEntries.actions.elevageTab'), formType: 'daily_mortality' },
+  { id: 'weighing', label: t('dailyEntries.actions.weighing'), icon: Scale, module: 'elevage', tab: t('dailyEntries.actions.elevageTab'), formType: 'daily_weighing' },
+  { id: 'irrigation', label: t('dailyEntries.actions.irrigation'), icon: Droplets, module: 'cultures', tab: t('dailyEntries.actions.irrigationTab'), formType: 'daily_irrigation' },
+  { id: 'harvest', label: t('dailyEntries.actions.harvest'), icon: PackageCheck, module: 'cultures', tab: t('dailyEntries.actions.harvestTab'), formType: 'daily_harvest' },
+  { id: 'sale', label: t('dailyEntries.actions.sale'), icon: CreditCard, module: 'commercial', tab: t('dailyEntries.actions.salesTab'), formType: 'sale_record' },
 ]);
 
 export default function DailyQuickActions({ onNavigate }) {
@@ -30,7 +31,7 @@ export default function DailyQuickActions({ onNavigate }) {
   };
 
   return (
-    <section className="border-b border-[#eadcc2] pb-3" aria-label="Saisies du jour" data-testid="daily-quick-actions">
+    <section className="border-b border-[#eadcc2] pb-3" aria-label={t('dailyEntries.actions.label')} data-testid="daily-quick-actions">
       <div className="flex gap-2 overflow-x-auto pb-1">
         {ACTIONS.map((action) => {
           const Icon = action.icon;

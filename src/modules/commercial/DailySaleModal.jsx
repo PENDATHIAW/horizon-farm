@@ -3,6 +3,7 @@ import { CreditCard, X } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import toast from 'react-hot-toast';
 import useWorkflowSubmit from '../../hooks/useWorkflowSubmit.js';
+import { t } from '../../i18n/fr/index.js';
 import {
   commitCommercialSale,
   prepareCommercialSaleCommit,
@@ -27,7 +28,7 @@ const WALK_IN = 'client_passage';
 const inputClass = 'min-h-[44px] w-full rounded-lg border border-[#d6c3a0] bg-white px-3 py-2 text-sm text-[#2f2415]';
 
 function targetLabel(row = {}) {
-  return row.name || row.nom || row.produit || row.culture || row.id || 'Produit';
+  return row.name || row.nom || row.produit || row.culture || row.id || t('dailyEntries.sale.product');
 }
 
 function activeCount(row = {}) {
@@ -43,7 +44,7 @@ export function buildDailySaleOptions(props = {}) {
       key: `lot_avicole:${row.id}`,
       value: row.id,
       source_type: 'lot_avicole',
-      label: `${targetLabel(row)} · ${activeCount(row)} tête(s)`,
+      label: t('dailyEntries.sale.availableHeads', { name: targetLabel(row), quantity: activeCount(row) }),
       name: targetLabel(row),
       qty: activeCount(row),
       unit: 'tête',
@@ -71,7 +72,11 @@ export function buildDailySaleOptions(props = {}) {
       key: `culture:${row.id}`,
       value: row.id,
       source_type: 'culture',
-      label: `${targetLabel(row)} · ${num(row.quantite_disponible ?? row.quantite_recoltee)} ${row.unite || 'kg'}`,
+      label: t('dailyEntries.sale.availableQuantity', {
+        name: targetLabel(row),
+        quantity: num(row.quantite_disponible ?? row.quantite_recoltee),
+        unit: row.unite || 'kg',
+      }),
       name: targetLabel(row),
       qty: num(row.quantite_disponible ?? row.quantite_recoltee),
       unit: row.unite || 'kg',
@@ -160,7 +165,7 @@ export default function DailySaleModal({ props, onClose, onDone, prefill = null 
         const client = form.client_id === WALK_IN
           ? null
           : arr(props.clients).find((row) => String(row.id) === String(form.client_id));
-        const clientLabel = client?.nom || client?.name || 'Client de passage';
+        const clientLabel = client?.nom || client?.name || t('dailyEntries.sale.walkInCustomer');
         const { records } = prepareCommercialSaleCommit({
           form,
           clientLabel,
@@ -203,7 +208,7 @@ export default function DailySaleModal({ props, onClose, onDone, prefill = null 
       });
       if (guarded?.skipped && guarded.reason === 'in_flight') return;
     } catch (cause) {
-      setError(cause.message || 'Enregistrement impossible.');
+      setError(cause.message || t('dailyEntries.common.registrationError'));
     }
   };
 
@@ -211,42 +216,42 @@ export default function DailySaleModal({ props, onClose, onDone, prefill = null 
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-3" data-testid="daily-sale-modal">
       <div className="max-h-[94vh] w-full max-w-xl overflow-y-auto rounded-lg border border-[#d6c3a0] bg-white shadow-2xl">
         <div className="flex items-center justify-between border-b border-[#eadcc2] p-4">
-          <h2 className="flex items-center gap-2 text-lg font-black text-[#2f2415]"><CreditCard size={18} /> Vente</h2>
-          <button type="button" onClick={onClose} aria-label="Fermer"><X size={18} /></button>
+          <h2 className="flex items-center gap-2 text-lg font-black text-[#2f2415]"><CreditCard size={18} /> {t('dailyEntries.sale.title')}</h2>
+          <button type="button" onClick={onClose} aria-label={t('dailyEntries.common.close')}><X size={18} /></button>
         </div>
         <form onSubmit={submit} className="space-y-3 p-4" data-testid="daily-sale-form">
           {error ? <div className="rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700" data-testid="daily-sale-error">{error}</div> : null}
-          <Label title="Produit vendu">
+          <Label title={t('dailyEntries.sale.productSold')}>
             <select className={inputClass} value={selected?.key || ''} onChange={(event) => chooseSource(event.target.value)} required data-testid="daily-sale-source">
-              <option value="">Choisir</option>
+              <option value="">{t('dailyEntries.common.choose')}</option>
               {options.map((option) => <option key={option.key} value={option.key}>{option.label}</option>)}
             </select>
           </Label>
           <div className="grid grid-cols-2 gap-3">
-            <Label title="Quantité"><input className={inputClass} type="number" min="0.01" step="0.01" value={form.quantity} onChange={(event) => set('quantity', event.target.value)} required disabled={form.source_type === 'animal'} data-testid="daily-sale-quantity" /></Label>
-            <Label title={`Prix / ${form.unit}`}><input className={inputClass} type="number" min="1" value={form.unit_price} onChange={(event) => set('unit_price', event.target.value)} required data-testid="daily-sale-price" /></Label>
+            <Label title={t('dailyEntries.sale.quantity')}><input className={inputClass} type="number" min="0.01" step="0.01" value={form.quantity} onChange={(event) => set('quantity', event.target.value)} required disabled={form.source_type === 'animal'} data-testid="daily-sale-quantity" /></Label>
+            <Label title={t('dailyEntries.sale.pricePerUnit', { unit: form.unit })}><input className={inputClass} type="number" min="1" value={form.unit_price} onChange={(event) => set('unit_price', event.target.value)} required data-testid="daily-sale-price" /></Label>
           </div>
-          <Label title="Client">
+          <Label title={t('dailyEntries.sale.client')}>
             <select className={inputClass} value={form.client_id} onChange={(event) => set('client_id', event.target.value)} required data-testid="daily-sale-client">
-              <option value={WALK_IN}>Client de passage</option>
+              <option value={WALK_IN}>{t('dailyEntries.sale.walkInCustomer')}</option>
               {arr(props.clients).map((client) => <option key={client.id} value={client.id}>{client.nom || client.name || client.id}</option>)}
             </select>
           </Label>
-          <div className="rounded-lg border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-800">Total <b className="float-right">{fmtCurrency(total)}</b></div>
+          <div className="rounded-lg border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-800">{t('dailyEntries.sale.total')} <b className="float-right">{fmtCurrency(total)}</b></div>
           <details className="rounded-lg border border-[#eadcc2] bg-[#fffdf8] p-3">
-            <summary className="cursor-pointer text-sm font-black text-[#2f2415]">Détails</summary>
+            <summary className="cursor-pointer text-sm font-black text-[#2f2415]">{t('dailyEntries.common.details')}</summary>
             <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
-              <Label title="Date"><input className={inputClass} type="date" value={form.date} onChange={(event) => set('date', event.target.value)} /></Label>
-              <Label title="Paiement"><select className={inputClass} value={form.payment_status} onChange={(event) => set('payment_status', event.target.value)}><option value="paye">Payé</option><option value="partiel">Partiel</option><option value="non_paye">À encaisser</option></select></Label>
-              {form.payment_status === 'partiel' ? <Label title="Montant payé"><input className={inputClass} type="number" value={form.paid_amount} onChange={(event) => set('paid_amount', event.target.value)} /></Label> : null}
-              <Label title="Mode"><select className={inputClass} value={form.fulfillment_mode} onChange={(event) => set('fulfillment_mode', event.target.value)}><option value="recupere">Retrait</option><option value="livraison">Livré</option><option value="a_livrer">À livrer</option></select></Label>
-              <Label title="Facture"><select className={inputClass} value={form.invoice_issued ? 'oui' : 'non'} onChange={(event) => set('invoice_issued', event.target.value === 'oui')}><option value="oui">Oui</option><option value="non">Non</option></select></Label>
-              <Label title="Notes"><input className={inputClass} value={form.notes} onChange={(event) => set('notes', event.target.value)} /></Label>
+              <Label title={t('dailyEntries.common.date')}><input className={inputClass} type="date" value={form.date} onChange={(event) => set('date', event.target.value)} /></Label>
+              <Label title={t('dailyEntries.sale.payment')}><select className={inputClass} value={form.payment_status} onChange={(event) => set('payment_status', event.target.value)}><option value="paye">{t('dailyEntries.sale.paid')}</option><option value="partiel">{t('dailyEntries.sale.partial')}</option><option value="non_paye">{t('dailyEntries.sale.toCollect')}</option></select></Label>
+              {form.payment_status === 'partiel' ? <Label title={t('dailyEntries.sale.amountPaid')}><input className={inputClass} type="number" value={form.paid_amount} onChange={(event) => set('paid_amount', event.target.value)} /></Label> : null}
+              <Label title={t('dailyEntries.sale.mode')}><select className={inputClass} value={form.fulfillment_mode} onChange={(event) => set('fulfillment_mode', event.target.value)}><option value="recupere">{t('dailyEntries.sale.pickup')}</option><option value="livraison">{t('dailyEntries.sale.delivered')}</option><option value="a_livrer">{t('dailyEntries.sale.toDeliver')}</option></select></Label>
+              <Label title={t('dailyEntries.sale.invoice')}><select className={inputClass} value={form.invoice_issued ? 'oui' : 'non'} onChange={(event) => set('invoice_issued', event.target.value === 'oui')}><option value="oui">{t('dailyEntries.sale.yes')}</option><option value="non">{t('dailyEntries.sale.no')}</option></select></Label>
+              <Label title={t('dailyEntries.common.notes')}><input className={inputClass} value={form.notes} onChange={(event) => set('notes', event.target.value)} /></Label>
             </div>
           </details>
           <div className="flex justify-end gap-2 pt-1">
-            <button type="button" onClick={onClose} className="min-h-[44px] rounded-lg border border-[#d6c3a0] px-4 text-sm font-bold">Annuler</button>
-            <button type="submit" disabled={busy} className="min-h-[44px] rounded-lg bg-[#2f2415] px-5 text-sm font-black text-white disabled:opacity-50" data-testid="daily-sale-submit">{busy ? 'Enregistrement...' : 'Enregistrer'}</button>
+            <button type="button" onClick={onClose} className="min-h-[44px] rounded-lg border border-[#d6c3a0] px-4 text-sm font-bold">{t('dailyEntries.common.cancel')}</button>
+            <button type="submit" disabled={busy} className="min-h-[44px] rounded-lg bg-[#2f2415] px-5 text-sm font-black text-white disabled:opacity-50" data-testid="daily-sale-submit">{busy ? t('dailyEntries.common.saving') : t('dailyEntries.common.save')}</button>
           </div>
         </form>
       </div>

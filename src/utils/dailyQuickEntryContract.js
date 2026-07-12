@@ -1,3 +1,4 @@
+import { t } from '../i18n/fr/index.js';
 import { makeId } from './ids.js';
 
 const clean = (value = '') => String(value || '').trim();
@@ -90,15 +91,39 @@ export function findDailyEntryReplay(rows = [], eventKey = '') {
 }
 
 export function dailyEntryConfirmation(type, result = {}) {
-  if (result.replayed) return 'Saisie déjà enregistrée · aucun doublon créé.';
-  if (type === DAILY_ENTRY_TYPES.FEEDING) return `Distribution enregistrée · ${result.qty || 0} ${result.unit || 'kg'} sortis · stock ${result.newStockQty ?? 'mis à jour'} · coût ${result.amount || 0} FCFA.`;
-  if (type === DAILY_ENTRY_TYPES.EGGS) return `Ponte enregistrée · ${result.sellable || 0} œuf(s) vendables · ${result.tablet?.tablettes || 0} plateau(x) · taux de ponte mis à jour.`;
-  if (type === DAILY_ENTRY_TYPES.MORTALITY) return `Mortalité enregistrée · ${result.qty || 0} sujet(s) · effectif ${result.activeCount ?? 'mis à jour'}.`;
-  if (type === DAILY_ENTRY_TYPES.WEIGHING) return `Pesée enregistrée · ${result.weight || 0} ${result.unit || 'kg'} · croissance mise à jour.`;
-  if (type === DAILY_ENTRY_TYPES.IRRIGATION) return `Irrigation enregistrée · ${result.volumeLitres || 0} L · coût parcelle mis à jour.`;
-  if (type === DAILY_ENTRY_TYPES.HARVEST) return `Récolte enregistrée · ${result.qty || 0} ${result.unit || 'kg'} récoltés · ${result.sellableQty ?? result.qty ?? 0} vendables ajoutés au stock.`;
-  if (type === DAILY_ENTRY_TYPES.SALE) return `Vente enregistrée · ${result.paid || 0} FCFA encaissés · ${result.remaining || 0} FCFA à encaisser · source mise à jour.`;
-  return 'Saisie enregistrée.';
+  const updated = t('dailyEntries.confirmations.updated');
+  if (result.replayed) return t('dailyEntries.confirmations.replay');
+  if (type === DAILY_ENTRY_TYPES.FEEDING) return t('dailyEntries.confirmations.feeding', {
+    qty: result.qty || 0,
+    unit: result.unit || 'kg',
+    newStockQty: result.newStockQty ?? updated,
+    amount: result.amount || 0,
+  });
+  if (type === DAILY_ENTRY_TYPES.EGGS) return t('dailyEntries.confirmations.eggs', {
+    sellable: result.sellable || 0,
+    trays: result.tablet?.tablettes || 0,
+  });
+  if (type === DAILY_ENTRY_TYPES.MORTALITY) return t('dailyEntries.confirmations.mortality', {
+    qty: result.qty || 0,
+    activeCount: result.activeCount ?? updated,
+  });
+  if (type === DAILY_ENTRY_TYPES.WEIGHING) return t('dailyEntries.confirmations.weighing', {
+    weight: result.weight || 0,
+    unit: result.unit || 'kg',
+  });
+  if (type === DAILY_ENTRY_TYPES.IRRIGATION) return t('dailyEntries.confirmations.irrigation', {
+    volume: result.volumeLitres || 0,
+  });
+  if (type === DAILY_ENTRY_TYPES.HARVEST) return t('dailyEntries.confirmations.harvest', {
+    qty: result.qty || 0,
+    unit: result.unit || 'kg',
+    sellableQty: result.sellableQty ?? result.qty ?? 0,
+  });
+  if (type === DAILY_ENTRY_TYPES.SALE) return t('dailyEntries.confirmations.sale', {
+    paid: result.paid || 0,
+    remaining: result.remaining || 0,
+  });
+  return t('dailyEntries.confirmations.saved');
 }
 
 export function validateDailyEntryContracts(contracts = DAILY_ENTRY_CONTRACTS) {
