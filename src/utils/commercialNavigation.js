@@ -471,7 +471,7 @@ const RH_TAB_ALIASES = {
   graphiques: 'Registres & Analyses',
   analyses: 'Registres & Analyses',
 };
-export const SMARTFARM_TABS = ['Objets connectés', 'Flux temps réel', 'Automatisation'];
+export const SMARTFARM_TABS = ['SmartFarmOverviewView', 'SmartFarmWaterView', 'SmartFarmEnergyView', 'SmartFarmBuildingsView', 'SmartFarmDevicesView', 'SmartFarmReadingsView', 'SmartFarmConfigurationView'];
 
 const SMARTFARM_TAB_ALIASES = {
   'Objets connectés': 'Objets connectés',
@@ -563,12 +563,15 @@ export const FINANCEMENTS_TABS = [
   'cockpit-opportunities',
   'cockpit-contacts',
   'cockpit-applications',
-  'cockpit-agreements',
+  'cockpit-documents',
+  'cockpit-funds',
+  'cockpit-publications',
+  'cockpit-access',
   'funder-overview',
   'funder-reports',
   'funder-journal',
   'funder-documents',
-  'demo',
+  'funder-contact',
 ];
 export const INVESTISSEURS_TABS = FINANCEMENTS_TABS;
 
@@ -577,11 +580,16 @@ const INVESTISSEURS_TAB_ALIASES = {
   'cockpit-opportunities': 'cockpit-opportunities',
   'cockpit-contacts': 'cockpit-contacts',
   'cockpit-applications': 'cockpit-applications',
-  'cockpit-agreements': 'cockpit-agreements',
+  'cockpit-agreements': 'cockpit-funds',
+  'cockpit-documents': 'cockpit-documents',
+  'cockpit-funds': 'cockpit-funds',
+  'cockpit-publications': 'cockpit-publications',
+  'cockpit-access': 'cockpit-access',
   'funder-overview': 'funder-overview',
   'funder-reports': 'funder-reports',
   'funder-journal': 'funder-journal',
   'funder-documents': 'funder-documents',
+  'funder-contact': 'funder-contact',
   room: 'cockpit-dashboard',
   'Investor Room': 'cockpit-dashboard',
   preparation: 'cockpit-dashboard',
@@ -599,9 +607,9 @@ const INVESTISSEURS_TAB_ALIASES = {
   'Exports PDF': 'funder-reports',
   history: 'funder-journal',
   Historique: 'funder-journal',
-  demo: 'demo',
-  'Démo investisseur': 'demo',
-  'Mode exemple': 'demo',
+  demo: 'cockpit-dashboard',
+  'Démo investisseur': 'cockpit-dashboard',
+  'Mode exemple': 'cockpit-dashboard',
   Résumé: 'cockpit-dashboard',
   resume: 'cockpit-dashboard',
   financements: 'cockpit-dashboard',
@@ -612,13 +620,13 @@ const INVESTISSEURS_TAB_ALIASES = {
   opportunites: 'cockpit-opportunities',
   Contacts: 'cockpit-contacts',
   Dossiers: 'cockpit-applications',
-  Conventions: 'cockpit-agreements',
+  Conventions: 'cockpit-funds',
   Rapports: 'funder-reports',
   Journal: 'funder-journal',
   Documents: 'funder-documents',
 };
 
-export const GESTION_SYSTEME_TABS = ['Vue admin', 'Utilisateurs', 'Fermes', 'Paramètres', 'Sécurité', 'Synchronisation', 'Sauvegardes', 'Réinitialisation', 'Audit'];
+export const GESTION_SYSTEME_TABS = ['SystemFarmsView', 'SystemUsersAccessView', 'SystemRolesPermissionsView', 'SystemModulesActivationView', 'SystemSettingsView', 'SystemReferencesView', 'SystemCatalogsView', 'SystemSyncView', 'SystemAuditSecurityView'];
 
 const GESTION_SYSTEME_TAB_ALIASES = {
   Synchronisation: 'Synchronisation',
@@ -761,13 +769,12 @@ export function navigateSyncActivityTab(onNavigate, tab = '', options = {}) {
 
 export function resolveSmartFarmTab(value = '') {
   const tab = String(value || '').trim();
-  if (SMARTFARM_TABS.includes(tab)) return tab;
-  const fromAlias = SMARTFARM_TAB_ALIASES[tab] || SMARTFARM_TAB_ALIASES[lower(tab)];
-  if (fromAlias) return fromAlias;
   const configured = configuredComponent('smartfarm', tab);
   if (configured) return configured;
-  if (lower(tab) === 'resume') return 'Objets connectés';
-  return 'Objets connectés';
+  if (SMARTFARM_TABS.includes(tab)) return tab;
+  const fromAlias = SMARTFARM_TAB_ALIASES[tab] || SMARTFARM_TAB_ALIASES[lower(tab)];
+  if (fromAlias) return configuredComponent('smartfarm', fromAlias) || 'SmartFarmOverviewView';
+  return 'SmartFarmOverviewView';
 }
 
 export function resolveSmartFarmNavigation(value = '') {
@@ -777,7 +784,7 @@ export function resolveSmartFarmNavigation(value = '') {
 
 /** Navigation externe — conserve alias legacy (Capteurs, flux…). */
 export function navigateSmartFarmTab(onNavigate, tab = '', options = {}) {
-  const raw = String(tab || '').trim() || 'Objets connectés';
+  const raw = String(tab || '').trim() || 'Vue d’ensemble';
   if (typeof onNavigate === 'function') {
     onNavigate('smartfarm', { tab: raw, ...options });
   }
@@ -786,12 +793,12 @@ export function navigateSmartFarmTab(onNavigate, tab = '', options = {}) {
 
 export function resolveGestionSystemeTab(value = '') {
   const tab = String(value || '').trim();
-  if (GESTION_SYSTEME_TABS.includes(tab)) return tab;
-  const fromAlias = GESTION_SYSTEME_TAB_ALIASES[tab] || GESTION_SYSTEME_TAB_ALIASES[lower(tab)];
-  if (fromAlias) return fromAlias;
   const configured = configuredComponent('gestion_systeme', tab);
   if (configured) return configured;
-  return 'Vue admin';
+  if (GESTION_SYSTEME_TABS.includes(tab)) return tab;
+  const fromAlias = GESTION_SYSTEME_TAB_ALIASES[tab] || GESTION_SYSTEME_TAB_ALIASES[lower(tab)];
+  if (fromAlias) return configuredComponent('gestion_systeme', fromAlias) || 'SystemFarmsView';
+  return 'SystemFarmsView';
 }
 
 export function resolveGestionSystemeNavigation(value = '') {
@@ -800,7 +807,7 @@ export function resolveGestionSystemeNavigation(value = '') {
 
 /** Navigation externe — conserve alias legacy (Paramètres, Audit…). */
 export function navigateGestionSystemeTab(onNavigate, tab = '', options = {}) {
-  const raw = String(tab || '').trim() || 'Vue admin';
+  const raw = String(tab || '').trim() || 'Fermes';
   if (typeof onNavigate === 'function') {
     onNavigate('gestion_systeme', { tab: raw, ...options });
   }
@@ -841,11 +848,11 @@ export function resolveDashboardTab(value = '') {
 
 export function resolveInvestisseursTab(value = '') {
   const tab = String(value || '').trim();
+  const configured = configuredComponent('financements', tab) || configuredComponent('financements_externe', tab);
+  if (configured) return configured;
   if (FINANCEMENTS_TABS.includes(tab)) return tab;
   const fromAlias = INVESTISSEURS_TAB_ALIASES[tab] || INVESTISSEURS_TAB_ALIASES[lower(tab)];
   if (fromAlias) return fromAlias;
-  const configured = configuredComponent('financements', tab);
-  if (configured) return configured;
   const legacy = tabAliases[lower(tab)];
   if (legacy && FINANCEMENTS_TABS.includes(legacy)) return legacy;
   return 'cockpit-dashboard';

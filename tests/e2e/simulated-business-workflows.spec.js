@@ -811,16 +811,6 @@ test.describe('Audit métier avec données simulées Horizon Farm', () => {
     expect(smartDeviceSource({ id: 'SENS-REAL-01', status: 'online', source_type: 'reel' })).toBe('reel');
   });
 
-  test('caméra Smart Farm hors ligne crée une action terrain', () => {
-    const workflow = buildSmartFarmDeviceFollowUp({
-      device: { id: 'CAM-ENTREE-001', name: 'Caméra entrée', status: 'offline', source_type: 'reel', zone: 'Entrée principale' },
-      kind: 'camera',
-      date: today(),
-    });
-    expect(workflow.task).toMatchObject({ module_lie: 'smartfarm', related_id: 'CAM-ENTREE-001', priority: 'haute' });
-    expect(workflow.alert).toMatchObject({ module_source: 'smartfarm', entity_type: 'camera', entity_id: 'CAM-ENTREE-001' });
-  });
-
   test('Hey Horizon prépare les intentions terrain sans confondre les modules', () => {
     expect(interpretHorizonCommand('Créer une fiche de vaccination pour BOV002')).toMatchObject({ primary_module: 'sante', form_type: 'health_action', draft_fields: { target_id: 'BOV002' } });
     expect(interpretHorizonCommand('J’ai ramassé 300 œufs')).toMatchObject({ primary_module: 'avicole', form_type: 'egg_production', draft_fields: { eggs_count: 300, tablettes: 10 } });

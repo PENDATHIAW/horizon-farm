@@ -5,7 +5,6 @@ import {
   BookOpen,
   CalendarDays,
   ClipboardCheck,
-  Eye,
   FileText,
   FolderOpen,
   Handshake,
@@ -16,29 +15,14 @@ import {
   WalletCards,
 } from 'lucide-react';
 import { resolveFinancementsTab } from '../utils/commercialNavigation.js';
+import ModuleTabsBar from '../components/module/ModuleTabsBar.jsx';
 import {
   FUNDING_ALERT_TYPES,
   buildFundingCockpit,
   buildFundingPublicSpace,
-  createFundingDemoDataset,
   createFundingReportVersion,
   validateFundingReportPublication,
 } from '../services/financements/financementsService.js';
-
-const COCKPIT_TABS = [
-  { id: 'cockpit-dashboard', label: 'Tableau de bord', icon: WalletCards },
-  { id: 'cockpit-opportunities', label: 'Opportunités', icon: Handshake },
-  { id: 'cockpit-contacts', label: 'Contacts', icon: Users },
-  { id: 'cockpit-applications', label: 'Dossiers & pièces', icon: FolderOpen },
-  { id: 'cockpit-agreements', label: 'Fonds & justificatifs', icon: ReceiptText },
-];
-
-const FUNDER_TABS = [
-  { id: 'funder-overview', label: 'Vue d’ensemble', icon: Eye },
-  { id: 'funder-reports', label: 'Rapports', icon: FileText },
-  { id: 'funder-journal', label: 'Journal du projet', icon: BookOpen },
-  { id: 'funder-documents', label: 'Documents partagés', icon: LockKeyhole },
-];
 
 const arr = (value) => (Array.isArray(value) ? value : []);
 const lower = (value) => String(value || '').trim().toLowerCase();
@@ -52,7 +36,6 @@ function realFundingSeed(props = {}) {
   const documents = arr(props.documents);
   const businessEvents = arr(props.businessEvents);
   const businessPlans = arr(props.businessPlans);
-  const investments = arr(props.investissements);
   const transactions = arr(props.transactions);
   const auditLogs = arr(props.auditLogs);
   const reports = arr(props.rapports);
@@ -180,22 +163,6 @@ function realFundingSeed(props = {}) {
       ...auditLogs.filter((log) => lower(`${log.module || ''} ${log.action || ''}`).includes('financement')),
     ],
   };
-}
-
-function TabButton({ item, active, onClick }) {
-  const Icon = item.icon;
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      className={`h-10 shrink-0 rounded-lg border px-3 text-sm font-bold inline-flex items-center gap-2 transition ${
-        active ? 'border-[#2f2415] bg-[#2f2415] text-white' : 'border-[#d9c8a8] bg-white text-[#5d4b2f] hover:border-[#9a6b12]'
-      }`}
-    >
-      <Icon size={16} />
-      <span>{item.label}</span>
-    </button>
-  );
 }
 
 function StatCard({ icon: Icon, label, value, detail, tone = 'default' }) {
@@ -382,97 +349,6 @@ function ContactsTab({ cockpit }) {
   );
 }
 
-function ApplicationsTab({ cockpit, onCreateReport, onPublishReport, publishMessage }) {
-  return (
-    <div className="space-y-6">
-      <Section
-        title="Dossiers"
-        icon={ClipboardCheck}
-        right={(
-          <button type="button" onClick={onCreateReport} className="h-10 rounded-lg bg-[#2f2415] px-3 text-sm font-black text-white inline-flex items-center gap-2">
-            <FileText size={16} />
-            Figer rapport
-          </button>
-        )}
-      >
-        {cockpit.applications.length ? (
-          <div className="grid grid-cols-1 xl:grid-cols-2 gap-3">
-            {cockpit.applications.map((application) => (
-              <div key={application.id} className="rounded-lg border border-[#e7d9bd] bg-white p-4">
-                <div className="flex flex-wrap items-start justify-between gap-3">
-                  <div>
-                    <p className="font-black text-[#2f2415]">{application.title}</p>
-                    <p className="text-sm text-[#7d6a4a]">{application.target_institution || 'Cible à préciser'}</p>
-                  </div>
-                  <Badge tone={application.completion_rate >= 100 ? 'good' : 'amber'}>{application.completion_rate}%</Badge>
-                </div>
-                <div className="mt-4 h-2 rounded-full bg-[#f0e4cd] overflow-hidden">
-                  <div className="h-full bg-emerald-500" style={{ width: `${application.completion_rate}%` }} />
-                </div>
-                <div className="mt-3 flex flex-wrap gap-2">
-                  {application.required_documents.map((doc) => (
-                    <Badge key={doc} tone={application.ready_documents.includes(doc) ? 'good' : 'amber'}>{doc}</Badge>
-                  ))}
-                </div>
-              </div>
-            ))}
-          </div>
-        ) : (
-          <EmptyState>Aucun dossier financement structuré.</EmptyState>
-        )}
-      </Section>
-
-      <Section title="Bibliothèque documentaire" icon={FolderOpen}>
-        {cockpit.documents.length ? (
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-3">
-            {cockpit.documents.map((doc) => (
-              <div key={doc.id} className="rounded-lg border border-[#e7d9bd] bg-white p-4">
-                <div className="flex items-start justify-between gap-2">
-                  <p className="font-black text-[#2f2415]">{doc.title}</p>
-                  <Badge tone={doc.status === 'published' ? 'good' : 'neutral'}>{doc.version}</Badge>
-                </div>
-                <p className="mt-2 text-sm text-[#7d6a4a]">{doc.category}</p>
-                <div className="mt-3 flex flex-wrap gap-2">
-                  <Badge>{doc.visibility}</Badge>
-                  <Badge tone={doc.status === 'published' ? 'good' : 'amber'}>{doc.status}</Badge>
-                </div>
-              </div>
-            ))}
-          </div>
-        ) : (
-          <EmptyState>Aucun document financement indexé.</EmptyState>
-        )}
-      </Section>
-
-      <Section title="Rapports figés" icon={FileText}>
-        {publishMessage ? <div className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm font-bold text-amber-900">{publishMessage}</div> : null}
-        {cockpit.reports.length ? (
-          <div className="space-y-2">
-            {cockpit.reports.map((report) => (
-              <div key={`${report.id}-${report.version}`} className="rounded-lg border border-[#e7d9bd] bg-white p-4 flex flex-wrap items-center justify-between gap-3">
-                <div>
-                  <p className="font-black text-[#2f2415]">{report.title}</p>
-                  <p className="text-xs text-[#8a7456]">v{report.version} · {report.source_snapshot_hash}</p>
-                </div>
-                <div className="flex flex-wrap items-center gap-2">
-                  <Badge tone={report.status === 'published' ? 'good' : 'amber'}>{report.status}</Badge>
-                  {report.status !== 'published' ? (
-                    <button type="button" onClick={() => onPublishReport(report)} className="h-9 rounded-lg border border-[#2f2415] px-3 text-xs font-black text-[#2f2415]">
-                      Publier
-                    </button>
-                  ) : null}
-                </div>
-              </div>
-            ))}
-          </div>
-        ) : (
-          <EmptyState>Aucun rapport figé.</EmptyState>
-        )}
-      </Section>
-    </div>
-  );
-}
-
 function AgreementsTab({ cockpit }) {
   return (
     <div className="space-y-6">
@@ -535,7 +411,23 @@ function AgreementsTab({ cockpit }) {
   );
 }
 
-function FunderSpace({ tab, publicSpace, accessLogs }) {
+function ApplicationsOnlyTab({ cockpit }) {
+  return <Section title="Candidatures" icon={ClipboardCheck}>{cockpit.applications.length ? <div className="grid grid-cols-1 xl:grid-cols-2 gap-3">{cockpit.applications.map((application) => <div key={application.id} className="rounded-lg border border-[#e7d9bd] bg-white p-4"><div className="flex items-start justify-between gap-3"><div><p className="font-black text-[#2f2415]">{application.title}</p><p className="text-sm text-[#7d6a4a]">{application.target_institution || 'Organisme à préciser'}</p></div><Badge tone={application.completion_rate >= 100 ? 'good' : 'amber'}>{application.completion_rate}%</Badge></div><div className="mt-3 h-2 overflow-hidden rounded-full bg-[#f0e4cd]"><div className="h-full bg-emerald-500" style={{ width: `${application.completion_rate}%` }} /></div></div>)}</div> : <EmptyState>Aucune candidature structurée.</EmptyState>}</Section>;
+}
+
+function FundingDocumentsTab({ cockpit }) {
+  return <Section title="Pièces du dossier" icon={FolderOpen}>{cockpit.documents.length ? <div className="grid grid-cols-1 lg:grid-cols-3 gap-3">{cockpit.documents.map((doc) => <div key={doc.id} className="rounded-lg border border-[#e7d9bd] bg-white p-4"><p className="font-black text-[#2f2415]">{doc.title}</p><p className="mt-2 text-sm text-[#7d6a4a]">{doc.category}</p><div className="mt-3 flex gap-2"><Badge>{doc.visibility}</Badge><Badge tone={doc.status === 'published' ? 'good' : 'amber'}>{doc.status}</Badge></div></div>)}</div> : <EmptyState>Aucune pièce de dossier indexée.</EmptyState>}</Section>;
+}
+
+function FundingPublicationsTab({ cockpit, onCreateReport, onPublishReport, publishMessage }) {
+  return <Section title="Publications" icon={FileText} right={<button type="button" onClick={onCreateReport} className="h-10 rounded-lg bg-[#2f2415] px-3 text-sm font-black text-white">Créer une version</button>}>{publishMessage ? <div className="mb-3 rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm font-bold text-amber-900">{publishMessage}</div> : null}{cockpit.reports.length ? <div className="space-y-2">{cockpit.reports.map((report) => <div key={`${report.id}-${report.version}`} className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-[#e7d9bd] bg-white p-4"><div><p className="font-black text-[#2f2415]">{report.title}</p><p className="text-xs text-[#8a7456]">v{report.version} · {report.source_snapshot_hash}</p></div><div className="flex items-center gap-2"><Badge tone={report.status === 'published' ? 'good' : 'amber'}>{report.status}</Badge>{report.status !== 'published' ? <button type="button" onClick={() => onPublishReport(report)} className="h-9 rounded-lg border border-[#2f2415] px-3 text-xs font-black">Publier</button> : null}</div></div>)}</div> : <EmptyState>Aucune publication préparée.</EmptyState>}</Section>;
+}
+
+function FundingAccessTab({ cockpit }) {
+  return <Section title="Accès externes" icon={ShieldCheck}>{cockpit.accessLogs?.length ? <div className="space-y-2">{cockpit.accessLogs.map((log, index) => <div key={log.id || index} className="grid gap-2 rounded-lg border border-[#e7d9bd] bg-white p-3 text-sm sm:grid-cols-[1fr_auto]"><span className="font-black text-[#2f2415]">{log.funder || log.user_id || 'Financeur'}</span><span className="text-[#7d6a4a]">{log.action || 'lecture'} · {dateLabel(log.created_at || log.at)}</span></div>)}</div> : <EmptyState>Aucun accès externe journalisé.</EmptyState>}</Section>;
+}
+
+function FunderSpace({ tab, publicSpace, accessLogs, contact }) {
   if (tab === 'funder-reports') {
     return (
       <Section title="Rapports" icon={FileText}>
@@ -604,6 +496,10 @@ function FunderSpace({ tab, publicSpace, accessLogs }) {
     );
   }
 
+  if (tab === 'funder-contact') {
+    return <Section title="Contact" icon={Users}><div className="rounded-lg border border-[#e7d9bd] bg-white p-4"><p className="font-black text-[#2f2415]">{contact?.name || 'Contact Horizon Farm'}</p><p className="mt-1 text-sm text-[#7d6a4a]">{contact?.email || 'Courriel à renseigner'} · {contact?.phone || 'Téléphone à renseigner'}</p></div></Section>;
+  }
+
   return (
     <div className="space-y-6">
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-3">
@@ -633,7 +529,6 @@ function FunderSpace({ tab, publicSpace, accessLogs }) {
 export default function FinancementsModule(props) {
   const controlled = Object.prototype.hasOwnProperty.call(props, 'initialTab');
   const [internalTab, setInternalTab] = useState(() => resolveFinancementsTab(props.initialTab));
-  const [demoMode, setDemoMode] = useState(false);
   const [localReports, setLocalReports] = useState([]);
   const [publishMessage, setPublishMessage] = useState('');
   const activeTab = controlled ? resolveFinancementsTab(props.initialTab) : internalTab;
@@ -646,7 +541,7 @@ export default function FinancementsModule(props) {
 
   const seed = useMemo(() => realFundingSeed(props), [props]);
   const cockpit = useMemo(() => {
-    const input = demoMode ? createFundingDemoDataset() : seed;
+    const input = seed;
     return buildFundingCockpit({
       ...input,
       crud: props.crud,
@@ -663,16 +558,16 @@ export default function FinancementsModule(props) {
       businessEvents: props.businessEvents,
       reports: [...arr(input.reports), ...localReports],
     });
-  }, [demoMode, seed, props, localReports]);
+  }, [seed, props, localReports]);
 
   const publicSpace = useMemo(() => buildFundingPublicSpace({
     cockpit,
     reports: cockpit.reports,
     documents: cockpit.documents,
-    journalEntries: demoMode ? [] : seed.journalEntries,
+    journalEntries: seed.journalEntries,
     account: { status: 'active', permissions: ['*'] },
     demoMode: false,
-  }), [cockpit, demoMode, seed.journalEntries]);
+  }), [cockpit, seed.journalEntries]);
 
   const createReport = () => {
     const report = createFundingReportVersion({
@@ -726,40 +621,24 @@ export default function FinancementsModule(props) {
             >
               Espace Financeurs
             </button>
-            <button
-              type="button"
-              onClick={() => setDemoMode((value) => !value)}
-              className={`h-10 rounded-lg border px-3 text-sm font-black ${demoMode ? 'bg-emerald-50 text-emerald-800 border-emerald-200' : 'bg-white border-[#d9c8a8] text-[#5d4b2f]'}`}
-            >
-              Mode exemple
-            </button>
           </div>
         </header>
 
-        <div className="flex gap-2 overflow-x-auto pb-1">
-          {(face === 'cockpit' ? COCKPIT_TABS : FUNDER_TABS).map((item) => (
-            <TabButton key={item.id} item={item} active={activeTab === item.id} onClick={() => setTab(item.id)} />
-          ))}
-        </div>
+        <ModuleTabsBar moduleId={face === 'cockpit' ? 'financements' : 'financements_externe'} active={activeTab} onChange={setTab} wrap activeFarm={props.activeFarm} role={face === 'funder' ? 'financeur_externe' : props.role} />
 
         {face === 'cockpit' ? (
           <>
             {activeTab === 'cockpit-dashboard' ? <DashboardTab cockpit={cockpit} /> : null}
             {activeTab === 'cockpit-opportunities' ? <OpportunitiesTab cockpit={cockpit} /> : null}
             {activeTab === 'cockpit-contacts' ? <ContactsTab cockpit={cockpit} /> : null}
-            {activeTab === 'cockpit-applications' ? (
-              <ApplicationsTab
-                cockpit={cockpit}
-                onCreateReport={createReport}
-                onPublishReport={publishReport}
-                publishMessage={publishMessage}
-              />
-            ) : null}
-            {activeTab === 'cockpit-agreements' ? <AgreementsTab cockpit={cockpit} /> : null}
-            {activeTab === 'demo' ? <DashboardTab cockpit={buildFundingCockpit(createFundingDemoDataset())} /> : null}
+            {activeTab === 'cockpit-applications' ? <ApplicationsOnlyTab cockpit={cockpit} /> : null}
+            {activeTab === 'cockpit-documents' ? <FundingDocumentsTab cockpit={cockpit} /> : null}
+            {activeTab === 'cockpit-funds' ? <AgreementsTab cockpit={cockpit} /> : null}
+            {activeTab === 'cockpit-publications' ? <FundingPublicationsTab cockpit={cockpit} onCreateReport={createReport} onPublishReport={publishReport} publishMessage={publishMessage} /> : null}
+            {activeTab === 'cockpit-access' ? <FundingAccessTab cockpit={cockpit} /> : null}
           </>
         ) : (
-          <FunderSpace tab={activeTab} publicSpace={publicSpace} accessLogs={cockpit.accessLogs || seed.accessLogs || []} />
+          <FunderSpace tab={activeTab} publicSpace={publicSpace} accessLogs={cockpit.accessLogs || seed.accessLogs || []} contact={cockpit.contacts?.[0]} />
         )}
       </div>
     </div>

@@ -26,7 +26,7 @@ test('navigateInvestisseursTab — conserve alias brut', () => {
 test('navigateSmartFarmTab — conserve alias Capteurs', () => {
   const calls = [];
   const resolved = navigateSmartFarmTab((module, opts) => calls.push({ module, ...opts }), 'Capteurs');
-  assert.equal(resolved, 'Objets connectés');
+  assert.equal(resolved, 'SmartFarmDevicesView');
   assert.deepEqual(calls, [{ module: 'smartfarm', tab: 'Capteurs' }]);
 });
 
@@ -38,9 +38,9 @@ test('navigateSyncActivityTab — conserve alias audit', () => {
 });
 
 test('resolveGestionSystemeTab — alias Paramètres', () => {
-  assert.equal(resolveGestionSystemeTab('Paramètres'), 'Paramètres');
-  assert.equal(resolveGestionSystemeTab('settings'), 'Paramètres');
-  assert.equal(resolveGestionSystemeTab('Résumé'), 'Vue admin');
+  assert.equal(resolveGestionSystemeTab('Paramètres'), 'SystemSettingsView');
+  assert.equal(resolveGestionSystemeTab('settings'), 'SystemSettingsView');
+  assert.equal(resolveGestionSystemeTab('Résumé'), 'SystemFarmsView');
 });
 
 test('navigateGestionSystemeTab — conserve alias brut', () => {

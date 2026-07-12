@@ -1,12 +1,10 @@
 import { buildSmartFarmDeviceFollowUp } from '../utils/smartFarmWorkflows.js';
 
 const arr = (v) => (Array.isArray(v) ? v : []);
-const clean = (v) => String(v || '').trim();
 
-/** Crée alertes + événements pour capteurs/caméras critiques (sans doublon). */
+/** Crée alertes + événements pour les capteurs critiques, sans doublon. */
 export async function syncSmartFarmCriticalSignals({
   sensors = [],
-  cameras = [],
   tasks = [],
   alertes = [],
   onCreateAlert,
@@ -19,14 +17,9 @@ export async function syncSmartFarmCriticalSignals({
   const openTasks = arr(tasks).filter((t) => !['termine', 'terminé', 'done', 'closed'].includes(String(t.status || t.statut).toLowerCase()));
   const openAlerts = arr(alertes).filter((a) => !['traitee', 'traitée', 'resolue', 'résolue', 'fermee', 'fermée'].includes(String(a.status || a.statut).toLowerCase()));
 
-  const devices = [
-    ...arr(sensors).map((device) => ({ device, kind: 'capteur' })),
-    ...arr(cameras).map((device) => ({ device, kind: 'camera' })),
-  ];
-
   let created = 0;
-  for (const { device, kind } of devices) {
-    const followUp = buildSmartFarmDeviceFollowUp({ device, kind });
+  for (const device of arr(sensors)) {
+    const followUp = buildSmartFarmDeviceFollowUp({ device });
     if (!followUp) continue;
 
     const key = followUp.task.task_dedupe_key;
@@ -46,15 +39,12 @@ export async function syncSmartFarmCriticalSignals({
   return { created };
 }
 
-export function countSmartFarmCriticalDevices(sensors = [], cameras = []) {
-  return devicesWithFollowUp(sensors, cameras).length;
+export function countSmartFarmCriticalDevices(sensors = []) {
+  return devicesWithFollowUp(sensors).length;
 }
 
-function devicesWithFollowUp(sensors = [], cameras = []) {
-  return [
-    ...arr(sensors).map((device) => ({ device, kind: 'capteur' })),
-    ...arr(cameras).map((device) => ({ device, kind: 'camera' })),
-  ].filter(({ device, kind }) => Boolean(buildSmartFarmDeviceFollowUp({ device, kind })));
+function devicesWithFollowUp(sensors = []) {
+  return arr(sensors).filter((device) => Boolean(buildSmartFarmDeviceFollowUp({ device })));
 }
 
 export default syncSmartFarmCriticalSignals;

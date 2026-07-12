@@ -27,7 +27,6 @@ import { auditLogsService } from '../services/auditLogsService';
 import { alimentationLogsService } from '../services/alimentationLogsService';
 import { productionOeufsLogsService } from '../services/productionOeufsLogsService';
 import { sensorDevicesService } from '../services/sensorDevicesService';
-import { cameraDevicesService } from '../services/cameraDevicesService';
 import { smartfarmEventsService } from '../services/smartfarmEventsService';
 import { alertesCenterService } from '../services/alertesCenterService';
 import { businessEventsService, createBusinessEvent } from '../services/businessEventsService';
@@ -103,7 +102,6 @@ const serviceMap = {
   alimentation_logs: alimentationLogsService,
   production_oeufs_logs: productionOeufsLogsService,
   sensor_devices: sensorDevicesService,
-  camera_devices: cameraDevicesService,
   smartfarm_events: smartfarmEventsService,
   business_events: businessEventsService,
   alertes_center: alertesCenterService,

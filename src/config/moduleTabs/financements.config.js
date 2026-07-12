@@ -2,14 +2,14 @@ import labels from '../../i18n/fr/moduleTabs.js';
 import { defineModuleTabs, MANAGEMENT_ROLES } from './shared.js';
 
 export const financementCockpitTabs = defineModuleTabs('financements', labels.financements.cockpit, [
-  { id: 'tableau-bord', component: 'overview' },
-  { id: 'opportunites', component: 'opportunities' },
-  { id: 'contacts-echanges', component: 'contacts' },
-  { id: 'candidatures', component: 'applications' },
-  { id: 'pieces-dossier', component: 'documents', aliases: ['Dossiers & pieces'] },
-  { id: 'fonds-utilisation', component: 'funds' },
-  { id: 'publications', component: 'publications' },
-  { id: 'acces-externes', component: 'access' },
+  { id: 'tableau-bord', component: 'cockpit-dashboard' },
+  { id: 'opportunites', component: 'cockpit-opportunities' },
+  { id: 'contacts-echanges', component: 'cockpit-contacts' },
+  { id: 'candidatures', component: 'cockpit-applications' },
+  { id: 'pieces-dossier', component: 'cockpit-documents', aliases: ['Dossiers & pieces'] },
+  { id: 'fonds-utilisation', component: 'cockpit-funds' },
+  { id: 'publications', component: 'cockpit-publications' },
+  { id: 'acces-externes', component: 'cockpit-access' },
 ], 'financements').map((tab) => Object.freeze({ ...tab, requiredRoles: MANAGEMENT_ROLES }));
 
 export const financementExternalTabs = defineModuleTabs('financements_externe', labels.financements.externe, [

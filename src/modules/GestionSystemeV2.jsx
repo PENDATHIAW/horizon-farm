@@ -1,1 +1,1 @@
-export { default } from './GestionSystemeUnified';
+export { default } from './GestionSystemeV1Module.jsx';

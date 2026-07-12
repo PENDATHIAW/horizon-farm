@@ -14,21 +14,6 @@ function Card({ title, value, hint }) {
   );
 }
 
-const extensionReadiness = [
-  {
-    name: 'BOVINIA',
-    stage: 'Extension future',
-    role: 'Valorisation alimentaire des coproduits animaux en bone broth, après stabilisation de la ferme.',
-    gates: ['Volume de matière première traçable', 'Rendement transformation', 'Coût par stick / boîte', 'Conformité alimentaire', 'Ventes pilotes et réachat'],
-  },
-  {
-    name: 'tallow & go',
-    stage: 'Extension future',
-    role: 'Valorisation cosmétique du suif, à lancer seulement lorsque la chaîne matière, qualité et marge est sécurisée.',
-    gates: ['Approvisionnement suif', 'Qualité / conservation', 'Coût formule', 'Packaging', 'Tests clients et marge'],
-  },
-];
-
 export default function AgriFeedsDashboardTab({ dataMap = {}, onNavigateTab }) {
   const normalized = useMemo(() => normalizeAgriFeedsDataMap(dataMap), [dataMap]);
   const readiness = useMemo(() => computeAgriFeedsReadiness(normalized), [normalized]);
@@ -40,14 +25,14 @@ export default function AgriFeedsDashboardTab({ dataMap = {}, onNavigateTab }) {
       <section className="rounded-3xl border border-[#d6c3a0] bg-[#fffdf8] p-5">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
-            <p className="text-lg font-black text-[#2f2415]">Mode actuel — {readiness.modeShortLabel}</p>
+            <p className="text-lg font-black text-[#2f2415]">État actuel — {readiness.modeShortLabel}</p>
             <p className="text-sm text-[#8a7456] mt-1 max-w-2xl leading-relaxed">
               {readiness.modeLabel}. Score de préparation : <b>{readiness.readiness_score}/100</b>.
               {' '}{readiness.note}
             </p>
           </div>
           <div className="rounded-2xl border border-[#d6c3a0] bg-white px-4 py-2 text-sm font-black text-[#2f2415]">
-            Phase 1 {readiness.scores.phase1_reference}/100 · Pilote {readiness.scores.pilot_internal}/100 · Vente {readiness.scores.progressive_sales}/100
+            Référence {readiness.scores.phase1_reference}/100 · Pilote {readiness.scores.pilot_internal}/100 · Vente {readiness.scores.progressive_sales}/100
           </div>
         </div>
         <div className="mt-4 grid grid-cols-1 md:grid-cols-3 gap-3">
@@ -124,7 +109,7 @@ export default function AgriFeedsDashboardTab({ dataMap = {}, onNavigateTab }) {
 
       {readiness.per_mode?.PROGRESSIVE_SALES?.gates ? (
         <section className="rounded-3xl border border-[#d6c3a0] bg-white p-5">
-          <p className="font-black text-[#2f2415]">Portes Phase 2B — Vente progressive</p>
+          <p className="font-black text-[#2f2415]">Conditions de vente progressive</p>
           <div className="mt-2 grid grid-cols-1 md:grid-cols-2 gap-2">
             {Object.entries(readiness.per_mode.PROGRESSIVE_SALES.gates).map(([key, ok]) => (
               <div
@@ -140,7 +125,7 @@ export default function AgriFeedsDashboardTab({ dataMap = {}, onNavigateTab }) {
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         <Card
-          title="Distributions Phase 1"
+          title="Distributions de référence"
           value={fmtNumber(benchmark.totals.distributions)}
           hint="Aliments du marché suivis"
         />
@@ -164,20 +149,20 @@ export default function AgriFeedsDashboardTab({ dataMap = {}, onNavigateTab }) {
       <section className="rounded-3xl border border-[#d6c3a0] bg-white p-5">
         <p className="font-black text-[#2f2415]">Décision AGRI FEEDS</p>
         <p className="text-sm text-[#8a7456] mt-1 leading-relaxed">
-          En Mode Référence, la priorité est de consolider les données d’alimentation du marché.
+          La priorité actuelle est de consolider les données d’alimentation du marché.
           La production et la vente AGRI FEEDS restent fermées tant que les conditions ne sont pas réunies.
         </p>
         <div className="mt-3 flex flex-wrap gap-2">
           <button
             type="button"
-            onClick={() => onNavigateTab?.('Référence Phase 1')}
+            onClick={() => onNavigateTab?.('Coûts & décisions')}
             className="rounded-xl bg-[#22c55e] px-4 py-2 text-sm font-black text-[#052e16]"
           >
-            Voir la référence Phase 1
+            Voir les coûts & décisions
           </button>
           <button
             type="button"
-            onClick={() => onNavigateTab?.('Qualité & reporting')}
+            onClick={() => onNavigateTab?.('Qualité')}
             className="rounded-xl border border-[#d6c3a0] bg-[#fffdf8] px-4 py-2 text-sm font-black text-[#2f2415]"
           >
             Zones site prévues
@@ -185,32 +170,6 @@ export default function AgriFeedsDashboardTab({ dataMap = {}, onNavigateTab }) {
         </div>
       </section>
 
-      <section className="rounded-3xl border border-[#d6c3a0] bg-white p-5 space-y-3">
-        <div>
-          <p className="font-black text-[#2f2415]">Extensions futures — aide à la décision uniquement</p>
-          <p className="text-sm text-[#8a7456] mt-1 leading-relaxed max-w-3xl">
-            BOVINIA et tallow & go ne sont pas des modules opérationnels séparés. L’ERP doit seulement aider à décider quand ces extensions pourront être lancées, à partir des données réelles de la ferme, des coûts, de la qualité, de la traçabilité et de la marge.
-          </p>
-        </div>
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
-          {extensionReadiness.map((extension) => (
-            <article key={extension.name} className="rounded-2xl border border-[#eadcc2] bg-[#fffdf8] p-4">
-              <div className="flex flex-wrap items-start justify-between gap-2">
-                <p className="font-black text-[#2f2415]">{extension.name}</p>
-                <span className="rounded-xl border border-[#d6c3a0] bg-white px-2 py-1 text-[11px] font-bold text-[#8a7456]">
-                  {extension.stage}
-                </span>
-              </div>
-              <p className="mt-2 text-sm text-[#2f2415] leading-relaxed">{extension.role}</p>
-              <div className="mt-3 space-y-1">
-                {extension.gates.map((gate) => (
-                  <p key={gate} className="text-xs text-[#8a7456]">○ {gate}</p>
-                ))}
-              </div>
-            </article>
-          ))}
-        </div>
-      </section>
     </div>
   );
 }

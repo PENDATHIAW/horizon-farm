@@ -5,10 +5,16 @@ const clean = (v) => String(v || '').trim().toLowerCase();
 const today = () => new Date().toISOString().slice(0, 10);
 
 const CRITICAL_EVENT_TYPES = new Set([
-  'intrusion', 'humain_detecte', 'fuite_eau', 'capteur_offline', 'camera_offline',
+  'intrusion', 'humain_detecte', 'fuite_eau', 'capteur_offline',
 ]);
 const WARNING_EVENT_TYPES = new Set([
   'temperature', 'humidite', 'humidite_sol', 'mouvement', 'batterie_faible', 'signal_faible',
+]);
+const SUPPORTED_EVENT_TYPES = new Set([
+  ...CRITICAL_EVENT_TYPES,
+  ...WARNING_EVENT_TYPES,
+  'vanne_ouverte',
+  'vanne_fermee',
 ]);
 
 function severityFromEvent(event = {}) {
@@ -29,8 +35,7 @@ function eventLabel(event = {}) {
 export function buildSmartFarmEventFollowUp(event = {}) {
   if (!event?.id || event.handled) return null;
   const type = clean(event.event_type);
-  if (!type) return null;
-  const kind = clean(event.device_type) === 'camera' ? 'camera' : 'capteur';
+  if (!SUPPORTED_EVENT_TYPES.has(type)) return null;
   const deviceId = event.device_id || event.id;
   const key = `smartfarm:event:${event.id}`;
   const priority = severityFromEvent(event) === 'urgence' ? 'haute' : 'moyenne';
@@ -58,7 +63,7 @@ export function buildSmartFarmEventFollowUp(event = {}) {
       title: `IoT · ${event.event_type || 'événement'}`,
       message: label,
       module_source: 'smartfarm',
-      entity_type: kind,
+      entity_type: 'capteur',
       entity_id: deviceId,
       severity: priority === 'haute' ? 'warning' : 'info',
       status: 'nouvelle',
@@ -70,7 +75,7 @@ export function buildSmartFarmEventFollowUp(event = {}) {
       id: makeId('EVT'),
       event_type: 'smartfarm_event_alerte',
       module_source: 'smartfarm',
-      entity_type: kind,
+      entity_type: 'capteur',
       entity_id: deviceId,
       title: `Événement IoT · ${event.event_type}`,
       description: label,

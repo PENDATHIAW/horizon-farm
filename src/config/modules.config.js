@@ -53,7 +53,7 @@ export const CRUD_KEYS = [
   'bp_funding_sources', 'bp_links', 'bp_risks', 'stock', 'clients', 'fournisseurs',
   'tracabilite', 'cultures', 'documents', 'taches', 'rapports', 'equipements',
   'audit_logs', 'alimentation_logs', 'production_oeufs_logs', 'sensor_devices',
-  'camera_devices', 'business_events', 'alertes_center', 'whatsapp_templates',
+  'business_events', 'alertes_center', 'whatsapp_templates',
   'whatsapp_logs', 'sales_orders', 'sales_order_items', 'deliveries', 'invoices',
   'payments', 'sales_opportunities', 'stock_movements',
   'feed_raw_materials', 'feed_raw_batches', 'feed_formulas', 'feed_formula_versions',

@@ -21,14 +21,10 @@ function weatherRisks(meteo = {}) {
   return risks;
 }
 
-function deviceRisks(sensors = [], cameras = []) {
-  const sensorRisks = arr(sensors)
+function deviceRisks(sensors = []) {
+  return arr(sensors)
     .filter((row) => ['alerte', 'offline', 'hors_ligne', 'batterie_faible', 'maintenance'].includes(clean(row.status || row.statut)) || Number(row.battery_level || 100) <= 20)
     .map((row) => ({ id: row.id, type: 'capteur', title: `Capteur à vérifier: ${deviceName(row)}`, message: `${row.zone || row.location || ''} · ${row.status || row.statut || ''}`, priority: Number(row.battery_level || 100) <= 10 ? 'haute' : 'moyenne' }));
-  const cameraRisks = arr(cameras)
-    .filter((row) => ['alerte', 'offline', 'hors_ligne', 'maintenance'].includes(clean(row.status || row.statut)))
-    .map((row) => ({ id: row.id, type: 'camera', title: `Caméra à vérifier: ${deviceName(row)}`, message: `${row.zone || ''} · ${row.status || row.statut || ''}`, priority: 'moyenne' }));
-  return [...sensorRisks, ...cameraRisks];
 }
 
 function existingTaskFor(risk, tasks = []) {
@@ -36,9 +32,9 @@ function existingTaskFor(risk, tasks = []) {
   return arr(tasks).find((task) => !isDone(task) && (task.task_dedupe_key === key || task.action_key === key));
 }
 
-export default function SmartFarmSafetyBridge({ meteo, sensors = [], cameras = [], tasks = [], onCreateAlert, onRefreshAlertes, onCreateTask, onRefreshTasks, onCreateBusinessEvent, onRefreshBusinessEvents }) {
+export default function SmartFarmSafetyBridge({ meteo, sensors = [], tasks = [], onCreateAlert, onRefreshAlertes, onCreateTask, onRefreshTasks, onCreateBusinessEvent, onRefreshBusinessEvents }) {
   const [savingKey, setSavingKey] = useState('');
-  const risks = useMemo(() => [...weatherRisks(meteo), ...deviceRisks(sensors, cameras)].map((risk) => ({ ...risk, task: existingTaskFor(risk, tasks) })).slice(0, 8), [meteo, sensors, cameras, tasks]);
+  const risks = useMemo(() => [...weatherRisks(meteo), ...deviceRisks(sensors)].map((risk) => ({ ...risk, task: existingTaskFor(risk, tasks) })).slice(0, 8), [meteo, sensors, tasks]);
 
   const createAction = async (risk) => {
     const key = dedupeKey(risk.type, risk.id);
