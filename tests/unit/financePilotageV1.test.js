@@ -11,7 +11,7 @@ import {
 } from '../../src/utils/financePilotageCore.js';
 import { consolidateFinance } from '../../src/utils/financeConsolidationEngine.js';
 import { applyFarmScopeToProps } from '../../src/utils/applyFarmScope.js';
-import { FINANCE_TABS, resolveFinanceTab } from '../../src/utils/commercialNavigation.js';
+import { resolveFinanceTab } from '../../src/utils/commercialNavigation.js';
 import { MODULE_TARGET_TABS } from '../../src/config/horizonVision.config.js';
 import { buildDashboardSummary } from '../../src/modules/dashboard/dashboardMetrics.js';
 
@@ -133,13 +133,12 @@ test('isFinanceStartupMode — aucune donnée financière', () => {
   }), false);
 });
 
-test('resolveFinanceTab — aliases anciens onglets vers structure 5 onglets', () => {
-  assert.equal(resolveFinanceTab('Échéancier'), 'Pilotage');
-  assert.equal(resolveFinanceTab('Investissements'), 'Pilotage');
-  assert.equal(resolveFinanceTab('Réconciliation'), 'Trésorerie');
-  assert.equal(resolveFinanceTab('Créances'), 'Créances & dettes');
-  assert.ok(FINANCE_TABS.includes('Pilotage'));
-  assert.ok(MODULE_TARGET_TABS.finance_pilotage.includes('Pilotage'));
+test('resolveFinanceTab — anciens liens vers les 6 vues cibles', () => {
+  assert.equal(resolveFinanceTab('Échéancier'), 'Budget & écarts finance');
+  assert.equal(resolveFinanceTab('Investissements'), 'Investissements & dettes finance');
+  assert.equal(resolveFinanceTab('Réconciliation'), 'Transactions finance');
+  assert.equal(resolveFinanceTab('Créances & dettes'), 'Investissements & dettes finance');
+  assert.deepEqual(MODULE_TARGET_TABS.finance_pilotage, ['Vue d’ensemble', 'Transactions', 'Trésorerie', 'Budget & écarts', 'Coûts & marges', 'Investissements & dettes']);
 });
 
 test('applyFarmScopeToProps finance_pilotage — filtre farm_id si activé', () => {

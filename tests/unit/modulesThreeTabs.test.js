@@ -4,37 +4,35 @@ import {
   resolveAchatsStockTab,
   resolveCommercialTab,
   resolveCulturesTab,
-  ACHATS_STOCK_TABS,
-  COMMERCIAL_TABS,
 } from '../../src/utils/commercialNavigation.js';
 import { MODULE_TARGET_TABS } from '../../src/config/horizonVision.config.js';
 
-test('MODULE_TARGET_TABS — 3 onglets Achats, Commercial, Cultures', () => {
-  assert.deepEqual(MODULE_TARGET_TABS.achats_stock, ACHATS_STOCK_TABS);
-  assert.deepEqual(MODULE_TARGET_TABS.commercial, COMMERCIAL_TABS);
-  assert.equal(MODULE_TARGET_TABS.cultures.length, 3);
+test('les modules Achats, Commercial et Cultures exposent leurs 7 onglets cibles', () => {
+  assert.deepEqual(MODULE_TARGET_TABS.achats_stock, ['Tableau de bord', 'Produits & catégories', 'Fournisseurs', 'Achats & réceptions', 'Stocks & lots', 'Mouvements', 'Inventaires']);
+  assert.deepEqual(MODULE_TARGET_TABS.commercial, ['Tableau de bord', 'Clients', 'Ventes & commandes', 'Livraisons', 'Factures & paiements', 'Créances & relances', 'Réclamations']);
+  assert.equal(MODULE_TARGET_TABS.cultures.length, 7);
 });
 
 test('resolveAchatsStockTab — aliases legacy', () => {
-  assert.equal(resolveAchatsStockTab('Stock'), 'Inventaire');
-  assert.equal(resolveAchatsStockTab('Mouvements'), 'Inventaire');
-  assert.equal(resolveAchatsStockTab('Achats'), 'Réceptions & achats');
-  assert.equal(resolveAchatsStockTab('Fournisseurs'), 'Fournisseurs & dettes');
-  assert.equal(resolveAchatsStockTab('Résumé'), 'Inventaire');
+  assert.equal(resolveAchatsStockTab('Stock'), 'Stocks & lots');
+  assert.equal(resolveAchatsStockTab('Mouvements'), 'Mouvements stock');
+  assert.equal(resolveAchatsStockTab('Achats'), 'Achats & réceptions stock');
+  assert.equal(resolveAchatsStockTab('Fournisseurs'), 'Fournisseurs stock');
+  assert.equal(resolveAchatsStockTab('Résumé'), 'Tableau de bord stock');
 });
 
 test('resolveCommercialTab — aliases legacy', () => {
-  assert.equal(resolveCommercialTab('Clients'), 'Clients & créances');
-  assert.equal(resolveCommercialTab('Relances'), 'Clients & créances');
-  assert.equal(resolveCommercialTab('Opportunités'), 'Opportunités');
-  assert.equal(resolveCommercialTab('Résumé'), 'Pilotage');
-  assert.equal(resolveCommercialTab('Abonnements'), 'Abonnements');
+  assert.equal(resolveCommercialTab('Clients'), 'Clients commercial');
+  assert.equal(resolveCommercialTab('Relances'), 'Créances & relances commercial');
+  assert.equal(resolveCommercialTab('Opportunités'), 'Ventes & commandes commercial');
+  assert.equal(resolveCommercialTab('Résumé'), 'Tableau de bord commercial');
+  assert.equal(resolveCommercialTab('Abonnements'), 'Clients commercial');
 });
 
 test('resolveCulturesTab — aliases legacy', () => {
-  assert.equal(resolveCulturesTab('Pilotage'), 'Parcelles & campagnes');
-  assert.equal(resolveCulturesTab('Intrants & Météo'), 'Parcelles & campagnes');
-  assert.equal(resolveCulturesTab('Transformation'), 'Récoltes');
-  assert.equal(resolveCulturesTab('Récoltes & stock'), 'Récoltes');
-  assert.equal(resolveCulturesTab('Graphiques'), 'Économie circulaire');
+  assert.equal(resolveCulturesTab('Pilotage'), 'Parcelles cultures');
+  assert.equal(resolveCulturesTab('Intrants & Météo'), 'Intrants & fertilisation cultures');
+  assert.equal(resolveCulturesTab('Transformation'), 'Récoltes cultures');
+  assert.equal(resolveCulturesTab('Récoltes & stock'), 'Récoltes cultures');
+  assert.equal(resolveCulturesTab('Graphiques'), 'Historique cultures');
 });

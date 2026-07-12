@@ -56,6 +56,26 @@ import ClientsReadable from './ClientsReadable';
 
 const arr = (v) => (Array.isArray(v) ? v : []);
 
+function CommercialComplaintsPanel({ events = [], tasks = [] }) {
+  const complaints = events.filter((event) => /reclamation|réclamation/.test(String(event.event_type || event.type || '').toLowerCase()));
+  return (
+    <section aria-label="Réclamations clients">
+      {complaints.length ? complaints.map((event) => {
+        const linkedTasks = tasks.filter((task) => String(task.source_event_id || task.event_id || '') === String(event.id));
+        return (
+          <div key={event.id || event.event_key} className="grid gap-2 border-b border-[#eadcc2] py-3 md:grid-cols-[1fr_auto] md:items-center">
+            <span>
+              <strong className="block text-sm text-[#2f2415]">{event.title || 'Réclamation client'}</strong>
+              <span className="text-xs text-[#8a7456]">{event.occurred_at || event.created_at || 'Date inconnue'}</span>
+            </span>
+            <span className="text-xs font-bold text-[#8a7456]">{linkedTasks.length ? `${linkedTasks.length} action(s)` : 'À traiter'}</span>
+          </div>
+        );
+      }) : <p className="py-8 text-center text-sm text-[#8a7456]">Rien à afficher pour l’instant.</p>}
+    </section>
+  );
+}
+
 function Summary({ data, setTab, onNavigate, onApplyFinding, busyId }) {
   const todos = data.summaryTodos.slice(0, 6);
   const kpis = data.consolidatedKpis;
@@ -148,9 +168,9 @@ function Summary({ data, setTab, onNavigate, onApplyFinding, busyId }) {
 
 export default function CommercialRecoveredModule(props) {
   const controlled = Boolean(props.onTabChange);
-  const [internalTab, setInternalTab] = useState(() => resolveCommercialTab(props.initialTab || 'Pilotage'));
+  const [internalTab, setInternalTab] = useState(() => resolveCommercialTab(props.initialTab || 'Tableau de bord'));
   const tab = controlled
-    ? resolveCommercialTab(props.initialTab || 'Pilotage')
+    ? resolveCommercialTab(props.initialTab || 'Tableau de bord')
     : internalTab;
   const setTab = useCallback((value) => {
     const resolved = resolveCommercialTab(value);
@@ -253,6 +273,7 @@ export default function CommercialRecoveredModule(props) {
   const documentsRows = rowsOf(props.documents, docsCrud, pf);
   const alertRows = rowsOf(props.alertes, alertsCrud, false);
   const taskRows = rowsOf(props.tasks || props.existingTasks, tasksCrud, false);
+  const eventRows = rowsOf(props.businessEvents, eventsCrud, false);
   const sellableStocks = useMemo(() => listSellableStocks(stockRows, 50), [stockRows]);
 
   const refreshWorkflow = props.onRefreshWorkflow || (async () => Promise.allSettled([
@@ -550,11 +571,11 @@ export default function CommercialRecoveredModule(props) {
 
   const todoBadge = data.todoCount;
   const tabBadges = {
-    Ventes: data.openSalesCount,
-    Opportunités: data.openOpportunities.length,
-    'Clients & créances': data.clientsDebtCount + (data.relanceRows?.length || 0),
-    Livraisons: data.deliveryQueue?.late?.length || 0,
-    Abonnements: data.subscriptionsDue?.length || 0,
+    'Ventes & commandes commercial': data.openSalesCount,
+    'Créances & relances commercial': data.clientsDebtCount + (data.relanceRows?.length || 0),
+    'Livraisons commercial': data.deliveryQueue?.late?.length || 0,
+    'Clients commercial': data.subscriptionsDue?.length || 0,
+    'Réclamations commercial': eventRows.filter((event) => /reclamation|réclamation/.test(String(event.event_type || '').toLowerCase())).length,
   };
 
   const opportunitiesPanel = (
@@ -585,13 +606,16 @@ export default function CommercialRecoveredModule(props) {
   return (
     <div className="space-y-4">
       <CommercialModuleHeader tab={tab} setTab={setTab} healthScore={data.healthScore} periodLabel={props.periodLabel} periodFiltered={periodFiltered} onNavigate={props.onNavigate} onOpenAssistant={props.onOpenAssistant} badges={{ receivable: data.receivable, receivableAll: data.receivableAll, todo: todoBadge, tabs: tabBadges }} />
-      {tab === 'Ventes' ? (
-        <VentesV5 {...salesProps} />
+      {tab === 'Ventes & commandes commercial' ? (
+        <div className="space-y-4">
+          <VentesV5 {...salesProps} />
+          <details className="border-t border-[#eadcc2] pt-4">
+            <summary className="cursor-pointer text-sm font-black text-[#2f2415]">Opportunités disponibles</summary>
+            <div className="mt-4">{opportunitiesPanel}</div>
+          </details>
+        </div>
       ) : null}
-      {tab === 'Opportunités' ? (
-        <div className="space-y-4">{opportunitiesPanel}</div>
-      ) : null}
-      {tab === 'Clients & créances' ? (
+      {tab === 'Clients commercial' ? (
         <div className="space-y-4">
           <ClientsReadable {...clientProps} />
           <CommercialSegmentsPanel clients={clients} orders={data.ordersAll} payments={data.paymentsAll} relanceRows={data.relanceRows} />
@@ -605,17 +629,10 @@ export default function CommercialRecoveredModule(props) {
             onNewQuote={() => setTab('Ventes')}
             {...panelCommon}
           />
-          <CommercialScheduledRelancesPanel
-            rows={data.relanceRows}
-            clients={clients}
-            onCreateTask={workflowHandlers.onCreateTask}
-            onRefreshTasks={props.onRefreshTasks || tasksCrud.refresh}
-            onOpenClient={openClientTab}
-            onPrepareWhatsApp={prepareRelanceWhatsApp}
-          />
+          <CommercialSubscriptionsPanel clients={clients} onUpdateClient={workflowHandlers.onUpdateClient} onNewSale={openNewSale} activeFarm={props.activeFarm} />
         </div>
       ) : null}
-      {tab === 'Livraisons' ? (
+      {tab === 'Livraisons commercial' ? (
         <CommercialDeliveriesPanel
           deliveries={deliveriesAll}
           orders={data.ordersAll}
@@ -634,15 +651,44 @@ export default function CommercialRecoveredModule(props) {
           setTab={setTab}
         />
       ) : null}
-      {tab === 'Abonnements' ? (
-        <CommercialSubscriptionsPanel
-          clients={clients}
-          onUpdateClient={workflowHandlers.onUpdateClient}
-          onNewSale={openNewSale}
-          activeFarm={props.activeFarm}
-        />
+      {tab === 'Factures & paiements commercial' ? (
+        <div className="space-y-4">
+          <CommercialQuotesPanel
+            orders={data.ordersAll}
+            orderItems={data.orderItems}
+            clients={data.clients}
+            onCreateOrder={data.handlers.onCreateOrder}
+            onCreateItem={data.handlers.onCreateItem}
+            onUpdateOrder={data.handlers.onUpdateOrder}
+            onCreateDelivery={data.handlers.onCreateDelivery}
+            onCreateInvoice={data.handlers.onCreateInvoice}
+            onCreateDocument={data.handlers.onCreateDocument}
+            onCreatePayment={data.handlers.onCreatePayment}
+            onCreateBusinessEvent={data.handlers.onCreateBusinessEvent}
+            onRefreshWorkflow={data.handlers.onRefreshWorkflow}
+            farmScope={data.farmScope}
+            accessibleFarms={data.accessibleFarms}
+            activeFarm={data.activeFarm}
+            stocks={data.stocks}
+            lots={data.lots}
+            cultures={data.cultures}
+            animaux={data.animaux}
+            payments={data.paymentsAll}
+            transactions={data.transactions}
+          />
+          <CommercialReconciliationPanel rows={data.reconciliationRows} setTab={setTab} />
+        </div>
       ) : null}
-      {tab === 'Pilotage' ? (
+      {tab === 'Créances & relances commercial' ? (
+        <div className="space-y-4">
+          <ClientsReadable {...clientProps} />
+          <CommercialScheduledRelancesPanel rows={data.relanceRows} clients={clients} onCreateTask={workflowHandlers.onCreateTask} onRefreshTasks={props.onRefreshTasks || tasksCrud.refresh} onOpenClient={openClientTab} onPrepareWhatsApp={prepareRelanceWhatsApp} />
+        </div>
+      ) : null}
+      {tab === 'Réclamations commercial' ? (
+        <CommercialComplaintsPanel events={eventRows} tasks={taskRows} />
+      ) : null}
+      {tab === 'Tableau de bord commercial' ? (
         <div className="space-y-4">
           <Summary
             data={data}

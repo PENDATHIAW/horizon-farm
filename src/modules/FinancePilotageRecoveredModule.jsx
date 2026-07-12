@@ -104,29 +104,6 @@ function Section({ icon: Icon, title, children }) {
 function Tabs({ active, onChange }) {
   return <ModuleTabsBar moduleId="finance_pilotage" active={active} onChange={onChange} />;
 }
-function CreancesPanel({ data, onNavigate }) {
-  return (
-    <ModuleListHub
-      title="Créances clients"
-      intro="Ventes et encaissements restants à recouvrer."
-      stats={[
-        { label: 'Créances', value: fmtNumber(data.receivables.length), tone: data.receivables.length ? 'warn' : 'good' },
-        { label: 'Montant', value: fmtCurrency(data.receivableAmount), tone: 'warn' },
-        { label: 'Clients', value: fmtNumber(data.clients.length) },
-        { label: 'Impayés finance', value: fmtNumber(data.unpaidTx.length), tone: data.unpaidTx.length ? 'warn' : 'good' },
-      ]}
-      rows={data.receivables.map((row) => ({
-        id: row.id || row.title,
-        title: row.title,
-        detail: row.detail,
-        value: fmtCurrency(row.amount),
-        onClick: () => onNavigate?.('commercial', { tab: 'Clients & créances' }),
-      }))}
-      emptyLabel="Aucune créance ouverte."
-      onNavigate={onNavigate}
-    />
-  );
-}
 function DettesPanel({ data, onNavigate }) {
   return (
     <ModuleListHub
@@ -705,7 +682,7 @@ export default function FinancePilotageRecoveredModule(props) {
         </div>
       </section>
       <Tabs active={tab} onChange={setTab} />
-      {tab === 'Résumé' ? (
+      {tab === 'Vue finance' ? (
         <Summary
           data={data}
           navigateFinance={navigateFinance}
@@ -725,7 +702,17 @@ export default function FinancePilotageRecoveredModule(props) {
           onOpenAssistant={props.onOpenAssistant}
           moduleProjections={financeModuleProjections}
         />
-      ) : tab === 'Trésorerie' ? (
+      ) : tab === 'Transactions finance' ? (
+        <div className="space-y-4">
+          <FinancesV12 {...financeProps} />
+          <details className="border-t border-[#eadcc2] pt-4">
+            <summary className="cursor-pointer text-sm font-black text-[#2f2415]">Rapprochement des flux</summary>
+            <div className="mt-4">
+              <FinanceReconciliationPanel reconciliationView={reconciliationView} transactions={transactions} payments={paymentsAll.length ? paymentsAll : payments} salesOrders={salesOrdersAll.length ? salesOrdersAll : salesOrders} stocks={stocks} onCreateFinanceTransaction={props.onCreateFinanceTransaction || financesCrud.create} onRefreshFinances={props.onRefreshFinances || financesCrud.refresh} onNavigate={props.onNavigate} setTab={navigateFinance} />
+            </div>
+          </details>
+        </div>
+      ) : tab === 'Trésorerie finance' ? (
         <div className="space-y-4">
           <FinanceInnerTabs
             tabs={[
@@ -751,14 +738,9 @@ export default function FinancePilotageRecoveredModule(props) {
             <FinancesV12 {...financeProps} />
           )}
         </div>
-      ) : tab === 'Créances & dettes' ? (
+      ) : tab === 'Investissements & dettes finance' ? (
         <div className="space-y-4">
-          <details className="rounded-3xl border border-[#d6c3a0] bg-white shadow-sm" open>
-            <summary className="cursor-pointer px-5 py-4 font-black text-[#2f2415]">Créances clients</summary>
-            <div className="border-t border-[#eadcc2] p-4">
-              <CreancesPanel data={data} onNavigate={props.onNavigate} />
-            </div>
-          </details>
+          <InvestissementsV9 {...investmentProps} />
           <details className="rounded-3xl border border-[#d6c3a0] bg-white shadow-sm">
             <summary className="cursor-pointer px-5 py-4 font-black text-[#2f2415]">Dettes fournisseurs</summary>
             <div className="border-t border-[#eadcc2] p-4">
@@ -766,7 +748,7 @@ export default function FinancePilotageRecoveredModule(props) {
             </div>
           </details>
         </div>
-      ) : tab === 'Pilotage' ? (
+      ) : tab === 'Budget & écarts finance' ? (
         <div className="space-y-4">
           <FinanceInnerTabs
             tabs={[
@@ -804,8 +786,15 @@ export default function FinancePilotageRecoveredModule(props) {
             <FinanceAnnexePanel documents={financeProps.documents} onNavigate={props.onNavigate} />
           )}
         </div>
-      ) : tab === 'Graphiques' ? (
-        <ModuleGraphiquesTab moduleId="finance_pilotage" transactions={transactions} payments={payments} salesOrders={salesOrders} investissements={investments} businessPlans={businessPlans} onNavigate={props.onNavigate} />
+      ) : tab === 'Coûts & marges finance' ? (
+        <div className="space-y-4">
+          <RentabilitePanel profitability={profitability} consolidationProps={consolidationProps} />
+          <MarginGlossaryPanel />
+          <details className="border-t border-[#eadcc2] pt-4">
+            <summary className="cursor-pointer text-sm font-black text-[#2f2415]">Courbes de coûts et marges</summary>
+            <div className="mt-4"><ModuleGraphiquesTab moduleId="finance_pilotage" transactions={transactions} payments={payments} salesOrders={salesOrders} investissements={investments} businessPlans={businessPlans} onNavigate={props.onNavigate} /></div>
+          </details>
+        </div>
       ) : (
         <Summary
           data={data}

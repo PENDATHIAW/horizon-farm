@@ -273,12 +273,12 @@ export function navigateElevageTab(onNavigate, tab = '', options = {}) {
 
 export function resolveAchatsStockTab(value = '') {
   const tab = String(value || '').trim();
+  const configured = configuredComponent('achats_stock', tab);
+  if (configured) return configured;
   if (ACHATS_STOCK_TABS.includes(tab)) return tab;
   const fromAlias = ACHATS_STOCK_TAB_ALIASES[tab] || ACHATS_STOCK_TAB_ALIASES[lower(tab)];
   if (fromAlias) return fromAlias;
-  const configured = configuredComponent('achats_stock', tab);
-  if (configured) return configured;
-  return tabAliases[lower(tab)] || 'Inventaire';
+  return tabAliases[lower(tab)] || 'Tableau de bord stock';
 }
 
 /** Alias commercial → redirection module Finance (réconciliation canonique). */
@@ -288,19 +288,19 @@ export function isCommercialReconciliationAlias(value = '') {
 
 export function resolveCommercialTab(value = '') {
   const tab = String(value || '').trim();
+  const configured = configuredComponent('commercial', tab);
+  if (configured) return configured;
   if (COMMERCIAL_TABS.includes(tab)) return tab;
   if (isCommercialReconciliationAlias(tab)) return 'Ventes';
   const fromAlias = COMMERCIAL_TAB_ALIASES[tab] || COMMERCIAL_TAB_ALIASES[lower(tab)];
   if (fromAlias) return fromAlias;
-  const configured = configuredComponent('commercial', tab);
-  if (configured) return configured;
   const legacy = tabAliases[lower(tab)];
   if (legacy) {
     const fromLegacy = COMMERCIAL_TAB_ALIASES[legacy] || COMMERCIAL_TAB_ALIASES[lower(legacy)];
     if (fromLegacy) return fromLegacy;
     if (COMMERCIAL_TABS.includes(legacy)) return legacy;
   }
-  return 'Ventes';
+  return 'Tableau de bord commercial';
 }
 
 export function navigateCommercialTab(onNavigate, tab = '', options = {}) {
@@ -311,12 +311,12 @@ export function navigateCommercialTab(onNavigate, tab = '', options = {}) {
 
 export function resolveFinanceTab(value = '') {
   const tab = String(value || '').trim();
+  const configured = configuredComponent('finance_pilotage', tab);
+  if (configured) return configured;
   if (FINANCE_TABS.includes(tab)) return tab;
   const fromAlias = FINANCE_TAB_ALIASES[tab] || FINANCE_TAB_ALIASES[lower(tab)];
   if (fromAlias) return fromAlias;
-  const configured = configuredComponent('finance_pilotage', tab);
-  if (configured) return configured;
-  return 'Résumé';
+  return 'Vue finance';
 }
 
 /** Résout onglet principal + sous-vue Trésorerie / Pilotage pour deep-links (anciens onglets inclus). */

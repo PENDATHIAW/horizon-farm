@@ -60,7 +60,7 @@ test('onglet contrôlé — Inventaire rend le stock simulé', async () => {
   assert.doesNotMatch(html, /ERREUR MODULE|is not defined/i);
 });
 
-test('onglet contrôlé — Réceptions & achats rend la vue d\'ensemble', async () => {
+test('onglet contrôlé — Réceptions & achats rend le parcours d’achat', async () => {
   const mod = await import('../../src/modules/AchatsStockRecoveredModule.jsx');
   const html = renderToString(
     React.createElement(
@@ -78,12 +78,12 @@ test('onglet contrôlé — Réceptions & achats rend la vue d\'ensemble', async
     ),
   );
 
-  assert.match(html, /Vue d'ensemble|Parcours unique d'achat/i);
+  assert.match(html, /Nouvelle réception|Achats sans preuve/i);
   assert.doesNotMatch(html, /ERREUR MODULE|is not defined/i);
 });
 
-test('resolveAchatsStockTab — alias Stock vers Inventaire', () => {
-  assert.equal(resolveAchatsStockTab('Stock'), 'Inventaire');
-  assert.equal(resolveAchatsStockTab('Inventaire'), 'Inventaire');
-  assert.equal(resolveAchatsStockTab('Résumé'), 'Inventaire');
+test('resolveAchatsStockTab — anciens liens vers les vues cibles', () => {
+  assert.equal(resolveAchatsStockTab('Stock'), 'Stocks & lots');
+  assert.equal(resolveAchatsStockTab('Inventaire'), 'Inventaires stock');
+  assert.equal(resolveAchatsStockTab('Résumé'), 'Tableau de bord stock');
 });

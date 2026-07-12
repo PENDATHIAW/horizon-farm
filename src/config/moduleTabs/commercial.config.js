@@ -2,11 +2,11 @@ import labels from '../../i18n/fr/moduleTabs.js';
 import { defineModuleTabs } from './shared.js';
 
 export default defineModuleTabs('commercial', labels.commercial, [
-  { id: 'tableau-bord', component: 'Pilotage' },
-  { id: 'clients', component: 'Clients & créances' },
-  { id: 'ventes-commandes', component: 'Ventes', aliases: ['Opportunites', 'Prospects'] },
-  { id: 'livraisons', component: 'Livraisons' },
-  { id: 'factures-paiements', component: 'Factures' },
-  { id: 'creances-relances', component: 'Clients & créances' },
-  { id: 'reclamations', component: 'Réclamations' },
+  { id: 'tableau-bord', component: 'Tableau de bord commercial', aliases: ['Pilotage', 'Résumé', 'Graphiques'] },
+  { id: 'clients', component: 'Clients commercial', aliases: ['Clients', 'Prospects', 'Abonnements'] },
+  { id: 'ventes-commandes', component: 'Ventes & commandes commercial', aliases: ['Ventes', 'Opportunités', 'Devis'] },
+  { id: 'livraisons', component: 'Livraisons commercial', aliases: ['Livraisons', 'Livraison'] },
+  { id: 'factures-paiements', component: 'Factures & paiements commercial', aliases: ['Factures', 'Paiements', 'Réconciliation'] },
+  { id: 'creances-relances', component: 'Créances & relances commercial', aliases: ['Clients & créances', 'Créances', 'Relances'] },
+  { id: 'reclamations', component: 'Réclamations commercial', aliases: ['Réclamations'] },
 ]);

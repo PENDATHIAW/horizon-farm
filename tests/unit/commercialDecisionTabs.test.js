@@ -1,59 +1,33 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { MODULE_TARGET_TABS } from '../../src/config/horizonVision.config.js';
+import { resolveCommercialTab } from '../../src/utils/commercialNavigation.js';
 
 const TAB_IDS = MODULE_TARGET_TABS.commercial;
 
-const LEGACY_ALIASES = {
-  Résumé: 'Pilotage',
-  resume: 'Pilotage',
-  Clients: 'Clients & créances',
-  clients: 'Clients & créances',
-  Relances: 'Clients & créances',
-  relances: 'Clients & créances',
-  devis: 'Ventes',
-  Graphiques: 'Ventes',
-  Annexe: 'Ventes',
-  Opportunités: 'Opportunités',
-  Livraisons: 'Livraisons',
-  Abonnements: 'Abonnements',
-  Pilotage: 'Pilotage',
-};
-
-function resolveTab(initial) {
-  const mapped = initial ? (LEGACY_ALIASES[initial] || initial) : null;
-  if (mapped && TAB_IDS.includes(mapped)) return mapped;
-  return TAB_IDS[0];
-}
-
-test('commercial exposes 6 target tabs', () => {
+test('Commercial expose les 7 onglets cibles', () => {
   assert.deepEqual(TAB_IDS, [
-    'Ventes',
-    'Opportunités',
-    'Clients & créances',
+    'Tableau de bord',
+    'Clients',
+    'Ventes & commandes',
     'Livraisons',
-    'Abonnements',
-    'Pilotage',
+    'Factures & paiements',
+    'Créances & relances',
+    'Réclamations',
   ]);
 });
 
-test('legacy commercial tab aliases resolve to new tabs', () => {
-  assert.equal(resolveTab('Résumé'), 'Pilotage');
-  assert.equal(resolveTab('Clients'), 'Clients & créances');
-  assert.equal(resolveTab('Relances'), 'Clients & créances');
-  assert.equal(resolveTab('Graphiques'), 'Ventes');
-  assert.equal(resolveTab('unknown'), 'Ventes');
+test('les anciens onglets Commercial restent des alias', () => {
+  assert.equal(resolveCommercialTab('Résumé'), 'Tableau de bord commercial');
+  assert.equal(resolveCommercialTab('Prospects'), 'Clients commercial');
+  assert.equal(resolveCommercialTab('Relances'), 'Créances & relances commercial');
+  assert.equal(resolveCommercialTab('Opportunités'), 'Ventes & commandes commercial');
+  assert.equal(resolveCommercialTab('unknown'), 'Tableau de bord commercial');
 });
 
-test('canonical commercial tabs pass through unchanged', () => {
-  assert.equal(resolveTab('Ventes'), 'Ventes');
-  assert.equal(resolveTab('Opportunités'), 'Opportunités');
-  assert.equal(resolveTab('Clients & créances'), 'Clients & créances');
-  assert.equal(resolveTab('Pilotage'), 'Pilotage');
-});
-
-test('default commercial entry tab is Pilotage not legacy Résumé', () => {
-  assert.equal(resolveTab('Pilotage'), 'Pilotage');
-  assert.equal(resolveTab('Résumé'), 'Pilotage');
-  assert.notEqual(resolveTab('Résumé'), 'Résumé');
+test('les libellés cibles ouvrent leur composant configuré', () => {
+  assert.equal(resolveCommercialTab('Ventes & commandes'), 'Ventes & commandes commercial');
+  assert.equal(resolveCommercialTab('Factures & paiements'), 'Factures & paiements commercial');
+  assert.equal(resolveCommercialTab('Créances & relances'), 'Créances & relances commercial');
+  assert.equal(resolveCommercialTab('Réclamations'), 'Réclamations commercial');
 });

@@ -55,7 +55,7 @@ test('chaque onglet définit id, libellé, composant, rôles, flag et ordre', ()
 test('les anciens identifiants et libellés restent des alias de navigation', () => {
   assert.equal(getModuleTabs('centre_ia'), getModuleTabs('centre_decisionnel'));
   assert.equal(getModuleTabs('rh'), getModuleTabs('equipe'));
-  assert.equal(matchModuleTab('commercial', 'Prospects')?.id, 'ventes-commandes');
+  assert.equal(matchModuleTab('commercial', 'Prospects')?.id, 'clients');
   assert.equal(matchModuleTab('documents_rapports', 'Modèles')?.id, 'rapports');
   assert.equal(matchModuleTab('smartfarm', 'Capteurs')?.id, 'dispositifs');
 });
