@@ -75,7 +75,7 @@ test('CarteKPI lit valeur et provenance sans recalcul local', () => {
 
 test('les cinq consommateurs utilisent les composants partagés sans listes locales actives', () => {
   const sources = {
-    accueil: fs.readFileSync('src/modules/dashboard/AccueilRefinedEntry.jsx', 'utf8'),
+    accueil: fs.readFileSync('src/modules/dashboard/AccueilConforme.jsx', 'utf8'),
     activiteTasks: fs.readFileSync('src/modules/activiteSuivi/tabs/ATraiterMaintenantTab.jsx', 'utf8'),
     activiteAlerts: fs.readFileSync('src/modules/activiteSuivi/tabs/AlertesLieesTab.jsx', 'utf8'),
     activiteJournal: fs.readFileSync('src/modules/activiteSuivi/tabs/RegistreTracabiliteTab.jsx', 'utf8'),

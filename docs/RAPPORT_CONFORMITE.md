@@ -15,7 +15,7 @@ Horizon Farm ERP V1 » (version corrigée et consolidée). L'inventaire préalab
 | 2 · Identifiants, alias et flags | PARTIEL | alias + flags testés (7 tests), commit 9527b3a ; volet base BLOQUÉ |
 | 3 · Structure cible des onglets | NON FAIT | écarts documentés ci-dessous |
 | 4 · Composants uniques | NON FAIT | composants cibles absents, existants listés |
-| 5 · Contrat des 20 secondes | NON FAIT | aucun harnais dédié exécuté |
+| 5 · Contrat des 20 secondes | PARTIEL | registre + test contrat (7 tests verts) ; chronométrage humain à consigner |
 | 6 · Nettoyages de pertinence | PARTIEL | retraits réels faits, autres cibles sans objet, commit 8d32052 |
 | 7 · Tests et rapport | PARTIEL | batteries exécutées ci-dessous |
 
@@ -102,13 +102,36 @@ uniques. Existants approchants recensés (KpiCard, MiniMetricCard, ModuleTimelin
 implémentations locales multiples confirmées. Créer les quatre composants sans migrer leurs
 consommateurs ajouterait une duplication de plus ; ce chantier doit être mené avec le chantier 3.
 
-## Chantier 5 · Contrat des 20 secondes (NON FAIT)
+## Chantier 5 · Contrat des 20 secondes (PARTIEL)
 
-Aucun harnais « 5 champs, 5 interactions, 20 secondes » n'a été créé ni exécuté. Les scénarios
-Playwright existants (tests/e2e/) n'ont pas été lancés dans cette session (pas de navigateur
-dans le budget de la session ; le dépôt fournit `npm run test:e2e`). Le test humain sur téléphone
-doit être chronométré et consigné séparément par l'équipe ; aucun résultat automatisé ne peut le
-remplacer (règle du prompt).
+Fait, avec preuves :
+
+- Registre unique `src/config/formulaires20s.config.js` : les 7 saisies quotidiennes (distribution,
+  ponte, mortalité, pesée, irrigation, récolte, vente) et les 10 saisies périodiques (réception,
+  dépense, encaissement client, paiement fournisseur, vaccination, nettoyage, transfert organique,
+  semis, panne, absence). Chaque entrée déclare : champs requis (cinq au maximum), champs repliés
+  sous « Détails », préremplissages (date du jour, utilisateur connecté, unités de la ferme, lot ou
+  parcelle unique auto, dernier fournisseur, dernier prix), filtres de contexte, clé d'idempotence
+  (issue_key : rejeu = un seul effet, en ligne comme hors ligne) et gabarit de confirmation à effets.
+- Confirmation à effets : `src/utils/confirmationAEffets.js` produit « {Saisie} enregistrée ·
+  {effet stock} · {effet coût ou KPI} » depuis le dictionnaire et le registre.
+- Boutons d'action rapide des 7 saisies quotidiennes sur l'Accueil, dérivés du même registre
+  (`ACTIONS_RAPIDES_QUOTIDIENNES` dans src/modules/dashboard/AccueilConforme.jsx).
+- Test contrat `tests/unit/contrat20Secondes.test.js` : 7 tests, 0 échec (7 quotidiennes et 10
+  périodiques présentes ; cinq champs requis maximum ; préremplissages date/utilisateur/unités
+  partout ; clé d'idempotence et confirmation à effets présentes ; libellés verbe + objet conformes
+  à la charte, « Soumettre » interdit ; gabarit de confirmation vérifié ; boutons de l'Accueil
+  alignés sur les 7 saisies quotidiennes).
+- Harnais de chronométrage `tests/e2e/contrat-20-secondes.spec.js` : ouvre chaque saisie quotidienne
+  depuis l'Accueil sur données de démonstration et vérifie une ouverture en moins de 20 secondes
+  (ignoré sans identifiants E2E ni navigateur).
+- Modèle de test humain sur téléphone `docs/test-humain-20-secondes.md` avec grille à consigner.
+
+Reste à faire (raison du PARTIEL) : l'exécution réelle du harnais Playwright dans un environnement
+avec navigateur et données de démonstration, et surtout le test humain chronométré sur téléphone,
+qui doit être consigné séparément. Le contrat est encodé et vérifié au niveau du registre ; le
+respect des cinq interactions et des moins de 20 secondes en usage réel se prouve par ces deux
+exécutions, non encore faites dans cette session.
 
 ## Chantier 6 · Nettoyages de pertinence (PARTIEL)
 
@@ -187,3 +210,93 @@ publiés, chronométrage automatisé des 7 formulaires et test humain sur télé
 4. Créer et généraliser JournalEvenements, ListeTaches, ListeAlertes, CarteKPI (chantier 4).
 5. Harnais des 20 secondes + test humain consigné (chantier 5).
 6. Batterie complète du chantier 7 (isolation fermes, huit rôles, transactions, immuabilité, chronométrage).
+
+---
+
+## Correctif Élevage · Restauration de l'onglet Transformation
+
+### Cause exacte
+
+La barre d'onglets (`src/components/module/ModuleTabsBar.jsx`) affichait la liste
+d'onglets *cible* (aspirationnelle) au lieu des onglets réellement rendus par
+chaque module. Pour Élevage, la liste affichée était « Lots & bandes · Pondeuses ·
+Embouche bovine · Santé & biosécurité · Alimentation · Performances », alors que
+`ElevageRecoveredModule` ne rend que « Lots & bandes · Cycles & Reproduction ·
+Santé · Transformation » (constante `ELEVAGE_TABS`). Résultat : l'onglet
+Transformation n'apparaissait pas, et les libellés affichés que le module ne sait
+pas rendre ne déclenchaient rien au clic. Le module Transformation n'a jamais été
+supprimé : `ElevageTransformationTab.jsx`, le rendu conditionnel
+`tab === 'Transformation'` (ElevageRecoveredModule ligne 588), les utilitaires
+`elevageTransformation{Navigation,Journal,Cost,Workflow}.js` et la reconnaissance
+de `Transformation`/`transformation` par `resolveElevageTab` sont tous intacts.
+
+Ce défaut touchait toute la famille de modules pilotés par `ModuleTabsBar`, d'où
+les onglets « qui ne font rien » signalés dans plusieurs modules.
+
+### Correction appliquée
+
+`src/config/moduleTabs.config.js` devient la source unique des onglets : pour
+chaque module, `onglets` est construit à partir des constantes de navigation qui
+sont la vérité du rendu (`ELEVAGE_TABS`, `COMMERCIAL_TABS`, `ACHATS_STOCK_TABS`,
+`FINANCE_TABS`, `ACTIVITE_SUIVI_TABS`, `DOCUMENTS_RAPPORTS_TABS`, `RH_TABS`,
+`OBJECTIFS_TABS`, `CENTRE_IA_TABS`, `SMARTFARM_TABS`, `SYNC_ACTIVITY_TABS`,
+`GESTION_SYSTEME_TABS`, `AGRI_FEEDS_TABS`, `DASHBOARD_TABS`). `MODULE_TARGET_TABS`
+est dérivé de cette configuration, si bien que barre d'onglets, rendu et
+deep-links lisent désormais la même liste. La structure cible reste documentée
+dans le champ `cible` de chaque module. Aucun ancien alias n'a été retiré ;
+`Transformation` et `transformation` continuent de résoudre vers l'onglet.
+
+Transformation reste conforme à la décision métier : création du produit fini et
+de la traçabilité, rattachement des coûts lus depuis Finance, aucune vente saisie
+dans Élevage, aucun stock ni calcul financier parallèle. Aucune table locale
+`alerts`, `tasks`, `stock`, `sales`, `finance` ou `kpi` n'a été créée.
+
+### Fichiers modifiés
+
+- `src/config/moduleTabs.config.js` (onglets sourcés des constantes réelles).
+- `src/components/module/ModuleTabsBar.jsx` (lecture de la configuration unique).
+- `src/config/horizonVision.config.js` (`MODULE_TARGET_TABS` dérivé).
+- `tests/unit/elevageTransformationTabConfig.test.js` (nouveau, preuve du correctif).
+- `tests/unit/achatsStockTabControl.test.js` (assertion alignée sur le rendu réel).
+
+### Comportement avant / après
+
+- Avant : onglet Transformation absent de la barre Élevage ; onglets aspirationnels
+  affichés sans effet au clic sur plusieurs modules.
+- Après : la barre Élevage affiche « Lots & bandes · Cycles & Reproduction · Santé ·
+  Transformation » ; chaque onglet de chaque module correspond à une vue rendue.
+
+### Tests exécutés et résultats
+
+- `tests/unit/elevageTransformationTabConfig.test.js` : 6 tests, 0 échec (config
+  Élevage = rendu réel, Transformation visible dans le rendu SSR de la barre,
+  alias `Transformation`/`transformation`, non-repli sur « Lots & bandes »,
+  composant de rendu déclaré).
+- `tests/unit/elevageTransformationOfficial.test.js` : 10 tests, 0 échec.
+- `tests/unit/elevageDecisionTabs.test.js` : 4 tests, 0 échec.
+- `moduleTabsStability` : 340 tests, 0 échec ; render smoke, tab-control et
+  navigation de tous les modules : 0 échec.
+- `npm run build` : succès.
+- Rendu SSR des 4 onglets Élevage, des 3 onglets Accueil et des 5 onglets du
+  Centre décisionnel : aucun crash.
+
+### Navigation, formulaire, idempotence, permissions
+
+- Navigation : `resolveElevageTab('Transformation')` et `('transformation')`
+  renvoient « Transformation » ; `initialTab` et les deep-links ouvrent l'onglet
+  sans repli silencieux sur « Lots & bandes ». Les actions métier « Transformer »
+  et l'événement `horizon-open-form` restent gérés par les utilitaires existants
+  (`elevageTransformationNavigation.js`, `elevageTransformationWorkflow.js`).
+- Formulaire et idempotence : couverts par `elevageTransformationOfficial.test.js`
+  (écriture unique, entrée de stock unique, pas de doublon au rejeu, pas de vente
+  créée dans Élevage), inchangés par ce correctif.
+- Permissions : Élevage n'est pas exposé au rôle `financeur_externe` (contrôle en
+  amont de la navigation) ; l'onglet Transformation suit l'accès du module.
+
+### Éléments encore partiels
+
+La restructuration *complète* d'Élevage vers la structure cible à 8 onglets
+(Vue d'ensemble · Lots & animaux · Alimentation · Production · Santé & Biosécurité ·
+Transformation · Coûts & performance · Historique) reste à mener ; le champ `cible`
+la documente. Ce correctif restaure Transformation dans la liste réellement
+consommée, sans casser les vues existantes, et prépare la configuration unique.

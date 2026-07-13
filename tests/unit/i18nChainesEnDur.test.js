@@ -52,7 +52,6 @@ const CHEMINS_MIGRES = [
   'modules/commercial/DailySaleModal.jsx',
   'modules/cultures/CulturesHarvestPanel.jsx',
   'modules/cultures/CulturesIrrigationQuickForm.jsx',
-  'modules/dashboard/DailyQuickActions.jsx',
   'modules/elevage/ElevageWorkflowPanels.jsx',
   'utils/dailyQuickEntryContract.js',
 ];

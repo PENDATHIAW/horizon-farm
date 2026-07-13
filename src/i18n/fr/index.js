@@ -8,8 +8,9 @@ import dailyEntries from './dailyEntries.js';
 import navigation from './navigation.js';
 import moduleTabs from './moduleTabs.js';
 import shared from './shared.js';
+import composants from './composants.js';
 
-const dictionnaire = { commun, dailyEntries, navigation, moduleTabs, shared };
+const dictionnaire = { commun, dailyEntries, navigation, moduleTabs, shared, composants };
 
 export default dictionnaire;
 

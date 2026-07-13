@@ -23,6 +23,7 @@ import { buildElevageActivityPnl, isBovinAnimal, isChairLot, isPondeuseLot } fro
 import { buildElevageCostAwareInsights } from '../utils/elevageIaInsights.js';
 import ElevageTransformationTab from './elevage/ElevageTransformationTab.jsx';
 import {
+  buildTransformationDraft,
   openElevageTransformationForm,
   scrollToTransformationForm,
 } from '../utils/elevageTransformationNavigation.js';
@@ -147,6 +148,27 @@ export default function ElevageRecoveredModule(props) {
         setWorkflowScope(draft?.draft_fields?.scope || 'avicole');
         setTab('Production élevage');
         setActiveModal(dailyModal);
+        return;
+      }
+      const requestedTab = String(detail.tab || detail.initialTab || '').toLowerCase();
+      const isTransformationDraft = moduleKey === 'transformation'
+        || requestedTab === 'transformation'
+        || ['transformation', 'animal_transformation', 'lot_transformation', 'slaughter'].includes(formType);
+      if (isTransformationDraft) {
+        const fields = draft?.draft_fields || draft || detail.context || detail;
+        setTransformationDraft({
+          ...buildTransformationDraft({
+            animalId: fields.animal_id || fields.animalId,
+            lotId: fields.lot_id || fields.lotId,
+            transformType: fields.transform_type || fields.transformType,
+            date: fields.date || fields.event_date,
+            notes: fields.notes,
+            activity: fields.activity,
+          }),
+          ...fields,
+        });
+        setTab('Transformation');
+        window.setTimeout(scrollToTransformationForm, 120);
         return;
       }
       const birthModes = ['naissance_ferme', 'reproduction_interne'];
@@ -593,7 +615,7 @@ export default function ElevageRecoveredModule(props) {
     <div className="space-y-4">
       {lotsContent('avicole')}
       <details className="border-t border-[#eadcc2] pt-4">
-        <summary className="cursor-pointer text-sm font-black text-[#2f2415]">Cycles, reproduction et transformation</summary>
+        <summary className="cursor-pointer text-sm font-black text-[#2f2415]">Cycles et reproduction</summary>
         <div className="mt-4 space-y-4">
           <ElevageCyclesReproductionTab
             cyclesPanelProps={{
@@ -615,26 +637,30 @@ export default function ElevageRecoveredModule(props) {
             onOpenReproductionWorkflow={onOpenReproductionWorkflow}
             onNavigate={guardedNavigate}
           />
-          <ElevageTransformationTab
-            data={data}
-            setTab={setTab}
-            onNavigate={guardedNavigate}
-            onOpenWorkflow={openWorkflow}
-            onPrepareTransformation={onPrepareTransformation}
-            transformationFormProps={transformationFormProps}
-            animalBridgeProps={animalProps}
-            avicoleBridgeProps={avicoleProps}
-            healthBlocks={evaluateElevageHealthBlocks({ healthRows: health })}
-            hasTransformationDraft={Boolean(transformationDraft)}
-          />
         </div>
       </details>
     </div>
   );
 
+  const transformationContent = (
+    <ElevageTransformationTab
+      data={data}
+      setTab={setTab}
+      onNavigate={guardedNavigate}
+      onOpenWorkflow={openWorkflow}
+      onPrepareTransformation={onPrepareTransformation}
+      transformationFormProps={transformationFormProps}
+      animalBridgeProps={animalProps}
+      avicoleBridgeProps={avicoleProps}
+      healthBlocks={evaluateElevageHealthBlocks({ healthRows: health })}
+      hasTransformationDraft={Boolean(transformationDraft)}
+    />
+  );
+
   const content = tab === 'Santé & Biosécurité' ? (
     <SanteV8 {...healthProps} healthBlocks={evaluateElevageHealthBlocks({ healthRows: health })} sanitaryAlerts={buildSanitaryAlertsPanel(health)} />
   ) : tab === 'Production élevage' ? productionContent
+    : tab === 'Transformation' ? transformationContent
     : tab === 'Historique élevage' ? <JournalEvenements events={businessEvents} farmId={props.activeFarm?.id || props.farm?.id} module="elevage" recordType={props.recordType} recordId={props.recordId} period={props.periodScope} limit={150} onNavigate={props.onNavigate} />
       : tab === 'Lots & animaux' ? lotsContent('animaux')
         : lotsContent();

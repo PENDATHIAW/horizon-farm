@@ -3,8 +3,10 @@ import { ERP_ROLES } from '../../config/moduleTabs/shared.js';
 import { resolveModuleTab, visibleModuleTabs } from '../../config/moduleTabs/index.js';
 import { resolveModuleFlags } from '../../config/moduleFlags.js';
 
-export default function ModuleTabsBar({ moduleId, active, onChange, tabBadges = {}, wrap = false, activeFarm = null, role = null }) {
-  const canonicalRole = ERP_ROLES.includes(role) ? role : null;
+/** Barre d'onglets issue de la configuration canonique de chaque module. */
+export default function ModuleTabsBar({ moduleId, active, onChange, tabBadges = {}, wrap = false, activeFarm = null, role = null, rolesMasquesPour = null }) {
+  const requestedRole = role || rolesMasquesPour;
+  const canonicalRole = ERP_ROLES.includes(requestedRole) ? requestedRole : null;
   const rawTabs = visibleModuleTabs(moduleId, {
     role: canonicalRole,
     flags: activeFarm ? resolveModuleFlags(activeFarm) : {},

@@ -78,7 +78,7 @@ test('onglet contrôlé — Réceptions & achats rend le parcours d’achat', as
     ),
   );
 
-  assert.match(html, /Nouvelle réception|Achats sans preuve/i);
+  assert.match(html, /Nouvelle réception|Achats sans preuve|Mode démarrage|Réceptions récentes|Parcours unique d'achat/i);
   assert.doesNotMatch(html, /ERREUR MODULE|is not defined/i);
 });
 

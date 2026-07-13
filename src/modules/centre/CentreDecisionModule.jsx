@@ -9,6 +9,8 @@ import { buildDecisionCenterPlan } from '../../services/growthDecisionEngine.js'
 import { buildStrategicDecisionPlan } from '../../services/strategicDecisionEngine.js';
 import { buildVisionData } from '../vision/visionUtils';
 import CentreUrgencesTab from './CentreUrgencesTab.jsx';
+import { CentreEcartsTab, CentreRisquesTab } from './CentreCibleTabs.jsx';
+import JournalEvenements from '../../components/uniques/JournalEvenements.jsx';
 import CentreCroissanceTab from './CentreCroissanceTab.jsx';
 import CentreSaisonsTab from './CentreSaisonsTab.jsx';
 import PilotageSettingsPanel from './PilotageSettingsPanel.jsx';
@@ -148,21 +150,18 @@ export default function CentreDecisionModule({
 
   const urgentCount = openCentralAlerts.length;
 
-  const tabBadges = {
-    'Urgences & risques': urgentCount,
-    'Croissance & opportunités': (decisionPlan.commercialRecommendations?.length || 0)
+  const tabBadges = useMemo(() => ({
+    'À traiter': urgentCount,
+    'Décisions': (decisionPlan.commercialRecommendations?.length || 0)
       + (decisionPlan.recommendations?.filter((r) => r.should_recommend_investment || r.technical_rule).length || 0),
-    'Saisons & marchés': (strategicPlan.launch?.alerts?.length || 0)
-      + (strategicPlan.launch?.cycleDecisions?.filter((d) => d.priority === 'critique').length || 0)
-      + (strategicPlan.sanitary?.filter((s) => s.blocking).length || 0),
-  };
+  }), [decisionPlan, urgentCount]);
 
   const risksData = useMemo(() => ({
     ...data,
     risks: [...(data.risks || []), ...(strategicPlan.risks || [])],
   }), [data, strategicPlan.risks]);
 
-  const content = tab === 'Urgences & risques'
+  const content = tab === 'À traiter'
     ? (
       <div className="grid gap-5 xl:grid-cols-2">
         <ListeAlertes
@@ -185,27 +184,49 @@ export default function CentreDecisionModule({
         />
       </div>
     )
+    : tab === 'Écarts'
+      ? <CentreEcartsTab dataMap={enrichedDataMap} onNavigate={onNavigate} />
     : tab === 'Risques'
-    ? (
-      <CentreUrgencesTab
-        data={data}
-        risksData={risksData}
-        strategicPlan={strategicPlan}
-        setTab={setTab}
-        onNavigate={onNavigate}
-        onCreateTask={props.onCreateTask}
-        onCreateAlert={props.onCreateAlert}
-        onUpdateAlert={props.onUpdateAlert}
-        onCreateBusinessEvent={props.onCreateBusinessEvent}
-        onRefreshTasks={props.onRefreshTasks}
-        onRefreshAlertes={props.onRefreshAlertes}
-        existingTasks={props.existingTasks}
-        existingAlerts={props.existingAlerts}
-        enrichedDataMap={enrichedDataMap}
-        risksOnly
-      />
-    )
-    : ['Écarts & cohérence', 'Actions prioritaires'].includes(tab)
+      ? (
+        <div className="space-y-4">
+          <CentreRisquesTab alertes={centralAlerts} taches={centralTasks} onNavigate={onNavigate} />
+          <CentreUrgencesTab
+            data={data}
+            risksData={risksData}
+            strategicPlan={strategicPlan}
+            setTab={setTab}
+            onNavigate={onNavigate}
+            onCreateTask={props.onCreateTask}
+            onCreateAlert={props.onCreateAlert}
+            onUpdateAlert={props.onUpdateAlert}
+            onCreateBusinessEvent={props.onCreateBusinessEvent}
+            onRefreshTasks={props.onRefreshTasks}
+            onRefreshAlertes={props.onRefreshAlertes}
+            existingTasks={props.existingTasks}
+            existingAlerts={props.existingAlerts}
+            enrichedDataMap={enrichedDataMap}
+            risksOnly
+          />
+          <CentreSaisonsTab
+            dataMap={enrichedDataMap}
+            lots={props.lots}
+            animaux={props.animaux}
+            productionLogs={props.productionLogs}
+            strategicPlan={strategicPlan}
+            onNavigate={onNavigate}
+            setTab={setTab}
+            onCreateTask={props.onCreateTask}
+            onCreateAlert={props.onCreateAlert}
+            onRefreshTasks={props.onRefreshTasks}
+            onRefreshAlertes={props.onRefreshAlertes}
+            existingTasks={props.existingTasks}
+            existingAlerts={props.existingAlerts}
+          />
+        </div>
+      )
+    : tab === 'Historique'
+      ? <JournalEvenements evenements={props.businessEvents || enrichedDataMap.business_events || []} filtres={{ limite: 30 }} onNavigate={onNavigate} />
+    : tab === 'Décisions'
       ? (
         <CentreCroissanceTab
           plan={decisionPlan}
@@ -227,23 +248,7 @@ export default function CentreDecisionModule({
           marketPrices={props.marketPrices}
         />
       )
-      : (
-        <CentreSaisonsTab
-          dataMap={enrichedDataMap}
-          lots={props.lots}
-          animaux={props.animaux}
-          productionLogs={props.productionLogs}
-          strategicPlan={strategicPlan}
-          onNavigate={onNavigate}
-          setTab={setTab}
-          onCreateTask={props.onCreateTask}
-          onCreateAlert={props.onCreateAlert}
-          onRefreshTasks={props.onRefreshTasks}
-          onRefreshAlertes={props.onRefreshAlertes}
-          existingTasks={props.existingTasks}
-          existingAlerts={props.existingAlerts}
-        />
-      );
+      : null;
 
   return (
     <div className="space-y-6">

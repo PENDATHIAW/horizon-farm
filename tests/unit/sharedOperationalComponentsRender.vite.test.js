@@ -5,7 +5,7 @@ import { renderToString } from 'react-dom/server';
 import JournalEvenements from '../../src/components/shared/JournalEvenements.jsx';
 import ListeTaches from '../../src/components/shared/ListeTaches.jsx';
 import ListeAlertes from '../../src/components/shared/ListeAlertes.jsx';
-import CarteKPI from '../../src/components/shared/CarteKPI.jsx';
+import CarteKPI from '../../src/components/uniques/CarteKPI.jsx';
 
 test('JournalEvenements rend une seule occurrence par event_key', () => {
   const html = renderToString(React.createElement(JournalEvenements, {
@@ -38,7 +38,9 @@ test('ListeAlertes rend les alertes filtrées', () => {
 test('CarteKPI rend valeur, période et source reçues', () => {
   const html = renderToString(React.createElement(CarteKPI, {
     code: 'ca',
-    kpi: { code: 'ca', label: 'Chiffre affaires', value: 125000, unit: 'FCFA', period: 'Juillet', source: 'Commercial' },
+    periode: 'Juillet',
+    kpis: { commercial: { ca: 125000 } },
+    onNavigate: () => {},
   }));
   assert.match(html, /125/);
   assert.match(html, /Juillet/);

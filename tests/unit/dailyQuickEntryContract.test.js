@@ -241,8 +241,8 @@ test('confirmations détaillées et formulaires actifs portent les ancrages E2E'
   const replay = dailyEntryConfirmation(DAILY_ENTRY_TYPES.SALE, { replayed: true });
   assert.match(replay, /aucun doublon/i);
 
-  const quickActions = source('src/modules/dashboard/DailyQuickActions.jsx');
-  ['feeding', 'eggs', 'mortality', 'weighing', 'irrigation', 'harvest', 'sale'].forEach((id) => {
+  const quickActions = source('src/config/formulaires20s.config.js');
+  ['distribution', 'ponte', 'mortalite', 'pesee', 'irrigation', 'recolte', 'vente'].forEach((id) => {
     assert.match(quickActions, new RegExp(`id: '${id}'`));
   });
   const elevagePanels = source('src/modules/elevage/ElevageWorkflowPanels.jsx');
