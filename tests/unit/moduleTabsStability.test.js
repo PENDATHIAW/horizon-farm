@@ -106,6 +106,6 @@ test('Matrice modules couverte', () => {
   assert.equal(MODULE_TAB_MATRIX.elevage.length, 4);
   assert.equal(MODULE_TAB_MATRIX.cultures.length, 3);
   assert.equal(MODULE_TAB_MATRIX.objectifs_croissance.length, 4);
-  assert.equal(MODULE_TAB_MATRIX.centre_ia.length, 3);
+  assert.equal(MODULE_TAB_MATRIX.centre_ia.length, 5);
   assert.equal(MODULE_TAB_MATRIX.sync_activity.length, 3);
 });

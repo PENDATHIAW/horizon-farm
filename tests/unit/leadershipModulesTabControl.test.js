@@ -95,5 +95,5 @@ test('alias legacy — Résumé et Avicole', () => {
   assert.equal(resolveElevageTab('Résumé'), 'Lots & bandes');
   assert.equal(resolveElevageTab('Avicole'), 'Lots & bandes');
   assert.equal(resolveObjectifsTab('Graphiques'), 'Suivi du Business Plan');
-  assert.equal(resolveCentreTab('Priorités'), 'Urgences & risques');
+  assert.equal(resolveCentreTab('Priorités'), 'À traiter');
 });

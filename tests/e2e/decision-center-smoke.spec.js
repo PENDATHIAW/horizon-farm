@@ -14,7 +14,7 @@ test.describe('Centre décisionnel et Objectifs & Croissance', () => {
     await expect(page.getByText(/Actions critiques|actions à traiter|Actions prioritaires/i).first()).toBeVisible();
     await expect(page.getByRole('button', { name: /^Exporter Excel$/i })).toBeVisible();
 
-    await page.getByRole('button', { name: /Croissance.*opportunités/i }).click();
+    await page.getByRole('button', { name: /^Décisions$/i }).click();
     await expect(page.getByText(/Où agir pour vendre plus|Commercial/i).first()).toBeVisible();
     await expect(page.getByText(/ROI des décisions|Aucune décision historisée/i).first()).toBeVisible();
 
@@ -25,19 +25,19 @@ test.describe('Centre décisionnel et Objectifs & Croissance', () => {
     await expect(page.getByText(/Le Réel vs Le Théorique|Valorisation du Fumier/i).first()).toBeVisible();
   });
 
-  test('onglet Actions prioritaires expose les actions applicables', async ({ page }) => {
+  test('onglet Risques affiche le registre dérivé', async ({ page }) => {
     await login(page);
     await goToModule(page, 'Centre décisionnel');
-    await page.getByRole('button', { name: /Actions prioritaires/i }).click();
-    await expect(page.getByRole('heading', { name: /Actions prioritaires/i })).toBeVisible({ timeout: 15_000 });
-    await expect(page.getByRole('button', { name: /^Appliquer$/i }).first()).toBeVisible({ timeout: 10_000 });
-    await expect(page.getByRole('button', { name: /^Ouvrir$/i }).first()).toBeVisible();
+    await page.getByRole('button', { name: /^Risques$/i }).click();
+    await expect(page.getByText(/Registre des risques structurels/i)).toBeVisible({ timeout: 15_000 });
+    await expect(page.getByText(/Sanitaire/i).first()).toBeVisible();
+    await expect(page.getByText(/Trésorerie/i).first()).toBeVisible();
   });
 
-  test('onglet Urgences affiche les risques à traiter', async ({ page }) => {
+  test('onglet À traiter affiche les urgences à traiter', async ({ page }) => {
     await login(page);
     await goToModule(page, 'Centre décisionnel');
-    await expect(page.getByRole('button', { name: /Urgences.*risques/i })).toBeVisible({ timeout: 10_000 });
+    await expect(page.getByRole('button', { name: /^À traiter$/i })).toBeVisible({ timeout: 10_000 });
     await expect(page.getByText(/DER\/FJ|actions à traiter|Trésorerie/i).first()).toBeVisible();
     await expect(page.getByRole('button', { name: /^Ouvrir$/i }).first()).toBeVisible();
   });

@@ -3,6 +3,7 @@ import {
   BUSINESS_EVENT_WORKFLOWS,
   MODULE_INTERCONNECTIONS_LIST,
 } from './businessInterconnections.config.js';
+import { MODULE_TABS_LABELS } from './moduleTabs.config.js';
 
 /** Vision ERP Horizon Farm — source de vérité métier, chiffres, interconnexions et règles de cohérence. */
 export const HORIZON_MISSION = [
@@ -15,26 +16,8 @@ export const HORIZON_MISSION = [
   'préparer la croissance uniquement quand les données le justifient',
 ];
 
-export const MODULE_TARGET_TABS = {
-  dashboard: ['Carnet Horizon', 'Priorités du jour', 'Indicateurs ferme', 'Vue financeur rapide'],
-  assistant_erp: ['Hey Horizon', 'Questions métier', 'Aide à la décision', 'Recherche dans les données'],
-  centre_ia: ['Urgences & risques', 'Écarts & cohérence', 'Actions prioritaires', 'Croissance & opportunités'],
-  agri_feeds: ['Tableau de bord', 'Référence Phase 1', 'Matières & fournisseurs', 'Formulations', 'Production', 'Tests & comparaison', 'Commercial', 'Qualité & reporting'],
-  objectifs_croissance: ['Suivi du Business Plan', 'Prévisionnel vs réel', 'Simulations', 'Capacité de remboursement'],
-  elevage: ['Lots & bandes', 'Pondeuses', 'Embouche bovine', 'Santé & biosécurité', 'Alimentation', 'Performances'],
-  cultures: ['Parcelles & campagnes', 'Irrigation', 'Récoltes', 'Économie circulaire', 'Marge parcelle'],
-  commercial: ['Ventes', 'Clients & créances', 'Livraisons', 'Factures', 'Marge commerciale'],
-  achats_stock: ['Inventaire', 'Réceptions & achats', 'Fournisseurs & dettes', 'Mouvements stock', 'Matières organiques'],
-  finance_pilotage: ['Résumé', 'Trésorerie', 'Créances & dettes', 'Coûts par filière', 'Financement', 'Écarts budget'],
-  activite_suivi: ['Tâches du jour', 'Alertes', 'Décisions', 'Registre d’actions', 'Traçabilité opérationnelle'],
-  documents_rapports: ['Documents', 'Justificatifs', 'Rapports financeur', 'Exports', 'Audit documentaire'],
-  financements: ['Tableau de bord', 'Opportunités', 'Contacts', 'Dossiers & pièces', 'Fonds & justificatifs', 'Espace Financeurs'],
-  rh: ['Équipe', 'Responsabilités', 'Planning', 'Temps de travail', 'Incidents'],
-  equipements: ['Équipements', 'Maintenance', 'Pannes', 'Coûts', 'Disponibilité'],
-  smartfarm: ['Capteurs', 'Eau', 'Énergie', 'Alertes techniques', 'Automatisation terrain'],
-  sync_activity: ['Vérifications', 'Connexion & envoi', 'Journal d’activité', 'Données hors ligne'],
-  gestion_systeme: ['Vue admin', 'Utilisateurs', 'Fermes', 'Paramètres', 'Sécurité', 'Synchronisation', 'Audit'],
-};
+/** Onglets par module — dérivés de la configuration unique (moduleTabs.config.js). */
+export const MODULE_TARGET_TABS = MODULE_TABS_LABELS;
 
 /** Interconnexions obligatoires. Les clés événementielles viennent de businessInterconnections.config.js. */
 export const INTERCONNECTIONS = {

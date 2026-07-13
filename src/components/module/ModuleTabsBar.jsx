@@ -1,8 +1,17 @@
-import { MODULE_TARGET_TABS } from '../../config/horizonVision.config.js';
+import { MODULE_TABS_CONFIG } from '../../config/moduleTabs.config.js';
 import { sortModuleTabsForFarm } from '../../config/farmAdaptation.js';
 
-export default function ModuleTabsBar({ moduleId, active, onChange, tabBadges = {}, wrap = false, activeFarm = null }) {
-  const rawTabs = MODULE_TARGET_TABS[moduleId] || [];
+/**
+ * Barre d'onglets pilotée par la configuration unique
+ * (src/config/moduleTabs.config.js) : id, libellé du dictionnaire, rôle
+ * requis et flag y sont déclarés. `role` masque les onglets dont
+ * rolesMasques contient le rôle de l'utilisateur.
+ */
+export default function ModuleTabsBar({ moduleId, active, onChange, tabBadges = {}, wrap = false, activeFarm = null, role = null, rolesMasquesPour = null }) {
+  const roleEffectif = role || rolesMasquesPour;
+  const entrees = (MODULE_TABS_CONFIG[moduleId]?.onglets || [])
+    .filter((entree) => !roleEffectif || !entree.rolesMasques?.includes(roleEffectif));
+  const rawTabs = entrees.map((entree) => entree.libelle);
   const tabs = sortModuleTabsForFarm(moduleId, rawTabs, activeFarm);
   if (!tabs.length) return null;
   return (
