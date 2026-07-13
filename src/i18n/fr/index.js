@@ -9,8 +9,9 @@ import navigation from './navigation.js';
 import moduleTabs from './moduleTabs.js';
 import shared from './shared.js';
 import composants from './composants.js';
+import reglages from './reglages.js';
 
-const dictionnaire = { commun, dailyEntries, navigation, moduleTabs, shared, composants };
+const dictionnaire = { commun, dailyEntries, navigation, moduleTabs, shared, composants, reglages };
 
 export default dictionnaire;
 

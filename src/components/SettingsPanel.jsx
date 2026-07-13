@@ -3,6 +3,7 @@ import { useEffect, useMemo, useState } from 'react';
 import toast from 'react-hot-toast';
 import { applyUiSettingsToDocument, DEFAULT_UI_SETTINGS, isDemoModeEnabled, readUiSettings, setDemoMode, UI_SETTINGS_KEY, writeUiSettings } from '../utils/uiPreferences';
 import { IGNORED_AUDIT_KEY, NOTIFICATION_BANNER_HIDDEN_KEY } from '../utils/storageKeys.js';
+import { t } from '../i18n/fr/index.js';
 
 import useAutomationSettings from '../hooks/useAutomationSettings.js';
 
@@ -39,8 +40,8 @@ export default function SettingsPanel({ open, onClose, user, displayUser, online
 
   const role = user?.user_metadata?.role || 'profil';
   const weatherLabel = useMemo(() => {
-    if (!meteo) return 'Météo indisponible';
-    const temp = meteo.temp ?? '—';
+    if (!meteo) return t('reglages.meteoIndisponible');
+    const temp = meteo.temp ?? '·';
     const apparent = meteo.apparentTemp ?? temp;
     return `${temp}°C ress. ${apparent}°C · ${meteo.condition || 'condition inconnue'} · pluie ${meteo.precipitationProbability || 0}%`;
   }, [meteo]);
@@ -52,38 +53,38 @@ export default function SettingsPanel({ open, onClose, user, displayUser, online
   const toggleDemo = (value) => {
     setDemoMode(value);
     setDemoEnabled(value);
-    toast.success(value ? 'Données simulées activées — rechargement des modules…' : 'Données réelles activées — scénario de démo masqué');
+    toast.success(value ? t('reglages.donnees.activeToast') : t('reglages.donnees.desactiveToast'));
   };
   const clearLocalSuppressionCache = () => {
-    if (!window.confirm('Nettoyer les éléments gardés seulement sur cet appareil ? Cela ne supprime aucune donnée de la ferme.')) return;
+    if (!window.confirm(t('reglages.nettoyage.confirmation'))) return;
     const count = removeMatchingLocalStorage(['horizon_farm_deleted_ids:', 'horizon_farm_deleted_records:', IGNORED_AUDIT_KEY]);
-    toast.success(`${count} élément(s) nettoyé(s)`);
+    toast.success(t('reglages.nettoyage.resultat', { count }));
   };
-  const resetNotificationBanner = () => { try { localStorage.removeItem(NOTIFICATION_BANNER_HIDDEN_KEY); } catch { /* noop */ } toast.success('Demande de notifications réaffichée'); };
-  const resetUiSettings = () => { setSettings(DEFAULT_UI_SETTINGS); try { localStorage.removeItem(UI_SETTINGS_KEY); } catch { /* noop */ } toast.success('Affichage remis par défaut'); };
+  const resetNotificationBanner = () => { try { localStorage.removeItem(NOTIFICATION_BANNER_HIDDEN_KEY); } catch { /* noop */ } toast.success(t('reglages.notificationsReaffichees')); };
+  const resetUiSettings = () => { setSettings(DEFAULT_UI_SETTINGS); try { localStorage.removeItem(UI_SETTINGS_KEY); } catch { /* noop */ } toast.success(t('reglages.affichageRemis')); };
 
   return <div className="absolute right-3 top-14 z-50 w-[min(94vw,460px)] rounded-2xl border border-line bg-white p-4 shadow-float">
-    <div className="mb-3 flex items-center justify-between gap-3"><div><p className="flex items-center gap-2 text-sm font-semibold text-earth"><Settings size={16} /> Paramètres Horizon Farm</p><p className="text-xs text-slate">Affichage, compte, données et raccourcis utiles.</p></div><button type="button" onClick={onClose} className="text-slate hover:text-earth"><X size={16} /></button></div>
+    <div className="mb-3 flex items-center justify-between gap-3"><div><p className="flex items-center gap-2 text-sm font-semibold text-earth"><Settings size={16} /> {t('reglages.titre')}</p><p className="text-xs text-slate">{t('reglages.sousTitre')}</p></div><button type="button" onClick={onClose} className="text-slate hover:text-earth"><X size={16} /></button></div>
     <div className="max-h-[72vh] space-y-3 overflow-y-auto pr-1">
-      <SettingRow icon={ShieldCheck} title={displayUser || 'Utilisateur'} description={`Profil actuel : ${role}. Les accès se règlent dans Gestion du système.`}><button type="button" onClick={() => navigate('gestion_systeme')} className="rounded-full border border-line px-3 py-1 text-xs font-semibold text-earth">Accès</button></SettingRow>
-      <div className="grid grid-cols-1 gap-2 sm:grid-cols-2"><button type="button" onClick={() => navigate('gestion_systeme')} className="rounded-xl border border-line bg-card p-3 text-left hover:border-horizon"><ShieldCheck size={16} className="mb-2 text-horizon-dark" /><p className="text-sm font-semibold text-earth">Gestion du système</p><p className="text-xs text-slate">Comptes et accès.</p></button><button type="button" onClick={() => navigate('sync_activity')} className="rounded-xl border border-line bg-card p-3 text-left hover:border-horizon"><History size={16} className="mb-2 text-horizon-dark" /><p className="text-sm font-semibold text-earth">Vérifications</p><p className="text-xs text-slate">Points à revoir et sauvegarde.</p></button><button type="button" onClick={() => navigate('documents')} className="rounded-xl border border-line bg-card p-3 text-left hover:border-horizon"><FileText size={16} className="mb-2 text-horizon-dark" /><p className="text-sm font-semibold text-earth">Documents</p><p className="text-xs text-slate">Preuves et factures.</p></button><button type="button" onClick={resetNotificationBanner} className="rounded-xl border border-line bg-card p-3 text-left hover:border-horizon"><Bell size={16} className="mb-2 text-horizon-dark" /><p className="text-sm font-semibold text-earth">Notifications</p><p className="text-xs text-slate">Réafficher la demande.</p></button></div>
-      <SettingRow icon={Layers} title="Niveau de détail" description={settings.complexity === 'simple' ? 'Vue simple : l’essentiel d’abord.' : 'Vue détaillée : plus de graphiques et de contrôles.'}><Segmented value={settings.complexity} onChange={(value) => updateSetting('complexity', value)} options={[{ value: 'simple', label: 'Simple' }, { value: 'expert', label: 'Détaillé' }]} /></SettingRow>
-      <SettingRow icon={Eye} title="Menu latéral" description="Afficher le menu large ou compact."><Toggle checked={!sidebarOpen} onChange={() => setSidebarOpen?.(!sidebarOpen)} /></SettingRow>
-      <SettingRow icon={Database} title="Données affichées" description={demoEnabled ? 'Données simulées : l’ERP peut afficher/créer des données de test cohérentes pour comprendre et tester les modules.' : 'Données réelles : seules les données réellement saisies sont affichées.'}><Segmented value={demoEnabled ? 'simulated' : 'real'} onChange={(value) => toggleDemo(value === 'simulated')} options={[{ value: 'real', label: 'Réelles' }, { value: 'simulated', label: 'Simulées' }]} /></SettingRow>
+      <SettingRow icon={ShieldCheck} title={displayUser || t('reglages.utilisateur')} description={t('reglages.profilActuel', { role })}><button type="button" onClick={() => navigate('gestion_systeme')} className="rounded-full border border-line px-3 py-1 text-xs font-semibold text-earth">{t('reglages.acces')}</button></SettingRow>
+      <div className="grid grid-cols-1 gap-2 sm:grid-cols-2"><button type="button" onClick={() => navigate('gestion_systeme')} className="rounded-xl border border-line bg-card p-3 text-left hover:border-horizon"><ShieldCheck size={16} className="mb-2 text-horizon-dark" /><p className="text-sm font-semibold text-earth">{t('reglages.raccourcis.gestionSysteme')}</p><p className="text-xs text-slate">{t('reglages.raccourcis.gestionSystemeDetail')}</p></button><button type="button" onClick={() => navigate('sync_activity')} className="rounded-xl border border-line bg-card p-3 text-left hover:border-horizon"><History size={16} className="mb-2 text-horizon-dark" /><p className="text-sm font-semibold text-earth">{t('reglages.raccourcis.verifications')}</p><p className="text-xs text-slate">{t('reglages.raccourcis.verificationsDetail')}</p></button><button type="button" onClick={() => navigate('documents')} className="rounded-xl border border-line bg-card p-3 text-left hover:border-horizon"><FileText size={16} className="mb-2 text-horizon-dark" /><p className="text-sm font-semibold text-earth">{t('reglages.raccourcis.documents')}</p><p className="text-xs text-slate">{t('reglages.raccourcis.documentsDetail')}</p></button><button type="button" onClick={resetNotificationBanner} className="rounded-xl border border-line bg-card p-3 text-left hover:border-horizon"><Bell size={16} className="mb-2 text-horizon-dark" /><p className="text-sm font-semibold text-earth">{t('reglages.raccourcis.notifications')}</p><p className="text-xs text-slate">{t('reglages.raccourcis.notificationsDetail')}</p></button></div>
+      <SettingRow icon={Layers} title={t('reglages.detail.titre')} description={settings.complexity === 'simple' ? t('reglages.detail.simple') : t('reglages.detail.detaille')}><Segmented value={settings.complexity} onChange={(value) => updateSetting('complexity', value)} options={[{ value: 'simple', label: t('reglages.detail.optionSimple') }, { value: 'expert', label: t('reglages.detail.optionDetaille') }]} /></SettingRow>
+      <SettingRow icon={Eye} title={t('reglages.menu.titre')} description={t('reglages.menu.description')}><Toggle checked={!sidebarOpen} onChange={() => setSidebarOpen?.(!sidebarOpen)} /></SettingRow>
+      <SettingRow icon={Database} title={t('reglages.donnees.titre')} description={demoEnabled ? t('reglages.donnees.simulees') : t('reglages.donnees.reelles')}><Segmented value={demoEnabled ? 'simulated' : 'real'} onChange={(value) => toggleDemo(value === 'simulated')} options={[{ value: 'real', label: t('reglages.donnees.optionReelles') }, { value: 'simulated', label: t('reglages.donnees.optionSimulees') }]} /></SettingRow>
       <div className="rounded-xl border border-line bg-card p-3 space-y-2">
-        <p className="text-sm font-semibold text-earth">Automatisations ferme</p>
-        <p className="text-xs text-slate">Relances WhatsApp préparées et tâches auto sur alertes critiques.</p>
-        {automationLoading ? <p className="text-xs text-slate">Chargement…</p> : automationSettings.map((row) => (
+        <p className="text-sm font-semibold text-earth">{t('reglages.automatisations.titre')}</p>
+        <p className="text-xs text-slate">{t('reglages.automatisations.description')}</p>
+        {automationLoading ? <p className="text-xs text-slate">{t('reglages.automatisations.chargement')}</p> : automationSettings.map((row) => (
           <SettingRow key={row.key} icon={Bell} title={row.label} description={row.description}>
             <Toggle checked={row.enabled !== false} onChange={() => toggleAutomation(row.key)} />
           </SettingRow>
         ))}
       </div>
-      <SettingRow icon={Sun} title="Affichage" description="Confort pour plus d’air, compact pour moins de scroll."><Select value={settings.density} onChange={(value) => updateSetting('density', value)} options={[{ value: 'comfortable', label: 'Confort' }, { value: 'compact', label: 'Compact' }]} /></SettingRow>
-      <SettingRow icon={online ? Wifi : WifiOff} title="Connexion" description={online ? 'Connecté.' : 'Hors ligne : les actions seront gardées en attente.'}><span className={`rounded-full px-2 py-1 text-xs font-semibold ${online ? 'bg-positive-bg text-positive' : 'bg-urgent-bg text-urgent'}`}>{online ? 'OK' : 'Hors ligne'}</span></SettingRow>
-      <SettingRow icon={Sun} title="Météo terrain" description={`${weatherLabel}.`} />
-      <div className="rounded-xl border border-vigilance bg-vigilance-bg p-3"><p className="mb-2 text-sm font-semibold text-horizon-dark">Nettoyage sur cet appareil</p><div className="grid grid-cols-1 gap-2 sm:grid-cols-2"><button type="button" onClick={clearLocalSuppressionCache} className="rounded-xl border border-vigilance bg-white/70 px-3 py-2 text-left text-xs font-semibold text-horizon-dark hover:bg-white"><Trash2 size={14} className="inline" /> Nettoyer</button><button type="button" onClick={resetUiSettings} className="rounded-xl border border-vigilance bg-white/70 px-3 py-2 text-left text-xs font-semibold text-horizon-dark hover:bg-white"><RefreshCw size={14} className="inline" /> Remettre l’affichage</button></div><p className="mt-2 text-meta text-horizon-dark">Ces actions concernent seulement ce téléphone ou cet ordinateur.</p></div>
-      <button type="button" onClick={onSignOut} className="w-full rounded-xl border border-urgent bg-urgent p-3 text-left text-sm font-semibold text-urgent hover:bg-urgent"><LogOut size={15} className="inline" /> Déconnexion</button>
+      <SettingRow icon={Sun} title={t('reglages.affichage.titre')} description={t('reglages.affichage.description')}><Select value={settings.density} onChange={(value) => updateSetting('density', value)} options={[{ value: 'comfortable', label: t('reglages.affichage.confort') }, { value: 'compact', label: t('reglages.affichage.compact') }]} /></SettingRow>
+      <SettingRow icon={online ? Wifi : WifiOff} title={t('reglages.connexion.titre')} description={online ? t('reglages.connexion.connecte') : t('reglages.connexion.horsLigne')}><span className={`rounded-full px-2 py-1 text-xs font-semibold ${online ? 'bg-positive-bg text-positive' : 'bg-urgent-bg text-urgent'}`}>{online ? t('reglages.connexion.statutOk') : t('reglages.connexion.statutHorsLigne')}</span></SettingRow>
+      <SettingRow icon={Sun} title={t('reglages.meteoTerrain')} description={`${weatherLabel}.`} />
+      <div className="rounded-xl border border-vigilance bg-vigilance-bg p-3"><p className="mb-2 text-sm font-semibold text-horizon-dark">{t('reglages.nettoyage.titre')}</p><div className="grid grid-cols-1 gap-2 sm:grid-cols-2"><button type="button" onClick={clearLocalSuppressionCache} className="rounded-xl border border-vigilance bg-white/70 px-3 py-2 text-left text-xs font-semibold text-horizon-dark hover:bg-white"><Trash2 size={14} className="inline" /> {t('reglages.nettoyage.nettoyer')}</button><button type="button" onClick={resetUiSettings} className="rounded-xl border border-vigilance bg-white/70 px-3 py-2 text-left text-xs font-semibold text-horizon-dark hover:bg-white"><RefreshCw size={14} className="inline" /> {t('reglages.nettoyage.remettreAffichage')}</button></div><p className="mt-2 text-meta text-horizon-dark">{t('reglages.nettoyage.portee')}</p></div>
+      <button type="button" onClick={onSignOut} className="w-full rounded-xl border border-urgent bg-urgent p-3 text-left text-sm font-semibold text-urgent hover:bg-urgent"><LogOut size={15} className="inline" /> {t('reglages.deconnexion')}</button>
     </div>
   </div>;
 }
