@@ -51,6 +51,7 @@ const CHEMINS_MIGRES = [
   'components/shared/',
   'components/SettingsPanel.jsx',
   'components/FarmCostSettingsPanel.jsx',
+  'components/AvicoleLotDetailsModal.jsx',
   'modules/commercial/DailySaleModal.jsx',
   'modules/cultures/CulturesHarvestPanel.jsx',
   'modules/cultures/CulturesIrrigationQuickForm.jsx',

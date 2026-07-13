@@ -43,9 +43,9 @@ export function recommendAnimalSalePrice({ animal, alimentationLogs = [], vaccin
   if (recommended <= 0) {
     alerts.push('Renseigner le poids et les coûts (achat/alimentation) ou les prix/kg dans l’onglet Annexe pour obtenir un prix proposé.');
   } else if (margin < 0) {
-    alerts.push('Prix recommandé sous le coût total — ne pas vendre sans ajuster.');
+    alerts.push('Prix recommandé sous le coût total : ne pas vendre sans ajuster.');
   } else if (unified.totalCost > 0 && margin < unified.totalCost * (settings.defaultTargetMarginPct / 100)) {
-    alerts.push('Marge sous objectif — revoir prix ou coûts.');
+    alerts.push('Marge sous objectif : revoir prix ou coûts.');
   }
   return {
     entityType: 'animal',
@@ -103,7 +103,7 @@ export function recommendAvicoleLotPrice({ lot, alimentationLogs = [], productio
       marginRate: unified.totalCost > 0 ? (margin / unified.totalCost) * 100 : 0,
       marketPrice: market?.price || null,
     }, lot),
-    alerts: margin < 0 ? ['Prix recommandé sous le coût total — ne pas vendre sans ajuster.'] : margin < unified.totalCost * (settings.defaultTargetMarginPct / 100) ? ['Marge sous objectif paramétré.'] : [],
+    alerts: margin < 0 ? ['Prix recommandé sous le coût total : ne pas vendre sans ajuster.'] : margin < unified.totalCost * (settings.defaultTargetMarginPct / 100) ? ['Marge sous objectif paramétré.'] : [],
   };
 }
 

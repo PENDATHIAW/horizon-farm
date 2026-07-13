@@ -11,8 +11,9 @@ import shared from './shared.js';
 import composants from './composants.js';
 import reglages from './reglages.js';
 import coutsFerme from './coutsFerme.js';
+import avicoleLot from './avicoleLot.js';
 
-const dictionnaire = { commun, dailyEntries, navigation, moduleTabs, shared, composants, reglages, coutsFerme };
+const dictionnaire = { commun, dailyEntries, navigation, moduleTabs, shared, composants, reglages, coutsFerme, avicoleLot };
 
 export default dictionnaire;
 

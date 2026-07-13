@@ -61,7 +61,7 @@ export default function SalePricingSummaryCard({
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 text-sm min-w-[200px]">
             <div className="rounded-xl bg-white/80 border border-positive px-3 py-2">
               <p className="text-meta uppercase text-slate">Plancher</p>
-              <p className="font-semibold text-earth">{minimum > 0 ? fmtCurrency(minimum) : '—'}</p>
+              <p className="font-semibold text-earth">{minimum > 0 ? fmtCurrency(minimum) : '-'}</p>
             </div>
             <div className="rounded-xl bg-white/80 border border-positive px-3 py-2">
               <p className="text-meta uppercase text-slate">Coût unifié</p>
@@ -70,7 +70,7 @@ export default function SalePricingSummaryCard({
             <div className="rounded-xl bg-white/80 border border-positive px-3 py-2">
               <p className="text-meta uppercase text-slate">{PROPOSED_PRICE_MARGIN_LABEL}</p>
               <p className={`font-semibold ${Number(marginValue) < 0 ? 'text-urgent' : 'text-positive'}`}>
-                {hasPrice && marginValue != null ? fmtCurrency(marginValue) : '—'}
+                {hasPrice && marginValue != null ? fmtCurrency(marginValue) : '-'}
               </p>
               {hasPrice ? (
                 <p className="text-meta text-slate mt-1">{marginLabel}</p>
