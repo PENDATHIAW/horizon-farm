@@ -43,7 +43,7 @@ export default function ActiviteProblemFichePanel({ fiches = [], selectedKey = '
             <div className="grid grid-cols-2 gap-2 text-sm">
               <div className="rounded-xl border border-line p-3"><span className="text-slate">Alerte</span><p className="font-semibold">{selected.alert ? 'Liée' : '—'}</p></div>
               <div className="rounded-xl border border-line p-3"><span className="text-slate">Tâches</span><p className="font-semibold">{fmtNumber(selected.tasks.length)}</p></div>
-              <div className="rounded-xl border border-line p-3"><span className="text-slate">Recommandations IA</span><p className="font-semibold">{fmtNumber(selected.recommendations.length)}</p></div>
+              <div className="rounded-xl border border-line p-3"><span className="text-slate">Recommandations</span><p className="font-semibold">{fmtNumber(selected.recommendations.length)}</p></div>
               <div className="rounded-xl border border-line p-3"><span className="text-slate">Événements</span><p className="font-semibold">{fmtNumber(selected.events.length)}</p></div>
               <div className="rounded-xl border border-line p-3"><span className="text-slate">Documents</span><p className="font-semibold">{fmtNumber(selected.documents.length)}</p></div>
               <div className="rounded-xl border border-line p-3"><span className="text-slate">Transactions</span><p className="font-semibold">{fmtNumber(selected.transactions.length)}</p></div>

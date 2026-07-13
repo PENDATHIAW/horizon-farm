@@ -28,7 +28,7 @@ export default function SellableStockPublicationBridge({
       <div className="rounded-2xl border border-line bg-white p-6 space-y-4">
         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3">
           <div>
-            <p className="text-xs uppercase tracking-normal text-slate">IA commerciale</p>
+            <p className="text-xs uppercase tracking-normal text-slate">Suggestions commerciales</p>
             <h3 className="font-semibold text-earth">{title}</h3>
             <p className="text-sm text-slate mt-1">{subtitle}</p>
           </div>

@@ -56,7 +56,7 @@ function OpportunityCard({ row, match, onConvert, onContactClient, onContactAll,
             <p className="mt-1 text-sm font-semibold text-horizon-dark">{match.label}</p>
             {qty ? <p className="text-xs text-slate">Qté {qty} {row.unit || ''}</p> : null}
             {row.reason ? <p className="mt-1 text-xs text-slate line-clamp-2">{row.reason}</p> : null}
-            {row.recommendation ? <p className="mt-1 text-xs font-semibold text-earth">IA : {row.recommendation}</p> : null}
+            {row.recommendation ? <p className="mt-1 text-xs font-semibold text-earth">Suggestion : {row.recommendation}</p> : null}
           </div>
         </div>
         <span className="shrink-0 text-lg font-semibold text-positive">{fmtCurrency(amount)}</span>
@@ -205,7 +205,7 @@ export default function CommercialOpportunitiesPanel({
 
       <SellableStockPublicationBridge
         rows={stocks}
-        title="Stock vendable — publications IA"
+        title="Stock vendable : publications"
         subtitle="Messages WhatsApp, Facebook, SMS et offres promo (DLC urgente) sans envoi automatique."
         onWhatsAppLog={onWhatsAppLog}
       />

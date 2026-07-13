@@ -106,7 +106,7 @@ export default function DecisionHistoryPanel({ dataMap = {}, onNavigate, compact
           <Mini icon={FileText} label="Suivies" value={totals.recommended} />
           <Mini icon={TrendingUp} label="Rentables" value={totals.profitable} tone="good" />
           <Mini icon={TrendingDown} label="Non rentables" value={totals.notProfitable} tone="bad" />
-          <Mini icon={BarChart2} label="CA IA" value={`${totals.contributionRate}%`} tone={totals.contributionRate > 0 ? 'good' : 'neutral'} />
+          <Mini icon={BarChart2} label="CA assisté" value={`${totals.contributionRate}%`} tone={totals.contributionRate > 0 ? 'good' : 'neutral'} />
         </div>
         {latest.length ? (
           <button type="button" onClick={() => setOpen((v) => !v)} className="text-xs font-semibold text-horizon-dark underline">

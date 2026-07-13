@@ -129,7 +129,7 @@ export default function SalesPublicationModal({
     <BaseModal
       open={open}
       onClose={onClose}
-      title="Publication commerciale IA"
+      title="Publication commerciale"
       footer={(
         <div className="flex flex-wrap gap-2 justify-end">
           <Btn variant="outline" onClick={onClose}>Fermer</Btn>

@@ -202,7 +202,7 @@ export function enrichOperationalPriorities(openAlerts = [], openTasks = [], ext
       title: f.title,
       detail: f.recommended_action || f.description || '—',
       value: 'Analyse',
-      priorityLabel: f.severity === 'critique' || f.severity === 'haute' ? 'Analyse IA' : 'Conseil IA',
+      priorityLabel: f.severity === 'critique' || f.severity === 'haute' ? 'Analyse' : 'Conseil',
       tone: f.severity === 'critique' || f.severity === 'haute' ? 'bad' : 'warn',
       severity: f.severity,
       kind: 'ia',

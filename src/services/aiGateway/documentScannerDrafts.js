@@ -62,7 +62,7 @@ export function buildPurchasePayloadFromScan(fields = {}, proofMeta = {}) {
     file_url: proofMeta.file_url || proofMeta.proof_url || '',
     document_id: proofMeta.document_id || '',
     document_title: proofMeta.document_title || `Facture ${fields.fournisseur || 'achat'}`,
-    notes: fields.notes || 'Scanner document IA',
+    notes: fields.notes || 'Scanner document',
     entry_kind: fields.entry_kind || 'achat_stockable',
     lignes: fields.lignes || [],
   };

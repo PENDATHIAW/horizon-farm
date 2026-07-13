@@ -162,7 +162,7 @@ export default function DocumentScannerPanel({
   return (
     <section className="rounded-3xl border border-line bg-white p-6 shadow-card space-y-6">
       <div>
-        <p className="text-xs uppercase tracking-normal text-horizon-dark font-semibold">Scanner IA</p>
+        <p className="text-xs uppercase tracking-normal text-horizon-dark font-semibold">Scanner</p>
         <h2 className="mt-1 flex items-center gap-2 text-lg font-semibold text-earth">
           <FileScan size={22} />
           Scanner document

@@ -43,7 +43,7 @@ export async function enhanceHeyHorizonQuestion(question = '', dataMap = {}, { f
   });
   const payload = await response.json();
   if (!response.ok || !payload.ok) {
-    throw new Error(payload.error || payload.message || 'Enrichissement IA indisponible');
+    throw new Error(payload.error || payload.message || 'Enrichissement indisponible');
   }
   return payload;
 }
@@ -56,7 +56,7 @@ export function normalizeLlmDraft(llmDraft = {}, rawText = '') {
     status: llmDraft.status || (llmDraft.missing_fields?.length ? 'draft_incomplete' : 'ready'),
     confidence: Math.min(1, Math.max(0, Number(llmDraft.confidence || 0.72))),
     source: 'llm',
-    ui: llmDraft.ui || { title: llmDraft.intent || 'Action IA' },
+    ui: llmDraft.ui || { title: llmDraft.intent || 'Action recommandée' },
     raw_text: rawText,
     requires_validation: true,
     impacted_modules: llmDraft.impacted_modules || [llmDraft.primary_module].filter(Boolean),

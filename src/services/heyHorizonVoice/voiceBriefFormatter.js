@@ -46,7 +46,7 @@ function formatRecommendations(recommendations = []) {
   return section(
     'recommandations',
     'Recommandations',
-    `${recommendations.length} signal(aux) IA`,
+    `${recommendations.length} signal(aux) d’analyse`,
     top.join(' · ') || MISSING,
     recommendations.length > 2 ? 'warn' : 'ok',
   );

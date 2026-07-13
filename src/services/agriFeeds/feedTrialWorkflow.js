@@ -337,7 +337,7 @@ export function prepareCloseTrial(payload = {}, dataMap = {}) {
       entity_id: trial.id,
       title: `Essai clôturé — ${trial.trial_code}`,
       description: `${kpis.total_feed_consumed} kg · IC ${kpis.feed_conversion_ratio?.toFixed?.(2) || '—'} · `
-        + `Mort. ${kpis.mortality_rate?.toFixed?.(1) || '—'} % · Proposition IA : ${proposal.label}`,
+        + `Mort. ${kpis.mortality_rate?.toFixed?.(1) || '-'} % · Proposition : ${proposal.label}`,
       amount: kpis.total_feed_cost,
       event_date: endDate,
       severity: proposal.value === 'abandon' ? 'moyenne' : 'info',

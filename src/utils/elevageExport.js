@@ -69,7 +69,7 @@ export function buildElevageInvestorReport({
       `Mortalité lots : ${fmtNumber(mortality)}`,
       `Coût alimentation : ${fmtCurrency(feedCost)}`,
       `Activités suivies : ${pnl.activities.length}`,
-      `Alertes IA : ${insights.length}`,
+      `Alertes analyse : ${insights.length}`,
       `Femelles : ${reproduction.females}`,
       `Gestantes : ${reproduction.gestantes}`,
       `Naissances 7j : ${reproduction.birthEvents}`,

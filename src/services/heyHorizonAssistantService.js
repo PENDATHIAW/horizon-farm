@@ -584,7 +584,7 @@ export async function processHeyHorizonCommandAsync(rawText = '', options = {}) 
       kind: enhanced.source === 'llm' ? 'llm' : 'fallback',
       strategic: enhanced.source === 'llm' ? {
         type: 'llm_answer',
-        title: 'Hey Horizon IA',
+        title: 'Hey Horizon',
         summary: enhanced.text,
         rows: [],
         route: enhanced.moduleKey || 'assistant_erp',

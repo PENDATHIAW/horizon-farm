@@ -119,7 +119,7 @@ function mapEngineRisk(r) {
   const tone = r.level === 'critique' || r.level === 'eleve' ? 'bad' : r.level === 'moyen' ? 'warn' : 'good';
   return {
     id: r.id,
-    domain: r.domain || 'IA',
+    domain: r.domain || 'Analyse',
     title: r.title,
     cause: r.detail,
     impact: `Indice ${r.score}/100`,
@@ -265,7 +265,7 @@ export function buildVisionData(props = {}) {
     id: f.id,
     title: f.title,
     detail: f.recommended_action || f.description || '—',
-    value: 'IA',
+    value: 'Analyse',
     tone: f.severity === 'critique' || f.severity === 'haute' ? 'bad' : 'warn',
     tab: 'À traiter',
     sourceModule: f.module || 'objectifs_croissance',

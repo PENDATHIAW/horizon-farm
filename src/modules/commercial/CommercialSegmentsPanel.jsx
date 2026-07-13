@@ -17,7 +17,7 @@ export default function CommercialSegmentsPanel({ clients = [], orders = [], pay
   return (
     <div className="space-y-4">
       <section className="rounded-2xl border border-line bg-white p-4">
-        <p className="text-xs uppercase tracking-normal text-slate font-semibold mb-3">Segmentation IA</p>
+        <p className="text-xs uppercase tracking-normal text-slate font-semibold mb-3">Segmentation</p>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-3 text-sm">
           <div className="rounded-xl border border-positive bg-positive-bg p-3">
             <p className="font-semibold text-positive">Meilleurs clients</p>

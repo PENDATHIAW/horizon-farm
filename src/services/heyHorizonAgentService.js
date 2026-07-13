@@ -24,7 +24,7 @@ export async function fetchFarmToolAgent(question = '', dataMap = {}, options = 
   });
   const payload = await response.json();
   if (!response.ok || !payload.ok) {
-    throw new Error(payload.error || payload.message || 'Agent IA indisponible');
+    throw new Error(payload.error || payload.message || 'Assistant indisponible');
   }
   return payload;
 }

@@ -158,7 +158,7 @@ export default function VisionPrioritiesTab({
                   key={r.id}
                   title={r.title}
                   detail={r.detail}
-                  status={r.isEngine ? 'IA' : (r.value || 'Terrain')}
+                  status={r.isEngine ? 'Analyse' : (r.value || 'Terrain')}
                   tone={r.tone}
                   onClick={() => r.isEngine ? navigateVisionFinding(onNavigate, r.finding) : openVisionPriority(r, moduleId, { setTab, onNavigate })}
                   actions={<>
@@ -185,17 +185,17 @@ export default function VisionPrioritiesTab({
     <div className="space-y-6">
       <TabIntro
         title="Priorités actionnables"
-        detail={data.periodLabel ? `Lecture financière sur ${data.periodLabel} — créances sur l'historique complet.` : 'Signaux d’analyse et alertes terrain à traiter en priorité.'}
+        detail={data.periodLabel ? `Lecture financière sur ${data.periodLabel} : créances sur l'historique complet.` : 'Signaux d’analyse et alertes terrain à traiter en priorité.'}
         action={onNavigate ? <Btn onClick={() => onNavigate('activite_suivi', { tab: 'Tâches' })}>Activité & Suivi</Btn> : null}
       />
       <div className="grid grid-cols-2 gap-3 xl:grid-cols-5">
         <VisionKpi label="Santé ERP" value={healthLabel} tone={(data.healthScore ?? data.globalScore) >= 75 ? 'good' : 'warn'} onClick={() => setTab?.('Urgences & risques')} />
         <VisionKpi label="Résultat trésorerie" value={fmtCurrency(data.treasuryResult ?? data.balance)} tone={(data.treasuryResult ?? data.balance) >= 0 ? 'good' : 'bad'} detail={data.periodFiltered ? 'Période active' : 'Cumul'} onClick={() => onNavigate?.('finance_pilotage', { tab: 'Trésorerie' })} />
-        <VisionKpi label="À traiter" value={data.priorities.length} tone={data.priorities.length ? 'warn' : 'good'} detail={`${engineRows.length} IA · ${manualRows.length} terrain`} />
+        <VisionKpi label="À traiter" value={data.priorities.length} tone={data.priorities.length ? 'warn' : 'good'} detail={`${engineRows.length} analyse(s) · ${manualRows.length} terrain`} />
         <VisionKpi label="Créances" value={fmtCurrency(data.receivable)} tone={data.receivable ? 'warn' : 'good'} onClick={() => onNavigate?.('commercial', { tab: 'Clients & créances' })} />
         <VisionKpi label="Opportunités ouvertes" value={openOpps} tone={openOpps ? 'good' : 'neutral'} onClick={() => onNavigate?.('commercial', { tab: 'Opportunités' })} />
       </div>
-      <Section icon={BrainCircuit} title="Recommandations IA — actions directes">
+      <Section icon={BrainCircuit} title="Recommandations : actions directes">
         {engineRows.length ? (
           <DataTable columns={VISION_TABLE_COLS}>
             {engineRows.map((r) => (
@@ -203,7 +203,7 @@ export default function VisionPrioritiesTab({
                 key={r.id}
                 title={r.title}
                 detail={r.detail}
-                status="IA"
+                status="Analyse"
                 tone={r.tone}
                 onClick={() => navigateVisionFinding(onNavigate, r.finding)}
                 actions={<>

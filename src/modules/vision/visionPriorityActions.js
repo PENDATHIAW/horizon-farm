@@ -83,7 +83,7 @@ export function buildTaskPayloadFromPriorityItem(item = {}, existingTasks = []) 
     const finding = item.finding;
     return {
       id: generateSequentialId('taches', existingTasks),
-      title: finding.title || item.title || 'Action IA',
+      title: finding.title || item.title || 'Action recommandée',
       module_lie: mapTaskModule(finding.module || item.sourceModule),
       entity_type: finding.category || 'finding',
       related_id: finding.source_records?.[0]?.id || finding.id || item.id,
@@ -240,7 +240,7 @@ export async function runPriorityAlertAction(item, handlers = {}) {
 
 export async function runPriorityFindingAction(item, handlers = {}) {
   if (!item.finding) {
-    toast.error('Action IA indisponible');
+    toast.error('Action recommandée indisponible');
     return false;
   }
   try {

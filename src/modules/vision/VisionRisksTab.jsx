@@ -151,7 +151,7 @@ export default function VisionRisksTab({ data = {}, onNavigate, setTab, onCreate
         </Section>
       ) : null}
       {!urgentOnly && engineRisks.length ? (
-        <Section icon={ShieldAlert} title="Matrice risques IA">
+        <Section icon={ShieldAlert} title="Matrice risques">
           <div className="grid grid-cols-1 gap-2 md:grid-cols-2 xl:grid-cols-3">
             {engineRisks.map((r) => (
               <button key={r.id} type="button" onClick={() => navigateVisionRisk(onNavigate, { module: r.module, domain: r.domain, title: r.title })} className="rounded-2xl border border-line bg-card p-4 text-left hover:bg-white">

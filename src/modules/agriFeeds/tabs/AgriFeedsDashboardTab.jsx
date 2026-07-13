@@ -76,7 +76,7 @@ export default function AgriFeedsDashboardTab({ dataMap = {}, onNavigateTab }) {
         <div className="mt-3 rounded-2xl border border-line bg-card p-3">
           <p className="text-xs font-semibold text-earth">Confirmation requise</p>
           <p className="text-xs text-slate leading-relaxed">
-            {readiness.ai_disclaimer || 'L’IA propose. L’humain valide.'}
+            {readiness.ai_disclaimer || 'Suggestion à confirmer.'}
           </p>
         </div>
       </section>

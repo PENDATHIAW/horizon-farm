@@ -36,7 +36,7 @@ async function ensureProofDocument(proofMeta = {}, handlers = {}) {
   const id = makeId('DOC');
   await handlers.onCreateDocument({
     id,
-    title: proofMeta.document_title || 'Preuve scanner IA',
+    title: proofMeta.document_title || 'Preuve scanner',
     document_category: proofMeta.document_category || 'preuve',
     module_source: proofMeta.module_source || 'documents_rapports',
     file_url: url,
@@ -65,7 +65,7 @@ export async function executeScannerDraft(draft = {}, handlers = {}, context = {
     return { ok: false, error: `Workflow non exécutable : ${validated.target_workflow}` };
   }
   if (!ALLOWED_WORKFLOW_EXECUTORS.has(validated.target_workflow)) {
-    return { ok: false, error: 'Workflow hors allowlist IA.' };
+    return { ok: false, error: 'Traitement hors liste autorisée.' };
   }
 
   const proofMeta = { ...(validated.draft?.proof || {}), ...(validated.draft?.proof_meta || {}) };
