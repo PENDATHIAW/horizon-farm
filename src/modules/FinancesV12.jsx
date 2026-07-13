@@ -13,6 +13,7 @@ import BpKpiHealth from './BpKpiHealth.jsx';
 import FinanceAccountingHealth from './FinanceAccountingHealth.jsx';
 import FinanceCashPilotPanel from './FinanceCashPilotPanel.jsx';
 import FinancesV11 from './FinancesV11.jsx';
+import { subscribeFormModal } from '../services/formModalManager.js';
 
 const today = () => new Date().toISOString().slice(0, 10);
 const num = (value = 0) => Number(value || 0) || 0;
@@ -87,15 +88,14 @@ export default function FinancesV12(props) {
           draft_fields: pending.draft_fields,
         }));
     }
-    const handler = (event) => {
-      const draft = event.detail?.draft;
-      const module = event.detail?.module;
-      if ((module === 'finances' || module === 'finance') && draft?.form_type === 'finance_entry') {
-        openFinanceDraft(draft);
-      }
+    const handler = (detail = {}) => {
+      const draft = detail.draft;
+      const module = detail.module;
+      if (!['finances', 'finance', 'finance_pilotage'].includes(module) || draft?.form_type !== 'finance_entry') return false;
+      openFinanceDraft(draft);
+      return true;
     };
-    window.addEventListener('horizon-open-form', handler);
-    return () => window.removeEventListener('horizon-open-form', handler);
+    return subscribeFormModal(handler, { modules: ['finances', 'finance', 'finance_pilotage'] });
   }, []);
   return <div className="space-y-6">
     {horizonDraft ? <div id="hey-horizon-finance-card"><HeyHorizonFinanceCard draft={horizonDraft} onCreate={props.onCreate} onCreateBusinessEvent={props.onCreateBusinessEvent || businessEventsCrud.create} onRefresh={props.onRefresh} onRefreshBusinessEvents={props.onRefreshBusinessEvents || businessEventsCrud.refresh} onClose={() => setHorizonDraft(null)} /></div> : null}

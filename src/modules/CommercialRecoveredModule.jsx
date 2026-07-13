@@ -53,6 +53,7 @@ import ModuleProjectionsStrip from '../components/module/ModuleProjectionsStrip.
 import { buildCommercialModuleProjections } from '../utils/moduleProjections.js';
 import VentesV5 from './VentesV5.jsx';
 import ClientsReadable from './ClientsReadable';
+import { subscribeFormModal } from '../services/formModalManager.js';
 
 
 
@@ -190,16 +191,15 @@ export default function CommercialRecoveredModule(props) {
   }, [controlled, initialTab]);
 
   useEffect(() => {
-    const handler = (event) => {
-      const draft = event.detail?.draft;
-      const module = event.detail?.module;
-      if ((module === 'commercial' || module === 'ventes') && draft?.form_type === 'sale_record') {
-        setPendingSaleDraft(draft);
-        setTab('Ventes');
-      }
+    const handler = (detail = {}) => {
+      const draft = detail.draft;
+      const module = detail.module;
+      if (!['commercial', 'ventes'].includes(module) || draft?.form_type !== 'sale_record') return false;
+      setPendingSaleDraft(draft);
+      setTab('Ventes');
+      return true;
     };
-    window.addEventListener('horizon-open-form', handler);
-    return () => window.removeEventListener('horizon-open-form', handler);
+    return subscribeFormModal(handler, { modules: ['commercial', 'ventes'] });
   }, [setTab]);
   const ordersCrud = useCrudModule('sales_orders');
   const itemsCrud = useCrudModule('sales_order_items');

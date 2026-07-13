@@ -116,13 +116,14 @@ export default function AccueilConforme(props) {
           <CarteKPI code="alertes_urgentes" periode={periodLabel} donnees={donnees} kpis={kpis} onNavigate={onNavigate} />
         </div>
       )}
-      <section className="hf-card">
+      <section className="hf-card" data-testid="daily-quick-actions">
         <p className="text-label font-semibold uppercase text-earth">Gestes du jour</p>
         <div className="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-7">
           {ACTIONS_RAPIDES_QUOTIDIENNES.map((action) => (
             <button
               key={action.id}
               type="button"
+              data-testid={`daily-action-${action.id}`}
               onClick={() => openDailyQuickEntry(action, onNavigate)}
               className="min-h-11 rounded-control border border-line bg-pure px-3 py-2 text-sm font-semibold text-ink hover:border-leaf hover:bg-positive-bg"
             >

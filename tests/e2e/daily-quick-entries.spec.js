@@ -1,7 +1,7 @@
 import { expect, test } from '@playwright/test';
-import { login, waitForAppReady } from './helpers.js';
+import { LOCAL_DEMO, login, waitForAppReady } from './helpers.js';
 
-const hasCredentials = Boolean(process.env.E2E_LOGIN && process.env.E2E_PASSWORD);
+const hasCredentials = LOCAL_DEMO || Boolean(process.env.E2E_LOGIN && process.env.E2E_PASSWORD);
 const today = () => new Date().toISOString().slice(0, 10);
 
 async function enableSimulatedMode(page) {
@@ -21,7 +21,16 @@ async function backToAccueil(page) {
 
 async function openAction(page, id, targetTestId) {
   await page.getByTestId(`daily-action-${id}`).click();
-  await waitForAppReady(page);
+  await page.getByText(/Chargement du module/i).first().waitFor({ state: 'hidden', timeout: 25_000 }).catch(() => {});
+  await expect(page.getByTestId(targetTestId)).toBeVisible({ timeout: 15_000 });
+  await expect(page.getByText(/ERREUR MODULE/i)).toHaveCount(0);
+}
+
+async function openGlobalAction(page, id, targetTestId) {
+  await page.getByRole('button', { name: /^Saisie rapide$/i }).click();
+  await expect(page.getByRole('dialog', { name: /Que veux-tu enregistrer/i })).toBeVisible();
+  await page.getByTestId(`global-quick-entry-${id}`).click();
+  await page.getByText(/Chargement du module/i).first().waitFor({ state: 'hidden', timeout: 25_000 }).catch(() => {});
   await expect(page.getByTestId(targetTestId)).toBeVisible({ timeout: 15_000 });
   await expect(page.getByText(/ERREUR MODULE/i)).toHaveCount(0);
 }
@@ -35,24 +44,24 @@ test.describe('Saisies quotidiennes depuis Accueil', () => {
     await login(page);
     await expect(page.getByTestId('daily-quick-actions')).toBeVisible();
 
-    await openAction(page, 'feeding', 'daily-feeding-modal');
+    await openAction(page, 'distribution', 'daily-feeding-modal');
     await expect(page.getByTestId('daily-feeding-form').locator('input[type="date"]')).toHaveValue(today());
     await expect(page.getByTestId('daily-feeding-quantity')).toHaveValue('');
     await page.getByRole('button', { name: 'Fermer' }).click();
     await backToAccueil(page);
 
-    await openAction(page, 'eggs', 'daily-eggs-modal');
+    await openAction(page, 'ponte', 'daily-eggs-modal');
     await expect(page.getByTestId('daily-eggs-target')).not.toHaveValue('');
     await expect(page.getByTestId('daily-eggs-quantity')).toHaveValue('');
     await page.getByRole('button', { name: 'Fermer' }).click();
     await backToAccueil(page);
 
-    await openAction(page, 'mortality', 'daily-mortality-modal');
+    await openAction(page, 'mortalite', 'daily-mortality-modal');
     await expect(page.getByTestId('daily-mortality-quantity')).toHaveValue('');
     await page.getByRole('button', { name: 'Fermer' }).click();
     await backToAccueil(page);
 
-    await openAction(page, 'weighing', 'daily-weighing-modal');
+    await openAction(page, 'pesee', 'daily-weighing-modal');
     await expect(page.getByTestId('daily-weighing-weight')).toHaveValue('');
     await page.getByRole('button', { name: 'Fermer' }).click();
     await backToAccueil(page);
@@ -62,14 +71,24 @@ test.describe('Saisies quotidiennes depuis Accueil', () => {
     await expect(page.getByTestId('daily-irrigation-volume')).toHaveValue('');
     await backToAccueil(page);
 
-    await openAction(page, 'harvest', 'daily-harvest-panel');
+    await openAction(page, 'recolte', 'daily-harvest-panel');
     await expect(page.getByTestId('daily-harvest-form').locator('input[type="date"]')).toHaveValue(today());
     await expect(page.getByTestId('daily-harvest-quantity')).toHaveValue('');
     await backToAccueil(page);
 
-    await openAction(page, 'sale', 'daily-sale-modal');
+    await openAction(page, 'vente', 'daily-sale-modal');
     await expect(page.getByTestId('daily-sale-client')).toHaveValue('client_passage');
     await expect(page.getByTestId('daily-sale-quantity')).toHaveValue('1');
     await expect(page.getByTestId('daily-sale-form').locator('input[type="date"]')).toHaveValue(today());
+  });
+
+  test('la saisie rapide globale ouvre directement le formulaire demandé', async ({ page }) => {
+    await enableSimulatedMode(page);
+    await login(page);
+
+    await openGlobalAction(page, 'distribution', 'daily-feeding-modal');
+    await page.getByRole('button', { name: 'Fermer' }).click();
+    await openGlobalAction(page, 'irrigation', 'daily-irrigation-panel');
+    await openGlobalAction(page, 'vente', 'daily-sale-modal');
   });
 });

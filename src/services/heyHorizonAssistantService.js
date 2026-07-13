@@ -17,6 +17,7 @@ import { enhanceHeyHorizonQuestion, isHeyHorizonLlmEnabled, normalizeLlmDraft } 
 import { queryFarmAgentAsync } from './heyHorizonAgentService.js';
 import { buildAssistantClarifyResponse } from './assistantClarifyResponse.js';
 import { updateConversationContext } from './assistantConversationContext.js';
+import { openFormModal } from './formModalManager.js';
 
 function buildGracefulFallback(rawText, dataMap, conversationContext) {
   const clarify = buildAssistantClarifyResponse(rawText, dataMap);
@@ -138,9 +139,7 @@ export function openHeyHorizonForm(draft = {}, onNavigate) {
   const navTab = draft.navigation_tab || draft.draft_fields?.navigation_tab;
   const navOpts = navTab ? { tab: navTab } : (draft.primary_module === 'elevage' && draft.form_type?.startsWith('reproduction_') ? { tab: 'Reproduction' } : undefined);
   onNavigate?.(draft.primary_module, navOpts);
-  window.setTimeout(() => {
-    window.dispatchEvent(new CustomEvent('horizon-open-form', { detail: { module: draft.primary_module, draft } }));
-  }, 220);
+  openFormModal({ module: draft.primary_module, draft });
 }
 
 export function isWeakHeyHorizonDraft(draft = {}, text = '') {

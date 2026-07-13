@@ -6,6 +6,7 @@ import { normalizeTaskChecklist } from '../utils/taskWorkflows';
 import ActionTraceHealth from './ActionTraceHealth.jsx';
 import FarmRoutineTasksPanel from './FarmRoutineTasksPanel.jsx';
 import TachesTechnical from './TachesTechnical.jsx';
+import { subscribeFormModal } from '../services/formModalManager.js';
 
 const today = () => new Date().toISOString().slice(0, 10);
 const priorityFrom = (value = '') => ['critique', 'urgent', 'haute'].includes(String(value || '').toLowerCase()) ? 'critique' : value || 'normale';
@@ -42,15 +43,14 @@ function HeyHorizonTaskCard({ draft, onCreateTask, onCreateBusinessEvent, onRefr
 export default function TachesV3(props) {
   const [horizonDraft, setHorizonDraft] = useState(null);
   useEffect(() => {
-    const handler = (event) => {
-      const draft = event.detail?.draft;
-      if (event.detail?.module === 'taches' && draft?.form_type === 'task_creation') {
-        setHorizonDraft(draft);
-        window.setTimeout(() => document.getElementById('hey-horizon-task-card')?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 80);
-      }
+    const handler = (detail = {}) => {
+      const draft = detail.draft;
+      if (!['taches', 'activite_suivi'].includes(detail.module) || draft?.form_type !== 'task_creation') return false;
+      setHorizonDraft(draft);
+      window.setTimeout(() => document.getElementById('hey-horizon-task-card')?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 80);
+      return true;
     };
-    window.addEventListener('horizon-open-form', handler);
-    return () => window.removeEventListener('horizon-open-form', handler);
+    return subscribeFormModal(handler, { modules: ['taches', 'activite_suivi'] });
   }, []);
   return <div className="space-y-6">
     {horizonDraft ? <div id="hey-horizon-task-card"><HeyHorizonTaskCard draft={horizonDraft} onCreateTask={props.onCreate} onCreateBusinessEvent={props.onCreateBusinessEvent} onRefreshTasks={props.onRefresh} onRefreshBusinessEvents={props.onRefreshBusinessEvents} onClose={() => setHorizonDraft(null)} /></div> : null}

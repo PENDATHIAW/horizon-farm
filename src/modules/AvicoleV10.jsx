@@ -16,6 +16,7 @@ import AvicoleSaleReadinessBridge from './AvicoleSaleReadinessBridge.jsx';
 import AvicoleEvolution from './AvicoleEvolution.jsx';
 import DirectChargesBridge from './DirectChargesBridge.jsx';
 import LifecycleHistoryPanel from './LifecycleHistoryPanel.jsx';
+import { subscribeFormModal } from '../services/formModalManager.js';
 
 const norm = (value = '') => String(value || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
 const num = (value = 0) => Number(value || 0);
@@ -139,16 +140,15 @@ export default function AvicoleV10(props) {
   const scopedProductionLogs = useMemo(() => productionLogs.filter((log) => activity !== 'chair' || chair.some((lot) => String(lot.id) === String(log.lot_id || log.related_id))), [productionLogs, activity, chair]);
 
   useEffect(() => {
-    const handler = (event) => {
-      const draft = event.detail?.draft;
-      if (event.detail?.module === 'avicole' && ['egg_production', 'poultry_mortality', 'poultry_close'].includes(draft?.form_type)) {
-        setActivity(draftActionToActivity(draft));
-        setHorizonDraft(draft);
-        window.setTimeout(() => document.getElementById('hey-horizon-avicole-card')?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 80);
-      }
+    const handler = (detail = {}) => {
+      const draft = detail.draft;
+      if (detail.module !== 'avicole' || !['egg_production', 'poultry_mortality', 'poultry_close'].includes(draft?.form_type)) return false;
+      setActivity(draftActionToActivity(draft));
+      setHorizonDraft(draft);
+      window.setTimeout(() => document.getElementById('hey-horizon-avicole-card')?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 80);
+      return true;
     };
-    window.addEventListener('horizon-open-form', handler);
-    return () => window.removeEventListener('horizon-open-form', handler);
+    return subscribeFormModal(handler, { modules: ['avicole'] });
   }, []);
 
   const createOrReactivateLotOpportunity = async (lot = {}, source = 'lot prêt à vendre') => {

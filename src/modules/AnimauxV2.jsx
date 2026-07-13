@@ -13,6 +13,7 @@ import LifecycleHistoryPanel from './LifecycleHistoryPanel.jsx';
 import AnimalScanBar from '../components/elevage/AnimalScanBar.jsx';
 import { calculateUnifiedAnimalCost } from '../services/unifiedCostService.js';
 import { fmtCurrency } from '../utils/format';
+import { subscribeFormModal } from '../services/formModalManager.js';
 
 const toNumber = (value = 0) => Number(value || 0);
 const today = () => new Date().toISOString().slice(0, 10);
@@ -108,29 +109,30 @@ export default function AnimauxV2(props) {
   const opportunities = fallbackRows(props.opportunities || props.salesOpportunities, opportunitiesCrud);
 
   useEffect(() => {
-    const handler = (event) => {
-      const draft = event.detail?.draft;
-      if (event.detail?.module === 'animaux' && draft?.form_type === 'entity_lookup') {
+    const handler = (detail = {}) => {
+      const draft = detail.draft;
+      if (detail.module === 'animaux' && draft?.form_type === 'entity_lookup') {
         const target = targetFrom(draft);
         const animal = findAnimal(target, props.rows || []);
         if (animal) setSpecies(speciesFromType(animal.espece || animal.type || species));
         toast.success(animal ? `Fiche ${target} trouvée` : `Recherche ${target}`);
         window.setTimeout(() => document.getElementById('animaux-module-root')?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 80);
-        return;
+        return true;
       }
       const birthModes = ['naissance_ferme', 'reproduction_interne'];
       const mode = String(draft?.draft_fields?.mode_acquisition || '').toLowerCase();
       const birthCreation = draft?.form_type === 'animal_creation' && birthModes.includes(mode);
-      if (birthCreation) return;
-      if (event.detail?.module === 'animaux' && ['animal_weighing', 'animal_loss', 'animal_creation'].includes(draft?.form_type)) {
+      if (birthCreation) return false;
+      if (detail.module === 'animaux' && ['animal_weighing', 'animal_loss', 'animal_creation'].includes(draft?.form_type)) {
         setHorizonDraft(draft);
         const wanted = draft?.draft_fields?.type ? speciesFromType(draft.draft_fields.type) : species;
         setSpecies(wanted);
         window.setTimeout(() => document.getElementById('hey-horizon-animal-card')?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 80);
+        return true;
       }
+      return false;
     };
-    window.addEventListener('horizon-open-form', handler);
-    return () => window.removeEventListener('horizon-open-form', handler);
+    return subscribeFormModal(handler, { modules: ['animaux'] });
   }, [species, props.rows]);
 
   const counts = useMemo(() => countAnimalsBySpecies(props.rows || []), [props.rows]);

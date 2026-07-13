@@ -26,6 +26,7 @@ import CulturesSanteHub from './cultures/CulturesSanteHub.jsx';
 import CulturesTransformationHub from './cultures/CulturesTransformationHub.jsx';
 import ModuleProjectionsStrip from '../components/module/ModuleProjectionsStrip.jsx';
 import { buildCulturesModuleProjections } from '../utils/moduleProjections.js';
+import { subscribeFormModal } from '../services/formModalManager.js';
 
 const arr = (value) => (Array.isArray(value) ? value : []);
 const clean = (value = '') => String(value || '').trim();
@@ -85,16 +86,15 @@ export default function CulturesRecoveredModule(props) {
   }, [props.initialTab, rememberSection]);
 
   useEffect(() => {
-    const handler = (event) => {
-      const detail = event.detail || {};
+    const handler = (detail = {}) => {
       const moduleKey = String(detail.module || detail.draft?.primary_module || '').toLowerCase();
       const target = DAILY_CULTURE_TABS[detail.draft?.form_type];
-      if (moduleKey !== 'cultures' || !target) return;
+      if (moduleKey !== 'cultures' || !target) return false;
       setTab(target.tab);
       window.setTimeout(() => document.querySelector(`[data-testid="${target.testId}"]`)?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 120);
+      return true;
     };
-    window.addEventListener('horizon-open-form', handler);
-    return () => window.removeEventListener('horizon-open-form', handler);
+    return subscribeFormModal(handler, { modules: ['cultures'] });
   }, [setTab]);
 
   useEffect(() => {

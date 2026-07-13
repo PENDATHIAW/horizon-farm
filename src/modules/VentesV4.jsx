@@ -11,6 +11,7 @@ import SalesFollowUpPanel from './SalesFollowUpPanel.jsx';
 import SalesWorkflowHealth from './SalesWorkflowHealth.jsx';
 import CommercialSaleRepairPanel from './commercial/CommercialSaleRepairPanel.jsx';
 import { SaleModal } from './VentesTerrainV3.jsx';
+import { subscribeFormModal } from '../services/formModalManager.js';
 
 const deliveryStatus = (sale = {}) => sale.statut_livraison || sale.delivery_status || sale.status_livraison || 'a_livrer';
 const statusBadge = (text = '', tone = 'amber') => <span className={`rounded-full px-2 py-1 text-meta font-semibold border ${tone === 'green' ? 'bg-positive-bg text-positive border-positive' : tone === 'red' ? 'bg-urgent-bg text-urgent border-urgent' : 'bg-vigilance-bg text-horizon-dark border-vigilance'}`}>{text}</span>;
@@ -103,16 +104,15 @@ export default function VentesV4(props) {
   const openCount = sales.filter((sale) => !isSaleClosed(sale, payments)).length;
 
   useEffect(() => {
-    const handler = (event) => {
-      const draft = event.detail?.draft;
-      if ((event.detail?.module === 'ventes' || event.detail?.module === 'commercial') && draft?.form_type === 'sale_record') {
-        setModalDraft(draft);
-        setModalOpen(true);
-        setView('register');
-      }
+    const handler = (detail = {}) => {
+      const draft = detail.draft;
+      if (!['ventes', 'commercial'].includes(detail.module) || draft?.form_type !== 'sale_record') return false;
+      setModalDraft(draft);
+      setModalOpen(true);
+      setView('register');
+      return true;
     };
-    window.addEventListener('horizon-open-form', handler);
-    return () => window.removeEventListener('horizon-open-form', handler);
+    return subscribeFormModal(handler, { modules: ['ventes', 'commercial'] });
   }, []);
 
   useEffect(() => {
