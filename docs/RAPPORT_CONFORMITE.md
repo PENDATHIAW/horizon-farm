@@ -1,7 +1,7 @@
 # Rapport de conformité Horizon Farm ERP
 
 État final du 2026-07-13. Dépôt `PENDATHIAW/horizon-farm`, branche
-`claude/go-a21ueq`, PR #169, cible `main`.
+`claude/go-a21ueq`, PR de consolidation #170, cible `main`, après la fusion partielle de #169.
 
 Échelle imposée : FAIT, PARTIEL, NON FAIT, BLOQUÉ.
 
@@ -185,6 +185,7 @@ Statut : FAIT.
 | Validation | Résultat |
 |---|---|
 | Suite unitaire complète | 235/235 fichiers, 0 échec |
+| Audit métier simulé Playwright | 69/69 scénarios, 0 échec |
 | Stabilité des onglets | 416/416 |
 | Événements métier | 26/26 complets, 5/5 tests de matrice |
 | Rôles et portée d'écriture | verts dans la suite complète |

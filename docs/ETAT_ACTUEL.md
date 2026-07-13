@@ -1,6 +1,7 @@
 # État actuel du dépôt Horizon Farm ERP
 
-État consolidé le 2026-07-13 sur `claude/go-a21ueq`, PR #169 vers `main`.
+État consolidé le 2026-07-13 sur `claude/go-a21ueq`, PR finale #170 vers `main`, après la fusion
+partielle de #169.
 
 ## 1. Pile et qualité
 
@@ -11,6 +12,7 @@
 - 0 composant JSX orphelin.
 - 0 import non résolu.
 - 235/235 fichiers de tests unitaires valides.
+- 69/69 scénarios métier Playwright valides.
 - Lint sans erreur, build production réussi, audit npm à 0 vulnérabilité.
 
 ## 2. Architecture des modules

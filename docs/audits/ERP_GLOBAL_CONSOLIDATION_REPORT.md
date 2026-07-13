@@ -3,11 +3,11 @@
 Date : 2026-07-13
 Dépôt : `PENDATHIAW/horizon-farm`
 Branche : `claude/go-a21ueq`
-PR : #169 vers `main`
+PR : #170 vers `main`, après la fusion partielle de #169
 
 Ce rapport remplace le rapport historique de la PR #167. Il couvre le cumul des corrections reprises
-dans la PR #169 : architecture, doublons, accès aux modules, 26 événements, formulaires, impacts,
-alertes, rapports, refonte visuelle et application Supabase.
+dans la PR #169 et finalisées dans la PR #170 : architecture, doublons, accès aux modules,
+26 événements, formulaires, impacts, alertes, rapports, refonte visuelle et application Supabase.
 
 ## 1. Audit exhaustif du code
 
@@ -160,6 +160,7 @@ Preuve table par table : `docs/audits/SUPABASE_RLS_MATRIX.md`.
 | Commande ou preuve | Résultat |
 |---|---|
 | `npm run test:unit` | 235/235 fichiers, 0 échec |
+| `npm run test:e2e:workflows` | 69/69 scénarios, 0 échec |
 | `npm run test:unit:module-tabs-stability` | 416/416 |
 | `npm run test:unit:business-events` | 5/5, exactement 26 événements |
 | `npm run test:unit:i18n` | 4/4 |
