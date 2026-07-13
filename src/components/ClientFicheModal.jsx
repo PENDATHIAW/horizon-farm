@@ -5,15 +5,15 @@ import Badge from './Badge';
 import { fmtCurrency, fmtNumber } from '../utils/format';
 
 const Field = ({ label, value }) => (
-  <div className="rounded-xl border border-[#eadcc2] bg-white px-3 py-2">
-    <p className="text-[11px] uppercase tracking-wide text-[#8a7456]">{label}</p>
-    <p className="mt-1 text-sm font-semibold text-[#2f2415] break-words">{value ?? '-'}</p>
+  <div className="rounded-xl border border-line bg-white px-3 py-2">
+    <p className="text-meta uppercase tracking-normal text-slate">{label}</p>
+    <p className="mt-1 text-sm font-semibold text-earth break-words">{value ?? '-'}</p>
   </div>
 );
 
 const Section = ({ title, children }) => (
-  <section className="rounded-2xl border border-[#d6c3a0] bg-[#fffdf8] p-4">
-    <h3 className="text-sm font-black text-[#2f2415] mb-3">{title}</h3>
+  <section className="rounded-2xl border border-line bg-card p-4">
+    <h3 className="text-sm font-semibold text-earth mb-3">{title}</h3>
     <div className="grid grid-cols-1 md:grid-cols-2 gap-3">{children}</div>
   </section>
 );
@@ -22,7 +22,7 @@ export default function ClientFicheModal({ open, onClose, client, metrics = {}, 
   const [tab, setTab] = useState('identite');
 
   useEffect(() => {
-    if (open) setTab('identite');
+    if (open) queueMicrotask(() => setTab('identite'));
   }, [open, client?.id]);
 
   if (!client) return null;
@@ -37,9 +37,9 @@ export default function ClientFicheModal({ open, onClose, client, metrics = {}, 
   return (
     <BaseModal open={open} onClose={onClose} title={`Fiche client — ${client.nom || client.name || client.id}`} size="4xl">
       <div className="space-y-4">
-        <div className="rounded-2xl border border-[#d6c3a0] bg-[#2f2415] p-4 text-white flex flex-wrap items-center gap-3">
-          {client.photo_url ? <img src={client.photo_url} alt="" className="h-16 w-16 rounded-full object-cover border border-white/20" /> : <div className="h-16 w-16 rounded-full bg-white/10 flex items-center justify-center text-2xl font-black">{client.nom?.[0] || 'C'}</div>}
-          <div><p className="text-xs uppercase tracking-widest text-[#c9a96a]">Client</p><h2 className="text-xl font-black">{client.nom || client.name}</h2><p className="text-sm text-[#f4e6c8]">{client.tel || client.telephone || 'Téléphone non renseigné'}</p></div>
+        <div className="rounded-2xl border border-line bg-earth p-4 text-white flex flex-wrap items-center gap-3">
+          {client.photo_url ? <img src={client.photo_url} alt="" className="h-16 w-16 rounded-full object-cover border border-white/20" /> : <div className="h-16 w-16 rounded-full bg-white/10 flex items-center justify-center text-2xl font-semibold">{client.nom?.[0] || 'C'}</div>}
+          <div><p className="text-xs uppercase tracking-normal text-horizon">Client</p><h2 className="text-xl font-semibold">{client.nom || client.name}</h2><p className="text-sm text-line">{client.tel || client.telephone || 'Téléphone non renseigné'}</p></div>
           <Badge status={client.statut || client.status || 'actif'} />
         </div>
         <FicheTabsBar tabs={tabs} active={tab} onChange={setTab} />

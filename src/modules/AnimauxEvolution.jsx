@@ -65,7 +65,7 @@ export default function AnimauxEvolution({ rows = [], alimentationLogs = [], vac
     autres: costDetails.reduce((sum, item) => sum + toNumber(item.baseCost) + toNumber(item.otherDirectCost), 0),
   };
 
-  if (!animals.length) return <div className="rounded-2xl border border-[#eadcc2] bg-[#fffdf8] p-4 text-sm text-[#8a7456]">Aucun animal — graphiques indisponibles.</div>;
+  if (!animals.length) return <div className="rounded-2xl border border-line bg-card p-4 text-sm text-slate">Aucun animal — graphiques indisponibles.</div>;
 
   return (
     <ChartsGrid>

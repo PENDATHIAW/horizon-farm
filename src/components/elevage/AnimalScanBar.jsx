@@ -32,8 +32,8 @@ export default function AnimalScanBar({ animaux = [], onSelectAnimal, label = 'S
   };
 
   return (
-    <section className="rounded-2xl border border-sky-200 bg-sky-50 p-4 space-y-3">
-      <p className="text-xs font-black uppercase tracking-wide text-sky-900 flex items-center gap-2">
+    <section className="rounded-2xl border border-line bg-neutral-bg p-4 space-y-3">
+      <p className="text-xs font-semibold uppercase tracking-normal text-neutral flex items-center gap-2">
         <Camera size={14} /> {label}
       </p>
       <div className="flex flex-col gap-2 sm:flex-row sm:items-end">
@@ -41,12 +41,12 @@ export default function AnimalScanBar({ animaux = [], onSelectAnimal, label = 'S
           value={scanValue}
           onChange={(e) => setScanValue(e.target.value)}
           placeholder="BOV-001 ou scan"
-          className="flex-1 min-h-[48px] rounded-xl border border-sky-200 bg-white px-3 text-sm"
+          className="flex-1 min-h-[48px] rounded-xl border border-line bg-white px-3 text-sm"
         />
-        <button type="button" onClick={() => applyScan(scanValue)} className="min-h-[48px] rounded-xl bg-[#2f2415] px-4 text-sm font-black text-white">
+        <button type="button" onClick={() => applyScan(scanValue)} className="min-h-[48px] rounded-xl bg-earth px-4 text-sm font-semibold text-white">
           <Search size={14} className="inline mr-1" /> Ouvrir fiche
         </button>
-        <label className="min-h-[48px] flex cursor-pointer items-center justify-center gap-2 rounded-xl border border-dashed border-sky-300 bg-white px-4 text-sm font-bold text-sky-800">
+        <label className="min-h-[48px] flex cursor-pointer items-center justify-center gap-2 rounded-xl border border-dashed border-line bg-white px-4 text-sm font-semibold text-neutral">
           <Camera size={16} /> Photo
           <input type="file" accept="image/*" capture="environment" className="hidden" onChange={(e) => handleFile(e.target.files?.[0])} />
         </label>

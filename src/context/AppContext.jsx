@@ -1,10 +1,10 @@
-﻿/* eslint-disable react-refresh/only-export-components */
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import { createModuleRefreshScheduler } from '../utils/moduleRefreshScheduler';
 import { isQuotaError, pruneHeavyLocalStorage } from '../utils/safeLocalStorage';
 import { useAuth } from './AuthContext';
 import { MODULE_CONFIG } from '../utils/constants';
 import { makeId } from '../utils/ids';
+import { withFarmId } from '../utils/farmScopePayload.js';
 import { filterAppContextBusinessEvents } from '../utils/appContextEventGuard.js';
 import { getAcquisitionTraceStep, getAnimalDisplayName, getGestationTraceStep } from '../utils/animalLifecycle';
 import { animauxService } from '../services/animauxService';
@@ -54,6 +54,7 @@ import {
 } from '../services/salesService';
 import { whatsappLogsService, whatsappTemplatesService } from '../services/whatsappService';
 import { stockMovementsCrud } from '../services/stockMovementsService';
+import { planningSimulationsService } from '../services/planningSimulationsService.js';
 import {
   funderAccessLogsService,
   funderAccountsService,
@@ -70,6 +71,7 @@ import { supabase } from '../lib/supabase';
 import { normalizeByModule } from '../utils/normalize.js';
 import { clearOfflineQueue, enqueueOfflineMutation, isBrowserOffline, readOfflineQueue, saveOfflineQueue } from '../services/offlineQueueService';
 import { isDataKeyEnabled, resolveModuleFlags } from '../config/moduleFlags';
+import { groupRealtimeModulesByTable, makeRealtimeChannelName } from '../utils/realtimeSubscriptions.js';
 
 const AppDataContext = createContext(null);
 
@@ -116,6 +118,7 @@ const serviceMap = {
   payments: paymentsService,
   sales_opportunities: salesOpportunitiesService,
   stock_movements: stockMovementsCrud,
+  planning_simulations: planningSimulationsService,
   funding_opportunities: fundingOpportunitiesService,
   funding_contacts: fundingContactsService,
   funding_applications: fundingApplicationsService,
@@ -189,7 +192,7 @@ export function AppProvider({ children, initialDataMap = null }) {
   }, [refreshModule]);
 
   const appendAnimalTraceStep = useCallback(async (animal, step) => { if (!animal?.id || !step) return; try { const traceId = `TRA-${animal.id}`; const traces = await tracabiliteService.getAll(); const existing = traces.find((trace) => trace.id === traceId || String(trace.animal || '').includes(animal.id)); if (existing) { const etapes = Array.isArray(existing.etapes) ? existing.etapes : []; const alreadyExists = etapes.some((item) => item.event_type === step.event_type && item.date === step.date && item.titre === step.titre); if (!alreadyExists) await tracabiliteService.update(existing.id, { etapes: [...etapes, step] }); } else { await tracabiliteService.create({ id: traceId, animal: getAnimalDisplayName(animal), type: animal.type || '', etapes: [step], margeFinale: 0, roi: 0 }); } await refreshModule('tracabilite'); } catch (error) { console.warn('Trace animal non enregistree', error.message); } }, [refreshModule]);
-  const createAnimalFollowUpTaskAndAlert = useCallback(async (animal) => { const nextDate = animal?.date_prochaine_verification || animal?.next_action_date || animal?.prochaine_visite; if (!animal?.id || !nextDate) return; try { const taskId = `TSK-${animal.id}-${String(nextDate).replace(/-/g, '')}`; const alertDate = new Date(nextDate); alertDate.setDate(alertDate.getDate() - 3); await tachesService.create({ id: taskId, title: `Verification sanitaire ${animal.id} - ${animal.name || 'animal'}`, module_lie: 'animaux', assigned_to: animal.veterinaire_id || 'Equipe ferme', due_date: alertDate.toISOString().slice(0, 10), priority: 'haute', status: 'a_faire', checklist: 'Verifier etat sante; noter poids; mettre a jour fiche; contacter veterinaire si besoin' }); await supabase.from('alertes_center').insert({ id: `ALERT-${taskId}`, title: `Rappel sanitaire ${animal.id}`, message: `Controle sanitaire prevu le ${nextDate}. Alerte creee 3 jours avant.`, module_source: 'animaux', entity_type: 'animal', entity_id: animal.id, severity: 'warning', status: 'nouvelle', action_recommandee: 'Verifier la fiche animal et confirmer la visite veterinaire.', send_whatsapp: false }); await refreshModule('taches'); } catch (error) { console.warn('Rappel sanitaire non cree', error.message); } }, [refreshModule]);
+  const createAnimalFollowUpTaskAndAlert = useCallback(async (animal) => { const nextDate = animal?.date_prochaine_verification || animal?.next_action_date || animal?.prochaine_visite; if (!animal?.id || !nextDate) return; try { const taskId = `TSK-${animal.id}-${String(nextDate).replace(/-/g, '')}`; const alertDate = new Date(nextDate); alertDate.setDate(alertDate.getDate() - 3); await tachesService.create({ id: taskId, farm_id: animal.farm_id, title: `Verification sanitaire ${animal.id} - ${animal.name || 'animal'}`, module_lie: 'animaux', assigned_to: animal.veterinaire_id || 'Equipe ferme', due_date: alertDate.toISOString().slice(0, 10), priority: 'haute', status: 'a_faire', checklist: 'Verifier etat sante; noter poids; mettre a jour fiche; contacter veterinaire si besoin' }); await supabase.from('alertes_center').insert(withFarmId('alertes_center', { id: `ALERT-${taskId}`, farm_id: animal.farm_id, title: `Rappel sanitaire ${animal.id}`, message: `Controle sanitaire prevu le ${nextDate}. Alerte creee 3 jours avant.`, module_source: 'animaux', entity_type: 'animal', entity_id: animal.id, severity: 'warning', status: 'nouvelle', action_recommandee: 'Verifier la fiche animal et confirmer la visite veterinaire.', send_whatsapp: false })); await refreshModule('taches'); } catch (error) { console.warn('Rappel sanitaire non cree', error.message); } }, [refreshModule]);
   const businessEventsRef = useRef([]);
   useEffect(() => { businessEventsRef.current = dataMap.business_events || []; }, [dataMap.business_events]);
 
@@ -223,7 +226,19 @@ export function AppProvider({ children, initialDataMap = null }) {
     };
   }, [authLoading, session, refreshAllModulesImmediate]);
 
-  useEffect(() => { if (authLoading || !session) return undefined; const channel = supabase.channel('horizon-farm-realtime'); Object.entries(MODULE_CONFIG).filter(([, config]) => config.table).forEach(([moduleKey, config]) => { channel.on('postgres_changes', { event: '*', schema: 'public', table: config.table }, () => { if (refreshScheduler.shouldSuppressRealtime(moduleKey)) return; refreshModule(moduleKey); }); }); channel.subscribe(); return () => { supabase.removeChannel(channel); }; }, [authLoading, session, refreshModule, refreshScheduler]);
+  useEffect(() => {
+    if (authLoading || !session || session.user?.id === 'local-preview-user') return undefined;
+    const channel = supabase.channel(makeRealtimeChannelName());
+    groupRealtimeModulesByTable(MODULE_CONFIG).forEach(({ table, moduleKeys }) => {
+      channel.on('postgres_changes', { event: '*', schema: 'public', table }, () => {
+        moduleKeys.forEach((moduleKey) => {
+          if (!refreshScheduler.shouldSuppressRealtime(moduleKey)) refreshModule(moduleKey);
+        });
+      });
+    });
+    channel.subscribe();
+    return () => { void supabase.removeChannel(channel); };
+  }, [authLoading, session, refreshModule, refreshScheduler]);
 
   const createRecord = useCallback(async (moduleKey, payload) => { const service = serviceMap[moduleKey]; const config = MODULE_CONFIG[moduleKey] || {}; const idField = config.idField || 'id'; const generatedId = payload?.[idField] || makeId(config.idPrefix || moduleKey.toUpperCase()); const record = normalizeByModule(moduleKey, [{ ...payload, [idField]: generatedId }])[0]; setModuleError(moduleKey, null); setDataMap((prev) => ({ ...prev, [moduleKey]: [record, ...(prev[moduleKey] || [])] })); if (!service) return record; markLocalWrite(moduleKey); try { const created = await service.create(record); const normalized = normalizeByModule(moduleKey, [created || record])[0]; setDataMap((prev) => ({ ...prev, [moduleKey]: (prev[moduleKey] || []).map((row) => row[idField] === generatedId ? normalized : row) })); refreshModule(moduleKey); void writeAuditLog('creation', moduleKey, generatedId); if (moduleKey === 'animaux') { void appendAnimalTraceStep(normalized, getAcquisitionTraceStep(normalized, dataMap.animaux || [])); void createAnimalFollowUpTaskAndAlert(normalized); } emitBusinessEvents(buildCreateEvents(moduleKey, normalized), moduleKey, normalized); return normalized; } catch (error) { if (isBrowserOffline()) { enqueueOfflineMutation({ moduleKey, action: 'create', id: generatedId, payload: record }); setModuleError(moduleKey, 'Mode hors ligne: creation mise en file de synchronisation'); return record; } setDataMap((prev) => ({ ...prev, [moduleKey]: (prev[moduleKey] || []).filter((row) => row[idField] !== generatedId) }));       setModuleError(moduleKey, friendlySaveError(error, 'Erreur creation')); throw error; } }, [appendAnimalTraceStep, createAnimalFollowUpTaskAndAlert, dataMap.animaux, emitBusinessEvents, markLocalWrite, refreshModule, setModuleError, writeAuditLog]);
 

@@ -134,33 +134,33 @@ const INVESTMENT_EDIT_FIELDS = [
 ];
 
 function Kpi({ label, value, tone = '' }) {
-  return <div className="rounded-2xl border border-[#eadcc2] bg-[#fffdf8] p-4"><p className="text-xs text-[#8a7456]">{label}</p><p className={`mt-1 text-lg font-black ${tone === 'good' ? 'text-emerald-700' : tone === 'bad' ? 'text-red-600' : tone === 'warn' ? 'text-amber-700' : 'text-[#2f2415]'}`}>{value}</p></div>;
+  return <div className="rounded-2xl border border-line bg-card p-4"><p className="text-xs text-slate">{label}</p><p className={`mt-1 text-lg font-semibold ${tone === 'good' ? 'text-positive' : tone === 'bad' ? 'text-urgent' : tone === 'warn' ? 'text-horizon-dark' : 'text-earth'}`}>{value}</p></div>;
 }
 
 function Section({ icon: Icon, title, subtitle, children }) {
-  return <section className="rounded-3xl border border-[#d6c3a0] bg-white p-5 shadow-sm space-y-4"><div><p className="flex items-center gap-2 text-lg font-black text-[#2f2415]"><Icon size={20} /> {title}</p>{subtitle ? <p className="mt-1 text-sm text-[#8a7456]">{subtitle}</p> : null}</div>{children}</section>;
+  return <section className="rounded-3xl border border-line bg-white p-6 shadow-card space-y-4"><div><p className="flex items-center gap-2 text-lg font-semibold text-earth"><Icon size={20} /> {title}</p>{subtitle ? <p className="mt-1 text-sm text-slate">{subtitle}</p> : null}</div>{children}</section>;
 }
 
 function Table({ rows, columns }) {
-  return <div className="overflow-x-auto rounded-2xl border border-[#eadcc2]"><table className="w-full min-w-[760px] text-sm"><thead><tr className="bg-[#fffdf8] text-left text-xs uppercase text-[#8a7456]">{columns.map((c) => <th key={c.label} className="px-3 py-2">{c.label}</th>)}</tr></thead><tbody>{rows.map((r, i) => <tr key={r.id || i} className="border-t border-[#eadcc2]">{columns.map((c) => <td key={c.label} className="px-3 py-2 align-top">{c.render ? c.render(r, i) : (r[c.key] ?? '—')}</td>)}</tr>)}{!rows.length ? <tr><td colSpan={columns.length} className="px-3 py-6 text-center text-[#8a7456]">Aucune ligne.</td></tr> : null}</tbody></table></div>;
+  return <div className="overflow-x-auto rounded-2xl border border-line"><table className="w-full min-w-[760px] text-sm"><thead><tr className="bg-card text-left text-xs uppercase text-slate">{columns.map((c) => <th key={c.label} className="px-3 py-2">{c.label}</th>)}</tr></thead><tbody>{rows.map((r, i) => <tr key={r.id || i} className="border-t border-line">{columns.map((c) => <td key={c.label} className="px-3 py-2 align-top">{c.render ? c.render(r, i) : (r[c.key] ?? '—')}</td>)}</tr>)}{!rows.length ? <tr><td colSpan={columns.length} className="px-3 py-6 text-center text-slate">Aucune ligne.</td></tr> : null}</tbody></table></div>;
 }
 
 function HelpSteps() {
-  return <div className="rounded-2xl border border-[#eadcc2] bg-[#fffdf8] p-4 text-sm text-[#5c4a32] space-y-3">
-    <p className="font-black text-[#2f2415]">Comment lire ces lignes ?</p>
+  return <div className="rounded-2xl border border-line bg-card p-4 text-sm text-slate space-y-3">
+    <p className="font-semibold text-earth">Comment lire ces lignes ?</p>
     <ul className="space-y-2 text-xs leading-relaxed">
       <li><b>Lignes issues du BP / Excel</b> — contenu importé depuis votre fichier ou le BP intégré Horizon Farm. Jamais supprimé automatiquement.</li>
       <li><b>Lignes synchronisées en base</b> — copie actionnable dans Supabase (id réel, pas <code>off-*</code>). Nécessaire pour Concrétiser.</li>
       <li><b>Aperçu non synchronisé</b> (<code>off-*</code>) — lecture seule jusqu’à sync explicite (bouton Concrétiser ou Resynchroniser).</li>
     </ul>
-    <p className="font-black text-[#2f2415]">Actions disponibles</p>
+    <p className="font-semibold text-earth">Actions disponibles</p>
     <ul className="space-y-1 text-xs leading-relaxed">
       <li><b>Concrétiser</b> — transforme la ligne en action concrète dans le module cible (Avicole, Stock…).</li>
       <li><b>Modifier</b> — ajuste la ligne actionnable (pas la source Excel sans confirmation).</li>
       <li><b>Reporter</b> — conserve la trace, change le statut, exclut des projections actives.</li>
       <li><b>Annuler</b> — conserve la trace, exclut des projections actives.</li>
     </ul>
-    <p className="text-[11px] text-[#8a7456]">Aucune synchronisation automatique au chargement — utilisez « Resynchroniser le BP officiel » pour une mise à jour visible.</p>
+    <p className="text-meta text-slate">Aucune synchronisation automatique au chargement — utilisez « Resynchroniser le BP officiel » pour une mise à jour visible.</p>
   </div>;
 }
 
@@ -571,8 +571,8 @@ export default function InvestissementsV9(props) {
       label: 'Statut',
       render: (r) => {
         const status = normalizeBpLineStatus(r);
-        if (!isBpLineEditable(r)) return <span className="text-[#8a7456]">{bpLineStatusLabel(status)}</span>;
-        return <select value={status} onChange={(e) => updateLineStatus(r, e.target.value)} className="rounded-lg border border-[#eadcc2] bg-white px-2 py-1 text-xs font-bold text-[#2f2415]">{BP_LINE_STATUS_OPTIONS.map((opt) => <option key={opt.value} value={opt.value}>{opt.label}</option>)}</select>;
+        if (!isBpLineEditable(r)) return <span className="text-slate">{bpLineStatusLabel(status)}</span>;
+        return <select value={status} onChange={(e) => updateLineStatus(r, e.target.value)} className="rounded-lg border border-line bg-white px-2 py-1 text-xs font-semibold text-earth">{BP_LINE_STATUS_OPTIONS.map((opt) => <option key={opt.value} value={opt.value}>{opt.label}</option>)}</select>;
       },
     },
     {
@@ -589,7 +589,7 @@ export default function InvestissementsV9(props) {
     },
   ];
 
-  return <div className="space-y-5 investissements-mobile-structured">
+  return <div className="space-y-6 investissements-mobile-structured">
     <InvestmentsInvestorBridge {...props} onNavigate={props.onNavigate} />
 
     <BpDistributionNav
@@ -598,24 +598,24 @@ export default function InvestissementsV9(props) {
       stats={distributionStats}
     />
 
-    <div className="rounded-3xl border border-[#d6c3a0] bg-[#fffdf8] p-5 shadow-sm space-y-4">
+    <div className="rounded-3xl border border-line bg-card p-6 shadow-card space-y-4">
       <div className="flex flex-col lg:flex-row lg:items-start justify-between gap-4">
         <div>
-          <p className="text-xs uppercase tracking-widest text-[#8a7456] font-black">Business Plan</p>
-          <h2 className="mt-1 text-2xl font-black text-[#2f2415]">{plan?.nom || HORIZON_FARM_BP_NAME}</h2>
-          <p className="mt-1 text-sm text-[#8a7456]">Lignes d’investissement actionnables — source BP/Excel conservée, sync explicite uniquement.</p>
+          <p className="text-xs uppercase tracking-normal text-slate font-semibold">Business Plan</p>
+          <h2 className="mt-1 text-2xl font-semibold text-earth">{plan?.nom || HORIZON_FARM_BP_NAME}</h2>
+          <p className="mt-1 text-sm text-slate">Lignes d’investissement actionnables — source BP/Excel conservée, sync explicite uniquement.</p>
         </div>
         <div className="flex flex-col gap-2 sm:items-end">
-          {!dbLinesCount ? <p className="text-xs font-bold text-amber-800 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 max-w-xs text-right">Aperçu BP intégré — cliquez Resynchroniser ou Concrétiser pour créer les lignes en base.</p> : null}
-          {plan?.source_document ? <p className="text-xs text-emerald-800 rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 max-w-xs text-right">Source Excel : {plan.source_document}</p> : null}
-          <button type="button" onClick={() => syncBp(props, { force: true })} className="rounded-2xl bg-[#2f2415] px-4 py-2 text-xs font-black text-white"><RefreshCw size={14} className="inline" /> Resynchroniser le BP officiel</button>
-          <button type="button" onClick={() => setShowExcelImport((v) => !v)} className="text-xs font-bold text-[#8a7456] underline-offset-2 hover:underline">
+          {!dbLinesCount ? <p className="text-xs font-semibold text-horizon-dark rounded-xl border border-vigilance bg-vigilance-bg px-3 py-2 max-w-xs text-right">Aperçu BP intégré — cliquez Resynchroniser ou Concrétiser pour créer les lignes en base.</p> : null}
+          {plan?.source_document ? <p className="text-xs text-positive rounded-xl border border-positive bg-positive-bg px-3 py-2 max-w-xs text-right">Source Excel : {plan.source_document}</p> : null}
+          <button type="button" onClick={() => syncBp(props, { force: true })} className="rounded-2xl bg-earth px-4 py-2 text-xs font-semibold text-white"><RefreshCw size={14} className="inline" /> Resynchroniser le BP officiel</button>
+          <button type="button" onClick={() => setShowExcelImport((v) => !v)} className="text-xs font-semibold text-slate underline-offset-2 hover:underline">
             {showExcelImport ? 'Masquer import Excel' : 'Autre fichier Excel (optionnel)'}
           </button>
           {showExcelImport ? (
             <>
-              <button type="button" onClick={() => fileInputRef.current?.click()} className="rounded-2xl border border-[#d6c3a0] bg-white px-4 py-2 text-xs font-black text-[#7d6a4a]"><FileSpreadsheet size={14} className="inline" /> Choisir un .xlsx</button>
-              <p className="text-[11px] text-[#8a7456] max-w-xs text-right">Utile seulement si vous avez une version Excel plus récente que le BP intégré.</p>
+              <button type="button" onClick={() => fileInputRef.current?.click()} className="rounded-2xl border border-line bg-white px-4 py-2 text-xs font-semibold text-slate"><FileSpreadsheet size={14} className="inline" /> Choisir un .xlsx</button>
+              <p className="text-meta text-slate max-w-xs text-right">Utile seulement si vous avez une version Excel plus récente que le BP intégré.</p>
             </>
           ) : null}
           <input ref={fileInputRef} type="file" accept=".xlsx,.xls" className="hidden" onChange={(e) => importExcelFile(e.target.files?.[0])} />
@@ -629,38 +629,38 @@ export default function InvestissementsV9(props) {
       </div>
     </div>
 
-    <div className="flex flex-wrap gap-2 rounded-3xl border border-[#d6c3a0] bg-white p-3">{tabs.map(([k, label]) => <button key={k} type="button" onClick={() => setTab(k)} className={`rounded-2xl px-4 py-2 text-sm font-black ${tab === k ? 'bg-[#2f2415] text-white' : 'bg-[#fffdf8] text-[#7d6a4a] border border-[#eadcc2]'}`}>{label}</button>)}</div>
+    <div className="flex flex-wrap gap-2 rounded-3xl border border-line bg-white p-3">{tabs.map(([k, label]) => <button key={k} type="button" onClick={() => setTab(k)} className={`rounded-2xl px-4 py-2 text-sm font-semibold ${tab === k ? 'bg-earth text-white' : 'bg-card text-slate border border-line'}`}>{label}</button>)}</div>
 
     {tab === 'overview' ? <Section icon={FileSpreadsheet} title="Vue d’ensemble" subtitle="Investissements actionnables — charges, revenus et synthèse BP sont dans leurs modules respectifs.">
       <HelpSteps />
       {pendingLines.length ? <div className="space-y-2">
-        <p className="text-sm font-black text-[#2f2415]">À concrétiser maintenant ({pendingLines.length})</p>
-        {pendingLines.slice(0, 6).map((line) => <button type="button" key={line.id} onClick={() => openConcretization(line)} className="flex w-full items-center justify-between gap-3 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-left hover:border-emerald-400">
-          <span><b className="text-[#2f2415]">{investmentLabel(line)}</b><span className="ml-2 text-sm text-[#8a7456]">{money(totalLine(line))}</span></span>
-          <span className="flex items-center gap-1 text-xs font-black text-emerald-800">Concrétiser <ArrowRight size={14} /></span>
+        <p className="text-sm font-semibold text-earth">À concrétiser maintenant ({pendingLines.length})</p>
+        {pendingLines.slice(0, 6).map((line) => <button type="button" key={line.id} onClick={() => openConcretization(line)} className="flex w-full items-center justify-between gap-3 rounded-xl border border-positive bg-positive-bg px-4 py-3 text-left hover:border-positive">
+          <span><b className="text-earth">{investmentLabel(line)}</b><span className="ml-2 text-sm text-slate">{money(totalLine(line))}</span></span>
+          <span className="flex items-center gap-1 text-xs font-semibold text-positive">Concrétiser <ArrowRight size={14} /></span>
         </button>)}
-        {pendingLines.length > 6 ? <p className="text-xs text-[#8a7456]">+ {pendingLines.length - 6} autre(s) ligne(s) dans l’onglet Mes investissements.</p> : null}
-      </div> : <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-800"><CheckCircle2 size={16} className="inline" /> Rien en attente — toutes les lignes éligibles sont traitées ou annulées.</div>}
-      {costsNeedDbSync ? <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900"><b>Charges BP :</b> resynchronisez le plan pour activer les boutons Concrétiser sur les charges ({dbCostsCount ? `${dbCostsCount} en base` : 'aperçu seul'}).</div> : null}
-      {linesNeedDbSync ? <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900"><b>Investissements BP :</b> lignes en aperçu intégré — cliquez <b>Concrétiser</b> sur une ligne (sync automatique) ou « Resynchroniser le BP officiel » ({dbLinesCount ? `${dbLinesCount} en base` : 'aucune en base'}).</div> : null}
+        {pendingLines.length > 6 ? <p className="text-xs text-slate">+ {pendingLines.length - 6} autre(s) ligne(s) dans l’onglet Mes investissements.</p> : null}
+      </div> : <div className="rounded-2xl border border-positive bg-positive-bg p-4 text-sm text-positive"><CheckCircle2 size={16} className="inline" /> Rien en attente — toutes les lignes éligibles sont traitées ou annulées.</div>}
+      {costsNeedDbSync ? <div className="rounded-2xl border border-vigilance bg-vigilance-bg p-4 text-sm text-horizon-dark"><b>Charges BP :</b> resynchronisez le plan pour activer les boutons Concrétiser sur les charges ({dbCostsCount ? `${dbCostsCount} en base` : 'aperçu seul'}).</div> : null}
+      {linesNeedDbSync ? <div className="rounded-2xl border border-vigilance bg-vigilance-bg p-4 text-sm text-horizon-dark"><b>Investissements BP :</b> lignes en aperçu intégré — cliquez <b>Concrétiser</b> sur une ligne (sync automatique) ou « Resynchroniser le BP officiel » ({dbLinesCount ? `${dbLinesCount} en base` : 'aucune en base'}).</div> : null}
       {pendingCosts.length ? <div className="space-y-2">
-        <p className="text-sm font-black text-[#2f2415]">Charges à concrétiser ({pendingCosts.length})</p>
-        {pendingCosts.slice(0, 4).map((cost) => <button type="button" key={cost.id} onClick={() => openCostConcretization(cost)} className="flex w-full items-center justify-between gap-3 rounded-xl border border-sky-200 bg-sky-50 px-4 py-3 text-left hover:border-sky-400">
-          <span><b className="text-[#2f2415]">{bpCostLabel(cost)}</b><span className="ml-2 text-sm text-[#8a7456]">{money(bpCostAmount(cost))}/mois</span></span>
-          <span className="flex items-center gap-1 text-xs font-black text-sky-800">Concrétiser <ArrowRight size={14} /></span>
+        <p className="text-sm font-semibold text-earth">Charges à concrétiser ({pendingCosts.length})</p>
+        {pendingCosts.slice(0, 4).map((cost) => <button type="button" key={cost.id} onClick={() => openCostConcretization(cost)} className="flex w-full items-center justify-between gap-3 rounded-xl border border-line bg-neutral-bg px-4 py-3 text-left hover:border-line">
+          <span><b className="text-earth">{bpCostLabel(cost)}</b><span className="ml-2 text-sm text-slate">{money(bpCostAmount(cost))}/mois</span></span>
+          <span className="flex items-center gap-1 text-xs font-semibold text-neutral">Concrétiser <ArrowRight size={14} /></span>
         </button>)}
-        {pendingCosts.length > 4 ? <p className="text-xs text-[#8a7456]">+ {pendingCosts.length - 4} dans l’onglet Charges mensuelles.</p> : null}
+        {pendingCosts.length > 4 ? <p className="text-xs text-slate">+ {pendingCosts.length - 4} dans l’onglet Charges mensuelles.</p> : null}
       </div> : null}
-      {brokenLinks.length ? <div className="rounded-2xl border border-red-200 bg-red-50 p-4 space-y-2">
-        <p className="flex items-center gap-2 text-sm font-black text-red-800">
+      {brokenLinks.length ? <div className="rounded-2xl border border-urgent bg-urgent-bg p-4 space-y-2">
+        <p className="flex items-center gap-2 text-sm font-semibold text-urgent">
           <AlertTriangle size={16} />
           Opération créée mais non liée — réparer la liaison ({brokenLinks.length})
         </p>
         {brokenLinks.slice(0, 5).map(({ line, kind, audit }) => (
-          <div key={`${kind}-${line.id}`} className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-red-200 bg-white px-3 py-2">
+          <div key={`${kind}-${line.id}`} className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-urgent bg-white px-3 py-2">
             <span className="text-sm">
-              <b className="text-[#2f2415]">{kind === 'cost' ? bpCostLabel(line) : investmentLabel(line)}</b>
-              <span className="ml-2 text-xs text-red-700">{audit.linkageMessage}</span>
+              <b className="text-earth">{kind === 'cost' ? bpCostLabel(line) : investmentLabel(line)}</b>
+              <span className="ml-2 text-xs text-urgent">{audit.linkageMessage}</span>
             </span>
             <BpLineActionsMenu
               line={line}
@@ -671,10 +671,10 @@ export default function InvestissementsV9(props) {
             />
           </div>
         ))}
-        {brokenLinks.length > 5 ? <p className="text-xs text-red-700">+ {brokenLinks.length - 5} autre(s) liaison(s) à réparer dans les onglets concernés.</p> : null}
+        {brokenLinks.length > 5 ? <p className="text-xs text-urgent">+ {brokenLinks.length - 5} autre(s) liaison(s) à réparer dans les onglets concernés.</p> : null}
       </div> : null}
-      <div className="rounded-2xl border border-[#eadcc2] bg-[#fffdf8] p-4 text-sm text-[#5c4a32]">
-        <p className="font-black text-[#2f2415]">Répartition du BP (4 onglets xlsx)</p>
+      <div className="rounded-2xl border border-line bg-card p-4 text-sm text-slate">
+        <p className="font-semibold text-earth">Répartition du BP (4 onglets xlsx)</p>
         <ul className="mt-2 space-y-1 text-xs">
           <li><b>Hypothèses</b> → Objectifs, Commercial, Finance charges, RH, Achats ({costTotals.count} charges en base)</li>
           <li><b>Périodicité revenus</b> → Objectifs, Commercial, Élevage, Trésorerie ({projections.length} mois)</li>
@@ -692,7 +692,7 @@ export default function InvestissementsV9(props) {
 
     {tab === 'budget' ? <Section icon={Coins} title="Mes investissements" subtitle="Besoins de démarrage, équipements, stock initial, trésorerie de départ — lignes actionnables à concrétiser.">
       <HelpSteps />
-      {linesNeedDbSync ? <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900"><b>Aperçu BP :</b> les boutons <b>Concrétiser</b> synchronisent le plan puis ouvrent le module cible ({dbLinesCount ? `${dbLinesCount} ligne(s) déjà en base` : 'aucune ligne en base pour l’instant'}).</div> : null}
+      {linesNeedDbSync ? <div className="rounded-2xl border border-vigilance bg-vigilance-bg p-4 text-sm text-horizon-dark"><b>Aperçu BP :</b> les boutons <b>Concrétiser</b> synchronisent le plan puis ouvrent le module cible ({dbLinesCount ? `${dbLinesCount} ligne(s) déjà en base` : 'aucune ligne en base pour l’instant'}).</div> : null}
       <Table rows={lines} columns={lineColumns} />
     </Section> : null}
 
@@ -715,14 +715,14 @@ export default function InvestissementsV9(props) {
     {tab === 'forecasts' ? <BpRevenueForecastsPanel projections={projections} /> : null}
 
     {tab === 'repartition' ? <Section icon={FileSpreadsheet} title="Mapping des 4 onglets Excel" subtitle="Chaque onglet alimente le bon module ERP — Investissements n’affiche que les lignes actionnables.">
-      {BP_SHEET_MAPPING.map((sheet) => <div key={sheet.key} className="rounded-2xl border border-[#eadcc2] bg-[#fffdf8] p-4 space-y-2">
-        <p className="font-black text-[#2f2415]">{sheet.label}</p>
-        <p className="text-xs text-[#8a7456]">{sheet.role}</p>
+      {BP_SHEET_MAPPING.map((sheet) => <div key={sheet.key} className="rounded-2xl border border-line bg-card p-4 space-y-2">
+        <p className="font-semibold text-earth">{sheet.label}</p>
+        <p className="text-xs text-slate">{sheet.role}</p>
         {sheet.sections ? <ul className="text-xs space-y-1">{sheet.sections.map((sec) => <li key={sec.key}>• {sec.label} → <b>{MODULE_LABELS[sec.module] || sec.module}</b>{sec.display_in_investissements ? ' (visible Investissements)' : ''}</li>)}</ul> : null}
         {sheet.targets ? <ul className="text-xs space-y-1">{sheet.targets.map((t) => <li key={`${t.module}-${t.tab}`}>→ {MODULE_LABELS[t.module] || t.module}{t.tab ? ` / ${t.tab}` : ''}</li>)}</ul> : null}
-        {sheet.read_only_summary ? <p className="text-[11px] text-amber-800">Rapport de synthèse — ne crée pas de lignes, reprend les calculs des autres onglets.</p> : null}
+        {sheet.read_only_summary ? <p className="text-meta text-horizon-dark">Rapport de synthèse — ne crée pas de lignes, reprend les calculs des autres onglets.</p> : null}
       </div>)}
-      <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-900">
+      <div className="rounded-2xl border border-positive bg-positive-bg p-4 text-sm text-positive">
         <CheckCircle2 size={16} className="inline" /> Compteur sync : {JSON.stringify(HORIZON_FARM_BP_DISTRIBUTION?.routedTo || {})}
       </div>
     </Section> : null}

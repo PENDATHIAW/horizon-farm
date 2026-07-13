@@ -101,9 +101,9 @@ export default function AgriFeedsModule(props) {
 
   return (
     <div className="space-y-4">
-      <header className="rounded-3xl border border-[#d6c3a0] bg-[#fffdf8] p-5">
-        <p className="text-xl font-black text-[#2f2415]">AGRI FEEDS</p>
-        <p className="text-sm text-[#8a7456] mt-1 max-w-3xl leading-relaxed">
+      <header className="rounded-3xl border border-line bg-card p-6">
+        <p className="text-xl font-semibold text-earth">AGRI FEEDS</p>
+        <p className="text-sm text-slate mt-1 max-w-3xl leading-relaxed">
           Production d’aliments animaux pilotée par les coûts, les essais, la qualité et les performances réelles.
         </p>
       </header>

@@ -42,35 +42,35 @@ export default function ChartExplainPanel({ payload, disabled = false }) {
   };
 
   const confidenceTone = (insight?.confidence ?? 0) >= 0.82
-    ? 'text-emerald-800 bg-emerald-50 border-emerald-200'
+    ? 'text-positive bg-positive-bg border-positive'
     : (insight?.confidence ?? 0) >= 0.62
-      ? 'text-amber-900 bg-amber-50 border-amber-200'
-      : 'text-[#5f4b2f] bg-[#fffdf8] border-[#eadcc2]';
+      ? 'text-horizon-dark bg-vigilance-bg border-vigilance'
+      : 'text-slate bg-card border-line';
 
   return (
-    <div className="mt-3 border-t border-[#eadcc2] pt-3">
+    <div className="mt-3 border-t border-line pt-3">
       <button
         type="button"
         onClick={handleClick}
-        className="inline-flex items-center gap-2 rounded-xl border border-[#9a6b12]/40 bg-[#fffdf8] px-3 py-2 text-xs font-black text-[#9a6b12] hover:bg-[#f5ecd8] transition-colors"
+        className="inline-flex items-center gap-2 rounded-xl border border-horizon-dark/40 bg-card px-3 py-2 text-xs font-semibold text-horizon-dark hover:bg-vigilance-bg transition-colors"
       >
         <Lightbulb size={14} />
         {open ? 'Masquer l\'explication' : 'Expliquer cette courbe'}
       </button>
-      <p className="mt-1 text-[10px] text-[#8a7456]">Aide à l'interprétation — aucune modification des données.</p>
+      <p className="mt-1 text-meta text-slate">Aide à l'interprétation — aucune modification des données.</p>
 
       {open ? (
-        <div className="mt-3 rounded-2xl border border-[#d6c3a0] bg-[#fffdf8] p-4 text-sm text-[#2f2415] space-y-3">
+        <div className="mt-3 rounded-2xl border border-line bg-card p-4 text-sm text-earth space-y-3">
           {loading ? (
-            <p className="text-xs text-[#8a7456]">Analyse en cours…</p>
+            <p className="text-xs text-slate">Analyse en cours…</p>
           ) : insight ? (
             <>
               <p className="font-semibold leading-relaxed">{insight.summary}</p>
 
               {insight.priority_action?.action ? (
-                <div className="rounded-xl border border-[#2f2415]/20 bg-[#2f2415] p-3 text-white">
-                  <p className="text-[11px] font-black uppercase tracking-wide text-[#ffd86b]">Action prioritaire terrain</p>
-                  <p className="mt-1 text-sm font-bold">{insight.priority_action.action}</p>
+                <div className="rounded-xl border border-earth/20 bg-earth p-3 text-white">
+                  <p className="text-meta font-semibold uppercase tracking-normal text-horizon">Action prioritaire terrain</p>
+                  <p className="mt-1 text-sm font-semibold">{insight.priority_action.action}</p>
                   {insight.priority_action.moduleId ? (
                     <button
                       type="button"
@@ -78,7 +78,7 @@ export default function ChartExplainPanel({ payload, disabled = false }) {
                         if (insight.priority_action.tab) ctx.onNavigate?.(insight.priority_action.moduleId, { tab: insight.priority_action.tab });
                         else ctx.onNavigate?.(insight.priority_action.moduleId);
                       }}
-                      className="mt-2 inline-flex items-center gap-1 rounded-lg bg-white px-3 py-1.5 text-[11px] font-black text-[#2f2415]"
+                      className="mt-2 inline-flex items-center gap-1 rounded-lg bg-white px-3 py-2 text-meta font-semibold text-earth"
                     >
                       <ExternalLink size={12} />
                       {insight.priority_action.linkLabel || 'Ouvrir le module'}
@@ -89,15 +89,15 @@ export default function ChartExplainPanel({ payload, disabled = false }) {
 
               {insight.operational_signals?.length ? (
                 <div>
-                  <p className="text-[11px] font-black uppercase tracking-wide text-[#9a6b12]">Signaux opérationnels</p>
+                  <p className="text-meta font-semibold uppercase tracking-normal text-horizon-dark">Signaux opérationnels</p>
                   <div className="mt-2 space-y-2">
                     {insight.operational_signals.map((signal) => (
-                      <div key={`${signal.label}-${signal.value}`} className={`rounded-xl border p-3 text-xs ${signal.severity === 'critique' ? 'border-red-200 bg-red-50 text-red-900' : signal.severity === 'warn' ? 'border-amber-200 bg-amber-50 text-amber-900' : 'border-[#eadcc2] bg-white text-[#2f2415]'}`}>
+                      <div key={`${signal.label}-${signal.value}`} className={`rounded-xl border p-3 text-xs ${signal.severity === 'critique' ? 'border-urgent bg-urgent-bg text-urgent' : signal.severity === 'warn' ? 'border-vigilance bg-vigilance-bg text-horizon-dark' : 'border-line bg-white text-earth'}`}>
                         <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
                           <div>
-                            <p className="font-black">{signal.label}</p>
-                            <p className="mt-0.5">{signal.value}</p>
-                            {signal.action ? <p className="mt-1 text-[11px] opacity-90">{signal.action}</p> : null}
+                            <p className="font-semibold">{signal.label}</p>
+                            <p className="mt-1">{signal.value}</p>
+                            {signal.action ? <p className="mt-1 text-meta opacity-90">{signal.action}</p> : null}
                           </div>
                           {signal.moduleId ? (
                             <button
@@ -106,7 +106,7 @@ export default function ChartExplainPanel({ payload, disabled = false }) {
                                 if (signal.tab) ctx.onNavigate?.(signal.moduleId, { tab: signal.tab });
                                 else ctx.onNavigate?.(signal.moduleId);
                               }}
-                              className="shrink-0 rounded-lg border border-current/20 bg-white/80 px-2 py-1 text-[11px] font-bold"
+                              className="shrink-0 rounded-lg border border-current/20 bg-white/80 px-2 py-1 text-meta font-semibold"
                             >
                               {signal.linkLabel || 'Agir'}
                             </button>
@@ -120,8 +120,8 @@ export default function ChartExplainPanel({ payload, disabled = false }) {
 
               {insight.probable_causes?.length ? (
                 <div>
-                  <p className="text-[11px] font-black uppercase tracking-wide text-[#9a6b12]">Causes probables</p>
-                  <ul className="mt-1 list-disc pl-5 text-xs text-[#5f4b2f] space-y-1">
+                  <p className="text-meta font-semibold uppercase tracking-normal text-horizon-dark">Causes probables</p>
+                  <ul className="mt-1 list-disc pl-6 text-xs text-slate space-y-1">
                     {insight.probable_causes.map((cause) => (
                       <li key={cause}>{cause}</li>
                     ))}
@@ -129,14 +129,14 @@ export default function ChartExplainPanel({ payload, disabled = false }) {
                 </div>
               ) : null}
 
-              <p className={`inline-flex rounded-lg border px-2 py-1 text-[11px] font-bold ${confidenceTone}`}>
+              <p className={`inline-flex rounded-lg border px-2 py-1 text-meta font-semibold ${confidenceTone}`}>
                 Confiance : {insight.confidence_label} ({Math.round((insight.confidence || 0) * 100)} %)
               </p>
 
               {insight.recommended_actions?.length ? (
                 <div>
-                  <p className="text-[11px] font-black uppercase tracking-wide text-[#9a6b12]">Actions recommandées</p>
-                  <ul className="mt-1 list-disc pl-5 text-xs text-[#5f4b2f] space-y-1">
+                  <p className="text-meta font-semibold uppercase tracking-normal text-horizon-dark">Actions recommandées</p>
+                  <ul className="mt-1 list-disc pl-6 text-xs text-slate space-y-1">
                     {insight.recommended_actions.map((action) => (
                       <li key={action}>{action}</li>
                     ))}
@@ -154,7 +154,7 @@ export default function ChartExplainPanel({ payload, disabled = false }) {
                         if (link.tab) ctx.onNavigate?.(link.moduleId, { tab: link.tab });
                         else ctx.onNavigate?.(link.moduleId);
                       }}
-                      className="inline-flex items-center gap-1 rounded-lg border border-[#d6c3a0] bg-white px-2 py-1 text-[11px] font-bold text-[#2f2415] hover:bg-[#f5ecd8]"
+                      className="inline-flex items-center gap-1 rounded-lg border border-line bg-white px-2 py-1 text-meta font-semibold text-earth hover:bg-vigilance-bg"
                     >
                       <ExternalLink size={12} />
                       {link.label}
@@ -164,7 +164,7 @@ export default function ChartExplainPanel({ payload, disabled = false }) {
               ) : null}
 
               {insight.warnings?.length ? (
-                <p className="text-[11px] text-[#8a7456]">{insight.warnings.join(' ')}</p>
+                <p className="text-meta text-slate">{insight.warnings.join(' ')}</p>
               ) : null}
             </>
           ) : null}

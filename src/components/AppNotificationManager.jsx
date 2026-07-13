@@ -5,6 +5,7 @@ import { notifyAlerts, notificationPermission, requestNotificationPermission, sh
 import { isDeletedRecord } from '../utils/deletedRecords';
 import { pushSetupStatus, sendTestPush, subscribeDeviceToPush } from '../utils/pushSubscriptions';
 import useWorkflowSubmit from '../hooks/useWorkflowSubmit';
+import { NOTIFICATION_BANNER_HIDDEN_KEY } from '../utils/storageKeys.js';
 
 const arr = (value) => Array.isArray(value) ? value : [];
 const lower = (value) => String(value || '').trim().toLowerCase();
@@ -13,8 +14,6 @@ const criticalSeverity = (alert = {}) => ['critique', 'urgence'].includes(lower(
 const isIOSDevice = () => /iphone|ipad|ipod/i.test(window.navigator.userAgent || '') || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
 const isStandaloneApp = () => window.matchMedia?.('(display-mode: standalone)')?.matches || window.navigator.standalone === true;
 const IOS_INSTALL_HELP = 'Sur iPhone, ajoute Horizon Farm à l’écran d’accueil depuis Safari, puis ouvre l’app depuis cette icône.';
-const NOTIFICATION_BANNER_HIDDEN_KEY = 'horizon-farm-notification-banner-hidden';
-
 function wasBannerHidden() {
   try { return localStorage.getItem(NOTIFICATION_BANNER_HIDDEN_KEY) === 'true'; } catch { return false; }
 }
@@ -165,15 +164,15 @@ export default function AppNotificationManager({ dataMap = {}, onNavigate }) {
 
   if (hidden || notificationPermission() === 'granted') return null;
   return (
-    <div className="fixed bottom-4 right-4 z-40 max-w-sm rounded-2xl bg-[#2f2415] text-white shadow-xl border border-[#c9a96a] p-3 space-y-2">
-      <p className="text-sm font-black">Notifications</p>
-      <p className="text-xs text-[#f4e6c8]">Recevoir les alertes critiques sur cet appareil.</p>
+    <div className="fixed bottom-4 right-4 z-40 max-w-sm rounded-2xl bg-earth text-white shadow-float border border-horizon p-3 space-y-2">
+      <p className="text-sm font-semibold">Notifications</p>
+      <p className="text-xs text-line">Recevoir les alertes critiques sur cet appareil.</p>
       <div className="flex flex-wrap gap-2">
-        <button type="button" disabled={workflowBusy} onClick={enableLocal} className="rounded-full bg-white/10 px-3 py-1.5 text-xs font-bold hover:bg-white/15 disabled:opacity-60">{workflowBusy ? 'Activation...' : 'Activer'}</button>
-        <button type="button" disabled={workflowBusy} onClick={enableAdvanced} className="rounded-full bg-[#c9a96a] px-3 py-1.5 text-xs font-bold text-[#2f2415] disabled:opacity-60">{workflowBusy ? 'Activation...' : 'Mode avancé'}</button>
-        <button type="button" onClick={dismiss} className="rounded-full border border-white/20 px-3 py-1.5 text-xs font-bold">Plus tard</button>
+        <button type="button" disabled={workflowBusy} onClick={enableLocal} className="rounded-full bg-white/10 px-3 py-2 text-xs font-semibold hover:bg-white/15 disabled:opacity-60">{workflowBusy ? 'Activation...' : 'Activer'}</button>
+        <button type="button" disabled={workflowBusy} onClick={enableAdvanced} className="rounded-full bg-horizon px-3 py-2 text-xs font-semibold text-earth disabled:opacity-60">{workflowBusy ? 'Activation...' : 'Mode avancé'}</button>
+        <button type="button" onClick={dismiss} className="rounded-full border border-white/20 px-3 py-2 text-xs font-semibold">Plus tard</button>
       </div>
-      {iosNeedsInstall ? <p className="text-[11px] text-amber-200">Sur iPhone : Safari → Partager → Ajouter à l’écran d’accueil.</p> : null}
+      {iosNeedsInstall ? <p className="text-meta text-horizon-dark">Sur iPhone : Safari → Partager → Ajouter à l’écran d’accueil.</p> : null}
     </div>
   );
 }

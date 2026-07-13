@@ -14,8 +14,8 @@ export default function CulturesEconomieHub({ stocks = [], salesOrders = [], row
   };
 
   return (
-    <div className="space-y-5">
-      <section className="rounded-3xl border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-900">
+    <div className="space-y-6">
+      <section className="rounded-3xl border border-positive bg-positive-bg p-4 text-sm text-positive">
         <b>Économie circulaire</b> — fumier, compost, résidus Élevage ↔ Cultures. Valorisation affichée pour investisseurs (sacs engrais remplacés, impact marge).
       </section>
       <CircularEconomyKpiPanel

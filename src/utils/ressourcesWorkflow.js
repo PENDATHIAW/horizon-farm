@@ -6,7 +6,6 @@ import { makeId } from './ids.js';
 import { toNumber } from './format.js';
 import { financeIds, documentIds, alertIds } from './sideEffectIds.js';
 import {
-  buildEquipmentBreakdownFollowUp,
   buildEquipmentRepairWorkflow,
   equipmentActionKey,
   equipmentLabel,
@@ -15,7 +14,6 @@ import {
 } from './equipmentWorkflows.js';
 import {
   runEquipmentBreakdownSideEffects,
-  runEquipmentRepairSideEffects,
 } from './equipmentSideEffects.js';
 import {
   buildSmartFarmDeviceFollowUp,

@@ -15,8 +15,10 @@ import { isFarmScopeFilteringEnabled } from '../../src/utils/farmScope.js';
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '../..');
 const recoveredSrc = readFileSync(join(root, 'src/modules/ElevageRecoveredModule.jsx'), 'utf8');
-const summarySrc = readFileSync(join(root, 'src/modules/elevage/ElevageSummaryCockpit.jsx'), 'utf8');
 const workflowPanelsSrc = readFileSync(join(root, 'src/modules/elevage/ElevageWorkflowPanels.jsx'), 'utf8');
+const reproductionSrc = readFileSync(join(root, 'src/modules/elevage/ElevageCyclesReproductionTab.jsx'), 'utf8');
+const alimentationSrc = readFileSync(join(root, 'src/modules/elevage/ElevageAlimentationTab.jsx'), 'utf8');
+const transformationSrc = readFileSync(join(root, 'src/modules/elevage/ElevageTransformationTab.jsx'), 'utf8');
 
 test('P1-01 — définition marge brute technique unique', () => {
   assert.equal(PRODUCTION_FINANCE_LABELS.marginGross, 'Marge brute technique');
@@ -30,23 +32,25 @@ test('P1-02 — santé rapide ouvre workflow Santé officiel (pas modale simplif
 });
 
 test('P1-03 — reproduction hub : KPI gestantes et fusion femelles', () => {
-  assert.match(recoveredSrc, /Femelles gestantes/);
-  assert.match(recoveredSrc, /Femelles reproductrices/);
-  assert.doesNotMatch(recoveredSrc, /Historique naissances/);
-  assert.match(recoveredSrc, /Gestations en cours|Naissances récentes/);
+  assert.match(reproductionSrc, />Femelles</);
+  assert.match(reproductionSrc, />Gestantes</);
+  assert.doesNotMatch(reproductionSrc, /Historique naissances/);
+  assert.match(reproductionSrc, /Gestations en cours/);
 });
 
 test('P1-04 — alimentation KPI reflète healthPredictions', () => {
-  assert.match(recoveredSrc, /Alertes santé liées/);
-  assert.doesNotMatch(recoveredSrc, /Prévisions IA/);
+  assert.match(alimentationSrc, /healthPredictions/);
+  assert.match(alimentationSrc, /Alertes santé liées/);
+  assert.doesNotMatch(alimentationSrc, /Prévisions IA/);
 });
 
 test('P1-05 — mobile : message barre actions rapide', () => {
-  assert.match(summarySrc, /barre d'actions rapide ci-dessous|barre d&apos;actions rapide ci-dessous/);
+  assert.match(recoveredSrc, /ElevageMobileToolbar/);
+  assert.match(recoveredSrc, /<ElevageMobileToolbar/);
 });
 
 test('P1-07 — transformation abattage scroll bridge (pas setTab Animaux seul)', () => {
-  assert.match(recoveredSrc, /elevage-animal-slaughter-bridge/);
+  assert.match(transformationSrc, /elevage-animal-slaughter-bridge/);
   assert.match(recoveredSrc, /scrollIntoView/);
 });
 

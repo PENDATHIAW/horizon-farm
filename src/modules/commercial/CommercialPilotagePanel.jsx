@@ -51,76 +51,76 @@ export default function CommercialPilotagePanel({
         periodLabel={periodLabel}
       />
 
-      <section className="rounded-2xl border border-[#d6c3a0] bg-white p-4">
-        <p className="text-xs uppercase tracking-widest text-[#8a7456] font-black mb-3">Objectifs commercial</p>
+      <section className="rounded-2xl border border-line bg-white p-4">
+        <p className="text-xs uppercase tracking-normal text-slate font-semibold mb-3">Objectifs commercial</p>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-sm">
-          <div className="rounded-xl border border-[#eadcc2] bg-[#fffdf8] p-3">
-            <p className="text-[11px] text-[#8a7456]">Objectif mois</p>
-            <p className="font-black text-[#2f2415]">{fmtCurrency(pilotage.objectives.target)}</p>
+          <div className="rounded-xl border border-line bg-card p-3">
+            <p className="text-meta text-slate">Objectif mois</p>
+            <p className="font-semibold text-earth">{fmtCurrency(pilotage.objectives.target)}</p>
           </div>
-          <div className="rounded-xl border border-[#eadcc2] bg-[#fffdf8] p-3">
-            <p className="text-[11px] text-[#8a7456]">Réalisé</p>
-            <p className="font-black text-emerald-700">{fmtCurrency(pilotage.objectives.actual)}</p>
+          <div className="rounded-xl border border-line bg-card p-3">
+            <p className="text-meta text-slate">Réalisé</p>
+            <p className="font-semibold text-positive">{fmtCurrency(pilotage.objectives.actual)}</p>
           </div>
-          <div className="rounded-xl border border-[#eadcc2] bg-[#fffdf8] p-3">
-            <p className="text-[11px] text-[#8a7456]">Restant</p>
-            <p className="font-black text-amber-700">{fmtCurrency(pilotage.objectives.remaining)}</p>
+          <div className="rounded-xl border border-line bg-card p-3">
+            <p className="text-meta text-slate">Restant</p>
+            <p className="font-semibold text-horizon-dark">{fmtCurrency(pilotage.objectives.remaining)}</p>
           </div>
-          <div className="rounded-xl border border-[#eadcc2] bg-[#fffdf8] p-3">
-            <p className="text-[11px] text-[#8a7456]">Projection fin de mois</p>
-            <p className="font-black text-[#2f2415]">{fmtCurrency(pilotage.objectives.projectionEndOfMonth)}</p>
+          <div className="rounded-xl border border-line bg-card p-3">
+            <p className="text-meta text-slate">Projection fin de mois</p>
+            <p className="font-semibold text-earth">{fmtCurrency(pilotage.objectives.projectionEndOfMonth)}</p>
           </div>
         </div>
-        <p className="mt-2 text-xs text-[#8a7456]">
+        <p className="mt-2 text-xs text-slate">
           Atteinte {pilotage.objectives.attainment}% · source {pilotage.objectives.source}
         </p>
       </section>
 
-      <section className="rounded-2xl border border-[#d6c3a0] bg-white p-4">
-        <p className="text-xs uppercase tracking-widest text-[#8a7456] font-black mb-3">Produits les plus rentables (Finance → Rentabilité)</p>
+      <section className="rounded-2xl border border-line bg-white p-4">
+        <p className="text-xs uppercase tracking-normal text-slate font-semibold mb-3">Produits les plus rentables (Finance → Rentabilité)</p>
         <div className="space-y-2">
           {pilotage.topProducts.length ? pilotage.topProducts.map((row) => (
-            <div key={row.name} className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-[#eadcc2] px-3 py-2 text-sm">
-              <span className="font-bold text-[#2f2415]">{row.name}</span>
-              <span className="text-emerald-700 font-black">Marge {fmtCurrency(row.margin)} ({row.marginRate}%)</span>
-              <span className="text-xs text-[#8a7456]">CA {fmtCurrency(row.ca)} · vol. {row.volume}</span>
+            <div key={row.name} className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-line px-3 py-2 text-sm">
+              <span className="font-semibold text-earth">{row.name}</span>
+              <span className="text-positive font-semibold">Marge {fmtCurrency(row.margin)} ({row.marginRate}%)</span>
+              <span className="text-xs text-slate">CA {fmtCurrency(row.ca)} · vol. {row.volume}</span>
             </div>
           )) : (
-            <p className="text-sm text-[#8a7456]">Complétez les coûts sources pour afficher les marges produits.</p>
+            <p className="text-sm text-slate">Complétez les coûts sources pour afficher les marges produits.</p>
           )}
         </div>
       </section>
 
-      <section className="rounded-2xl border border-[#d6c3a0] bg-white p-4">
-        <p className="text-xs uppercase tracking-widest text-[#8a7456] font-black mb-3">Clients stratégiques</p>
+      <section className="rounded-2xl border border-line bg-white p-4">
+        <p className="text-xs uppercase tracking-normal text-slate font-semibold mb-3">Clients stratégiques</p>
         <div className="space-y-2">
           {pilotage.strategicClients.map((row) => (
             <button
               key={row.id}
               type="button"
               onClick={() => setTab?.('Clients & créances')}
-              className="flex w-full flex-wrap items-center justify-between gap-2 rounded-xl border border-[#eadcc2] px-3 py-2 text-left text-sm hover:bg-[#fffdf8]"
+              className="flex w-full flex-wrap items-center justify-between gap-2 rounded-xl border border-line px-3 py-2 text-left text-sm hover:bg-card"
             >
-              <span className="font-bold text-[#2f2415]">{row.name}</span>
-              <span className="text-emerald-700 font-black">CA {fmtCurrency(row.ca)}</span>
-              <span className="text-xs text-[#8a7456]">{row.frequency} · marge {fmtCurrency(row.margin)} · {row.segment}</span>
+              <span className="font-semibold text-earth">{row.name}</span>
+              <span className="text-positive font-semibold">CA {fmtCurrency(row.ca)}</span>
+              <span className="text-xs text-slate">{row.frequency} · marge {fmtCurrency(row.margin)} · {row.segment}</span>
             </button>
           ))}
         </div>
       </section>
 
-      <section className="rounded-2xl border border-[#d6c3a0] bg-white p-4">
+      <section className="rounded-2xl border border-line bg-white p-4">
         <details>
-          <summary className="cursor-pointer text-xs font-black uppercase tracking-widest text-[#8a7456]">Preuve commerciale / investisseur</summary>
+          <summary className="cursor-pointer text-xs font-semibold uppercase tracking-normal text-slate">Preuve commerciale / investisseur</summary>
           <div className="mt-3 flex flex-wrap items-center justify-between gap-2">
-            <p className="text-sm text-[#8a7456]">{report.summary}</p>
-            <button type="button" onClick={exportPdf} className="rounded-xl bg-[#2f2415] px-4 py-2 text-xs font-black text-white">
+            <p className="text-sm text-slate">{report.summary}</p>
+            <button type="button" onClick={exportPdf} className="rounded-xl bg-earth px-4 py-2 text-xs font-semibold text-white">
               Exporter PDF investisseur
             </button>
           </div>
         </details>
       </section>
-      <p className="text-xs text-[#8a7456]">
+      <p className="text-xs text-slate">
         Écarts de réconciliation : Finance → Réconciliation · Devis : onglet Ventes
       </p>
     </div>

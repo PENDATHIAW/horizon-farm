@@ -69,10 +69,17 @@ test('les quatre composants rendent sans erreur, avec et sans données', () => {
   }
 });
 
-test('CarteKPI affiche période et lien vers le module propriétaire', () => {
-  const html = renderToString(React.createElement(CarteKPI, { code: 'creances', periode: 'mois en cours', donnees: {}, onNavigate: () => {} }));
-  assert.match(html, /Période : mois en cours/);
-  assert.match(html, /Voir dans Commercial/);
+test('CarteKPI affiche la période et expose une action vers le module propriétaire', () => {
+  const html = renderToString(React.createElement(CarteKPI, {
+    code: 'creances',
+    periode: 'Mois en cours',
+    value: 125000,
+    donnees: {},
+    onNavigate: () => {},
+  }));
+  assert.match(html, /Mois en cours/);
+  assert.match(html, /<button/);
+  assert.match(html, /aria-label="Créances clients : 125[\s\u202f]000 FCFA"/);
 });
 
 test('catalogue KPI : formule versionnée, source, unité, propriétaire partout', () => {
@@ -84,7 +91,7 @@ test('catalogue KPI : formule versionnée, source, unité, propriétaire partout
     assert.deepEqual(violationsCharte(entree.libelle), [], `libellé non conforme : ${code}`);
   }
   const resultat = valeurKpi('ca', { sales_orders: [], payments: [] });
-  assert.equal(resultat.versionFormule, 1);
+  assert.equal(resultat.versionFormule, 2);
 });
 
 test('catalogue des 15 alertes : complet et conforme à la charte', () => {

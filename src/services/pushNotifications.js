@@ -3,7 +3,6 @@ import {
   getPublicVapidKey,
   getLocalPushSubscriptions,
   persistPushSubscription,
-  registerPushServiceWorker,
   getPushRegistration,
 } from '../utils/pushSubscriptions.js';
 
@@ -74,7 +73,7 @@ export async function subscribeToPushNotifications(user = {}) {
   return payload;
 }
 
-export async function unsubscribeFromPushNotifications(user = {}) {
+export async function unsubscribeFromPushNotifications(_user = {}) {
   if (!isPushSupported()) return { ok: true, skipped: true, reason: 'unsupported' };
 
   const subscription = await getExistingSubscription();
@@ -133,4 +132,3 @@ export async function sendTestPushNotification({ title, body, severity = 'critiq
   if (!response.ok) throw new Error('Envoi push test impossible');
   return response.json();
 }
-

@@ -15,7 +15,7 @@ const paidForOrder = (order, payments = []) => Math.max(
 );
 
 function Kpi({ icon: Icon, label, value }) {
-  return <div className="rounded-lg border border-[#eadcc2] bg-white p-4"><Icon size={17} className="text-[#9a6b12]" /><p className="mt-2 text-xs text-[#8a7456]">{label}</p><p className="text-lg font-black text-[#2f2415]">{value}</p></div>;
+  return <div className="rounded-lg border border-line bg-white p-4"><Icon size={17} className="text-horizon-dark" /><p className="mt-2 text-xs text-slate">{label}</p><p className="text-lg font-semibold text-earth">{value}</p></div>;
 }
 
 export const SaleModal = DailySaleModal;
@@ -29,12 +29,12 @@ export default function VentesTerrainV3(props) {
   const remaining = Math.max(0, revenue - paid);
 
   return (
-    <div className="space-y-5 p-4 md:p-6">
+    <div className="space-y-6 p-4 md:p-6">
       <div className="flex flex-col justify-between gap-3 md:flex-row md:items-center">
-        <h1 className="text-xl font-black text-[#2f2415]">Ventes</h1>
+        <h1 className="text-xl font-semibold text-earth">Ventes</h1>
         <div className="flex gap-2">
-          <button type="button" onClick={props.onRefresh} className="min-h-[44px] rounded-lg border border-[#eadcc2] px-3 text-xs font-bold text-[#8a7456]" title="Actualiser"><RefreshCw size={15} /></button>
-          <button type="button" onClick={() => setModal(true)} className="min-h-[44px] rounded-lg bg-[#2f2415] px-4 text-xs font-black text-white"><Plus size={14} className="mr-1 inline" /> Nouvelle vente</button>
+          <button type="button" onClick={props.onRefresh} className="min-h-[44px] rounded-lg border border-line px-3 text-xs font-semibold text-slate" title="Actualiser"><RefreshCw size={15} /></button>
+          <button type="button" onClick={() => setModal(true)} className="min-h-[44px] rounded-lg bg-earth px-4 text-xs font-semibold text-white"><Plus size={14} className="mr-1 inline" /> Nouvelle vente</button>
         </div>
       </div>
       <div className="grid grid-cols-2 gap-3 md:grid-cols-3">

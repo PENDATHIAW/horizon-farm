@@ -125,16 +125,16 @@ const formatValue = (key, value) => {
 const Field = ({ item }) => {
   const { key, value } = item;
   return (
-    <div className="bg-[#fffdf8] border border-[#d6c3a0] rounded-xl p-3">
-      <div className="text-xs text-[#8a7456] uppercase tracking-wide">{labelFor(key)}</div>
+    <div className="bg-card border border-line rounded-xl p-3">
+      <div className="text-xs text-slate uppercase tracking-normal">{labelFor(key)}</div>
       {String(key).includes('photo') && value ? (
-        <img src={String(value)} alt="" className="mt-2 h-32 w-32 rounded-xl object-cover border border-[#d6c3a0]" />
+        <img src={String(value)} alt="" className="mt-2 h-32 w-32 rounded-xl object-cover border border-line" />
       ) : String(key).includes('qr') && value ? (
-        <img src={String(value)} alt="" className="mt-2 h-28 w-28 rounded-xl border border-[#d6c3a0]" />
+        <img src={String(value)} alt="" className="mt-2 h-28 w-28 rounded-xl border border-line" />
       ) : ['status', 'statut', 'health_status'].includes(key) ? (
         <div className="mt-1"><Badge status={String(value || '')} /></div>
       ) : (
-        <div className="text-[#2f2415] font-medium break-words">{formatValue(key, value)}</div>
+        <div className="text-earth font-medium break-words">{formatValue(key, value)}</div>
       )}
     </div>
   );
@@ -144,7 +144,7 @@ export default function DetailsModal({ open, onClose, title, data }) {
   const [tab, setTab] = useState('general');
 
   useEffect(() => {
-    if (open) setTab('general');
+    if (open) queueMicrotask(() => setTab('general'));
   }, [open, data?.id]);
 
   const grouped = useMemo(() => {
@@ -173,13 +173,13 @@ export default function DetailsModal({ open, onClose, title, data }) {
   return (
     <BaseModal open={open} onClose={onClose} title={title || 'Details'}>
       {!data ? (
-        <p className="text-[#8a7456]">Aucune donnée.</p>
+        <p className="text-slate">Aucune donnée.</p>
       ) : (
         <div className="space-y-4">
           {tabs.length > 1 ? <FicheTabsBar tabs={tabs} active={tab} onChange={setTab} /> : null}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             {activeEntries.length ? activeEntries.map((item) => <Field key={item.key} item={item} />) : (
-              <p className="text-sm text-[#8a7456]">Aucune information dans cet onglet.</p>
+              <p className="text-sm text-slate">Aucune information dans cet onglet.</p>
             )}
           </div>
         </div>

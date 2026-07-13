@@ -167,37 +167,37 @@ export default function MaterialsSuppliersTab({
 
   return (
     <div className="space-y-4">
-      <section className="rounded-3xl border border-[#d6c3a0] bg-white p-5 space-y-2">
-        <p className="text-lg font-black text-[#2f2415]">Matières & fournisseurs</p>
-        <p className="text-sm text-[#8a7456] leading-relaxed max-w-3xl">
+      <section className="rounded-3xl border border-line bg-white p-6 space-y-2">
+        <p className="text-lg font-semibold text-earth">Matières & fournisseurs</p>
+        <p className="text-sm text-slate leading-relaxed max-w-3xl">
           Catalogue matières premières, réception avec contrôle qualité, et repères fournisseur
           (dernier prix, matières habituelles). Les fournisseurs restent ceux du module Achats & Stock.
         </p>
         {message ? (
-          <p className="text-sm rounded-xl border border-[#eadcc2] bg-[#fffdf8] px-3 py-2 text-[#2f2415]">{message}</p>
+          <p className="text-sm rounded-xl border border-line bg-card px-3 py-2 text-earth">{message}</p>
         ) : null}
       </section>
 
       <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
-        <form onSubmit={saveMaterial} className="rounded-3xl border border-[#d6c3a0] bg-white p-5 space-y-3">
-          <p className="font-black text-[#2f2415]">Nouvelle matière première</p>
+        <form onSubmit={saveMaterial} className="rounded-3xl border border-line bg-white p-6 space-y-3">
+          <p className="font-semibold text-earth">Nouvelle matière première</p>
           <label className="block space-y-1">
-            <span className="text-xs font-bold text-[#8a7456]">Nom</span>
+            <span className="text-xs font-semibold text-slate">Nom</span>
             <input
               value={materialForm.name}
               onChange={(e) => setMaterialForm((p) => ({ ...p, name: e.target.value }))}
-              className="w-full min-h-[44px] rounded-xl border border-[#d6c3a0] px-3 text-sm"
+              className="w-full min-h-[44px] rounded-xl border border-line px-3 text-sm"
               placeholder="Ex. Maïs grain"
               required
             />
           </label>
           <div className="grid grid-cols-2 gap-3">
             <label className="block space-y-1">
-              <span className="text-xs font-bold text-[#8a7456]">Catégorie</span>
+              <span className="text-xs font-semibold text-slate">Catégorie</span>
               <select
                 value={materialForm.category}
                 onChange={(e) => setMaterialForm((p) => ({ ...p, category: e.target.value }))}
-                className="w-full min-h-[44px] rounded-xl border border-[#d6c3a0] px-3 text-sm"
+                className="w-full min-h-[44px] rounded-xl border border-line px-3 text-sm"
               >
                 {RAW_MATERIAL_CATEGORIES.map((c) => (
                   <option key={c.value} value={c.value}>{c.label}</option>
@@ -205,21 +205,21 @@ export default function MaterialsSuppliersTab({
               </select>
             </label>
             <label className="block space-y-1">
-              <span className="text-xs font-bold text-[#8a7456]">Unité</span>
+              <span className="text-xs font-semibold text-slate">Unité</span>
               <input
                 value={materialForm.unit}
                 onChange={(e) => setMaterialForm((p) => ({ ...p, unit: e.target.value }))}
-                className="w-full min-h-[44px] rounded-xl border border-[#d6c3a0] px-3 text-sm"
+                className="w-full min-h-[44px] rounded-xl border border-line px-3 text-sm"
               />
             </label>
           </div>
           <label className="block space-y-1">
-            <span className="text-xs font-bold text-[#8a7456]">Seuil humidité %</span>
+            <span className="text-xs font-semibold text-slate">Seuil humidité %</span>
             <input
               type="number"
               value={materialForm.standard_moisture_threshold}
               onChange={(e) => setMaterialForm((p) => ({ ...p, standard_moisture_threshold: e.target.value }))}
-              className="w-full min-h-[44px] rounded-xl border border-[#d6c3a0] px-3 text-sm"
+              className="w-full min-h-[44px] rounded-xl border border-line px-3 text-sm"
             />
           </label>
           <label className="inline-flex items-center gap-2 text-sm">
@@ -233,21 +233,21 @@ export default function MaterialsSuppliersTab({
           <button
             type="submit"
             disabled={busy}
-            className="rounded-xl bg-[#22c55e] px-4 py-2 text-sm font-black text-[#052e16] disabled:opacity-60"
+            className="rounded-xl bg-leaf px-4 py-2 text-sm font-semibold text-earth disabled:opacity-60"
           >
             Enregistrer la matière
           </button>
         </form>
 
-        <form onSubmit={saveReception} className="rounded-3xl border border-[#d6c3a0] bg-white p-5 space-y-3">
-          <p className="font-black text-[#2f2415]">Réception + contrôle qualité</p>
+        <form onSubmit={saveReception} className="rounded-3xl border border-line bg-white p-6 space-y-3">
+          <p className="font-semibold text-earth">Réception + contrôle qualité</p>
 
           <label className="block space-y-1">
-            <span className="text-xs font-bold text-[#8a7456]">Fournisseur</span>
+            <span className="text-xs font-semibold text-slate">Fournisseur</span>
             <select
               value={reception.supplier_id}
               onChange={(e) => onSupplierChange(e.target.value)}
-              className="w-full min-h-[44px] rounded-xl border border-[#d6c3a0] px-3 text-sm"
+              className="w-full min-h-[44px] rounded-xl border border-line px-3 text-sm"
             >
               <option value="">Sélectionner…</option>
               {suppliers.map((s) => (
@@ -257,7 +257,7 @@ export default function MaterialsSuppliersTab({
           </label>
 
           {selectedSupplier ? (
-            <div className="rounded-xl border border-[#eadcc2] bg-[#fffdf8] p-3 text-xs text-[#2f2415] space-y-1">
+            <div className="rounded-xl border border-line bg-card p-3 text-xs text-earth space-y-1">
               <p><b>Score qualité :</b> {hints.averageQualityScore != null ? `${Math.round(hints.averageQualityScore * 100)} %` : '—'}</p>
               <p><b>Délai moyen :</b> {hints.averageDeliveryDelay != null ? `${hints.averageDeliveryDelay} j` : '—'}</p>
               <p><b>Conditions :</b> {hints.paymentTerms || '—'}</p>
@@ -268,11 +268,11 @@ export default function MaterialsSuppliersTab({
           ) : null}
 
           <label className="block space-y-1">
-            <span className="text-xs font-bold text-[#8a7456]">Matière</span>
+            <span className="text-xs font-semibold text-slate">Matière</span>
             <select
               value={reception.raw_material_id}
               onChange={(e) => onMaterialChange(e.target.value)}
-              className="w-full min-h-[44px] rounded-xl border border-[#d6c3a0] px-3 text-sm"
+              className="w-full min-h-[44px] rounded-xl border border-line px-3 text-sm"
               required
             >
               <option value="">Sélectionner…</option>
@@ -283,7 +283,7 @@ export default function MaterialsSuppliersTab({
           </label>
 
           {thresholds ? (
-            <p className="text-xs text-[#8a7456]">
+            <p className="text-xs text-slate">
               Unité {thresholds.unit} · seuil humidité {thresholds.moisture_reject_above} %
               {thresholds.is_experimental ? ' · matière expérimentale' : ''}
             </p>
@@ -291,46 +291,46 @@ export default function MaterialsSuppliersTab({
 
           <div className="grid grid-cols-2 gap-3">
             <label className="block space-y-1">
-              <span className="text-xs font-bold text-[#8a7456]">Quantité</span>
+              <span className="text-xs font-semibold text-slate">Quantité</span>
               <input
                 type="number"
                 value={reception.quantity_received}
                 onChange={(e) => setReception((p) => ({ ...p, quantity_received: e.target.value }))}
-                className="w-full min-h-[44px] rounded-xl border border-[#d6c3a0] px-3 text-sm"
+                className="w-full min-h-[44px] rounded-xl border border-line px-3 text-sm"
                 required
               />
             </label>
             <label className="block space-y-1">
-              <span className="text-xs font-bold text-[#8a7456]">Prix / unité</span>
+              <span className="text-xs font-semibold text-slate">Prix / unité</span>
               <input
                 type="number"
                 value={reception.unit_cost}
                 onChange={(e) => setReception((p) => ({ ...p, unit_cost: e.target.value }))}
-                className="w-full min-h-[44px] rounded-xl border border-[#d6c3a0] px-3 text-sm"
+                className="w-full min-h-[44px] rounded-xl border border-line px-3 text-sm"
                 required
               />
             </label>
           </div>
-          <p className="text-sm font-semibold text-[#2f2415]">
+          <p className="text-sm font-semibold text-earth">
             Coût total calculé : {fmtCurrency(totalCostPreview)}
           </p>
 
           <div className="grid grid-cols-2 gap-3">
             <label className="block space-y-1">
-              <span className="text-xs font-bold text-[#8a7456]">Humidité %</span>
+              <span className="text-xs font-semibold text-slate">Humidité %</span>
               <input
                 type="number"
                 value={reception.moisture_value}
                 onChange={(e) => setReception((p) => ({ ...p, moisture_value: e.target.value }))}
-                className="w-full min-h-[44px] rounded-xl border border-[#d6c3a0] px-3 text-sm"
+                className="w-full min-h-[44px] rounded-xl border border-line px-3 text-sm"
               />
             </label>
             <label className="block space-y-1">
-              <span className="text-xs font-bold text-[#8a7456]">Statut qualité</span>
+              <span className="text-xs font-semibold text-slate">Statut qualité</span>
               <select
                 value={reception.quality_status}
                 onChange={(e) => setReception((p) => ({ ...p, quality_status: e.target.value }))}
-                className="w-full min-h-[44px] rounded-xl border border-[#d6c3a0] px-3 text-sm"
+                className="w-full min-h-[44px] rounded-xl border border-line px-3 text-sm"
               >
                 {QUALITY_STATUSES.map((q) => (
                   <option key={q.value} value={q.value}>{q.label}</option>
@@ -342,11 +342,11 @@ export default function MaterialsSuppliersTab({
           <div className="grid grid-cols-2 gap-3">
             {['visual_check', 'smell_check', 'insect_check', 'impurity_check'].map((key) => (
               <label key={key} className="block space-y-1">
-                <span className="text-xs font-bold text-[#8a7456]">{key.replace('_check', '')}</span>
+                <span className="text-xs font-semibold text-slate">{key.replace('_check', '')}</span>
                 <input
                   value={reception[key]}
                   onChange={(e) => setReception((p) => ({ ...p, [key]: e.target.value }))}
-                  className="w-full min-h-[40px] rounded-xl border border-[#d6c3a0] px-3 text-sm"
+                  className="w-full min-h-[40px] rounded-xl border border-line px-3 text-sm"
                 />
               </label>
             ))}
@@ -355,19 +355,19 @@ export default function MaterialsSuppliersTab({
           <button
             type="submit"
             disabled={busy || !reception.raw_material_id}
-            className="rounded-xl bg-[#22c55e] px-4 py-2 text-sm font-black text-[#052e16] disabled:opacity-60"
+            className="rounded-xl bg-leaf px-4 py-2 text-sm font-semibold text-earth disabled:opacity-60"
           >
             Valider la réception
           </button>
         </form>
       </div>
 
-      <section className="rounded-3xl border border-[#d6c3a0] bg-white overflow-x-auto">
-        <div className="p-4 border-b border-[#eadcc2]">
-          <p className="font-black text-[#2f2415]">Lots matières reçus ({batches.length})</p>
+      <section className="rounded-3xl border border-line bg-white overflow-x-auto">
+        <div className="p-4 border-b border-line">
+          <p className="font-semibold text-earth">Lots matières reçus ({batches.length})</p>
         </div>
         <table className="min-w-full text-sm">
-          <thead className="bg-[#fffdf8] text-[10px] uppercase font-black text-[#8a7456]">
+          <thead className="bg-card text-meta uppercase font-semibold text-slate">
             <tr>
               <th className="px-3 py-2 text-left">Lot</th>
               <th className="px-3 py-2 text-left">Matière</th>
@@ -379,11 +379,11 @@ export default function MaterialsSuppliersTab({
           </thead>
           <tbody>
             {batches.length === 0 ? (
-              <tr><td colSpan={6} className="px-3 py-4 text-[#8a7456]">Aucun lot reçu pour l’instant.</td></tr>
+              <tr><td colSpan={6} className="px-3 py-4 text-slate">Aucun lot reçu pour l’instant.</td></tr>
             ) : batches.map((b) => {
               const mat = materials.find((m) => String(m.id) === String(b.raw_material_id));
               return (
-                <tr key={b.id} className="border-t border-[#eadcc2]">
+                <tr key={b.id} className="border-t border-line">
                   <td className="px-3 py-2 font-semibold">{b.batch_code}</td>
                   <td className="px-3 py-2">{mat?.name || b.raw_material_id}</td>
                   <td className="px-3 py-2 text-right">{fmtNumber(b.quantity_available)} / {fmtNumber(b.quantity_received)}</td>

@@ -15,9 +15,9 @@ const fees = (row = {}) => toNumber(row.frais_abattage) + toNumber(row.frais_dec
 const isChair = (row = {}) => lower(`${row.type || ''} ${row.activity || ''} ${row.activite || ''}`).includes('chair');
 const lotLabel = (row = {}) => row.name || row.nom || row.id;
 
-function Field({ label, children }) { return <label className="text-xs font-bold text-[#8a7456] space-y-1"><span>{label}</span>{children}</label>; }
-function Input(props) { return <input {...props} className="w-full rounded-xl border border-[#d6c3a0] bg-white px-3 py-2 text-sm text-[#2f2415] outline-none focus:border-[#9a6b12]" />; }
-function Select(props) { return <select {...props} className="w-full rounded-xl border border-[#d6c3a0] bg-white px-3 py-2 text-sm text-[#2f2415] outline-none focus:border-[#9a6b12]" />; }
+function Field({ label, children }) { return <label className="text-xs font-semibold text-slate space-y-1"><span>{label}</span>{children}</label>; }
+function Input(props) { return <input {...props} className="w-full rounded-xl border border-line bg-white px-3 py-2 text-sm text-earth outline-none focus:border-horizon-dark" />; }
+function Select(props) { return <select {...props} className="w-full rounded-xl border border-line bg-white px-3 py-2 text-sm text-earth outline-none focus:border-horizon-dark" />; }
 
 export default function AvicoleTransformationBridge({ rows = [], alimentationLogs = [], productionLogs = [], businessEvents = [], onUpdate, onRefresh, onCreateBusinessEvent, onRefreshBusinessEvents }) {
   const stockCrud = useCrudModule('stock');
@@ -67,9 +67,9 @@ export default function AvicoleTransformationBridge({ rows = [], alimentationLog
     setForm(initial);
   };
 
-  return <section className="rounded-3xl border border-[#d6c3a0] bg-white p-5 shadow-sm space-y-4">
-    <div><p className="flex items-center gap-2 text-lg font-black text-[#2f2415]"><Drumstick size={20} /> Abattage / transformation avicole</p><p className="mt-1 text-sm text-[#8a7456]">Transforme un lot de chair en stock viande avec coût/kg réel.</p></div>
-    <form onSubmit={submit} className="grid grid-cols-1 md:grid-cols-6 xl:grid-cols-11 gap-2 rounded-2xl border border-[#eadcc2] bg-[#fffdf8] p-3">
+  return <section className="rounded-3xl border border-line bg-white p-6 shadow-card space-y-4">
+    <div><p className="flex items-center gap-2 text-lg font-semibold text-earth"><Drumstick size={20} /> Abattage / transformation avicole</p><p className="mt-1 text-sm text-slate">Transforme un lot de chair en stock viande avec coût/kg réel.</p></div>
+    <form onSubmit={submit} className="grid grid-cols-1 md:grid-cols-6 xl:grid-cols-11 gap-2 rounded-2xl border border-line bg-card p-3">
       <Field label="Lot chair"><Select value={form.lot_id || ''} onChange={(e) => update('lot_id', e.target.value)}><option value="">Choisir</option>{lots.map((lot, index) => <option key={`${lot.id || 'lot'}-${index}`} value={lot.id}>{lotLabel(lot)} · {fmtNumber(avicoleActiveCount(lot))} actifs</option>)}</Select></Field>
       <Field label="Date"><Input type="date" value={form.date || ''} onChange={(e) => update('date', e.target.value)} /></Field>
       <Field label="Sujets abattus"><Input type="number" min="0" value={form.sujets_abattus || ''} onChange={(e) => update('sujets_abattus', e.target.value)} /></Field>
@@ -80,8 +80,8 @@ export default function AvicoleTransformationBridge({ rows = [], alimentationLog
       <Field label="Emballage"><Input type="number" min="0" value={form.frais_emballage || ''} onChange={(e) => update('frais_emballage', e.target.value)} /></Field>
       <Field label="Transport"><Input type="number" min="0" value={form.frais_transport || ''} onChange={(e) => update('frais_transport', e.target.value)} /></Field>
       <Field label="Autres"><Input type="number" min="0" value={form.autres_frais || ''} onChange={(e) => update('autres_frais', e.target.value)} /></Field>
-      <div className="flex items-end"><button type="submit" className="inline-flex items-center gap-2 rounded-xl bg-[#2f2415] px-3 py-2 text-xs font-bold text-white"><Plus size={14} /> Ajouter</button></div>
+      <div className="flex items-end"><button type="submit" className="inline-flex items-center gap-2 rounded-xl bg-earth px-3 py-2 text-xs font-semibold text-white"><Plus size={14} /> Ajouter</button></div>
     </form>
-    <div className="rounded-2xl border border-[#eadcc2] bg-[#fffdf8] p-3 text-sm text-[#7d6a4a]">Prévision coût/kg : <b className="text-[#2f2415]">{unitKg ? fmtCurrency(unitKg) : '—'}</b> · frais transformation : <b>{fmtCurrency(extra)}</b></div>
+    <div className="rounded-2xl border border-line bg-card p-3 text-sm text-slate">Prévision coût/kg : <b className="text-earth">{unitKg ? fmtCurrency(unitKg) : '—'}</b> · frais transformation : <b>{fmtCurrency(extra)}</b></div>
   </section>;
 }

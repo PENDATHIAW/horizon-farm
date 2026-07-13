@@ -28,10 +28,6 @@ export function computeCommercialKpis(orders = [], payments = [], periodScope = 
     receivable: kpis.receivable,
     orderCount: kpis.orderCount,
     periodScope,
-    sources: {
-      ca: 'buildConsolidatedCommercialKpis',
-      collected: 'buildConsolidatedCommercialKpis',
-      receivable: 'buildConsolidatedCommercialKpis',
-    },
+    sources: kpis.sources,
   };
 }

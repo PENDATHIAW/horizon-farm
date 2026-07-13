@@ -33,14 +33,14 @@ const isClosedAnimal = (a) => ['vendu', 'mort', 'abattu', 'vole', 'perdu'].some(
 const isChairLot = (l) => lower(`${l.type || ''} ${l.activity || ''} ${l.activite || ''}`).includes('chair');
 
 function Field({ label, children, className = '' }) {
-  return <label className={`space-y-1 ${className}`}><span className="text-xs text-[#8a7456]">{label}</span>{children}</label>;
+  return <label className={`space-y-1 ${className}`}><span className="text-xs text-slate">{label}</span>{children}</label>;
 }
 function Input({ value, onChange, type = 'text', ...rest }) {
-  return <input type={type} className="w-full rounded-lg border border-[#d6c3a0] bg-[#fffdf8] px-3 py-2 text-sm" value={value} onChange={(e) => onChange(e.target.value)} {...rest} />;
+  return <input type={type} className="w-full rounded-lg border border-line bg-card px-3 py-2 text-sm" value={value} onChange={(e) => onChange(e.target.value)} {...rest} />;
 }
 function Select({ value, onChange, options }) {
   return (
-    <select className="w-full rounded-lg border border-[#d6c3a0] bg-[#fffdf8] px-3 py-2 text-sm" value={value} onChange={(e) => onChange(e.target.value)}>
+    <select className="w-full rounded-lg border border-line bg-card px-3 py-2 text-sm" value={value} onChange={(e) => onChange(e.target.value)}>
       {options.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
     </select>
   );
@@ -60,14 +60,14 @@ function ProofInput({ form, onChange }) {
   };
   return (
     <div className="space-y-2">
-      <label className="flex cursor-pointer items-center justify-center gap-2 rounded-xl border border-dashed border-[#c9a96a] bg-[#fffdf8] px-3 py-4 text-sm font-bold text-[#7d6a4a]">
+      <label className="flex cursor-pointer items-center justify-center gap-2 rounded-xl border border-dashed border-horizon bg-card px-3 py-4 text-sm font-semibold text-slate">
         <Upload size={18} /> Photo carcasse / certificat / ticket pesée
         <input type="file" accept="image/*" capture="environment" className="hidden" onChange={(e) => handleFile(e.target.files?.[0])} />
       </label>
       {form.preuve_photo_data ? (
-        <img src={form.preuve_photo_data} alt="preuve" className="h-16 w-16 rounded-lg object-cover border border-emerald-200" />
+        <img src={form.preuve_photo_data} alt="preuve" className="h-16 w-16 rounded-lg object-cover border border-positive" />
       ) : (
-        <p className="text-xs text-[#8a7456]"><Camera size={13} className="inline" /> Aucune photo — recommandée pour abattage.</p>
+        <p className="text-xs text-slate"><Camera size={13} className="inline" /> Aucune photo — recommandée pour abattage.</p>
       )}
     </div>
   );
@@ -145,14 +145,16 @@ export default function TransformationOfficialForm(props) {
   useEffect(() => {
     if (!props.transformationDraft) return;
     const d = props.transformationDraft;
-    setForm((prev) => ({
-      ...prev,
-      ...d,
-      animal_id: d.animal_id || prev.animal_id,
-      lot_id: d.lot_id || prev.lot_id,
-      source_type: d.source_type || (d.animal_id ? 'animal' : d.lot_id ? 'lot_avicole' : prev.source_type),
-      transform_type: d.transform_type || prev.transform_type,
-    }));
+    queueMicrotask(() => {
+      setForm((prev) => ({
+        ...prev,
+        ...d,
+        animal_id: d.animal_id || prev.animal_id,
+        lot_id: d.lot_id || prev.lot_id,
+        source_type: d.source_type || (d.animal_id ? 'animal' : d.lot_id ? 'lot_avicole' : prev.source_type),
+        transform_type: d.transform_type || prev.transform_type,
+      }));
+    });
     window.setTimeout(() => {
       document.getElementById(TRANSFORMATION_FORM_ID)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }, 120);
@@ -174,7 +176,7 @@ export default function TransformationOfficialForm(props) {
     return !form.animal_id && !form.lot_id;
   }), [props.healthRows, form.animal_id, form.lot_id]);
 
-  const costing = useMemo(() => computeTransformationCosting({
+  const costing = computeTransformationCosting({
     form: { ...form, quantite_produit: form.poids_carcasse || form.quantite_produit },
     animal,
     lot,
@@ -182,7 +184,7 @@ export default function TransformationOfficialForm(props) {
     productionLogs: props.productionLogs || [],
     healthRows: props.healthRows || [],
     businessEvents: props.businessEvents || [],
-  }), [form, animal, lot, props.alimentationLogs, props.productionLogs, props.healthRows, props.businessEvents]);
+  });
 
   const rendement = computeCarcassYield(form.poids_vif, form.poids_carcasse);
 
@@ -250,33 +252,33 @@ export default function TransformationOfficialForm(props) {
   };
 
   return (
-    <div id={TRANSFORMATION_FORM_ID} className="rounded-2xl border border-[#d6c3a0] bg-white p-5 space-y-4">
+    <div id={TRANSFORMATION_FORM_ID} className="rounded-2xl border border-line bg-white p-6 space-y-4">
       <div>
-        <p className="text-xs uppercase tracking-widest text-[#8a7456]">Canal officiel</p>
-        <h3 className="font-black text-[#2f2415]">Transformation · vivant → produit fini</h3>
+        <p className="text-xs uppercase tracking-normal text-slate">Canal officiel</p>
+        <h3 className="font-semibold text-earth">Transformation · vivant → produit fini</h3>
         {props.transformationDraft ? (
-          <p className="mt-2 rounded-xl border border-sky-200 bg-sky-50 px-3 py-2 text-sm text-sky-900">{TRANSFORMATION_TERRAIN_BANNER}</p>
+          <p className="mt-2 rounded-xl border border-line bg-neutral-bg px-3 py-2 text-sm text-neutral">{TRANSFORMATION_TERRAIN_BANNER}</p>
         ) : null}
       </div>
 
       {sanitaryBlock.blocked && !form.sanitary_override ? (
-        <div className="rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-900" role="alert">
-          <p className="font-black flex items-center gap-2"><AlertTriangle size={16} /> Transformation bloquée — délai sanitaire actif</p>
+        <div className="rounded-xl border border-urgent bg-urgent-bg p-3 text-sm text-urgent" role="alert">
+          <p className="font-semibold flex items-center gap-2"><AlertTriangle size={16} /> Transformation bloquée — délai sanitaire actif</p>
           <p className="mt-1">{sanitaryBlock.message}</p>
           {activeWithdrawals.map((w) => (
             <p key={w.id} className="text-xs mt-1">{formatWithdrawalLabel(w)}</p>
           ))}
           {permissions.canOverrideSanitary ? (
-            <button type="button" className="mt-2 text-xs font-black underline" onClick={requestOverride}>
+            <button type="button" className="mt-2 text-xs font-semibold underline" onClick={requestOverride}>
               Dérogation exceptionnelle (justification obligatoire)
             </button>
           ) : null}
         </div>
       ) : null}
 
-      <p className="rounded-xl border border-[#eadcc2] bg-[#fffdf8] px-3 py-2 text-sm text-[#7d6a4a]">{profile.hint}</p>
+      <p className="rounded-xl border border-line bg-card px-3 py-2 text-sm text-slate">{profile.hint}</p>
 
-      {readOnly ? <p className="rounded-xl border border-[#eadcc2] bg-[#fffdf8] px-3 py-2 text-sm text-[#7d6a4a]">Consultation uniquement pour ce rôle.</p> : null}
+      {readOnly ? <p className="rounded-xl border border-line bg-card px-3 py-2 text-sm text-slate">Consultation uniquement pour ce rôle.</p> : null}
       <fieldset disabled={readOnly} className="space-y-4 border-0 p-0">
       <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
         <Field label="Date"><Input type="date" value={form.date} onChange={(v) => update('date', v)} /></Field>
@@ -318,7 +320,7 @@ export default function TransformationOfficialForm(props) {
           <Field label="Poids carcasse / produit fini (kg)"><Input type="number" value={form.poids_carcasse} onChange={(v) => update('poids_carcasse', v)} /></Field>
         ) : null}
         {profile.show.rendement ? (
-          <Field label="Rendement carcasse"><div className="rounded-lg border border-[#eadcc2] bg-[#fffdf8] px-3 py-2 text-sm">{rendement != null ? `${rendement} %` : '—'}</div></Field>
+          <Field label="Rendement carcasse"><div className="rounded-lg border border-line bg-card px-3 py-2 text-sm">{rendement != null ? `${rendement} %` : '—'}</div></Field>
         ) : null}
         {profile.show.pertes && permissions.canViewCosts ? (
           <Field label="Pertes (F)"><Input type="number" value={form.pertes} onChange={(v) => update('pertes', v)} /></Field>
@@ -367,13 +369,13 @@ export default function TransformationOfficialForm(props) {
         ) : null}
       </div>
 
-      {permissions.canViewCosts ? <div className="rounded-xl border border-[#eadcc2] bg-[#fffdf8] p-3 text-sm text-[#7d6a4a] space-y-1">
+      {permissions.canViewCosts ? <div className="rounded-xl border border-line bg-card p-3 text-sm text-slate space-y-1">
         <p><b>Coût de revient total :</b> {fmtCurrency(costing.totalCost)} · <b>/kg :</b> {costing.costPerKg ? fmtCurrency(costing.costPerKg) : '—'}</p>
         {costing.marginEstimee != null ? <p><b>Marge estimée :</b> {fmtCurrency(costing.marginEstimee)}</p> : null}
         {costing.incomplete ? (
-          <p className="text-amber-800 font-bold">{costing.costMessage}</p>
+          <p className="text-horizon-dark font-semibold">{costing.costMessage}</p>
         ) : (
-          <p className="text-emerald-800">Coût calculé sur achat + alimentation + santé enregistrés (sans double charge Finance).</p>
+          <p className="text-positive">Coût calculé sur achat + alimentation + santé enregistrés (sans double charge Finance).</p>
         )}
         {animal ? <p><b>Animal :</b> {animal.name || animal.tag} · {animal.type}</p> : null}
         {lot ? <p><b>Lot :</b> {lot.name || lot.nom} · {avicoleActiveCount(lot)} actifs</p> : null}
@@ -393,7 +395,7 @@ export default function TransformationOfficialForm(props) {
         {lastResult?.stockId ? (
           <button
             type="button"
-            className="rounded-xl border border-[#d6c3a0] px-4 py-2 text-sm font-black"
+            className="rounded-xl border border-line px-4 py-2 text-sm font-semibold"
             onClick={() => navigateToCommercialAfterTransform(props.onNavigate, {
               stockId: lastResult.stockId,
               produit_fini_nom: form.produit_fini_nom,

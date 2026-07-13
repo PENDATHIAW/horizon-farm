@@ -27,10 +27,10 @@ export default function Taches(props) {
         addLabel="Ajouter tâche"
         exportTitle="Tâches Horizon Farm"
         kpis={[
-          { icon: ListChecks, label: 'Tâches', value: rows.length, color: 'bg-sky-500/20 text-sky-400' },
-          { icon: Clock, label: 'À faire', value: rows.filter((r) => r.status === 'a_faire').length, color: 'bg-amber-500/20 text-amber-500' },
-          { icon: CheckCircle, label: 'Terminées', value: rows.filter((r) => r.status === 'termine').length, color: 'bg-emerald-500/20 text-emerald-500' },
-          { icon: AlertTriangle, label: 'Urgentes', value: rows.filter((r) => r.priority === 'critique' || r.status === 'retard').length, color: 'bg-red-500/20 text-red-500' },
+          { icon: ListChecks, label: 'Tâches', value: rows.length, color: 'bg-neutral text-neutral' },
+          { icon: Clock, label: 'À faire', value: rows.filter((r) => r.status === 'a_faire').length, color: 'bg-vigilance text-horizon-dark' },
+          { icon: CheckCircle, label: 'Terminées', value: rows.filter((r) => r.status === 'termine').length, color: 'bg-positive text-positive' },
+          { icon: AlertTriangle, label: 'Urgentes', value: rows.filter((r) => r.priority === 'critique' || r.status === 'retard').length, color: 'bg-urgent text-urgent' },
         ]}
       />
       <TachesEvolution rows={rows} onNavigate={props.onNavigate} />

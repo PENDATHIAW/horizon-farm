@@ -3,8 +3,6 @@ import assert from 'node:assert/strict';
 import {
   buildElevageIssueKey,
   buildMortalityAlert,
-  commitElevageFeeding,
-  commitElevageHealth,
   commitElevageMortality,
   commitElevageTransformation,
   runBroilerLotScenario,

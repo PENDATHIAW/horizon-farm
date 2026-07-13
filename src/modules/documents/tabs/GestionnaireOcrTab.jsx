@@ -21,8 +21,8 @@ function LibraryGrid({ data, selected, setSelected, query, setQuery }) {
     <div className="grid grid-cols-1 gap-4 xl:grid-cols-[1fr_420px]">
       <Section icon={FolderOpen} title="Bibliothèque" action={
         <div className="relative w-full max-w-xs">
-          <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#8a7456]" />
-          <input type="search" value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Rechercher document…" className="w-full rounded-xl border border-[#d6c3a0] bg-[#fffdf8] py-2 pl-9 pr-3 text-sm" />
+          <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate" />
+          <input type="search" value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Rechercher document…" className="w-full rounded-xl border border-line bg-card py-2 pl-12 pr-3 text-sm" />
         </div>
       }>
         {filtered.length ? filtered.slice(0, 36).map((doc) => (
@@ -82,7 +82,7 @@ export default function GestionnaireOcrTab({
   const [libraryQuery, setLibraryQuery] = useState('');
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-6">
       <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
         <DocumentScannerPanel context={scannerContext} handlers={scannerHandlers} onSuccess={onSuccess} />
         <InvoiceOcrIntelligentPanel context={scannerContext} dataMap={dataMap} handlers={scannerHandlers} onNavigate={onNavigate} onSuccess={onSuccess} />

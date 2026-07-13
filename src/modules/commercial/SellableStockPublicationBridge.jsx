@@ -25,14 +25,14 @@ export default function SellableStockPublicationBridge({
 
   return (
     <>
-      <div className="rounded-2xl border border-[#d6c3a0] bg-white p-5 space-y-4">
+      <div className="rounded-2xl border border-line bg-white p-6 space-y-4">
         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3">
           <div>
-            <p className="text-xs uppercase tracking-widest text-[#8a7456]">IA commerciale</p>
-            <h3 className="font-black text-[#2f2415]">{title}</h3>
-            <p className="text-sm text-[#8a7456] mt-1">{subtitle}</p>
+            <p className="text-xs uppercase tracking-normal text-slate">IA commerciale</p>
+            <h3 className="font-semibold text-earth">{title}</h3>
+            <p className="text-sm text-slate mt-1">{subtitle}</p>
           </div>
-          <div className="rounded-xl border border-[#eadcc2] bg-[#fffdf8] px-3 py-2 text-sm text-[#7d6a4a]">
+          <div className="rounded-xl border border-line bg-card px-3 py-2 text-sm text-slate">
             <Megaphone size={14} className="inline" />
             {' '}
             {candidates.length} produit(s)
@@ -48,21 +48,21 @@ export default function SellableStockPublicationBridge({
               const days = daysUntilDlc(row);
               const urgent = days != null && days <= 3;
               return (
-                <div key={row.id} className={`rounded-xl border p-3 ${urgent ? 'border-amber-300 bg-amber-50/60' : 'border-[#eadcc2] bg-[#fffdf8]'}`}>
-                  <p className="font-bold text-[#2f2415]">
+                <div key={row.id} className={`rounded-xl border p-3 ${urgent ? 'border-vigilance bg-vigilance-bg' : 'border-line bg-card'}`}>
+                  <p className="font-semibold text-earth">
                     <Package size={14} className="inline" />
                     {' '}
                     {productNameOf(row)}
                   </p>
-                  <p className="text-xs text-[#8a7456] mt-1">
+                  <p className="text-xs text-slate mt-1">
                     {fmtNumber(qty)} {unitOf(row)} · {fmtCurrency(price)}
                   </p>
                   {dlc ? (
-                    <p className="text-xs font-bold text-amber-800 mt-1">DLC {dlc}</p>
+                    <p className="text-xs font-semibold text-horizon-dark mt-1">DLC {dlc}</p>
                   ) : null}
                   <button
                     type="button"
-                    className="mt-3 text-sm font-bold text-[#9a6b12] hover:text-[#2f2415]"
+                    className="mt-3 text-sm font-semibold text-horizon-dark hover:text-earth"
                     onClick={() => setActiveRow(row)}
                   >
                     <Megaphone size={14} className="inline" />
@@ -74,7 +74,7 @@ export default function SellableStockPublicationBridge({
             })}
           </div>
         ) : (
-          <div className="rounded-xl border border-[#eadcc2] bg-[#fffdf8] p-3 text-sm text-[#8a7456]">
+          <div className="rounded-xl border border-line bg-card p-3 text-sm text-slate">
             Aucun produit vendable disponible pour publication.
           </div>
         )}

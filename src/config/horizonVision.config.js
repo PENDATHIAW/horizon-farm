@@ -35,7 +35,7 @@ export const MODULE_TARGET_TABS = Object.freeze({
   rh: labelsFor('equipe'),
   equipements: labelsFor('equipements'),
   gestion_systeme: labelsFor('gestion_systeme'),
-  sync_activity: labelsFor('gestion_systeme'),
+  sync_activity: labelsFor('sync_activity'),
   agri_feeds: labelsFor('agri_feeds'),
   smartfarm: labelsFor('smartfarm'),
   financements: labelsFor('financements'),

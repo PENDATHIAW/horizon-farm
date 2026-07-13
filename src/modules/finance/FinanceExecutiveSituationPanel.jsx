@@ -4,11 +4,11 @@ import { TREASURY_LABELS } from '../../utils/financePilotageCore.js';
 import { FINANCE_EMPTY_LABELS, formatTreasuryRiskLabel, treasuryRiskTone } from '../../utils/financeEmptyState.js';
 
 function Stat({ label, value, tone = 'neutral' }) {
-  const cls = tone === 'good' ? 'text-emerald-600' : tone === 'warn' ? 'text-amber-600' : tone === 'bad' ? 'text-red-600' : 'text-[#2f2415]';
+  const cls = tone === 'good' ? 'text-positive' : tone === 'warn' ? 'text-horizon-dark' : tone === 'bad' ? 'text-urgent' : 'text-earth';
   return (
-    <div className="rounded-2xl border border-[#eadcc2] bg-[#fffdf8] p-4">
-      <p className="text-xs text-[#8a7456]">{label}</p>
-      <p className={`mt-1 text-xl font-black ${cls}`}>{value}</p>
+    <div className="rounded-2xl border border-line bg-card p-4">
+      <p className="text-xs text-slate">{label}</p>
+      <p className={`mt-1 text-xl font-semibold ${cls}`}>{value}</p>
     </div>
   );
 }
@@ -17,12 +17,12 @@ export default function FinanceExecutiveSituationPanel({ situation = null, onNav
   if (!situation) return null;
 
   return (
-    <section className="rounded-3xl border border-[#d6c3a0] bg-white p-5 shadow-sm">
+    <section className="rounded-3xl border border-line bg-white p-6 shadow-card">
       <div className="flex items-center gap-2">
-        <Landmark size={20} className="text-[#9a6b12]" />
+        <Landmark size={20} className="text-horizon-dark" />
         <div>
-          <h2 className="text-lg font-black text-[#2f2415]">Situation financière</h2>
-          <p className="text-sm text-[#8a7456]">Lecture dirigeant en moins de 30 secondes.</p>
+          <h2 className="text-lg font-semibold text-earth">Situation financière</h2>
+          <p className="text-sm text-slate">Lecture dirigeant en moins de 30 secondes.</p>
         </div>
       </div>
 
@@ -53,18 +53,18 @@ export default function FinanceExecutiveSituationPanel({ situation = null, onNav
         <button
           type="button"
           onClick={() => onNavigateTab?.(situation.priorityAction.tab)}
-          className="mt-4 w-full rounded-2xl border border-[#9a6b12]/30 bg-[#fffdf8] p-4 text-left hover:bg-[#faf6ee]"
+          className="mt-4 w-full rounded-2xl border border-horizon-dark/30 bg-card p-4 text-left hover:bg-mist"
         >
-          <p className="text-xs font-black uppercase tracking-wide text-[#9a6b12]">Prochaine action prioritaire</p>
-          <p className="mt-1 font-black text-[#2f2415]">{situation.priorityAction.label}</p>
-          <p className="mt-1 text-sm text-[#8a7456]">{situation.priorityAction.detail}</p>
+          <p className="text-xs font-semibold uppercase tracking-normal text-horizon-dark">Prochaine action prioritaire</p>
+          <p className="mt-1 font-semibold text-earth">{situation.priorityAction.label}</p>
+          <p className="mt-1 text-sm text-slate">{situation.priorityAction.detail}</p>
         </button>
       ) : null}
 
-      <p className="mt-3 text-sm text-[#8a7456]">
+      <p className="mt-3 text-sm text-slate">
         Risque de tension trésorerie :
         {' '}
-        <span className={`font-black ${treasuryRiskTone({ forecastReady: situation.forecastReady, risk: situation.treasuryRisk }) === 'bad' ? 'text-red-600' : treasuryRiskTone({ forecastReady: situation.forecastReady, risk: situation.treasuryRisk }) === 'warn' ? 'text-amber-600' : treasuryRiskTone({ forecastReady: situation.forecastReady, risk: situation.treasuryRisk }) === 'good' ? 'text-emerald-700' : 'text-[#8a7456]'}`}>
+        <span className={`font-semibold ${treasuryRiskTone({ forecastReady: situation.forecastReady, risk: situation.treasuryRisk }) === 'bad' ? 'text-urgent' : treasuryRiskTone({ forecastReady: situation.forecastReady, risk: situation.treasuryRisk }) === 'warn' ? 'text-horizon-dark' : treasuryRiskTone({ forecastReady: situation.forecastReady, risk: situation.treasuryRisk }) === 'good' ? 'text-positive' : 'text-slate'}`}>
           {formatTreasuryRiskLabel({ forecastReady: situation.forecastReady, risk: situation.treasuryRisk })}
         </span>
       </p>

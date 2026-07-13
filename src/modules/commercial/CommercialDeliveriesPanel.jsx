@@ -12,6 +12,38 @@ import {
 import { confirmSaleDelivery } from '../../utils/confirmSaleDelivery.js';
 import CommercialDeliverySyncPanel from '../CommercialDeliverySyncPanel.jsx';
 
+function DeliverySection({ title, rows, tone = 'neutral', onMarkDelivered, onOpenProof }) {
+  if (!rows.length) return null;
+  const border = tone === 'warn' ? 'border-vigilance bg-vigilance-bg' : tone === 'good' ? 'border-positive bg-positive-bg' : 'border-line bg-white';
+  return (
+    <section className={`rounded-card border p-4 ${border}`}>
+      <p className="mb-3 text-sm font-semibold text-earth">{title} ({rows.length})</p>
+      <div className="space-y-2">
+        {rows.slice(0, 8).map((row) => (
+          <div key={row.id} className="flex flex-col justify-between gap-2 rounded-card border border-line bg-card p-3 md:flex-row md:items-center">
+            <div>
+              <p className="font-semibold text-earth">{row.orderId} · {row.clientName}</p>
+              <p className="text-xs text-slate">
+                {DELIVERY_STATUS_LABELS[row.status] || row.statusLabel}
+                {row.plannedDate ? ` · prévu ${row.plannedDate}` : ''}
+                {row.address ? ` · ${row.address}` : ''}
+                {row.fee > 0 ? ` · ${fmtCurrency(row.fee)}` : ' · livraison offerte'}
+              </p>
+              <p className="mt-1 text-meta text-slate">{deliveryProofMessage(row.delivery)}</p>
+            </div>
+            <div className="flex flex-wrap gap-1">
+              {row.status !== 'livree' ? (
+                <button type="button" onClick={() => onMarkDelivered(row)} className="rounded-control border border-positive bg-positive-bg px-2 py-1 text-meta font-semibold text-positive">Marquer livrée</button>
+              ) : null}
+              <button type="button" onClick={() => onOpenProof(row)} className="rounded-control border border-line bg-neutral-bg px-2 py-1 text-meta font-semibold text-neutral">Ajouter preuve</button>
+            </div>
+          </div>
+        ))}
+      </div>
+    </section>
+  );
+}
+
 
 
 export default function CommercialDeliveriesPanel({
@@ -107,42 +139,6 @@ export default function CommercialDeliveriesPanel({
     }
   };
 
-  const Section = ({ title, rows, tone = 'neutral' }) => {
-    if (!rows.length) return null;
-    const border = tone === 'warn' ? 'border-amber-200 bg-amber-50/40' : tone === 'good' ? 'border-emerald-200 bg-emerald-50/40' : 'border-[#eadcc2] bg-white';
-    return (
-      <section className={`rounded-2xl border p-4 ${border}`}>
-        <p className="text-sm font-black text-[#2f2415] mb-3">{title} ({rows.length})</p>
-        <div className="space-y-2">
-          {rows.slice(0, 8).map((row) => (
-            <div key={row.id} className="rounded-xl border border-[#eadcc2] bg-[#fffdf8] p-3 flex flex-col md:flex-row md:items-center justify-between gap-2">
-              <div>
-                <p className="font-black text-[#2f2415]">{row.orderId} · {row.clientName}</p>
-                <p className="text-xs text-[#8a7456]">
-                  {DELIVERY_STATUS_LABELS[row.status] || row.statusLabel}
-                  {row.plannedDate ? ` · prévu ${row.plannedDate}` : ''}
-                  {row.address ? ` · ${row.address}` : ''}
-                  {row.fee > 0 ? ` · ${fmtCurrency(row.fee)}` : ' · livraison offerte'}
-                </p>
-                <p className="text-[11px] text-[#8a7456] mt-1">{deliveryProofMessage(row.delivery)}</p>
-              </div>
-              <div className="flex flex-wrap gap-1">
-                {row.status !== 'livree' ? (
-                  <button type="button" onClick={() => markDelivered(row)} className="rounded-lg border border-emerald-200 bg-emerald-50 px-2 py-1 text-[11px] font-black text-emerald-800">
-                    Marquer livrée
-                  </button>
-                ) : null}
-                <button type="button" onClick={() => openProofModal(row)} className="rounded-lg border border-sky-200 bg-sky-50 px-2 py-1 text-[11px] font-black text-sky-800">
-                  Ajouter preuve
-                </button>
-              </div>
-            </div>
-          ))}
-        </div>
-      </section>
-    );
-  };
-
   return (
     <div className="space-y-4">
       <CommercialDeliverySyncPanel
@@ -159,23 +155,23 @@ export default function CommercialDeliveriesPanel({
         onRefreshWorkflow={onRefreshWorkflow}
         setTab={setTab}
       />
-      <section className="rounded-2xl border border-[#d6c3a0] bg-white p-4">
-        <p className="text-xs uppercase tracking-widest text-[#8a7456] font-black flex items-center gap-2"><Truck size={14} /> Livraisons terrain</p>
+      <section className="rounded-2xl border border-line bg-white p-4">
+        <p className="text-xs uppercase tracking-normal text-slate font-semibold flex items-center gap-2"><Truck size={14} /> Livraisons terrain</p>
         <div className="mt-3 grid grid-cols-2 md:grid-cols-5 gap-2 text-sm">
-          <div className="rounded-xl border border-[#eadcc2] bg-[#fffdf8] p-3"><Clock size={14} className="text-[#9a6b12]" /><p className="font-black">{queue.toPrepare.length}</p><p className="text-xs text-[#8a7456]">À préparer</p></div>
-          <div className="rounded-xl border border-sky-200 bg-sky-50 p-3"><Truck size={14} className="text-sky-700" /><p className="font-black">{queue.inProgress.length}</p><p className="text-xs text-sky-800">En cours</p></div>
-          <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-3"><CheckCircle2 size={14} className="text-emerald-700" /><p className="font-black">{queue.delivered.length}</p><p className="text-xs text-emerald-800">Livrées</p></div>
-          <div className="rounded-xl border border-amber-200 bg-amber-50 p-3"><AlertTriangle size={14} className="text-amber-700" /><p className="font-black">{queue.late.length}</p><p className="text-xs text-amber-800">En retard</p></div>
-          <div className="rounded-xl border border-red-200 bg-red-50 p-3"><FileText size={14} className="text-red-700" /><p className="font-black">{queue.withoutProof.length}</p><p className="text-xs text-red-800">Sans preuve</p></div>
+          <div className="rounded-xl border border-line bg-card p-3"><Clock size={14} className="text-horizon-dark" /><p className="font-semibold">{queue.toPrepare.length}</p><p className="text-xs text-slate">À préparer</p></div>
+          <div className="rounded-xl border border-line bg-neutral-bg p-3"><Truck size={14} className="text-neutral" /><p className="font-semibold">{queue.inProgress.length}</p><p className="text-xs text-neutral">En cours</p></div>
+          <div className="rounded-xl border border-positive bg-positive-bg p-3"><CheckCircle2 size={14} className="text-positive" /><p className="font-semibold">{queue.delivered.length}</p><p className="text-xs text-positive">Livrées</p></div>
+          <div className="rounded-xl border border-vigilance bg-vigilance-bg p-3"><AlertTriangle size={14} className="text-horizon-dark" /><p className="font-semibold">{queue.late.length}</p><p className="text-xs text-horizon-dark">En retard</p></div>
+          <div className="rounded-xl border border-urgent bg-urgent-bg p-3"><FileText size={14} className="text-urgent" /><p className="font-semibold">{queue.withoutProof.length}</p><p className="text-xs text-urgent">Sans preuve</p></div>
         </div>
       </section>
-      <Section title="À préparer" rows={queue.toPrepare} />
-      <Section title="En cours" rows={queue.inProgress} tone="neutral" />
-      <Section title="En retard" rows={queue.late} tone="warn" />
-      <Section title="Livrées sans preuve" rows={queue.withoutProof} tone="warn" />
-      <Section title="Livrées" rows={queue.delivered} tone="good" />
+      <DeliverySection title="À préparer" rows={queue.toPrepare} onMarkDelivered={markDelivered} onOpenProof={openProofModal} />
+      <DeliverySection title="En cours" rows={queue.inProgress} tone="neutral" onMarkDelivered={markDelivered} onOpenProof={openProofModal} />
+      <DeliverySection title="En retard" rows={queue.late} tone="warn" onMarkDelivered={markDelivered} onOpenProof={openProofModal} />
+      <DeliverySection title="Livrées sans preuve" rows={queue.withoutProof} tone="warn" onMarkDelivered={markDelivered} onOpenProof={openProofModal} />
+      <DeliverySection title="Livrées" rows={queue.delivered} tone="good" onMarkDelivered={markDelivered} onOpenProof={openProofModal} />
       {!queue.all.length ? (
-        <p className="rounded-xl border border-[#eadcc2] bg-[#fffdf8] px-4 py-6 text-center text-sm text-[#8a7456]">Aucune livraison enregistrée — créez une vente avec livraison.</p>
+        <p className="rounded-xl border border-line bg-card px-4 py-6 text-center text-sm text-slate">Aucune livraison enregistrée — créez une vente avec livraison.</p>
       ) : null}
 
       <QuickInputModal

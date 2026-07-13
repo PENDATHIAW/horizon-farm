@@ -96,6 +96,7 @@ test('cycles investor pipeline — prochaines sorties', () => {
     lots: [LOT_CHAIR_A, LOT_CHAIR_B],
     animaux: [BOVIN_A],
     horizonDays: 90,
+    referenceDate: '2026-06-01',
   });
   assert.ok(pipeline.upcomingExits.length >= 1);
   assert.ok(pipeline.pipeline.every((row) => row.targetDate && row.label));
@@ -104,6 +105,7 @@ test('cycles investor pipeline — prochaines sorties', () => {
     lots: [LOT_CHAIR_A],
     animaux: [BOVIN_A],
     farmLabel: 'Ferme A',
+    referenceDate: '2026-06-01',
   });
   assert.ok(report.cyclesPipeline);
   assert.ok(report.kpis.cyclesUpcoming90d >= 0);

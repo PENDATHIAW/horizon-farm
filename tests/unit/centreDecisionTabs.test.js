@@ -21,6 +21,7 @@ test('les anciens onglets se résolvent vers les vues cibles', () => {
   assert.equal(resolveCentreTab('Performance'), 'Décisions');
   assert.equal(resolveCentreTab('Rentabilité lots'), 'Décisions');
   assert.equal(resolveCentreTab('Graphiques'), 'Décisions');
+  assert.equal(resolveCentreTab('Actions prioritaires'), 'Décisions');
   assert.equal(resolveCentreTab('Saisons & marchés'), 'Risques');
   assert.equal(resolveCentreTab('Cycles'), 'Risques');
   assert.equal(resolveCentreTab('Historique'), 'Historique');

@@ -131,38 +131,38 @@ export default function EditModal({ open, onClose, onSubmit, fields = [], initia
               />
             ) : field.type === 'section' ? (
               <div key={field.key || field.label} className="md:col-span-2 pt-2">
-                <div className="rounded-xl bg-[#2f2415] text-[#f8f5ef] px-4 py-2 text-sm font-bold">{field.label}</div>
-                {showSectionDescriptions && field.description ? <p className="text-xs text-[#8a7456] mt-1">{field.description}</p> : null}
+                <div className="rounded-xl bg-earth text-mist px-4 py-2 text-sm font-semibold">{field.label}</div>
+                {showSectionDescriptions && field.description ? <p className="text-xs text-slate mt-1">{field.description}</p> : null}
               </div>
             ) : (
               <label key={field.key} className={field.fullWidth ? 'space-y-1 md:col-span-2' : 'space-y-1'}>
-                <span className="text-xs text-[#8a7456]">{field.label}{field.required ? ' *' : ''}</span>
+                <span className="text-xs text-slate">{field.label}{field.required ? ' *' : ''}</span>
                 {field.type === 'select' ? (
                   <div className="space-y-1">
-                    <select disabled={selectDisabled} value={form[field.key] ?? ''} onChange={(e) => handleChange(field.key, e.target.value, field)} className={`w-full border rounded-lg px-3 py-2 text-sm text-[#2f2415] ${selectDisabled ? 'bg-[#f4ebdb] border-[#d6c3a0] text-[#8a7456]' : 'bg-[#fffdf8] border-[#d6c3a0]'}`}>
+                    <select disabled={selectDisabled} value={form[field.key] ?? ''} onChange={(e) => handleChange(field.key, e.target.value, field)} className={`w-full border rounded-lg px-3 py-2 text-sm text-earth ${selectDisabled ? 'bg-vigilance-bg border-line text-slate' : 'bg-card border-line'}`}>
                       <option value="">{selectDisabled ? noChoiceLabel(field) : 'Selectionner...'}</option>
                       {options.map((option) => <option key={optionValue(option)} value={optionValue(option)}>{optionLabel(option)}</option>)}
                     </select>
-                    {selectDisabled ? <p className="text-xs text-amber-700">Ajoute d’abord une fiche valide dans le module concerné.</p> : null}
+                    {selectDisabled ? <p className="text-xs text-horizon-dark">Ajoute d’abord une fiche valide dans le module concerné.</p> : null}
                   </div>
                 ) : field.type === 'checkbox' ? (
-                  <button type="button" onClick={() => handleChange(field.key, !form[field.key], field)} className={`w-full border rounded-lg px-3 py-2 text-sm text-left transition-all ${form[field.key] ? 'bg-emerald-500/15 border-emerald-500 text-emerald-700' : 'bg-[#fffdf8] border-[#d6c3a0] text-[#8a7456]'}`}>{form[field.key] ? 'Oui' : 'Non'}</button>
+                  <button type="button" onClick={() => handleChange(field.key, !form[field.key], field)} className={`w-full border rounded-lg px-3 py-2 text-sm text-left transition-all ${form[field.key] ? 'bg-positive border-positive text-positive' : 'bg-card border-line text-slate'}`}>{form[field.key] ? 'Oui' : 'Non'}</button>
                 ) : field.type === 'readonly' ? (
-                  <div className="w-full bg-[#f4ebdb] border border-[#d6c3a0] rounded-lg px-3 py-2 text-sm text-[#7d6a4a]">{form[field.key] || field.value || '-'}</div>
+                  <div className="w-full bg-vigilance-bg border border-line rounded-lg px-3 py-2 text-sm text-slate">{form[field.key] || field.value || '-'}</div>
                 ) : field.type === 'textarea' ? (
                   <div className="space-y-2">
-                    <textarea value={form[field.key] ?? ''} onChange={(e) => handleChange(field.key, e.target.value, field)} rows={field.rows || 4} placeholder={field.placeholder || ''} className="w-full bg-[#fffdf8] border border-[#d6c3a0] rounded-lg px-3 py-2 text-sm text-[#2f2415]" />
+                    <textarea value={form[field.key] ?? ''} onChange={(e) => handleChange(field.key, e.target.value, field)} rows={field.rows || 4} placeholder={field.placeholder || ''} className="w-full bg-card border border-line rounded-lg px-3 py-2 text-sm text-earth" />
                     <VoiceInput onText={(text) => handleChange(field.key, text, field)} />
                   </div>
                 ) : field.type === 'image' ? (
                   <div className="space-y-2">
-                    {form[field.key] ? <img src={form[field.key]} alt="" className="h-24 w-24 rounded-xl object-cover border border-[#d6c3a0]" /> : null}
-                    <input type="file" accept="image/*" onChange={(e) => handleImageChange(field.key, e.target.files?.[0])} className="w-full bg-[#fffdf8] border border-[#d6c3a0] rounded-lg px-3 py-2 text-sm text-[#2f2415]" />
-                    <input type="url" value={form[field.key] ?? ''} onChange={(e) => handleChange(field.key, e.target.value, field)} placeholder="URL photo" className="w-full bg-[#fffdf8] border border-[#d6c3a0] rounded-lg px-3 py-2 text-sm text-[#2f2415]" />
+                    {form[field.key] ? <img src={form[field.key]} alt="" className="h-24 w-24 rounded-xl object-cover border border-line" /> : null}
+                    <input type="file" accept="image/*" onChange={(e) => handleImageChange(field.key, e.target.files?.[0])} className="w-full bg-card border border-line rounded-lg px-3 py-2 text-sm text-earth" />
+                    <input type="url" value={form[field.key] ?? ''} onChange={(e) => handleChange(field.key, e.target.value, field)} placeholder="URL photo" className="w-full bg-card border border-line rounded-lg px-3 py-2 text-sm text-earth" />
                   </div>
                 ) : (
                   <div className="flex gap-2">
-                    <input type={field.type || 'text'} value={form[field.key] ?? ''} onChange={(e) => handleChange(field.key, e.target.value, field)} className="w-full bg-[#fffdf8] border border-[#d6c3a0] rounded-lg px-3 py-2 text-sm text-[#2f2415]" />
+                    <input type={field.type || 'text'} value={form[field.key] ?? ''} onChange={(e) => handleChange(field.key, e.target.value, field)} className="w-full bg-card border border-line rounded-lg px-3 py-2 text-sm text-earth" />
                     {['text', 'email', undefined].includes(field.type) ? <VoiceInput onText={(text) => handleChange(field.key, text, field)} /> : null}
                   </div>
                 )}
@@ -170,7 +170,7 @@ export default function EditModal({ open, onClose, onSubmit, fields = [], initia
             );
           })}
         </div>
-        {error ? <p className="text-xs text-red-400">{error}</p> : null}
+        {error ? <p className="text-xs text-urgent">{error}</p> : null}
       </form>
     </BaseModal>
   );

@@ -116,7 +116,7 @@ describe('Commercial V1 P0 — stock multi-lignes', () => {
     const handlers = {
       onUpdateStock: async (id, patch) => { stockUpdates.push({ id, patch }); },
       onUpdateLot: async (id, patch) => { lotUpdates.push({ id, patch }); },
-      onUpdateItem: async (id, patch) => { /* noop */ },
+      onUpdateItem: async () => {},
     };
     const stocks = [{ id: 'STK-1', quantite: 100, vendus: 0 }];
     const lots = [{ id: 'LOT-1', current_count: 50, vendus: 0, initial_count: 50 }];

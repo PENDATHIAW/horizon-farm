@@ -121,7 +121,7 @@ export default function MobileMoneyPayPanel({
 
   useEffect(() => {
     if (!pending?.ref || pending.sandbox) return undefined;
-    setPolling(true);
+    queueMicrotask(() => setPolling(true));
     const id = window.setInterval(async () => {
       try {
         const status = await getMobileMoneyPaymentStatus(pending.ref);
@@ -141,19 +141,19 @@ export default function MobileMoneyPayPanel({
   }, [pending?.ref, pending?.sandbox, checkAndFinalize]);
 
   return (
-    <div className="rounded-xl border border-sky-200 bg-sky-50/80 p-4 space-y-3">
+    <div className="rounded-xl border border-line bg-neutral-bg p-4 space-y-3">
       <div>
-        <p className="text-xs font-black uppercase tracking-wide text-sky-800">Paiement mobile</p>
-        <p className="text-sm text-sky-900 mt-1">
+        <p className="text-xs font-semibold uppercase tracking-normal text-neutral">Paiement mobile</p>
+        <p className="text-sm text-neutral mt-1">
           Envoyer un lien Wave ou Orange Money pour <b>{fmtCurrency(remaining)}</b>.
           L’encaissement ERP est créé après confirmation (webhook ou vérification).
         </p>
       </div>
       <div className="flex flex-wrap gap-2 items-end">
-        <label className="text-xs text-sky-900">
+        <label className="text-xs text-neutral">
           Fournisseur
           <select
-            className="mt-1 rounded-lg border border-sky-200 bg-white px-3 py-2 text-sm"
+            className="mt-1 rounded-lg border border-line bg-white px-3 py-2 text-sm"
             value={provider}
             onChange={(e) => setProvider(e.target.value)}
           >
@@ -175,14 +175,14 @@ export default function MobileMoneyPayPanel({
         ) : null}
       </div>
       {pending ? (
-        <p className="text-xs text-sky-800">
+        <p className="text-xs text-neutral">
           Réf. <code>{pending.ref}</code>
           {pending.sandbox ? ' · mode simulation' : ''}
           {polling ? ' · vérification automatique…' : ''}
         </p>
       ) : null}
       {!clientPhone ? (
-        <p className="text-xs text-amber-800">Numéro client absent — le lien peut quand même être généré.</p>
+        <p className="text-xs text-horizon-dark">Numéro client absent — le lien peut quand même être généré.</p>
       ) : null}
     </div>
   );

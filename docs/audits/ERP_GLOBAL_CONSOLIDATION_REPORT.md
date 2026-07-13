@@ -1,197 +1,186 @@
-# ERP Global Consolidation Report - PR #167
+# Rapport global de consolidation ERP
 
-Date d'audit : 2026-07-11  
-Branche : `cursor/agri-feeds-step1-ac42`  
-Depot : `PENDATHIAW/horizon-farm`  
-HEAD de reprise audite : `80c5fffe90944aadf6cd0f97657d4c75a8735b13`
-HEAD final pousse : voir `git rev-parse HEAD` apres push de la branche PR #167
-Branche de sauvegarde protegee : `backup/agri-feeds-before-main-merge-20260711`
+Date : 2026-07-13
+Dépôt : `PENDATHIAW/horizon-farm`
+Branche : `claude/go-a21ueq`
+PR : #169 vers `main`
 
-## 1. HEAD audite
+Ce rapport remplace le rapport historique de la PR #167. Il couvre le cumul des corrections reprises
+dans la PR #169 : architecture, doublons, accès aux modules, 26 événements, formulaires, impacts,
+alertes, rapports, refonte visuelle et application Supabase.
 
-Le travail a repris sur le HEAD attendu `80c5fffe90944aadf6cd0f97657d4c75a8735b13`. La branche de sauvegarde `backup/agri-feeds-before-main-merge-20260711` n'a pas ete modifiee, supprimee, force-pushee, ni rebasee.
+## 1. Audit exhaustif du code
 
-## 2. Branches protegees
+| Contrôle | Résultat final |
+|---|---|
+| Fichiers source analysés | 1021 |
+| Atteignables depuis les points d'entrée | 957 |
+| Supports non exécutables | 64 |
+| Composants JSX orphelins | 0 |
+| Imports non résolus | 0 |
+| Routes source orphelines | 0 |
+| Fichiers unitaires | 235/235 |
+| Vulnérabilités npm | 0 |
 
-| Branche | Action realisee |
-| --- | --- |
-| `cursor/agri-feeds-step1-ac42` | Branche de travail auditee et corrigee |
-| `backup/agri-feeds-before-main-merge-20260711` | Aucune modification |
-| `main` | Aucun merge realise |
+Les contrôles combinent `audit:reachability`, ESLint, le build Vite, les tests d'import, les tests
+de rendu et l'audit anti-duplication. Les 64 fichiers de support sont des configurations, données,
+utilitaires ou feuilles d'index volontairement sans point d'entrée propre.
 
-## 3. Doublons, imports morts, routes mortes
+### Doublons et code mort traités
 
-- Passe ciblee ESLint sur les fichiers modifies : OK.
-- `git diff --check` : OK.
-- `npm run lint` global : OK apres stabilisation ESLint, `0 errors`, `723 warnings` historiques non bloquants.
-- Les warnings globaux restants sont majoritairement hors perimetre des fichiers modifies : imports/variables morts historiques, regles React hooks existantes, `no-undef` dans tests/config, doublons de cles dans services historiques.
-- Les anciennes versions de modules `V*` restent presentes comme dette historique du depot. Elles n'ont pas ete supprimees car cela depasse la PR #167 et risquerait de casser les routes de compatibilite.
+- `src/modules/BoviniaModule.jsx` supprimé.
+- Aucun `TallowModule.jsx` ni action opérationnelle associée.
+- `src/services/erpRules/documentRules.js` supprimé après confirmation de l'absence de consommateur.
+- L'onglet Centre décisionnel qui ne réagissait pas a été raccordé à sa vue.
+- La vue Finance en double a été retirée au profit de la configuration unique.
+- Les abonnements temps réel en double sont centralisés dans `src/utils/realtimeSubscriptions.js`.
+- Le répertoire Équipe charge ses données seulement à l'ouverture.
+- Les anciennes routes sont des alias explicites, pas des moteurs parallèles.
+- Les composants partagés d'alertes, tâches, événements et indicateurs pointent vers leur version unique.
+- Recherche mot entier dans `src`, `public`, `lib`, `sites` : 0 BOVINIA, 0 Tallow.
 
-## 4. Fichiers doublons supprimes ou neutralises
+## 2. Accessibilité des modules
 
-- `src/modules/BoviniaModule.jsx` : supprime avant cette passe finale et verifie absent.
-- `src/modules/TallowModule.jsx` : absent.
-- Centre decisionnel Greenpreneurs : suppression des actions operationnelles `gp-tallow-*`.
-- Readiness Tallow/BOVINIA : conserve uniquement en diagnostic futur, sans creation de tache, opportunite, document ou module operationnel.
+Audit navigateur réalisé sur ordinateur et mobile :
 
-## 5. Sources officielles de service
+- 15 modules visibles avec les flags du profil de contrôle ;
+- 82 onglets internes ouverts un à un ;
+- 82 onglets ont pris l'état sélectionné attendu ;
+- aucune page `ERREUR MODULE` ;
+- aucune erreur finale de console ;
+- menu mobile, fond de fermeture, barre d'actions et Transformation contrôlés.
 
-| Domaine | Source officielle |
-| --- | --- |
-| Reception achat stock | `src/utils/stockPurchaseWorkflow.js` |
-| Alimentation elevage | `src/utils/elevageWorkflow.js`, `src/services/workflowService.js` |
-| Vente et encaissement | `src/utils/commercialSaleWorkflow.js`, `src/utils/recordSalePayment.js` |
-| Paiement fournisseur | `src/utils/supplierWorkflows.js` |
-| Recolte culture | `src/utils/cultureWorkflows.js`, `src/services/workflowService.js` |
-| Sante elevage | `src/utils/elevageWorkflow.js`, `src/services/workflowService.js` |
-| Biosecurite/fumier | `src/services/workflowService.js`, `src/utils/manureWorkflows.js` |
-| Documents/preuves | `src/utils/documentsWorkflow.js` |
-| Equipements | `src/utils/equipmentWorkflows.js`, `src/utils/ressourcesWorkflow.js` |
-| Smart Farm | `src/utils/smartFarmWorkflows.js` |
-| Objectifs croissance | `src/utils/objectivesWorkflows.js` |
-| Rapports | `src/utils/reportWorkflows.js` |
+La configuration couvre 17 modules et la face financeur. Les modules optionnels absents du parcours
+visible étaient désactivés par leurs flags, ce qui vérifie aussi l'absence de route, import et requête.
 
-## 6. Formulaires existants enrichis
+## 3. Revue fichier par fichier des 26 événements
 
-Le formulaire alimentation existant dans `src/modules/StocksV3.jsx` a ete enrichi. Aucun moteur parallele generique et aucun nouveau formulaire concurrent n'ont ete ajoutes.
+Chaque ligne ci-dessous est vérifiée par
+`src/audit/businessEventImplementationMatrix.js`,
+`tests/unit/businessEventImplementationAudit.test.js` et
+`tests/unit/businessInterconnectionsCoverage.test.js`.
 
-Changements :
+| Événement | Écran actif | Workflow exécutant | Validation du formulaire | Stock | Finance | Commercial | Tâches | Alertes | Documents | Reporting | Test | Statut |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| `feed_reception` | `src/modules/StockPurchaseReceptionForm.jsx` | `src/utils/stockPurchaseWorkflow.js` | Le formulaire bloque quantité, coût, fournisseur et statut de paiement invalides. | Entrée et mouvement de stock avec CMUP. | Paiement ou dette fournisseur selon le statut. | N/A. | Réapprovisionnement dérivé si seuil atteint. | Seuil stock et preuve manquante. | Facture ou reçu lié à la transaction. | Événement, coût unitaire et dette fournisseur. | `tests/unit/achatsStockV1P0.test.js` | COMPLET |
+| `feed_distribution` | `src/modules/elevage/ElevageWorkflowPanels.jsx` | `src/utils/elevageWorkflow.js` | La cible, le stock et une quantité positive sont obligatoires. | Sortie aliment et mouvement idempotent. | Coût imputé au lot ou à l’animal sans double caisse. | Marge future recalculable. | Tâche de réapprovisionnement au seuil. | Stock critique ou consommation anormale. | N/A en saisie quotidienne. | Consommation, coût alimentaire et indice. | `tests/unit/dailyQuickEntryContract.test.js` | COMPLET |
+| `broiler_lot_start` | `src/modules/AvicoleV10.jsx` | `src/utils/elevageWorkflow.js` | Le démarrage est bloqué sans effectif, bâtiment, fournisseur ou coût cohérent. | Besoin aliment projeté. | Coût initial du lot. | Date et marge de vente prévues. | Vaccination, pesée et suivi créés. | Blocage bâtiment occupé ou données manquantes. | Traçabilité via événement du lot. | Effectif, coût, besoin aliment et marge prévisionnelle. | `tests/unit/partialEventsCompletion.test.js` | COMPLET |
+| `mortality_record` | `src/modules/elevage/ElevageWorkflowPanels.jsx` | `src/utils/elevageWorkflow.js` | La quantité ne peut pas dépasser l’effectif et la cause est conservée. | N/A. | Perte technique et coût survivant dérivés. | Marge attendue révisée. | Contrôle sanitaire au seuil. | Mortalité élevée ou répétée. | Historique événementiel. | Effectif restant, taux de mortalité et perte estimée. | `tests/unit/dailyQuickEntryContract.test.js` | COMPLET |
+| `health_treatment` | `src/modules/SanteV6.jsx` | `src/utils/healthSideEffects.js` | Cible, produit, quantité, date et responsable sont contrôlés. | Consommation du produit vétérinaire. | Coût sanitaire lié à la cible. | Délai d’attente protège la vente. | Rappel ou tâche sanitaire clôturée. | Stock insuffisant ou suivi en retard. | Ordonnance ou preuve sanitaire liée. | Historique santé et coût sanitaire. | `tests/unit/achatsStockV3.test.js` | COMPLET |
+| `biosecurity_cleaning` | `src/modules/SanteV6.jsx` | `src/utils/manureSideEffects.js` | Nombre de sacs, poids, statut sanitaire, destination et prochaine étape sont validés. | Création de matière organique collectée. | Coût de biosécurité rattachable. | N/A. | Nettoyage, vide sanitaire ou compostage. | Destination culture bloquée si statut suspect. | Preuve sanitaire et collecte. | Poids collecté et preuve de circularité. | `tests/unit/biosecurityManureWorkflow.test.js` | COMPLET |
+| `egg_production` | `src/modules/elevage/ElevageWorkflowPanels.jsx` | `src/utils/elevageWorkflow.js` | Lot, quantité produite et casse cohérente sont obligatoires. | Entrée d’œufs vendables et consommation emballage. | Coût plateau dérivé. | Quantité rendue vendable. | Suivi si emballage ou stock manque. | Casse ou taux de ponte anormal. | Historique de production. | Œufs, tablettes, casse et taux de ponte. | `tests/unit/dailyQuickEntryContract.test.js` | COMPLET |
+| `egg_sale` | `src/modules/commercial/DailySaleModal.jsx` | `src/utils/commercialSaleWorkflow.js` | Produit, quantité, prix, client, paiement et disponibilité sont contrôlés. | Sortie du stock œufs. | Encaissement ou créance. | Commande, livraison, facture et client. | Relance si reste dû. | Créance ou stock insuffisant. | Facture liée. | CA œufs, cash, créance et marge. | `tests/unit/businessEventOperationalGaps.vite.js` | COMPLET |
+| `broiler_sale` | `src/modules/commercial/DailySaleModal.jsx` | `src/utils/commercialSaleWorkflow.js` | Le lot source et l’effectif disponible sont exigés. | Effectif du lot diminué. | Encaissement ou créance. | Commande, livraison et facture. | Clôture ou suivi du lot. | Vente supérieure à l’effectif bloquée. | Facture et traçabilité lot. | CA chair, marge et écart prévu/réel. | `tests/unit/businessEventOperationalGaps.vite.js` | COMPLET |
+| `bovine_weighing` | `src/modules/elevage/ElevageWorkflowPanels.jsx` | `src/utils/elevageWorkflow.js` | Animal, date et poids positif sont obligatoires. | N/A. | Coût par kg gagné et marge dérivés. | Date de sortie estimée. | Nouvelle pesée ou adaptation ration. | GMQ faible ou pesée en retard. | Historique de pesée. | Poids, GMQ, coût/kg et marge. | `tests/unit/partialEventsCompletion.test.js` | COMPLET |
+| `bovine_sale` | `src/modules/commercial/DailySaleModal.jsx` | `src/utils/commercialSaleWorkflow.js` | Un animal actif unique, un prix et un client sont requis. | Animal sorti de l’actif. | Encaissement ou créance. | Commande et client liés. | Archivage et suivi de solde. | Animal déjà vendu ou indisponible bloqué. | Facture et fiche animal liées. | CA bovin, marge par tête et rotation. | `tests/unit/businessEventOperationalGaps.vite.js` | COMPLET |
+| `crop_campaign_start` | `src/modules/CulturesRecoveredModule.jsx` | `src/utils/cultureWorkflows.js` | Parcelle, culture, surface, date et budget sont cohérents avant création. | Intrants initiaux et besoins liés. | Budget initial de campagne. | Rendement vendable projeté. | Irrigation et suivi planifiés. | Parcelle occupée ou capacité manquante. | Événement de campagne. | Surface, rendement, coût et marge prévus. | `tests/unit/partialEventsCompletion.test.js` | COMPLET |
+| `irrigation_event` | `src/modules/cultures/CulturesIrrigationQuickForm.jsx` | `src/utils/culturesWorkflow.js` | Culture active et volume positif sont obligatoires. | N/A. | Coût technique affecté sans faux décaissement. | Marge parcelle recalculable. | Contrôle fuite ou pompe. | Volume anormal ou capteur muet. | Historique d’irrigation. | Eau, durée, coût et rendement eau. | `tests/unit/dailyQuickEntryContract.test.js` | COMPLET |
+| `organic_transfer` | `src/modules/CulturesRecoveredModule.jsx` | `src/utils/manureWorkflows.js` | Origine, parcelle, quantité et statut sanitaire sont contrôlés. | Sortie du stock organique. | Économie d’intrants estimée. | N/A. | Suivi parcelle ou contrôle sanitaire. | Blocage contamination et stock insuffisant. | Preuve de transfert. | Kg valorisés et circularité. | `tests/unit/partialEventsCompletion.test.js` | COMPLET |
+| `crop_harvest` | `src/modules/cultures/CulturesHarvestPanel.jsx` | `src/utils/culturesWorkflow.js` | Culture, quantité, pertes, unité et destination sont validées. | Entrée de récolte vendable et mouvement. | Coût/kg avec frais de récolte. | Stock rendu disponible. | Suivi pertes si écart. | Quantités incohérentes ou stock manquant. | Événement de récolte. | Rendement, pertes, déclassement et coût/kg. | `tests/unit/culturesWorkflow.test.js` | COMPLET |
+| `crop_sale` | `src/modules/commercial/DailySaleModal.jsx` | `src/utils/commercialSaleWorkflow.js` | Récolte source, quantité disponible, prix et client sont requis. | Sortie de récolte. | Encaissement ou créance. | Commande, livraison et client. | Livraison ou relance. | Stock récolte insuffisant. | Facture et preuve de livraison. | CA culture et marge parcelle. | `tests/unit/businessEventOperationalGaps.vite.js` | COMPLET |
+| `customer_payment` | `src/modules/SaleActionModal.jsx` | `src/utils/recordSalePayment.js` | Vente liée, plafond du reste dû, date et moyen sont contrôlés. | N/A. | Entrée de trésorerie sans recompter le CA. | Solde commande et statut client. | Relances clôturées au solde. | Créance résolue au paiement complet. | Facture déjà gérée par la vente. | Encaissements, créances et trésorerie. | `tests/unit/demoFinanceurDryRun.test.js` | COMPLET |
+| `supplier_payment` | `src/modules/Fournisseurs.jsx` | `src/utils/supplierSideEffects.js` | Dette source, montant plafonné, date, mode et preuve sont obligatoires. | Dette liée à l’achat ou au stock source. | Sortie de trésorerie et solde partiel. | N/A. | Suivi dette clôturé seulement au solde. | Alerte conservée tant que la dette reste ouverte. | Justificatif obligatoire. | Dette fournisseur, cash sortant et coût achat. | `tests/unit/businessEventOperationalGaps.vite.js` | COMPLET |
+| `equipment_purchase` | `src/modules/equipements/EquipementAcquisitionForm.jsx` | `src/utils/equipmentWorkflows.js` | Équipement, type, montant, fournisseur, financement, date et preuve sont obligatoires. | N/A. | Dépense d’investissement liée. | N/A. | Maintenance initiale planifiée. | Preuve manquante bloquée par le formulaire. | Facture obligatoire. | Actif, amortissement et coût fixe. | `tests/unit/partialEventsCompletion.test.js` | COMPLET |
+| `equipment_maintenance` | `src/modules/EquipementsQuickActionsBridge.jsx` | `src/utils/equipmentSideEffects.js` | Équipement, date, type, responsable, coût non négatif et prochaine échéance sont validés. | N/A. | Dépense de maintenance enregistrée une seule fois. | N/A. | Tâche créée ou mise à jour. | Alerte panne conservée jusqu’à réparation. | Preuve maintenance liée au coût. | Coût, disponibilité et prochaine échéance. | `tests/unit/businessEventOperationalGaps.vite.js` | COMPLET |
+| `task_lifecycle` | `src/modules/activiteSuivi/ActiviteWorkflowBridge.jsx` | `src/utils/activiteSuiviWorkflow.js` | Une clôture conserve résultat, date, responsable et événement. | N/A. | N/A sauf opération source. | N/A sauf opération source. | Création, affectation, échéance et clôture. | Lien bidirectionnel et résolution explicite. | Résultat traçable. | Retards, actions ouvertes et clôturées. | `tests/unit/activiteSuiviWorkflow.test.js` | COMPLET |
+| `support_document` | `src/modules/documents/DocumentsWorkflowBridge.jsx` | `src/utils/documentsWorkflow.js` | Type, fichier, cible et identifiant source sont contrôlés. | Lien achat/réception possible. | Lien transaction obligatoire selon cible. | Lien vente, paiement ou facture. | Tâche preuve clôturée. | Alerte preuve résolue. | Document classé et rattaché. | Taux de justificatifs et niveau de preuve. | `tests/unit/documentsWorkflow.test.js` | COMPLET |
+| `monthly_financier_report` | `src/modules/RapportsAutoBridge.jsx` | `src/utils/reportWorkflows.js` | Période, date d’arrêté, auteur et validation sont tracés. | Valeur du stock consolidée. | CA, cash, dépenses et financement. | Ventes, créances et livraisons. | Validation du brouillon. | Données ou preuves manquantes. | Version de rapport et pièces. | Rapport mensuel versionné. | `tests/unit/partialEventsCompletion.test.js` | COMPLET |
+| `funding_usage` | `src/modules/InvestissementsV9.jsx` | `src/utils/bpLineConcretization.js` | Source, ligne budget, montant et preuve sont contrôlés. | Actif ou intrant financé lié. | Dépense affectée à la source. | N/A. | Justification ou correction budget. | Solde, dépassement ou preuve manquante. | Justificatif de dépense. | Fonds utilisés, restants et écart budget. | `tests/unit/partialEventsCompletion.test.js` | COMPLET |
+| `growth_objective` | `src/modules/objectifs/ObjectifsDecisionModule.jsx` | `src/utils/objectivesWorkflows.js` | La cible, l’unité, l’échéance, le responsable et la source de calcul restent dérivés du BP. | Besoin aliment ou intrants simulé. | Cash requis et capacité de remboursement. | Débouché et cible de vente. | Action de rattrapage. | Capacité, stock ou cash insuffisant. | Historique de scénario. | Progression calculée et conditions de lancement. | `tests/unit/partialEventsCompletion.test.js` | COMPLET |
+| `smartfarm_signal` | `src/modules/smartfarm/hooks/useSmartFarmTelemetry.js` | `src/services/smartFarmAlertSync.js` | V1 utilise uniquement les capteurs; aucun chemin caméra opérationnel. | N/A. | N/A tant qu’aucune intervention n’est facturée. | N/A. | Tâche terrain créée une fois. | Alerte capteur dédupliquée. | Preuve ajoutable lors de l’intervention. | Signal, zone, seuil et disponibilité. | `tests/unit/businessEventOperationalGaps.vite.js` | COMPLET |
 
-- Auto-selection du stock aliment quand un seul stock alimentaire est disponible.
-- Auto-selection fournisseur quand un seul fournisseur est disponible.
-- Inference categorie cible depuis le libelle stock/produit : chair, pondeuse, bovin, ovin, caprin.
-- Auto-selection lot/animal actif quand une cible unique correspond.
-- Prefill unite, prix unitaire, montant.
-- Normalisation payload avant execution `prepareFeedingWorkflow`/`commitFeedingWorkflow`.
+Synthèse : **26 COMPLET, 0 PARTIEL, 0 CONFIGURATION UNIQUEMENT, 0 NON BRANCHÉ**.
 
-## 7. Nouveaux fichiers necessaires
+## 4. Invariants métier vérifiés
 
-| Fichier | Necessite |
-| --- | --- |
-| `src/modules/agriFeeds/hooks/useAgriFeedsData.js` | Lazy-load AGRI FEEDS au montage du module seulement |
-| `supabase/migrations/20260711120000_agri_feeds_rls_hardening.sql` | Durcissement RLS des 11 tables `feed_*` |
-| `tests/unit/agriFeedsLazyLoading.test.js` | Garde anti-regression lazy loading |
-| `tests/unit/agriFeedsRlsHardening.test.js` | Garde statique RLS |
-| `tests/unit/alimentationFormReduction.test.js` | Garde formulaire alimentation reduit |
-| `tests/unit/futureValorisationNonOperational.test.js` | Garde BOVINIA/Tallow non operationnels |
-| `docs/audits/ERP_GLOBAL_CONSOLIDATION_REPORT.md` | Rapport global demande |
+- Vente validée : reconnaissance du chiffre d'affaires, puis paiement séparé de l'encaissement.
+- Livraison immédiate : sortie directe. Livraison différée : réservation.
+- Stock : toute variation passe par un mouvement ; stock négatif bloqué.
+- Finance : dépense, décaissement, encaissement et dette restent des moments distincts.
+- Rapport publié : instantané daté et immuable ; correction par nouvelle version.
+- Financement : dépense liée à une convention et une ligne, sans ressaisie du montant source.
+- Tâche corrective : tâche reliée à son alerte, sans table concurrente.
+- Risques : dérivés des indicateurs et alertes, sans probabilité manuelle locale.
+- Saisie rétroactive : date réelle, motif, auteur et correction tracée.
+- Formulaires : cible et listes filtrées, valeurs calculables non demandées, effets confirmés.
+- Rejeu : clés stables et garde en cours pour éviter un second effet.
+- Échec : l'erreur remonte et les impacts créés sont journalisés, aucun échec critique silencieux.
 
-## 8. Etat des 26 evenements metier
+## 5. Transformation Élevage
 
-Statuts autorises : `COMPLET`, `PARTIEL`, `CONFIGURATION UNIQUEMENT`, `NON BRANCHE`.
+Cause initiale : le composant, le rendu et les handlers existaient, mais l'onglet avait disparu de la
+configuration visible.
 
-| evenement | formulaire ou ecran reel | workflow executant | stock | finance | commercial | taches | alertes | documents | reporting | test | statut |
-| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| `feed_reception` | `StockPurchaseReceptionForm` / Achats stock | `prepareStockPurchaseWorkflow` + `commitStockPurchaseWorkflow` | entree stock | dette/sortie selon paiement | non direct | facture manquante/relance | stock critique possible | facture/preuve attendue | stock + finance | `stockPurchaseWorkflow`, `achatsStock*`, E2E | COMPLET |
-| `feed_distribution` | `StocksV3` bouton `Utiliser aliment`, panels elevage | `prepareFeedingWorkflow`, `commitFeedingWorkflow`, `commitElevageFeeding` | sortie aliment | cout alimentation | non direct | suivi alimentation | stock critique possible | non direct | cout lot/animal | `alimentationFormReduction`, `elevageV1/V2`, E2E | COMPLET |
-| `broiler_lot_start` | creation lot avicole / elevage | `buildBroilerLotStartWorkflow` branche sur `AvicoleV10.wrappedCreate` | effectif initial + occupation batiment | sortie achat poussins | non direct | planning sanitaire + pesees | alerte donnees manquantes/blocage batiment | non direct | KPI lot + objectifs + capacite | `partialEventsCompletion`, E2E modules | COMPLET |
-| `mortality_record` | panel mortalite elevage | `commitElevageMortality` | baisse effectif | perte valorisee | non direct | action sanitaire | alerte mortalite | non direct | mortalite/actifs | `elevageV2`, E2E | COMPLET |
-| `health_treatment` | `SanteV6/SanteV8`, panels elevage | `commitElevageHealth`, `commitHealthWorkflow` | conso medicament si lie | cout sante | non direct | rappel soin | alerte soin/retard | preuve optionnelle | suivi sanitaire | E2E sante, tests terrain | COMPLET |
-| `biosecurity_cleaning` | Sante/biosecurite | `commitBiosecurityWorkflow`, `buildManureCollectionWorkflow` | fumier/coproduit organique | cout ou economie indirecte | non direct | suivi nettoyage | risque biosecurite | preuve optionnelle | circular economy | `biosecurityManureWorkflow` | COMPLET |
-| `egg_production` | panels production oeufs | `commitElevageEggProduction` | entree oeufs/emballages | cout indirect | disponibilite vente | suivi ponte | alerte ponte possible | non direct | ponte/tablettes | `elevageV1/V2`, `achatsStockV3`, E2E | COMPLET |
-| `egg_sale` | Commercial/Ventes | `commitSaleWorkflow`, `runNewSaleSideEffects` | sortie stock oeufs | recette/creance/paiement | commande/client | livraison/relance | impaye | facture | marge/CA | E2E vente oeufs/stock | COMPLET |
-| `broiler_sale` | Commercial/Ventes lot chair | `commitSaleWorkflow`, side effects vente | sortie source lot | recette/creance | commande/client | livraison/relance | impaye | facture | marge lot | E2E vente lot | COMPLET |
-| `bovine_weighing` | panel pesee elevage | `commitElevageWeighing` | non applicable | cout alimentaire cumule + cout/kg gagne | non direct | tache GMQ faible | alerte retard pesee + gain insuffisant | non direct | poids, GMQ, sortie estimee, marge | `partialEventsCompletion`, `elevageBroilerScenario` | COMPLET |
-| `bovine_sale` | Commercial/Ventes animal | `commitSaleWorkflow`, side effects vente | sortie animal actif | recette/creance | commande/client | livraison/relance | impaye | facture | marge animal | E2E vente animal | COMPLET |
-| `crop_campaign_start` | Cultures, fiche campagne | `buildCropCampaignStartWorkflow` branche sur `CulturesRecoveredModule.onCreate` | reservation/sortie intrants | transaction cout initial | non direct | irrigation + suivi demarrage | alerte donnees manquantes/blocage parcelle | non direct | marge, rendement, calendrier | `partialEventsCompletion`, `culturesWorkflow` | COMPLET |
-| `irrigation_event` | Cultures/Smart Farm eau | `buildIrrigationEventWorkflow` branche sur `CulturesRecoveredModule.onUpdate` | historique eau | transaction cout irrigation | non direct | tache anomalie/sans culture | alerte eau anormale/sans culture | non direct | volume, cout, source Smart Farm | `partialEventsCompletion`, E2E modules | COMPLET |
-| `organic_transfer` | Cultures, matiere organique | `buildOrganicTransferWorkflow` branche sur `CulturesRecoveredModule.onUpdate` | sortie stock organique bloquee si insuffisant/contamine | economie intrants | non direct | tache epandage/validation | alerte blocage/incomplet | preuve circularite | circular economy, economie engrais | `partialEventsCompletion`, `biosecurityManureWorkflow` | COMPLET |
-| `crop_harvest` | Cultures recolte | `buildCultureHarvestWorkflow`, `commitHarvestWorkflow` | entree recolte | valeur/produit | opportunite vente | suivi recolte | anomalie stock possible | non direct | rendement/marge | `culturesWorkflow`, E2E recolte | COMPLET |
-| `crop_sale` | Commercial/Ventes stock culture | `commitSaleWorkflow`, side effects vente | sortie stock culture | recette/creance | commande/client | livraison/relance | impaye | facture | marge culture | E2E vente stock | COMPLET |
-| `client_payment` | Commercial encaissement | `recordSalePayment` | non applicable | paiement/solde | statut client | relance cloturee | impaye resolu | recu/preuve possible | cash/creances | E2E encaissement | COMPLET |
-| `supplier_payment` | Fournisseurs/Achats stock | `buildSupplierPaymentWorkflow` | non applicable | dette soldee | non direct | relance fournisseur | retard paiement | preuve paiement | dettes/cash | E2E paiement fournisseur | COMPLET |
-| `equipment_purchase` | Equipements, formulaire ajout | `buildEquipmentPurchaseWorkflow` branche sur `Equipements` | actif equipement | sortie investissement | non direct | maintenance planifiee | alerte facture manquante | preuve achat | amortissement + BP reel | `partialEventsCompletion`, `equipmentSmartFarmBridge` | COMPLET |
-| `equipment_maintenance` | Equipements/RH maintenance | `buildEquipmentBreakdownFollowUp`, `buildEquipmentRepairWorkflow` | non applicable | cout reparation | non direct | tache maintenance | alerte panne | preuve reparation | dispo equipement | E2E maintenance | COMPLET |
-| `task_lifecycle` | Activite & Suivi / Taches | task workflows, `commitAlertActionWorkflow` | non applicable | selon source | selon source | creation/cloture | creation/cloture | non direct | journal activite | E2E taches/alertes | COMPLET |
-| `support_document` | Documents/preuves | `commitDocumentLink` | non applicable | preuve liee | preuve facture | tache preuve resolue | alerte preuve resolue | document source | conformite | `documentsWorkflow`, E2E docs | COMPLET |
-| `monthly_financier_report` | Rapports automatiques mensuels | `buildMonthlyFinancierReportWorkflow` branche sur `RapportsAutoBridge.generate` | synthese stock | synthese finance/funding | synthese ventes/creances | tache validation humaine | alertes/preuves manquantes dans synthese | document rapport | rapport financeur mensuel + audit log | `partialEventsCompletion`, `financeurReport` | COMPLET |
-| `funding_usage` | Investissements, concretisation ligne/charge BP | `buildFundingUsageWorkflow` branche sur finaliseurs BP | selon achat lie | transaction financement + source mise a jour | non direct | suivi BP via ligne | alerte preuve/categorie/ecart budget | preuve financeur liee | report entry financeur | `partialEventsCompletion`, `bpLineConcretization` | COMPLET |
-| `growth_objective` | Objectifs & Croissance, suivi BP | `buildGrowthObjectiveWorkflow` branche sur `ObjectifsDecisionModule` | besoins/disponible stock | besoins/disponible cash | objectifs vente | tache objectif non atteint | alerte soutenabilite | non direct | progression + simulation officielle | `partialEventsCompletion`, `objectifsFormsAudit` | COMPLET |
-| `smartfarm_signal` | Smart Farm | `buildSmartFarmDeviceFollowUp` | non direct | impact indirect | non direct | action terrain | alerte capteur | non direct | telemetrie | E2E Smart Farm | COMPLET |
+Correction finale :
 
-Synthese : 26 `COMPLET`, 0 `PARTIEL`, 0 `CONFIGURATION UNIQUEMENT`, 0 `NON BRANCHE`.
+- configuration unique Élevage avec huit vues ;
+- Transformation entre Santé et Biosécurité et Coûts et performance ;
+- alias majuscule, minuscule et anciens liens conservés ;
+- clic, `initialTab`, lien profond, action animal, action lot et événement d'ouverture testés ;
+- contrôle du délai de retrait sanitaire ;
+- produit fini, rendement, pertes, stock, coûts, preuves et traçabilité raccordés ;
+- aucune vente, aucun stock parallèle et aucun calcul financier concurrent dans Transformation.
 
-## 9. Validation formulaires, impacts, alertes, reporting, workflows
+Preuves : 14/14 tests officiels et 6/6 tests de configuration/navigation.
 
-- Formulaire alimentation : reduit et auto-rempli sans creation de formulaire parallele.
-- Avicole/elevage : creation lot chair enrichie sans nouveau formulaire ; blocage batiment occupe, cout achat, taches vaccin/pesee, transaction, alerte, evenement et dispatch BP.
-- Pesee bovine : GMQ, retard pesee, gain insuffisant, cout alimentaire cumule, cout/kg gagne, date sortie estimee et marge previsionnelle.
-- Cultures : creation campagne branchee sur formulaire existant ; blocage parcelle active, reservation intrants, transaction budget, taches et reporting.
-- Irrigation : mise a jour culture existante ; historique eau, cout irrigation, transaction, alerte/tache anomalie et lien Smart Farm.
-- Transfert organique : sortie stock organique, fertilisation parcelle, preuve circularite, economie intrants ; blocage sanitaire et quantite superieure au stock.
-- Equipements : formulaire ajout branche sur achat equipement ; finance, document, maintenance, alerte preuve manquante, amortissement et BP.
-- Investissements : concretisation ligne/charge BP enrichie par usage financement, source financeur, report entry, alerte preuve/ecart et event `funding_usage`.
-- Rapports : bouton mensuel existant genere un rapport financeur avec document, tache validation, audit log et event `monthly_financier_report`.
-- Objectifs : progression officielle calculee depuis les donnees modules, taches/alertes/evenements dedoublonnes et panneau de simulation.
+## 6. Supabase appliqué
 
-## 10. Resultats exacts des validations
+Projet confirmé : `HORIZON FARM`, actif et sain.
 
-| Commande | Resultat |
-| --- | --- |
-| `npm install` | OK, up to date, audit npm signale 6 vulnerabilites existantes |
-| `npm run test:unit:agri-feeds` | OK, Step1 11, Step2 10, Step3 7, Step4 11, Step5 8, Step6 4, readiness 10, render smoke 8 |
-| `npx vite-node tests/unit/partialEventsCompletion.test.js` | OK, 9/9 tests pour les 9 evenements finalises |
-| `npx vite-node tests/unit/bpLineConcretization.test.js` | OK, 9 tests passed |
-| `npx vite-node tests/unit/financeurReport.test.js` | OK, 1 test passed |
-| `npx vite-node tests/unit/equipmentSmartFarmBridge.test.js` | OK, 3 tests passed |
-| `npx vite-node tests/unit/objectifsFormsAudit.test.js` | OK, 1 test passed |
-| `npx vite-node tests/unit/culturesWorkflow.test.js` | OK, 8 tests passed |
-| `npx vite-node tests/unit/elevageBroilerScenario.test.js` | OK, 8 tests passed |
-| `npm run lint -- --quiet` | OK, 0 erreur bloquante |
-| `npm run lint` | OK, sortie 0, `0 errors`, `723 warnings` historiques |
-| `npm run build` | OK, built in 2.84s, warnings chunks/imports dynamiques historiques |
-| `git diff --check` | OK |
-| `npx playwright test tests/e2e/module-accessibility.spec.js -g "ouvre chaque module principal"` | OK, 1 test passed, tous modules principaux sans ErrorBoundary |
-| `E2E_LOGIN=penda E2E_PASSWORD=*** npx playwright test tests/e2e/assistant-erp-smoke.spec.js tests/e2e/decision-center-smoke.spec.js --reporter=line` | OK, 6/6 smoke tests CI locaux apres correction des selecteurs login et libelles UI |
-| `PLAYWRIGHT_SKIP_WEBSERVER=1 npx playwright test tests/e2e/module-accessibility.spec.js -g "Commercial / Clients"` | OK, 1 test passed |
-| `PLAYWRIGHT_SKIP_WEBSERVER=1 npx playwright test tests/e2e/module-accessibility.spec.js -g "ouvre les onglets critiques"` | Interrompu manuellement apres blocage sans verdict exploitable ; aucun resultat pass/fail utilisable |
-| `node --test tests/unit/culturesWorkflow.test.js` | KO Node pur : import extensionless existant ; le meme test passe via `vite-node` |
+- 12 migrations enregistrées ;
+- 60/60 tables CRUD présentes ;
+- 71/71 tables appelées par les sources présentes ;
+- 96 tables métier existantes auditées ;
+- 3 tables historiques absentes et non appelées ;
+- 0 anomalie distante.
+- 86 assertions comportementales, 8 rôles, 2 fermes, 0 fuite, nettoyage complet.
 
-## 11. Limites restantes
+Pour chaque table existante : `farm_id UUID NOT NULL`, FK, index, RLS forcée, lecture, insertion,
+modification, suppression par rôle, et suppression logique durable. Les huit rôles sont normalisés
+en base et dans l'application. Les accès financeur restent en lecture seule et filtrés aux contenus
+publiés.
 
-- Le parcours Playwright global des onglets critiques s'est bloque sans verdict ; les modules principaux et Commercial/Clients sont valides.
-- `npm install` signale 6 vulnerabilites npm a traiter hors de cette passe.
-- Le build conserve les warnings historiques : gros chunks, imports dynamiques inefficaces, `/chat-farm-bg.jpg` resolu au runtime.
-- Les mentions BOVINIA/Tallow restantes dans `src` sont diagnostics/readiness/texte non operationnel : aucun `BoviniaModule.jsx`, aucun `TallowModule.jsx`, aucune action centre `gp-tallow-*`.
-- Plusieurs modules versionnes historiques restent dans `src/modules`. Leur suppression necessite une PR dediee route par route.
+Preuve table par table : `docs/audits/SUPABASE_RLS_MATRIX.md`.
 
-## 12. Migrations a appliquer
+## 7. Design et ergonomie
 
-Migration obligatoire avant production AGRI FEEDS :
+- Tokens uniques et palette exacte de 18 couleurs.
+- Fraunces et Inter chargées depuis la feuille centrale.
+- Carte indicateur Horizon unique, variation selon le sens métier.
+- Sept sections de navigation.
+- Sept saisies quotidiennes disponibles partout.
+- Indicateurs d'ouverture sur les 16 modules hors Accueil.
+- Focus clavier, mouvement réduit, états vides et chargements.
+- Aucun hexadécimal local, gradient, ombre ou taille arbitraire détecté dans les sources contrôlées.
 
-- `supabase/migrations/20260711120000_agri_feeds_rls_hardening.sql`
+`npm run audit:design` est vert.
 
-Effet attendu :
+## 8. Résultats finaux
 
-- Active RLS sur les 11 tables `feed_*`.
-- Supprime les anciennes politiques ouvertes connues.
-- Cree des politiques read/insert/update/delete basees sur ferme active et permissions profil.
-- Garde le role financeur en lecture seule.
+| Commande ou preuve | Résultat |
+|---|---|
+| `npm run test:unit` | 235/235 fichiers, 0 échec |
+| `npm run test:unit:module-tabs-stability` | 416/416 |
+| `npm run test:unit:business-events` | 5/5, exactement 26 événements |
+| `npm run test:unit:i18n` | 4/4 |
+| `npm run test:unit:farm-scope` | 52/52 |
+| `npm run test:unit:idempotency` | 13/13 |
+| `npm run test:unit:daily-entries` | 10/10 |
+| `npm run lint` | 0 erreur |
+| `npm run build` | réussi |
+| `npm run audit:design` | réussi |
+| `npm run audit:reachability` | 0 orphelin, 0 import non résolu |
+| `npm audit --audit-level=moderate` | 0 vulnérabilité |
+| `npm run db:migrate:verify` | 0 anomalie |
+| `npm run db:migrate:matrix` | 96 conformes, 3 absences attendues |
+| `npm run db:migrate:isolation` | 86 assertions, 8 rôles, 2 fermes, 0 fuite |
+| Audit navigateur | 15 modules, 82 onglets, 0 page d'erreur |
+| `git diff --check` | réussi |
 
-## 13. Risques securite
+## 9. Limites déclarées
 
-- La securite AGRI FEEDS depend de l'application effective de la migration Supabase.
-- Les helpers RLS supposent des profils et permissions correctement renseignes dans `profiles` et `module_role_permissions`.
-- Le dernier echec CI observe etait le lint global. Il est corrige localement ; les checks GitHub doivent etre reverifies apres push du commit de stabilisation.
+- Le test chronométré par une personne sur un téléphone réel reste à consigner. Le contrat et ses
+  tests automatisés sont verts, mais cette preuve humaine ne peut pas être simulée honnêtement.
+- Le build émet un avertissement non bloquant pour quelques bundles supérieurs à 500 kB.
 
-## 14. Risques performance
-
-- AGRI FEEDS n'est plus charge globalement par `AppContext`/`useCrudModules`. Les 11 tables `feed_*` sont chargees uniquement au montage du module AGRI FEEDS.
-- Le build signale encore de gros chunks, notamment `SmartEvolutionChart` et le bundle principal.
-- Vite signale des imports dynamiques inefficaces pour `workflowImpactToast`, `pwa`, `centrePriorityDismissService`.
-- `/chat-farm-bg.jpg` reste resolu au runtime, pas au build.
-
-## 15. Etat final PR #167
-
-Etat local apres cette passe :
-
-- Corrections metier cibles : faites, 26/26 evenements `COMPLET`.
-- AGRI FEEDS lazy loading : fait.
-- AGRI FEEDS RLS hardening : fait, migration a appliquer.
-- BOVINIA/Tallow operationnels : supprimes/neutralises, seules mentions futures/documentaires/readiness restent.
-- E2E modules principaux : vert.
-- Build : vert.
-- Lint global : vert avec warnings historiques non bloquants.
-- Tests unitaires cibles : verts.
-
-Conclusion merge : push PR autorise apres commit local. Squash merge a faire uniquement apres verification des checks GitHub/Vercel de la PR #167 sur le nouveau HEAD.
+Aucune autre limite fonctionnelle, de migration ou de fusion n'est laissée ouverte dans ce rapport.

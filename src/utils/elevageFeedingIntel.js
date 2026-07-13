@@ -7,11 +7,6 @@ const isFeedStock = (row = {}) =>
     lower(`${row.produit || row.name || row.nom || ''} ${row.categorie || row.category || ''}`),
   );
 
-const daysAgo = (d) => {
-  const t = new Date(d).getTime();
-  return Math.max(0, Math.ceil((Date.now() - t) / 86400000));
-};
-
 /** Suggestion ration simple — basée sur effectif et type lot. */
 export function suggestRationForTarget(target = {}, type = 'lot') {
   const effectif = type === 'lot'

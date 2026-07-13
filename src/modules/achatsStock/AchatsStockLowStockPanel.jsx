@@ -18,7 +18,7 @@ export default function AchatsStockLowStockPanel({ items = [], compact = false, 
       title={compact ? 'Produits sous seuil' : 'Réapprovisionnement prioritaire'}
       subtitle={compact ? 'Alertes actives — détail complet sur cet onglet.' : 'Produits à commander ou réapprovisionner en priorité.'}
     >
-      <div className="divide-y divide-[#eadcc2]/60">
+      <div className="divide-y divide-line/60">
         {items.map((row) => {
           const q = qty(row);
           const th = threshold(row);
@@ -26,8 +26,8 @@ export default function AchatsStockLowStockPanel({ items = [], compact = false, 
           return (
             <div key={row.id || label(row)} className="flex flex-col gap-2 py-3 sm:flex-row sm:items-center sm:justify-between">
               <div>
-                <p className="font-black text-[#2f2415]">{label(row)}</p>
-                <p className="text-xs text-[#8a7456]">
+                <p className="font-semibold text-earth">{label(row)}</p>
+                <p className="text-xs text-slate">
                   {fmtNumber(q)} u. · seuil {fmtNumber(th)}
                   {critical ? ' · rupture' : ''}
                 </p>
@@ -39,7 +39,7 @@ export default function AchatsStockLowStockPanel({ items = [], compact = false, 
                   intent_label: 'Réapprovisionner',
                   draft_fields: { date: today, produit: label(row), stock_id: row.id },
                 })}
-                className="inline-flex shrink-0 items-center gap-1 rounded-lg bg-[#22c55e] px-3 py-1.5 text-xs font-black text-[#052e16]"
+                className="inline-flex shrink-0 items-center gap-1 rounded-lg bg-leaf px-3 py-2 text-xs font-semibold text-earth"
               >
                 <Plus size={12} /> Réappro
               </button>
@@ -48,7 +48,7 @@ export default function AchatsStockLowStockPanel({ items = [], compact = false, 
         })}
       </div>
       {!compact ? (
-        <p className="text-xs text-[#8a7456] flex items-center gap-1">
+        <p className="text-xs text-slate flex items-center gap-1">
           <PackageCheck size={13} /> Les distributions aliment vers l&apos;élevage se gèrent depuis Élevage → Alimentation.
         </p>
       ) : null}

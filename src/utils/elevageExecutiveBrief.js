@@ -1,4 +1,3 @@
-const lower = (v) => String(v || '').toLowerCase();
 const n = (v) => Number(v || 0);
 
 /**
@@ -29,7 +28,6 @@ export function buildElevageExecutiveBrief({
     warnings.push(`Taux de ponte faible (${layingRate.toFixed(0)} %) — vérifier alimentation et santé pondeuses.`);
   }
 
-  const perf = productionSnapshot.performance || {};
   const chairLots = productionSnapshot.chair?.readyList || [];
   chairLots.forEach((lot) => {
     const full = lots.find((l) => String(l.id) === String(lot.id));

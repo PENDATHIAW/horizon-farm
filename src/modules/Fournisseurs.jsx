@@ -1,5 +1,5 @@
 import { AlertTriangle, Award, DollarSign, MapPin, MessageCircle, Plus, RefreshCw, Star, Truck, Upload, Download, Edit, Eye, CheckCircle, ShieldAlert, X } from 'lucide-react';
-import { useMemo, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import toast from 'react-hot-toast';
 import Btn from '../components/Btn';
 import KpiCard from '../components/KpiCard';
@@ -34,18 +34,18 @@ const supplierInitialValues = (rows) => ({ id: generateSequentialId('fournisseur
 const isOpenSupplierDebt = (tx = {}) => String(tx.type || '').toLowerCase() === 'sortie' && tx.cash_effect !== true && !tx.settlement_transaction_id && ['impaye', 'partiel', 'en_attente', 'a_payer', 'à payer'].includes(String(tx.statut || tx.status || '').toLowerCase());
 
 const SourceBadge = ({ source }) => (
-  <span className={`text-[10px] px-2 py-1 rounded-full border ${source === 'demo' ? 'bg-amber-500/10 border-amber-500/30 text-amber-600' : 'bg-emerald-500/10 border-emerald-500/30 text-emerald-600'}`}>
+  <span className={`text-meta px-2 py-1 rounded-full border ${source === 'demo' ? 'bg-vigilance border-vigilance text-horizon-dark' : 'bg-positive border-positive text-positive'}`}>
     {source === 'demo' ? 'Demo' : source || 'Manuel'}
   </span>
 );
 
 function SupplierSegmentBadge({ segment }) {
-  const cls = segment === 'Stratégique' ? 'bg-emerald-50 border-emerald-200 text-emerald-700' : segment === 'Critique / risque élevé' ? 'bg-red-50 border-red-200 text-red-700' : segment === 'Dette à suivre' ? 'bg-amber-50 border-amber-200 text-amber-700' : segment === 'Fiable' ? 'bg-sky-50 border-sky-200 text-sky-700' : 'bg-[#fffdf8] border-[#eadcc2] text-[#7d6a4a]';
-  return <span className={`rounded-full border px-2 py-0.5 text-[11px] font-black ${cls}`}>{segment}</span>;
+  const cls = segment === 'Stratégique' ? 'bg-positive-bg border-positive text-positive' : segment === 'Critique / risque élevé' ? 'bg-urgent-bg border-urgent text-urgent' : segment === 'Dette à suivre' ? 'bg-vigilance-bg border-vigilance text-horizon-dark' : segment === 'Fiable' ? 'bg-neutral-bg border-line text-neutral' : 'bg-card border-line text-slate';
+  return <span className={`rounded-full border px-2 py-1 text-meta font-semibold ${cls}`}>{segment}</span>;
 }
 
 function CardMetric({ label, value, alert = false }) {
-  return <div className={`rounded-lg p-2.5 ${alert ? 'bg-amber-500/10' : 'bg-[#fffdf8]'}`}><div className={`text-xs ${alert ? 'text-amber-600' : 'text-[#8a7456]'}`}>{label}</div><div className={`font-semibold text-sm ${alert ? 'text-amber-600' : 'text-[#2f2415]'}`}>{value}</div></div>;
+  return <div className={`rounded-lg p-3 ${alert ? 'bg-vigilance' : 'bg-card'}`}><div className={`text-xs ${alert ? 'text-horizon-dark' : 'text-slate'}`}>{label}</div><div className={`font-semibold text-sm ${alert ? 'text-horizon-dark' : 'text-earth'}`}>{value}</div></div>;
 }
 
 function buildSupplierSummary(supplier, stockRows = [], financeRows = [], documents = []) {
@@ -54,11 +54,11 @@ function buildSupplierSummary(supplier, stockRows = [], financeRows = [], docume
 
 function SupplierDecisionPanel({ summary }) {
   return (
-    <div className="rounded-3xl border border-[#d6c3a0] bg-white p-5 space-y-4">
+    <div className="rounded-3xl border border-line bg-white p-6 space-y-4">
       <div>
-        <p className="text-xs uppercase tracking-widest text-[#8a7456] font-black flex items-center gap-2"><ShieldAlert size={15} /> Risque & dépendance fournisseurs</p>
-        <h3 className="text-xl font-black text-[#2f2415] mt-1">Sécuriser les fournisseurs qui conditionnent la production</h3>
-        <p className="text-sm text-[#8a7456] mt-1">Horizon distingue fournisseurs stratégiques, fiables, à risque, avec dettes ou contacts incomplets.</p>
+        <p className="text-xs uppercase tracking-normal text-slate font-semibold flex items-center gap-2"><ShieldAlert size={15} /> Risque & dépendance fournisseurs</p>
+        <h3 className="text-xl font-semibold text-earth mt-1">Sécuriser les fournisseurs qui conditionnent la production</h3>
+        <p className="text-sm text-slate mt-1">Horizon distingue fournisseurs stratégiques, fiables, à risque, avec dettes ou contacts incomplets.</p>
       </div>
       <div className="grid grid-cols-2 xl:grid-cols-4 gap-3">
         <Small label="Stratégiques" value={summary.strategic.length} />
@@ -68,9 +68,9 @@ function SupplierDecisionPanel({ summary }) {
       </div>
       <div className="grid grid-cols-1 xl:grid-cols-3 gap-3">
         {summary.profiles.slice().sort((a, b) => b.riskScore - a.riskScore).slice(0, 6).map((profile) => (
-          <div key={profile.id} className="rounded-2xl border border-[#eadcc2] bg-[#fffdf8] p-4">
+          <div key={profile.id} className="rounded-2xl border border-line bg-card p-4">
             <div className="flex items-start justify-between gap-2">
-              <div><p className="font-black text-[#2f2415]">{profile.name}</p><p className="text-xs text-[#8a7456]">{profile.category}</p></div>
+              <div><p className="font-semibold text-earth">{profile.name}</p><p className="text-xs text-slate">{profile.category}</p></div>
               <SupplierSegmentBadge segment={profile.segment} />
             </div>
             <div className="mt-3 grid grid-cols-3 gap-2">
@@ -78,7 +78,7 @@ function SupplierDecisionPanel({ summary }) {
               <CardMetric label="Dépendance" value={`${profile.dependencyScore}%`} alert={profile.dependencyScore >= 70} />
               <CardMetric label="Fiabilité" value={`${profile.reliabilityScore}%`} />
             </div>
-            <p className="mt-3 text-xs text-[#7d6a4a]">{profile.action}</p>
+            <p className="mt-3 text-xs text-slate">{profile.action}</p>
           </div>
         ))}
       </div>
@@ -108,17 +108,17 @@ function SupplierPaymentModal({ supplier, debtRows = [], totalDebt = 0, loading 
   };
 
   return (
-    <div className="fixed inset-0 z-[90] flex items-center justify-center bg-black/40 p-3">
-      <form onSubmit={submit} className="w-full max-w-lg overflow-hidden rounded-2xl border border-[#d6c3a0] bg-white shadow-2xl">
-        <div className="flex items-start justify-between border-b border-[#eadcc2] p-5"><div><p className="text-xs font-black uppercase text-[#8a7456]">Paiement fournisseur</p><h2 className="text-xl font-black text-[#2f2415]">{supplierName(supplier)}</h2><p className="mt-1 text-sm text-[#8a7456]">Dette totale: {fmtCurrency(totalDebt)}</p></div><button type="button" onClick={onClose} aria-label="Fermer"><X size={18} /></button></div>
-        <div className="grid gap-3 p-5 sm:grid-cols-2">
-          <label className="text-sm font-bold text-[#6f6048] sm:col-span-2">Dette source<select required value={form.source_transaction_id} onChange={(event) => chooseDebt(event.target.value)} className="mt-1 w-full rounded-lg border border-[#d6c3a0] bg-white px-3 py-2 font-normal"><option value="">Choisir</option>{debtRows.map((debt) => <option key={debt.id} value={debt.id}>{debt.libelle || debt.id} · {fmtCurrency(debt.reste_a_payer ?? debt.amount ?? debt.montant)}</option>)}</select></label>
-          <label className="text-sm font-bold text-[#6f6048]">Montant<input required type="number" min="1" value={form.amount} onChange={(event) => set('amount', event.target.value)} className="mt-1 w-full rounded-lg border border-[#d6c3a0] px-3 py-2 font-normal" /></label>
-          <label className="text-sm font-bold text-[#6f6048]">Date<input required type="date" value={form.date} onChange={(event) => set('date', event.target.value)} className="mt-1 w-full rounded-lg border border-[#d6c3a0] px-3 py-2 font-normal" /></label>
-          <label className="text-sm font-bold text-[#6f6048]">Mode de paiement<select required value={form.payment_method} onChange={(event) => set('payment_method', event.target.value)} className="mt-1 w-full rounded-lg border border-[#d6c3a0] bg-white px-3 py-2 font-normal"><option value="mobile_money">Mobile Money</option><option value="virement">Virement</option><option value="especes">Espèces</option><option value="cheque">Chèque</option></select></label>
-          <label className="text-sm font-bold text-[#6f6048]">Lien du justificatif<input required type="url" value={form.proof_url} onChange={(event) => set('proof_url', event.target.value)} placeholder="https://..." className="mt-1 w-full rounded-lg border border-[#d6c3a0] px-3 py-2 font-normal" /></label>
+    <div className="fixed inset-0 z-[90] flex items-center justify-center bg-earth/30 p-3">
+      <form onSubmit={submit} className="w-full max-w-lg overflow-hidden rounded-2xl border border-line bg-white shadow-float">
+        <div className="flex items-start justify-between border-b border-line p-6"><div><p className="text-xs font-semibold uppercase text-slate">Paiement fournisseur</p><h2 className="text-xl font-semibold text-earth">{supplierName(supplier)}</h2><p className="mt-1 text-sm text-slate">Dette totale: {fmtCurrency(totalDebt)}</p></div><button type="button" onClick={onClose} aria-label="Fermer"><X size={18} /></button></div>
+        <div className="grid gap-3 p-6 sm:grid-cols-2">
+          <label className="text-sm font-semibold text-slate sm:col-span-2">Dette source<select required value={form.source_transaction_id} onChange={(event) => chooseDebt(event.target.value)} className="mt-1 w-full rounded-lg border border-line bg-white px-3 py-2 font-normal"><option value="">Choisir</option>{debtRows.map((debt) => <option key={debt.id} value={debt.id}>{debt.libelle || debt.id} · {fmtCurrency(debt.reste_a_payer ?? debt.amount ?? debt.montant)}</option>)}</select></label>
+          <label className="text-sm font-semibold text-slate">Montant<input required type="number" min="1" value={form.amount} onChange={(event) => set('amount', event.target.value)} className="mt-1 w-full rounded-lg border border-line px-3 py-2 font-normal" /></label>
+          <label className="text-sm font-semibold text-slate">Date<input required type="date" value={form.date} onChange={(event) => set('date', event.target.value)} className="mt-1 w-full rounded-lg border border-line px-3 py-2 font-normal" /></label>
+          <label className="text-sm font-semibold text-slate">Mode de paiement<select required value={form.payment_method} onChange={(event) => set('payment_method', event.target.value)} className="mt-1 w-full rounded-lg border border-line bg-white px-3 py-2 font-normal"><option value="mobile_money">Mobile Money</option><option value="virement">Virement</option><option value="especes">Espèces</option><option value="cheque">Chèque</option></select></label>
+          <label className="text-sm font-semibold text-slate">Lien du justificatif<input required type="url" value={form.proof_url} onChange={(event) => set('proof_url', event.target.value)} placeholder="https://..." className="mt-1 w-full rounded-lg border border-line px-3 py-2 font-normal" /></label>
         </div>
-        <div className="flex justify-end gap-2 border-t border-[#eadcc2] p-4"><button type="button" onClick={onClose} className="rounded-lg border border-[#d6c3a0] px-4 py-2 text-sm font-bold">Annuler</button><button type="submit" disabled={loading} className="rounded-lg bg-[#2f2415] px-4 py-2 text-sm font-black text-white disabled:opacity-50">{loading ? 'Enregistrement...' : 'Enregistrer le paiement'}</button></div>
+        <div className="flex justify-end gap-2 border-t border-line p-4"><button type="button" onClick={onClose} className="rounded-lg border border-line px-4 py-2 text-sm font-semibold">Annuler</button><button type="submit" disabled={loading} className="rounded-lg bg-earth px-4 py-2 text-sm font-semibold text-white disabled:opacity-50">{loading ? 'Enregistrement...' : 'Enregistrer le paiement'}</button></div>
       </form>
     </div>
   );
@@ -150,17 +150,17 @@ export default function Fournisseurs({ rows = [], stocks = [], tasks = [], finan
   }, [finances, transactions, financesCrud.rows]);
   const documentRows = documents.length ? documents : documentsCrud.rows;
 
-  const summaryFor = (supplier) => buildSupplierSummary(supplier, stockRows, financeRows, documentRows);
-  const profileFor = (supplier) => buildSupplierDecisionProfile(supplier, { stocks: stockRows, finances: financeRows });
+  const summaryFor = useCallback((supplier) => buildSupplierSummary(supplier, stockRows, financeRows, documentRows), [stockRows, financeRows, documentRows]);
+  const profileFor = useCallback((supplier) => buildSupplierDecisionProfile(supplier, { stocks: stockRows, finances: financeRows }), [stockRows, financeRows]);
   const metricsFor = (supplier) => {
     const metrics = calculateSupplierMetrics(supplier);
     const summary = summaryFor(supplier);
     const profile = profileFor(supplier);
     return { ...metrics, dettes: summary.dettes, livraisons: summary.livraisons, ...profile };
   };
-  const totalDettes = useMemo(() => rows.reduce((sum, supplier) => sum + summaryFor(supplier).dettes, 0), [rows, stockRows, financeRows]);
-  const totalAchats = useMemo(() => rows.reduce((sum, supplier) => sum + summaryFor(supplier).achatsStock, 0), [rows, stockRows]);
-  const fournisseursDette = useMemo(() => rows.filter((supplier) => summaryFor(supplier).dettes > 0), [rows, stockRows, financeRows]);
+  const totalDettes = useMemo(() => rows.reduce((sum, supplier) => sum + summaryFor(supplier).dettes, 0), [rows, summaryFor]);
+  const totalAchats = useMemo(() => rows.reduce((sum, supplier) => sum + summaryFor(supplier).achatsStock, 0), [rows, summaryFor]);
+  const fournisseursDette = useMemo(() => rows.filter((supplier) => summaryFor(supplier).dettes > 0), [rows, summaryFor]);
   const supplierDecisionSummary = useMemo(() => buildSupplierDecisionSummary(rows, { stocks: stockRows, finances: financeRows }), [rows, stockRows, financeRows]);
   const noteMoyenne = useMemo(() => {
     if (!rows.length) return '0.0';
@@ -324,33 +324,33 @@ export default function Fournisseurs({ rows = [], stocks = [], tasks = [], finan
       <FournisseursStockBridge suppliers={rows} stocks={stockRows} tasks={taskRows} onUpdateStock={onUpdateStock || stockCrud.update} onRefreshStock={onRefreshStock || stockCrud.refresh} onCreateTask={onCreateTask || tachesCrud.create} onRefreshTasks={onRefreshTasks || tachesCrud.refresh} onCreateAlert={onCreateAlert || alertesCrud.create} onRefreshAlertes={onRefreshAlertes || alertesCrud.refresh} onCreateBusinessEvent={onCreateBusinessEvent || eventsCrud.create} onRefreshBusinessEvents={onRefreshBusinessEvents || eventsCrud.refresh} onUpdateSupplier={onUpdate} onRefreshSuppliers={onRefresh} />
 
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <KpiCard icon={Truck} label="Fournisseurs" value={rows.length} color="bg-sky-500/20 text-sky-400" />
-        <KpiCard icon={DollarSign} label="Achats stock" value={fmtCurrency(totalAchats)} color="bg-emerald-500/20 text-emerald-400" />
-        <KpiCard icon={AlertTriangle} label="Dettes" value={fmtCurrency(totalDettes)} color={totalDettes > 0 ? 'bg-red-500/20 text-red-400' : 'bg-emerald-500/20 text-emerald-400'} />
-        <KpiCard icon={Award} label="Note moyenne" value={`${noteMoyenne}/5`} color="bg-amber-500/20 text-amber-400" />
+        <KpiCard icon={Truck} label="Fournisseurs" value={rows.length} color="bg-neutral text-neutral" />
+        <KpiCard icon={DollarSign} label="Achats stock" value={fmtCurrency(totalAchats)} color="bg-positive text-positive" />
+        <KpiCard icon={AlertTriangle} label="Dettes" value={fmtCurrency(totalDettes)} color={totalDettes > 0 ? 'bg-urgent text-urgent' : 'bg-positive text-positive'} />
+        <KpiCard icon={Award} label="Note moyenne" value={`${noteMoyenne}/5`} color="bg-vigilance text-horizon-dark" />
       </div>
 
       <SupplierDecisionPanel summary={supplierDecisionSummary} />
       {!hideEvolution ? <FournisseursEvolution rows={rows} stocks={stockRows} finances={financesCrud.rows} onNavigate={onNavigate} /> : null}
 
-      {fournisseursDette.length ? <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4"><p className="font-bold text-amber-800 mb-2">Dettes fournisseurs à suivre</p><div className="grid grid-cols-1 md:grid-cols-2 gap-2">{fournisseursDette.slice(0, 4).map((supplier) => <button key={supplier.id} type="button" onClick={() => createDebtAlert(supplier)} className="rounded-xl border border-amber-200 bg-white px-3 py-2 text-left text-sm text-amber-700"><b>{supplierName(supplier)}</b> · {fmtCurrency(summaryFor(supplier).dettes)}</button>)}</div></div> : null}
+      {fournisseursDette.length ? <div className="rounded-2xl border border-vigilance bg-vigilance-bg p-4"><p className="font-semibold text-horizon-dark mb-2">Dettes fournisseurs à suivre</p><div className="grid grid-cols-1 md:grid-cols-2 gap-2">{fournisseursDette.slice(0, 4).map((supplier) => <button key={supplier.id} type="button" onClick={() => createDebtAlert(supplier)} className="rounded-xl border border-vigilance bg-white px-3 py-2 text-left text-sm text-horizon-dark"><b>{supplierName(supplier)}</b> · {fmtCurrency(summaryFor(supplier).dettes)}</button>)}</div></div> : null}
 
-      {rows.some((supplier) => supplier.source === 'demo') ? <div className="bg-amber-500/10 border border-amber-500/30 rounded-2xl p-3 text-sm text-[#7d6a4a]">Certains fournisseurs sont des données de démonstration.</div> : null}
+      {rows.some((supplier) => supplier.source === 'demo') ? <div className="bg-vigilance border border-vigilance rounded-2xl p-3 text-sm text-slate">Certains fournisseurs sont des données de démonstration.</div> : null}
 
-      {geoSearch ? <div className="bg-[#ffffff] border border-[#d6c3a0] rounded-2xl p-4"><div className="flex items-start justify-between gap-3 mb-3"><div><p className="font-bold text-[#2f2415]">Résultats fournisseurs</p><p className="text-xs text-[#8a7456]">Source: {geoSearch.source} - Rayon: {geoSearch.radiusKm} km.</p></div><SourceBadge source="openstreetmap" /></div>{geoSearch.results.length ? <div className="grid grid-cols-1 md:grid-cols-2 gap-3">{geoSearch.results.slice(0, 8).map((result) => <div key={result.id} className="rounded-xl border border-[#e7d9be] bg-[#fffdf8] p-3"><p className="font-semibold text-[#2f2415]">{result.nom}</p><p className="text-xs text-[#8a7456]">{result.adresse}</p><p className="text-xs text-[#8a7456] mt-1">Tel: {result.tel} - Distance: {result.distance_km} km</p><div className="flex gap-2 mt-3">{result.map_url ? <Btn variant="outline" small onClick={() => window.open(result.map_url, '_blank', 'noopener,noreferrer')}>Carte</Btn> : null}<Btn small onClick={() => importGeoSupplier(result)}>Ajouter</Btn></div></div>)}</div> : <p className="text-sm text-[#8a7456]">{geoSearch.message}</p>}</div> : null}
+      {geoSearch ? <div className="bg-pure border border-line rounded-2xl p-4"><div className="flex items-start justify-between gap-3 mb-3"><div><p className="font-semibold text-earth">Résultats fournisseurs</p><p className="text-xs text-slate">Source: {geoSearch.source} - Rayon: {geoSearch.radiusKm} km.</p></div><SourceBadge source="openstreetmap" /></div>{geoSearch.results.length ? <div className="grid grid-cols-1 md:grid-cols-2 gap-3">{geoSearch.results.slice(0, 8).map((result) => <div key={result.id} className="rounded-xl border border-line bg-card p-3"><p className="font-semibold text-earth">{result.nom}</p><p className="text-xs text-slate">{result.adresse}</p><p className="text-xs text-slate mt-1">Tel: {result.tel} - Distance: {result.distance_km} km</p><div className="flex gap-2 mt-3">{result.map_url ? <Btn variant="outline" small onClick={() => window.open(result.map_url, '_blank', 'noopener,noreferrer')}>Carte</Btn> : null}<Btn small onClick={() => importGeoSupplier(result)}>Ajouter</Btn></div></div>)}</div> : <p className="text-sm text-slate">{geoSearch.message}</p>}</div> : null}
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        {loading ? Array.from({ length: 4 }).map((_, i) => <div key={i} className="bg-[#ffffff] border border-[#d6c3a0] rounded-2xl p-5"><div className="h-20 bg-[#d6c3a0]/60 animate-pulse rounded" /></div>) : rows.map((supplier) => {
+        {loading ? Array.from({ length: 4 }).map((_, i) => <div key={i} className="bg-pure border border-line rounded-2xl p-6"><div className="h-20 bg-line/60 animate-pulse rounded" /></div>) : rows.map((supplier) => {
           const metrics = metricsFor(supplier);
           const summary = summaryFor(supplier);
           const profile = profileFor(supplier);
           const evaluation = { Prix: Math.max(35, metrics.reliabilityScore - 8), Qualité: Math.min(100, metrics.note * 20), Délai: Math.min(100, 45 + summary.livraisons * 2), Dispo: Math.max(30, metrics.reliabilityScore - (summary.dettes > 0 ? 12 : 0)), Fiable: metrics.reliabilityScore };
-          return <div key={supplier.id} className={`bg-[#ffffff] border rounded-2xl p-5 hover:border-[#b6975f] transition-all ${summary.dettes > 0 || profile.riskScore >= 60 ? 'border-amber-500/30' : 'border-[#d6c3a0]'}`}>
-            <div className="flex items-start justify-between mb-4 gap-2"><div><p className="font-bold text-[#2f2415]">{supplier.nom}</p><p className="text-xs text-[#8a7456]">{profile.category} - Contact: {supplier.contact}</p></div><div className="flex flex-col items-end gap-2"><SupplierSegmentBadge segment={profile.segment} /><div className="flex items-center gap-2 text-amber-400"><SourceBadge source={supplier.source} /><Star size={12} fill="currentColor" /><span className="text-sm font-semibold">{metrics.reliabilityScore.toFixed(0)}%</span></div></div></div>
-            <div className="space-y-2 mb-4 text-sm text-[#7d6a4a]"><div>{supplier.tel || 'Téléphone non renseigné'}</div><div>{supplier.whatsapp || 'WhatsApp non renseigné'}</div><div>{supplier.email || 'Email non renseigné'}</div></div>
+          return <div key={supplier.id} className={`bg-pure border rounded-2xl p-6 hover:border-horizon transition-all ${summary.dettes > 0 || profile.riskScore >= 60 ? 'border-vigilance' : 'border-line'}`}>
+            <div className="flex items-start justify-between mb-4 gap-2"><div><p className="font-semibold text-earth">{supplier.nom}</p><p className="text-xs text-slate">{profile.category} - Contact: {supplier.contact}</p></div><div className="flex flex-col items-end gap-2"><SupplierSegmentBadge segment={profile.segment} /><div className="flex items-center gap-2 text-horizon-dark"><SourceBadge source={supplier.source} /><Star size={12} fill="currentColor" /><span className="text-sm font-semibold">{metrics.reliabilityScore.toFixed(0)}%</span></div></div></div>
+            <div className="space-y-2 mb-4 text-sm text-slate"><div>{supplier.tel || 'Téléphone non renseigné'}</div><div>{supplier.whatsapp || 'WhatsApp non renseigné'}</div><div>{supplier.email || 'Email non renseigné'}</div></div>
             <div className="grid grid-cols-2 gap-3 mb-4"><CardMetric label="Livraisons" value={`${summary.livraisons} commandes`} /><CardMetric label="Dettes" value={summary.dettes > 0 ? fmtCurrency(summary.dettes) : 'Aucune'} alert={summary.dettes > 0} /><CardMetric label="Risque" value={`${profile.riskScore}%`} alert={profile.riskScore >= 60} /><CardMetric label="Dépendance" value={`${profile.dependencyScore}%`} alert={profile.dependencyScore >= 70} /><CardMetric label="Achats stock" value={fmtCurrency(summary.achatsStock)} /><CardMetric label="Documents" value={summary.docs.length} /></div>
-            <div className="rounded-xl bg-[#fffdf8] border border-[#eadcc2] p-3 mb-4"><p className="text-xs font-black text-[#2f2415]">Action recommandée</p><p className="text-xs text-[#7d6a4a] mt-1">{profile.action}</p></div>
-            <div className="mb-4"><p className="text-xs text-[#8a7456] mb-2">Évaluation</p><div className="grid grid-cols-5 gap-1">{Object.entries(evaluation).map(([crit, score]) => <div key={crit} className="text-center"><div className="text-xs text-[#8a7456] mb-1">{crit}</div><div className="h-1.5 bg-[#fffdf8] rounded-full overflow-hidden"><div className="h-full bg-emerald-500 rounded-full" style={{ width: `${Math.min(100, Math.max(0, score))}%` }} /></div></div>)}</div></div>
+            <div className="rounded-xl bg-card border border-line p-3 mb-4"><p className="text-xs font-semibold text-earth">Action recommandée</p><p className="text-xs text-slate mt-1">{profile.action}</p></div>
+            <div className="mb-4"><p className="text-xs text-slate mb-2">Évaluation</p><div className="grid grid-cols-5 gap-1">{Object.entries(evaluation).map(([crit, score]) => <div key={crit} className="text-center"><div className="text-xs text-slate mb-1">{crit}</div><div className="h-1.5 bg-card rounded-full overflow-hidden"><div className="h-full bg-positive rounded-full" style={{ width: `${Math.min(100, Math.max(0, score))}%` }} /></div></div>)}</div></div>
             <div className="flex gap-2 flex-wrap"><Btn variant="outline" small icon={Upload} onClick={() => prepareOrder(supplier)}>Commander</Btn><Btn variant={hasPhone(supplier) ? 'whatsapp' : 'outline'} small icon={MessageCircle} onClick={() => openWhatsApp(supplier)}>{hasPhone(supplier) ? 'WhatsApp' : 'Numéro manquant'}</Btn>{summary.dettes > 0 ? <Btn variant="amber" small icon={DollarSign} onClick={() => { setSelected(supplier); setModal('payment'); }}>Payer</Btn> : <Btn variant="outline" small icon={CheckCircle} onClick={() => toast.success('Aucune dette')}>Soldé</Btn>}<ActionIconButton icon={Eye} title="Voir" color="sky" onClick={() => { setSelected(supplier); setModal('details'); }} /><ActionIconButton icon={Edit} title="Modifier" color="amber" onClick={() => { setSelected(supplier); setModal('edit'); }} /><ActionIconButton icon={AlertTriangle} title="Supprimer" color="red" onClick={() => { setSelected(supplier); setModal('delete'); }} /></div>
           </div>;
         })}
@@ -365,4 +365,4 @@ export default function Fournisseurs({ rows = [], stocks = [], tasks = [], finan
   );
 }
 
-function Small({ label, value }) { return <div className="rounded-xl border border-[#eadcc2] bg-[#fffdf8] p-3"><p className="text-xs text-[#8a7456]">{label}</p><p className="font-black text-[#2f2415]">{value}</p></div>; }
+function Small({ label, value }) { return <div className="rounded-xl border border-line bg-card p-3"><p className="text-xs text-slate">{label}</p><p className="font-semibold text-earth">{value}</p></div>; }

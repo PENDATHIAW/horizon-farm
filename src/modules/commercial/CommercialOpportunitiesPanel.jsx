@@ -20,9 +20,9 @@ const arr = (v) => (Array.isArray(v) ? v : []);
 const norm = (value = '') => String(value || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
 
 const urgencyTone = (urgency = '') => {
-  if (urgency === 'critique') return 'bg-red-100 text-red-900 border-red-200';
-  if (urgency === 'haute') return 'bg-amber-100 text-amber-900 border-amber-200';
-  return 'bg-sky-50 text-sky-900 border-sky-200';
+  if (urgency === 'critique') return 'bg-urgent-bg text-urgent border-urgent';
+  if (urgency === 'haute') return 'bg-vigilance-bg text-horizon-dark border-vigilance';
+  return 'bg-neutral-bg text-neutral border-line';
 };
 
 function OpportunityCard({ row, match, onConvert, onContactClient, onContactAll, onPublishOrgaloop }) {
@@ -31,35 +31,35 @@ function OpportunityCard({ row, match, onConvert, onContactClient, onContactAll,
   const orgaloopOpp = isOrgaloopEffluentOpportunity(row);
   const published = Boolean(row.published_on_orgaloop_at) || norm(row.statut) === 'en_cours';
   return (
-    <article className="rounded-2xl border border-[#d6c3a0] bg-white p-4 shadow-sm space-y-3">
+    <article className="rounded-2xl border border-line bg-white p-4 shadow-card space-y-3">
       <div className="flex items-start justify-between gap-2">
         <div className="flex items-start gap-2 min-w-0">
-          <Lightbulb size={16} className="text-[#9a6b12] shrink-0 mt-0.5" />
+          <Lightbulb size={16} className="text-horizon-dark shrink-0 mt-1" />
           <div className="min-w-0">
             <div className="flex flex-wrap items-center gap-2">
-              <b className="text-[#2f2415]">{row.title || row.libelle || row.product_name || 'Opportunité'}</b>
+              <b className="text-earth">{row.title || row.libelle || row.product_name || 'Opportunité'}</b>
               {row.urgency ? (
-                <span className={`rounded-full border px-2 py-0.5 text-[10px] font-black uppercase ${urgencyTone(row.urgency)}`}>
+                <span className={`rounded-full border px-2 py-1 text-meta font-semibold uppercase ${urgencyTone(row.urgency)}`}>
                   {formatOpportunityUrgencyLabel(row.urgency)}
                 </span>
               ) : null}
               {row.auto_generated ? (
-                <span className="rounded-full border border-[#eadcc2] px-2 py-0.5 text-[10px] font-black text-[#8a7456]">Auto</span>
+                <span className="rounded-full border border-line px-2 py-1 text-meta font-semibold text-slate">Auto</span>
               ) : null}
               {norm(row.phase || row.statut_activite).includes('phase_future') || norm(row.activity_type).includes('valorisation') ? (
-                <span className="rounded-full border border-violet-200 bg-violet-50 px-2 py-0.5 text-[10px] font-black text-violet-800">Phase future</span>
+                <span className="rounded-full border border-line bg-neutral-bg px-2 py-1 text-meta font-semibold text-neutral">Phase future</span>
               ) : null}
               {orgaloopOpp ? (
-                <span className="rounded-full border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-[10px] font-black text-emerald-800">{ORGALOOP_EFFLUENT_CHANNEL.platformName}</span>
+                <span className="rounded-full border border-positive bg-positive-bg px-2 py-1 text-meta font-semibold text-positive">{ORGALOOP_EFFLUENT_CHANNEL.platformName}</span>
               ) : null}
             </div>
-            <p className="mt-1 text-sm font-bold text-[#9a6b12]">{match.label}</p>
-            {qty ? <p className="text-xs text-[#8a7456]">Qté {qty} {row.unit || ''}</p> : null}
-            {row.reason ? <p className="mt-1 text-xs text-[#8a7456] line-clamp-2">{row.reason}</p> : null}
-            {row.recommendation ? <p className="mt-1 text-xs font-bold text-[#2f2415]">IA : {row.recommendation}</p> : null}
+            <p className="mt-1 text-sm font-semibold text-horizon-dark">{match.label}</p>
+            {qty ? <p className="text-xs text-slate">Qté {qty} {row.unit || ''}</p> : null}
+            {row.reason ? <p className="mt-1 text-xs text-slate line-clamp-2">{row.reason}</p> : null}
+            {row.recommendation ? <p className="mt-1 text-xs font-semibold text-earth">IA : {row.recommendation}</p> : null}
           </div>
         </div>
-        <span className="shrink-0 text-lg font-black text-emerald-700">{fmtCurrency(amount)}</span>
+        <span className="shrink-0 text-lg font-semibold text-positive">{fmtCurrency(amount)}</span>
       </div>
       <div className="flex flex-wrap gap-2">
         {match.mode === 'single' && match.clients[0] ? (
@@ -212,13 +212,13 @@ export default function CommercialOpportunitiesPanel({
 
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <p className="text-[11px] font-black uppercase tracking-wide text-[#8a7456]">Pipeline</p>
-          <p className="text-2xl font-black text-[#2f2415]">{fmtCurrency(pipeline)}</p>
-          <p className="text-sm text-[#8a7456]">{mergedOpportunities.length} opportunité(s) · stock, cultures, élevage — clients ciblés automatiquement</p>
+          <p className="text-meta font-semibold uppercase tracking-normal text-slate">Pipeline</p>
+          <p className="text-2xl font-semibold text-earth">{fmtCurrency(pipeline)}</p>
+          <p className="text-sm text-slate">{mergedOpportunities.length} opportunité(s) · stock, cultures, élevage — clients ciblés automatiquement</p>
         </div>
         <div className="flex flex-wrap gap-2">
-          <button type="button" onClick={openDirectSale} className="min-h-[44px] rounded-xl bg-[#2f2415] px-4 py-2 text-sm font-black text-white">+ Vente directe</button>
-          <button type="button" onClick={createOrgaloopOpportunity} className="min-h-[44px] rounded-xl border border-emerald-300 bg-emerald-50 px-4 py-2 text-sm font-black text-emerald-900">+ Fumier/fientes Orgaloop</button>
+          <button type="button" onClick={openDirectSale} className="min-h-[44px] rounded-xl bg-earth px-4 py-2 text-sm font-semibold text-white">+ Vente directe</button>
+          <button type="button" onClick={createOrgaloopOpportunity} className="min-h-[44px] rounded-xl border border-positive bg-positive-bg px-4 py-2 text-sm font-semibold text-positive">+ Fumier/fientes Orgaloop</button>
         </div>
       </div>
 
@@ -237,7 +237,7 @@ export default function CommercialOpportunitiesPanel({
           ))}
         </div>
       ) : (
-        <div className="rounded-2xl border border-[#eadcc2] bg-[#fffdf8] p-6 text-center text-sm text-[#8a7456]">Aucune opportunité ouverte.</div>
+        <div className="rounded-2xl border border-line bg-card p-6 text-center text-sm text-slate">Aucune opportunité ouverte.</div>
       )}
 
       <ClientContactModal

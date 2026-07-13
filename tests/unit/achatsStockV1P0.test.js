@@ -36,13 +36,13 @@ test('P0-01 — filterAchatsStockAnnexeDocuments — factures et preuves stock',
   assert.equal(docs.length, 2);
 });
 
-test('P0-01 — resolveAchatsStockTab alias legacy vers 3 onglets canoniques', () => {
-  assert.equal(resolveAchatsStockTab('Résumé'), 'Inventaire');
-  assert.equal(resolveAchatsStockTab('Stock'), 'Inventaire');
-  assert.equal(resolveAchatsStockTab('Annexe'), 'Inventaire');
-  assert.equal(resolveAchatsStockTab('Graphiques'), 'Inventaire');
-  assert.equal(resolveAchatsStockTab('Achats'), 'Réceptions & achats');
-  assert.equal(resolveAchatsStockTab('Fournisseurs'), 'Fournisseurs & dettes');
+test('P0-01 — resolveAchatsStockTab relie chaque alias au composant rendu', () => {
+  assert.equal(resolveAchatsStockTab('Résumé'), 'Tableau de bord stock');
+  assert.equal(resolveAchatsStockTab('Stock'), 'Stocks & lots');
+  assert.equal(resolveAchatsStockTab('Annexe'), 'Inventaires stock');
+  assert.equal(resolveAchatsStockTab('Graphiques'), 'Inventaires stock');
+  assert.equal(resolveAchatsStockTab('Achats'), 'Achats & réceptions stock');
+  assert.equal(resolveAchatsStockTab('Fournisseurs'), 'Fournisseurs stock');
 });
 
 test('P0-02 — buildStockMovementPayload réception achat', () => {
@@ -112,7 +112,7 @@ test('P0-02 — commitStockPurchaseWorkflow crée mouvement stock', async () => 
   const events = [];
   await commitStockPurchaseWorkflow(preview, {
     context: { stocks: [], transactions: [], stock_movements: [] },
-    onCreateStock: async (row) => {},
+    onCreateStock: async () => {},
     onCreateBusinessEvent: async (row) => events.push(row),
     onCreateStockMovement: async (row) => movements.push(row),
   });

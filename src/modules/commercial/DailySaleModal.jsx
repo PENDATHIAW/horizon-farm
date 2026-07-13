@@ -1,4 +1,3 @@
-/* eslint-disable react-refresh/only-export-components */
 import { CreditCard, X } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import toast from 'react-hot-toast';
@@ -25,7 +24,7 @@ const clean = (value) => String(value || '').trim();
 const num = (value) => Number(value || 0) || 0;
 const today = () => new Date().toISOString().slice(0, 10);
 const WALK_IN = 'client_passage';
-const inputClass = 'min-h-[44px] w-full rounded-lg border border-[#d6c3a0] bg-white px-3 py-2 text-sm text-[#2f2415]';
+const inputClass = 'min-h-[44px] w-full rounded-lg border border-line bg-white px-3 py-2 text-sm text-earth';
 
 function targetLabel(row = {}) {
   return row.name || row.nom || row.produit || row.culture || row.id || t('dailyEntries.sale.product');
@@ -117,7 +116,7 @@ function initialForm(props, prefill, options) {
 }
 
 function Label({ title, children }) {
-  return <label className="block text-sm"><span className="mb-1 block text-xs font-bold text-[#7d6a4a]">{title}</span>{children}</label>;
+  return <label className="block text-sm"><span className="mb-1 block text-xs font-semibold text-slate">{title}</span>{children}</label>;
 }
 
 export default function DailySaleModal({ props, onClose, onDone, prefill = null }) {
@@ -215,14 +214,14 @@ export default function DailySaleModal({ props, onClose, onDone, prefill = null 
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-3" data-testid="daily-sale-modal">
-      <div className="max-h-[94vh] w-full max-w-xl overflow-y-auto rounded-lg border border-[#d6c3a0] bg-white shadow-2xl">
-        <div className="flex items-center justify-between border-b border-[#eadcc2] p-4">
-          <h2 className="flex items-center gap-2 text-lg font-black text-[#2f2415]"><CreditCard size={18} /> {t('dailyEntries.sale.title')}</h2>
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-earth/30 p-3" data-testid="daily-sale-modal">
+      <div className="max-h-[94vh] w-full max-w-xl overflow-y-auto rounded-lg border border-line bg-white shadow-float">
+        <div className="flex items-center justify-between border-b border-line p-4">
+          <h2 className="flex items-center gap-2 text-lg font-semibold text-earth"><CreditCard size={18} /> {t('dailyEntries.sale.title')}</h2>
           <button type="button" onClick={onClose} aria-label={t('dailyEntries.common.close')}><X size={18} /></button>
         </div>
         <form onSubmit={submit} className="space-y-3 p-4" data-testid="daily-sale-form">
-          {error ? <div className="rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700" data-testid="daily-sale-error">{error}</div> : null}
+          {error ? <div className="rounded-lg border border-urgent bg-urgent-bg p-3 text-sm text-urgent" data-testid="daily-sale-error">{error}</div> : null}
           <Label title={t('dailyEntries.sale.productSold')}>
             <select className={inputClass} value={selected?.key || ''} onChange={(event) => chooseSource(event.target.value)} required data-testid="daily-sale-source">
               <option value="">{t('dailyEntries.common.choose')}</option>
@@ -239,9 +238,9 @@ export default function DailySaleModal({ props, onClose, onDone, prefill = null 
               {arr(props.clients).map((client) => <option key={client.id} value={client.id}>{client.nom || client.name || client.id}</option>)}
             </select>
           </Label>
-          <div className="rounded-lg border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-800">{t('dailyEntries.sale.total')} <b className="float-right">{fmtCurrency(total)}</b></div>
-          <details className="rounded-lg border border-[#eadcc2] bg-[#fffdf8] p-3">
-            <summary className="cursor-pointer text-sm font-black text-[#2f2415]">{t('dailyEntries.common.details')}</summary>
+          <div className="rounded-lg border border-positive bg-positive-bg p-3 text-sm text-positive">{t('dailyEntries.sale.total')} <b className="float-right">{fmtCurrency(total)}</b></div>
+          <details className="rounded-lg border border-line bg-card p-3">
+            <summary className="cursor-pointer text-sm font-semibold text-earth">{t('dailyEntries.common.details')}</summary>
             <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
               <Label title={t('dailyEntries.common.date')}><input className={inputClass} type="date" value={form.date} onChange={(event) => set('date', event.target.value)} /></Label>
               <Label title={t('dailyEntries.sale.payment')}><select className={inputClass} value={form.payment_status} onChange={(event) => set('payment_status', event.target.value)}><option value="paye">{t('dailyEntries.sale.paid')}</option><option value="partiel">{t('dailyEntries.sale.partial')}</option><option value="non_paye">{t('dailyEntries.sale.toCollect')}</option></select></Label>
@@ -252,8 +251,8 @@ export default function DailySaleModal({ props, onClose, onDone, prefill = null 
             </div>
           </details>
           <div className="flex justify-end gap-2 pt-1">
-            <button type="button" onClick={onClose} className="min-h-[44px] rounded-lg border border-[#d6c3a0] px-4 text-sm font-bold">{t('dailyEntries.common.cancel')}</button>
-            <button type="submit" disabled={busy} className="min-h-[44px] rounded-lg bg-[#2f2415] px-5 text-sm font-black text-white disabled:opacity-50" data-testid="daily-sale-submit">{busy ? t('dailyEntries.common.saving') : t('dailyEntries.common.save')}</button>
+            <button type="button" onClick={onClose} className="min-h-[44px] rounded-lg border border-line px-4 text-sm font-semibold">{t('dailyEntries.common.cancel')}</button>
+            <button type="submit" disabled={busy} className="min-h-[44px] rounded-lg bg-earth px-6 text-sm font-semibold text-white disabled:opacity-50" data-testid="daily-sale-submit">{busy ? t('dailyEntries.common.saving') : t('dailyEntries.common.save')}</button>
           </div>
         </form>
       </div>

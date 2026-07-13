@@ -25,31 +25,31 @@ export default function CulturesCyclesHub({ rows = [], salesOrders = [], deliver
     .slice(0, 12);
 
   return (
-    <div className="space-y-5">
-      <section className="rounded-3xl border border-[#d6c3a0] bg-white p-5 shadow-sm">
-        <p className="flex items-center gap-2 text-lg font-black text-[#2f2415]"><CalendarClock size={20} /> Calendrier cultures</p>
-        <p className="mt-1 text-sm text-[#8a7456]">
+    <div className="space-y-6">
+      <section className="rounded-3xl border border-line bg-white p-6 shadow-card">
+        <p className="flex items-center gap-2 text-lg font-semibold text-earth"><CalendarClock size={20} /> Calendrier cultures</p>
+        <p className="mt-1 text-sm text-slate">
           Semis, traitements, récoltes et fin de cycle — pilotage temporel uniquement (pas de création parcelle ici).
         </p>
         <div className="mt-4 space-y-2">
           {timeline.length ? timeline.map((item, i) => {
             const inDays = daysUntil(item.date);
             return (
-              <div key={`${item.date}-${item.kind}-${i}`} className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-[#eadcc2] bg-[#fffdf8] px-3 py-2 text-sm">
+              <div key={`${item.date}-${item.kind}-${i}`} className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-line bg-card px-3 py-2 text-sm">
                 <div>
-                  <b className="text-[#2f2415]">{item.kind}</b> · {item.label}
-                  <p className="text-xs text-[#8a7456]">{item.detail}</p>
+                  <b className="text-earth">{item.kind}</b> · {item.label}
+                  <p className="text-xs text-slate">{item.detail}</p>
                 </div>
-                <span className="text-xs font-black text-[#8a7456]">
+                <span className="text-xs font-semibold text-slate">
                   {String(item.date).slice(0, 10)}{inDays != null ? ` · J${inDays >= 0 ? '+' : ''}${inDays}` : ''}
                 </span>
               </div>
             );
-          }) : <p className="text-sm text-[#8a7456]">Planifiez des dates de semis et récolte sur les fiches cultures (onglet Parcelles & Cultures).</p>}
+          }) : <p className="text-sm text-slate">Planifiez des dates de semis et récolte sur les fiches cultures (onglet Parcelles & Cultures).</p>}
         </div>
         <div className="mt-4 flex flex-wrap gap-2">
-          <button type="button" onClick={() => onNavigate?.('commercial', { tab: 'Opportunités' })} className="rounded-xl border border-[#eadcc2] px-3 py-2 text-xs font-black text-emerald-800">Prévisions récoltes → Commercial</button>
-          <button type="button" onClick={() => onNavigate?.('finance_pilotage', { tab: 'Rentabilité' })} className="rounded-xl border border-[#eadcc2] px-3 py-2 text-xs font-black text-emerald-800">Prévisions revenus → Finance</button>
+          <button type="button" onClick={() => onNavigate?.('commercial', { tab: 'Opportunités' })} className="rounded-xl border border-line px-3 py-2 text-xs font-semibold text-positive">Prévisions récoltes → Commercial</button>
+          <button type="button" onClick={() => onNavigate?.('finance_pilotage', { tab: 'Rentabilité' })} className="rounded-xl border border-line px-3 py-2 text-xs font-semibold text-positive">Prévisions revenus → Finance</button>
         </div>
       </section>
       <LifecycleHistoryPanel mode="cultures" rows={rows} salesOrders={salesOrders} deliveries={deliveries} businessEvents={businessEvents} />

@@ -14,6 +14,7 @@ export default {
   equipe: ['Vue d’ensemble', 'Membres', 'Affectations', 'Absences'],
   equipements: ['Parc', 'Acquisitions', 'Pannes', 'Réparations', 'Coûts & disponibilité'],
   gestion_systeme: ['Fermes', 'Utilisateurs & accès', 'Rôles & permissions', 'Modules & activation', 'Paramètres', 'Référentiels', 'Catalogues KPI & alertes', 'Synchronisation', 'Audit & sécurité'],
+  sync_activity: ['Vérifications', 'Connexion & envoi', "Journal d'activité"],
   agri_feeds: ['Vue d’ensemble', 'Matières & fournisseurs', 'Formulations', 'Production', 'Essais & performance', 'Qualité', 'Commercial', 'Coûts & décisions'],
   smartfarm: ['Vue d’ensemble', 'Relevés d’eau', 'Énergie', 'Bâtiments', 'Dispositifs', 'Relevés & qualité', 'Configuration'],
   financements: {

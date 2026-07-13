@@ -44,6 +44,7 @@ export function buildCommercialAnswerPayload({
   situation = '',
   cause = '',
   action = '',
+  sources = [],
   rows = [],
   route = 'commercial',
   tab = 'Pilotage',
@@ -51,7 +52,6 @@ export function buildCommercialAnswerPayload({
   insufficientData = false,
   extra = {},
 } = {}) {
-  const displaySources = [];
   const summary = formatConversationalHorizonAnswer({ situation, cause, action });
   return {
     type,
@@ -60,7 +60,7 @@ export function buildCommercialAnswerPayload({
     situation,
     cause,
     action,
-    sources: displaySources,
+    sources,
     rows,
     route,
     tab,

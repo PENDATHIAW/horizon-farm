@@ -54,11 +54,11 @@ export default function CommercialInvestorInsights({
   ].slice(0, 3);
 
   return (
-    <section className="rounded-2xl border border-[#d6c3a0] bg-[#fffdf8] p-4">
-      <p className="text-[11px] font-black uppercase tracking-widest text-[#9a6b12]">Mode investisseur</p>
-      <ul className="mt-2 space-y-1 text-sm text-[#2f2415]">
+    <section className="rounded-2xl border border-line bg-card p-4">
+      <p className="text-meta font-semibold uppercase tracking-normal text-horizon-dark">Mode investisseur</p>
+      <ul className="mt-2 space-y-1 text-sm text-earth">
         {lines.map((line, index) => (
-          <li key={index} className="font-bold leading-snug">{line}</li>
+          <li key={index} className="font-semibold leading-snug">{line}</li>
         ))}
       </ul>
     </section>

@@ -3,7 +3,6 @@ import assert from 'node:assert/strict';
 
 import {
   buildProblemFiche,
-  buildProblemFiches,
   completeActiviteTask,
   createLinkedTaskFromAlert,
   enrichAlertPatch,

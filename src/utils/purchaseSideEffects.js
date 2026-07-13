@@ -4,6 +4,7 @@ import { buildStockCriticalFollowUp, hasOpenStockReorderTask, stockProductName, 
 import { alertIds, documentIds, financeIds } from './sideEffectIds.js';
 import { attachIdempotency, buildIdempotencyKey, WORKFLOW_TYPES } from './workflowDedupe.js';
 import { toNumber } from './format.js';
+import { appendStockTraceStep } from './stockTraceSideEffects.js';
 
 const arr = (value) => (Array.isArray(value) ? value : []);
 const clean = (value) => String(value || '').trim();

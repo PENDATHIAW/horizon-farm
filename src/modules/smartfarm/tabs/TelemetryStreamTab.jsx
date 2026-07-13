@@ -51,7 +51,10 @@ function liveSensorSeries(sensors = []) {
 export default function TelemetryStreamTab({ data, handlers, realtime }) {
   const [refreshKey, setRefreshKey] = useState(0);
   const events = data.smartfarmEvents;
-  const series = useMemo(() => bucketEventsByHour(events), [events, refreshKey]);
+  const series = useMemo(() => {
+    void refreshKey;
+    return bucketEventsByHour(events);
+  }, [events, refreshKey]);
   const live = useMemo(() => liveSensorSeries(data.sensors), [data.sensors]);
   const connected = data.realtimeConnected ?? realtime?.connected;
   const lastPulse = data.lastPulse ?? realtime?.lastPulse;
@@ -72,46 +75,46 @@ export default function TelemetryStreamTab({ data, handlers, realtime }) {
   return (
     <div className="space-y-6">
       <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
-        <div className="rounded-2xl border border-[#eadcc2] bg-[#fffdf8] p-4">
-          <p className="text-xs text-[#8a7456]">Température air</p>
-          <p className="mt-1 text-xl font-black text-[#2f2415]">{live.tempNow != null ? `${live.tempNow}°` : data.meteo?.temp != null ? `${data.meteo.temp}°` : '—'}</p>
-          <p className="text-xs text-[#8a7456]">{live.tempLabel}</p>
+        <div className="rounded-2xl border border-line bg-card p-4">
+          <p className="text-xs text-slate">Température air</p>
+          <p className="mt-1 text-xl font-semibold text-earth">{live.tempNow != null ? `${live.tempNow}°` : data.meteo?.temp != null ? `${data.meteo.temp}°` : '—'}</p>
+          <p className="text-xs text-slate">{live.tempLabel}</p>
         </div>
-        <div className="rounded-2xl border border-[#eadcc2] bg-[#fffdf8] p-4">
-          <p className="text-xs text-[#8a7456]">Humidité air</p>
-          <p className="mt-1 text-xl font-black text-[#2f2415]">{live.humNow != null ? `${live.humNow}%` : data.meteo?.humidite != null ? `${data.meteo.humidite}%` : '—'}</p>
-          <p className="text-xs text-[#8a7456]">{live.humLabel}</p>
+        <div className="rounded-2xl border border-line bg-card p-4">
+          <p className="text-xs text-slate">Humidité air</p>
+          <p className="mt-1 text-xl font-semibold text-earth">{live.humNow != null ? `${live.humNow}%` : data.meteo?.humidite != null ? `${data.meteo.humidite}%` : '—'}</p>
+          <p className="text-xs text-slate">{live.humLabel}</p>
         </div>
-        <div className="rounded-2xl border border-[#eadcc2] bg-[#fffdf8] p-4">
-          <p className="text-xs text-[#8a7456]">Humidité sol</p>
-          <p className="mt-1 text-xl font-black text-[#2f2415]">{live.soilNow != null ? `${live.soilNow}%` : '—'}</p>
-          <p className="text-xs text-[#8a7456]">{live.soilLabel}</p>
+        <div className="rounded-2xl border border-line bg-card p-4">
+          <p className="text-xs text-slate">Humidité sol</p>
+          <p className="mt-1 text-xl font-semibold text-earth">{live.soilNow != null ? `${live.soilNow}%` : '—'}</p>
+          <p className="text-xs text-slate">{live.soilLabel}</p>
         </div>
-        <div className="rounded-2xl border border-[#eadcc2] bg-[#fffdf8] p-4">
-          <p className="text-xs text-[#8a7456]">Événements (24h)</p>
-          <p className="mt-1 text-xl font-black text-[#2f2415]">{fmtNumber(events.length)}</p>
+        <div className="rounded-2xl border border-line bg-card p-4">
+          <p className="text-xs text-slate">Événements (24h)</p>
+          <p className="mt-1 text-xl font-semibold text-earth">{fmtNumber(events.length)}</p>
         </div>
       </div>
 
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <div className="flex items-center gap-2 text-xs font-bold">
+        <div className="flex items-center gap-2 text-xs font-semibold">
           {connected ? (
-            <span className="inline-flex items-center gap-1 rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 text-emerald-800">
+            <span className="inline-flex items-center gap-1 rounded-full border border-positive bg-positive-bg px-3 py-1 text-positive">
               <Wifi size={14} /> Realtime connecté
             </span>
           ) : (
-            <span className="inline-flex items-center gap-1 rounded-full border border-amber-200 bg-amber-50 px-3 py-1 text-amber-800">
+            <span className="inline-flex items-center gap-1 rounded-full border border-vigilance bg-vigilance-bg px-3 py-1 text-horizon-dark">
               <WifiOff size={14} /> Realtime en attente
             </span>
           )}
           {lastPulse ? (
-            <span className="text-[#8a7456]">Dernier signal · {String(lastPulse).slice(0, 19).replace('T', ' ')}</span>
+            <span className="text-slate">Dernier signal · {String(lastPulse).slice(0, 19).replace('T', ' ')}</span>
           ) : null}
         </div>
         <button
           type="button"
           onClick={refreshFlux}
-          className="inline-flex items-center gap-2 rounded-lg border border-[#d6c3a0] bg-white px-3 py-2 text-xs font-black text-[#2f2415]"
+          className="inline-flex items-center gap-2 rounded-lg border border-line bg-white px-3 py-2 text-xs font-semibold text-earth"
         >
           <RefreshCw size={14} /> Rafraîchir le flux
         </button>
@@ -131,29 +134,29 @@ export default function TelemetryStreamTab({ data, handlers, realtime }) {
         ]}
       />
 
-      <section className="rounded-3xl border border-[#d6c3a0] bg-white p-5 shadow-sm">
-        <h3 className="flex items-center gap-2 text-lg font-black text-[#2f2415]">
+      <section className="rounded-3xl border border-line bg-white p-6 shadow-card">
+        <h3 className="flex items-center gap-2 text-lg font-semibold text-earth">
           <Activity size={20} /> Flux temps réel
         </h3>
-        <p className="mt-1 text-sm text-[#8a7456]">Derniers signaux IoT — chaque ligne peut générer une alerte automatique.</p>
+        <p className="mt-1 text-sm text-slate">Derniers signaux IoT — chaque ligne peut générer une alerte automatique.</p>
         <div className="mt-4 space-y-2 max-h-80 overflow-y-auto">
           {events.length ? events.slice(0, 30).map((ev) => (
-            <div key={ev.id} className="flex flex-col gap-1 rounded-xl border border-[#eadcc2] bg-[#fffdf8] px-3 py-2 text-sm sm:flex-row sm:items-center sm:justify-between">
+            <div key={ev.id} className="flex flex-col gap-1 rounded-xl border border-line bg-card px-3 py-2 text-sm sm:flex-row sm:items-center sm:justify-between">
               <div>
-                <b className="text-[#2f2415]">{ev.event_type || 'signal'}</b>
-                <p className="text-xs text-[#8a7456]">{ev.zone || '—'} · {ev.message || ev.device_id || ''}</p>
+                <b className="text-earth">{ev.event_type || 'signal'}</b>
+                <p className="text-xs text-slate">{ev.zone || '—'} · {ev.message || ev.device_id || ''}</p>
               </div>
-              <span className="text-xs font-bold text-[#7d6a4a]">{String(ev.created_at || '').slice(0, 19).replace('T', ' ')}</span>
+              <span className="text-xs font-semibold text-slate">{String(ev.created_at || '').slice(0, 19).replace('T', ' ')}</span>
             </div>
           )) : (
-            <p className="text-sm text-[#8a7456]">Aucun événement — les signaux capteurs apparaîtront ici dès qu’ils seront reçus.</p>
+            <p className="text-sm text-slate">Aucun événement — les signaux capteurs apparaîtront ici dès qu’ils seront reçus.</p>
           )}
         </div>
       </section>
 
-      <p className="text-xs text-[#8a7456]">
+      <p className="text-xs text-slate">
         Les alertes automatiques sont envoyées vers Activité & Suivi lorsque les seuils ou événements critiques sont détectés.
-        <button type="button" className="ml-2 font-bold text-emerald-700 underline" onClick={() => handlers.onNavigate?.('activite_suivi')}>
+        <button type="button" className="ml-2 font-semibold text-positive underline" onClick={() => handlers.onNavigate?.('activite_suivi')}>
           Ouvrir le cockpit
         </button>
       </p>

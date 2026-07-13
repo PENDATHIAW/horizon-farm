@@ -1,0 +1,126 @@
+@theme {
+  --font-sans: "Inter", system-ui, sans-serif;
+  --font-display: "Fraunces", Georgia, serif;
+  --font-serif: "Fraunces", Georgia, serif;
+
+  --color-earth: #14402E;
+  --color-leaf: #1E5A40;
+  --color-horizon: #C9971C;
+  --color-horizon-dark: #9A7413;
+  --color-pure: #FFFFFF;
+  --color-mist: #F6F8F6;
+  --color-card: #FBFCFB;
+  --color-ink: #20302A;
+  --color-slate: #5E6E65;
+  --color-line: #E5EBE7;
+  --color-positive: #2E7D52;
+  --color-positive-bg: #EAF4EE;
+  --color-vigilance: #C9971C;
+  --color-vigilance-bg: #FBF3DF;
+  --color-urgent: #C0402B;
+  --color-urgent-bg: #F9EAE7;
+  --color-neutral: #5E6E65;
+  --color-neutral-bg: #F0F3F1;
+
+  --spacing: 0.25rem;
+  --radius-card: 0.75rem;
+  --radius-control: 0.625rem;
+  --radius-chip: 999px;
+  --shadow-card: 0 1px 3px rgba(20, 64, 46, 0.06), 0 4px 12px rgba(20, 64, 46, 0.04);
+  --shadow-float: 0 2px 6px rgba(20, 64, 46, 0.10), 0 10px 24px rgba(20, 64, 46, 0.08);
+  --text-label: 0.8rem;
+  --text-meta: 0.72rem;
+  --text-body: 0.95rem;
+  --text-data: 1rem;
+  --text-section: 1.15rem;
+  --text-screen: 1.5rem;
+  --text-card-value: 2rem;
+  --text-xs: 0.72rem;
+  --text-sm: 0.95rem;
+  --text-base: 1rem;
+  --text-lg: 1.15rem;
+  --text-xl: 1.5rem;
+  --text-2xl: 1.5rem;
+  --text-3xl: 1.5rem;
+  --text-4xl: 1.5rem;
+  --text-5xl: 1.5rem;
+  --text-6xl: 1.5rem;
+}
+
+:root {
+  color-scheme: light;
+
+  --hf-earth: #14402E;
+  --hf-leaf: #1E5A40;
+  --hf-horizon: #C9971C;
+  --hf-horizon-dark: #9A7413;
+  --hf-white: #FFFFFF;
+  --hf-mist: #F6F8F6;
+  --hf-card: #FBFCFB;
+  --hf-ink: #20302A;
+  --hf-slate: #5E6E65;
+  --hf-line: #E5EBE7;
+
+  --hf-positive: #2E7D52;
+  --hf-positive-bg: #EAF4EE;
+  --hf-vigilance: #C9971C;
+  --hf-vigilance-bg: #FBF3DF;
+  --hf-urgent: #C0402B;
+  --hf-urgent-bg: #F9EAE7;
+  --hf-neutral: #5E6E65;
+  --hf-neutral-bg: #F0F3F1;
+
+  --hf-space-1: 0.25rem;
+  --hf-space-2: 0.5rem;
+  --hf-space-3: 0.75rem;
+  --hf-space-4: 1rem;
+  --hf-space-6: 1.5rem;
+  --hf-space-8: 2rem;
+  --hf-space-12: 3rem;
+
+  --hf-radius-card: 0.75rem;
+  --hf-radius-control: 0.625rem;
+  --hf-radius-chip: 999px;
+  --hf-shadow-card: 0 1px 3px rgba(20, 64, 46, 0.06), 0 4px 12px rgba(20, 64, 46, 0.04);
+  --hf-shadow-float: 0 2px 6px rgba(20, 64, 46, 0.10), 0 10px 24px rgba(20, 64, 46, 0.08);
+
+  --hf-font-display: "Fraunces", Georgia, serif;
+  --hf-font-sans: "Inter", system-ui, sans-serif;
+  --hf-text-card-value: 2rem;
+  --hf-text-screen-title: 1.5rem;
+  --hf-text-section-title: 1.15rem;
+  --hf-text-body: 0.95rem;
+  --hf-text-value: 1rem;
+  --hf-text-label: 0.8rem;
+  --hf-text-meta: 0.72rem;
+  --hf-kpi-min-height: 13.5rem;
+  --hf-kpi-chart-height: 2.5rem;
+
+  --hf-duration-fast: 140ms;
+  --hf-duration-normal: 200ms;
+  --hf-density-scale: 1;
+
+  /* Compatibility aliases consumed by established modules. */
+  --hf-bg: var(--hf-mist);
+  --hf-surface: var(--hf-white);
+  --hf-border: var(--hf-line);
+  --hf-border-soft: var(--hf-line);
+  --hf-text: var(--hf-ink);
+  --hf-muted: var(--hf-slate);
+  --hf-soft: var(--hf-positive-bg);
+  --hf-accent: var(--hf-horizon);
+  --hf-accent-strong: var(--hf-horizon-dark);
+  --hf-hero: var(--hf-earth);
+  --hf-shadow-soft: var(--hf-shadow-card);
+  --hf-shadow-hover: var(--hf-shadow-float);
+}
+
+html[data-horizon-theme='dark'],
+html[data-horizon-theme='light'],
+html[data-horizon-theme='system'] {
+  color-scheme: light;
+}
+
+html[data-horizon-density='compact'] {
+  --hf-density-scale: 0.82;
+}

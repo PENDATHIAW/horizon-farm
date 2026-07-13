@@ -35,7 +35,7 @@ test('ListeAlertes rend les alertes filtrées', () => {
   assert.match(html, /Stock critique/);
 });
 
-test('CarteKPI rend valeur, période et source reçues', () => {
+test('CarteKPI rend valeur, période et destination cliquable', () => {
   const html = renderToString(React.createElement(CarteKPI, {
     code: 'ca',
     periode: 'Juillet',
@@ -44,5 +44,6 @@ test('CarteKPI rend valeur, période et source reçues', () => {
   }));
   assert.match(html, /125/);
   assert.match(html, /Juillet/);
-  assert.match(html, /Commercial/);
+  assert.match(html, /aria-label="Chiffre d/);
+  assert.match(html, /hf-kpi-card-clickable/);
 });

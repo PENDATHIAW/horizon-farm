@@ -198,7 +198,7 @@ test('buildCarnetSensorStrip — température et alertes capteurs', () => {
 });
 
 test('buildSensorDashboardSummary — sans capteur utilise météo', () => {
-  const summary = buildSensorDashboardSummary([], [], { temp: 31 });
+  const summary = buildSensorDashboardSummary([], { temp: 31 });
   assert.equal(summary.tempDisplay, 31);
   assert.equal(summary.headline, '31°C');
 });

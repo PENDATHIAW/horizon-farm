@@ -7,18 +7,18 @@ export default function FinanceHeyHorizonStrip({ questions = [], onNavigate, onO
   if (!questions.length) return null;
 
   return (
-    <section className="rounded-3xl border border-violet-200 bg-violet-50/40 p-5">
+    <section className="rounded-3xl border border-line bg-neutral-bg p-6">
       <div className="flex items-center gap-2">
-        <MessageCircle size={18} className="text-violet-700" />
-        <h2 className="text-base font-black text-[#2f2415]">Hey Horizon Finance</h2>
+        <MessageCircle size={18} className="text-neutral" />
+        <h2 className="text-base font-semibold text-earth">Hey Horizon Finance</h2>
       </div>
-      <p className="mt-1 text-sm text-[#8a7456]">
+      <p className="mt-1 text-sm text-slate">
         {insufficientData
           ? 'Questions guidées — réponses honnêtes même sans historique financier.'
           : 'Questions rapides basées sur vos données financières.'}
       </p>
       {insufficientData ? (
-        <p className="mt-2 rounded-xl border border-violet-100 bg-white/80 px-3 py-2 text-xs text-violet-900">{EMPTY_STATE_FINANCE_QA}</p>
+        <p className="mt-2 rounded-xl border border-line bg-white/80 px-3 py-2 text-xs text-neutral">{EMPTY_STATE_FINANCE_QA}</p>
       ) : null}
       <div className="mt-3 flex flex-wrap gap-2">
         {questions.map((item) => (
@@ -31,7 +31,7 @@ export default function FinanceHeyHorizonStrip({ questions = [], onNavigate, onO
               onNavigate,
               onOpenAssistant,
             })}
-            className="rounded-full border border-violet-200 bg-white px-3 py-1.5 text-xs font-black text-violet-900 hover:bg-violet-50"
+            className="rounded-full border border-line bg-white px-3 py-2 text-xs font-semibold text-neutral hover:bg-neutral-bg"
           >
             {item.label}
           </button>

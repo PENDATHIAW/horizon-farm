@@ -23,6 +23,7 @@ export function buildElevageInvestorReport({
   findings = [],
   periodLabel = '',
   farmLabel = '',
+  referenceDate,
 } = {}) {
   const pnl = buildElevageActivityPnl({
     lots,
@@ -43,7 +44,8 @@ export function buildElevageInvestorReport({
     findings,
   });
 
-  const weekAgo = new Date(Date.now() - 7 * 86400000).toISOString().slice(0, 10);
+  const referenceTime = referenceDate ? new Date(referenceDate).getTime() : Date.now();
+  const weekAgo = new Date(referenceTime - 7 * 86400000).toISOString().slice(0, 10);
   const eggs7d = arr(productionLogs)
     .filter((r) => String(r.date || '').slice(0, 10) >= weekAgo)
     .reduce((s, r) => s + Number(r.oeufs_produits || r.eggs_count || 0), 0);
@@ -54,7 +56,7 @@ export function buildElevageInvestorReport({
     businessEvents,
     periodStart: weekAgo,
   });
-  const cyclesPipeline = buildCycleInvestorPipeline({ lots, animaux, horizonDays: 90 });
+  const cyclesPipeline = buildCycleInvestorPipeline({ lots, animaux, horizonDays: 90, referenceDate });
 
   return {
     title: 'Synthèse Élevage Horizon Farm',

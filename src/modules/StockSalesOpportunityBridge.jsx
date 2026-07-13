@@ -71,14 +71,14 @@ export default function StockSalesOpportunityBridge({ rows = [], opportunities =
   };
 
   return (
-    <div className="rounded-2xl border border-[#d6c3a0] bg-white p-5 space-y-4">
+    <div className="rounded-2xl border border-line bg-white p-6 space-y-4">
       <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3">
         <div>
-          <p className="text-xs uppercase tracking-widest text-[#8a7456]">Stock vendable</p>
-          <h3 className="font-black text-[#2f2415]">Produits disponibles vers Ventes</h3>
-          <p className="text-sm text-[#8a7456] mt-1">Un stock vendable peut devenir une opportunité de vente sans ressaisie.</p>
+          <p className="text-xs uppercase tracking-normal text-slate">Stock vendable</p>
+          <h3 className="font-semibold text-earth">Produits disponibles vers Ventes</h3>
+          <p className="text-sm text-slate mt-1">Un stock vendable peut devenir une opportunité de vente sans ressaisie.</p>
         </div>
-        <div className="rounded-xl border border-[#eadcc2] bg-[#fffdf8] px-3 py-2 text-sm text-[#7d6a4a]"><Tag size={14} className="inline" /> {candidates.length} source(s)</div>
+        <div className="rounded-xl border border-line bg-card px-3 py-2 text-sm text-slate"><Tag size={14} className="inline" /> {candidates.length} source(s)</div>
       </div>
       {candidates.length ? (
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-2">
@@ -86,18 +86,18 @@ export default function StockSalesOpportunityBridge({ rows = [], opportunities =
             const qty = quantityOf(row);
             const unitPrice = unitPriceOf(row);
             return (
-              <div key={row.id} className="rounded-xl border border-[#eadcc2] bg-[#fffdf8] p-3">
-                <p className="font-bold text-[#2f2415]"><Package size={14} className="inline" /> {productNameOf(row)}</p>
-                <p className="text-xs text-[#8a7456] mt-1">{fmtNumber(qty)} {row.unite || ''} disponibles</p>
-                <p className="text-xs text-[#8a7456] mt-1">Valeur estimée : <b>{fmtCurrency(qty * unitPrice)}</b></p>
-                {existing ? <p className="text-xs text-emerald-700 mt-1">Opportunité existante : mise à jour</p> : null}
-                <button type="button" disabled={savingId === row.id} className="mt-3 text-sm font-bold text-emerald-700 disabled:opacity-60" onClick={() => createOpportunity(row)}><CheckCircle2 size={14} className="inline" /> {savingId === row.id ? 'Création...' : 'Créer opportunité'}</button>
+              <div key={row.id} className="rounded-xl border border-line bg-card p-3">
+                <p className="font-semibold text-earth"><Package size={14} className="inline" /> {productNameOf(row)}</p>
+                <p className="text-xs text-slate mt-1">{fmtNumber(qty)} {row.unite || ''} disponibles</p>
+                <p className="text-xs text-slate mt-1">Valeur estimée : <b>{fmtCurrency(qty * unitPrice)}</b></p>
+                {existing ? <p className="text-xs text-positive mt-1">Opportunité existante : mise à jour</p> : null}
+                <button type="button" disabled={savingId === row.id} className="mt-3 text-sm font-semibold text-positive disabled:opacity-60" onClick={() => createOpportunity(row)}><CheckCircle2 size={14} className="inline" /> {savingId === row.id ? 'Création...' : 'Créer opportunité'}</button>
               </div>
             );
           })}
         </div>
       ) : (
-        <div className="rounded-xl border border-[#eadcc2] bg-[#fffdf8] p-3 text-sm text-[#8a7456]"><CheckCircle2 size={14} className="inline" /> Aucun stock vendable à convertir.</div>
+        <div className="rounded-xl border border-line bg-card p-3 text-sm text-slate"><CheckCircle2 size={14} className="inline" /> Aucun stock vendable à convertir.</div>
       )}
     </div>
   );

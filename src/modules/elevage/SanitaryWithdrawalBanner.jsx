@@ -10,22 +10,22 @@ export default function SanitaryWithdrawalBanner({ healthRows = [], className = 
 
   return (
     <div
-      className={`rounded-2xl border border-red-200 bg-red-50 p-4 text-sm text-red-900 ${className}`}
+      className={`rounded-2xl border border-urgent bg-urgent-bg p-4 text-sm text-urgent ${className}`}
       role="alert"
     >
-      <p className="flex items-center gap-2 font-black">
+      <p className="flex items-center gap-2 font-semibold">
         <AlertTriangle size={18} className="shrink-0" />
         Délai sanitaire en cours — vente et transformation bloquées
       </p>
-      <ul className="mt-2 space-y-1 text-red-800">
+      <ul className="mt-2 space-y-1 text-urgent">
         {active.slice(0, 5).map((row) => (
           <li key={row.id || formatWithdrawalLabel(row)}>{formatWithdrawalLabel(row)}</li>
         ))}
         {active.length > 5 ? (
-          <li className="text-xs font-bold">+{active.length - 5} autre(s) traitement(s) actif(s)</li>
+          <li className="text-xs font-semibold">+{active.length - 5} autre(s) traitement(s) actif(s)</li>
         ) : null}
       </ul>
-      <p className="mt-2 text-xs text-red-700">
+      <p className="mt-2 text-xs text-urgent">
         Les raccourcis Commercial et transformation demandent une confirmation explicite si vous dérogez.
       </p>
     </div>

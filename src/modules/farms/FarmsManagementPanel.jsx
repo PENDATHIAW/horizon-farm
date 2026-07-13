@@ -13,6 +13,7 @@ import {
   setFarmDemoModeEnabled,
 } from '../../utils/farmDemoMode.js';
 import {
+  buildFarmRecordFromCreationDraft,
   buildFarmUpdateFromDraft,
   cloneFarmCreationDraft,
   EMPTY_FARM_CREATION_DRAFT,
@@ -22,11 +23,11 @@ import { DEFAULT_FARM_ID } from '../../utils/farmScope.js';
 import FarmCreationWizard from './FarmCreationWizard.jsx';
 
 function StatusPill({ status = 'active' }) {
-  const tone = status === 'active' ? 'border-emerald-200 bg-emerald-50 text-emerald-700'
-    : status === 'paused' ? 'border-amber-200 bg-amber-50 text-amber-700'
-      : 'border-slate-200 bg-slate-50 text-slate-600';
+  const tone = status === 'active' ? 'border-positive bg-positive-bg text-positive'
+    : status === 'paused' ? 'border-vigilance bg-vigilance-bg text-horizon-dark'
+      : 'border-line bg-neutral-bg text-neutral';
   const label = status === 'active' ? 'Active' : status === 'paused' ? 'En pause' : 'Archivée';
-  return <span className={`rounded-full border px-3 py-1 text-xs font-black ${tone}`}>{label}</span>;
+  return <span className={`rounded-full border px-3 py-1 text-xs font-semibold ${tone}`}>{label}</span>;
 }
 
 function farmToDraft(farm = {}) {
@@ -149,7 +150,6 @@ export default function FarmsManagementPanel({
         await farmsService.saveUserFarmAccess(editFarm.id, draft.users?.assignments || [], user?.id);
         toast.success('Ferme mise à jour.');
       } else {
-        const { buildFarmRecordFromCreationDraft } = await import('../../config/farmCreationModel.js');
         const record = buildFarmRecordFromCreationDraft(draft, companyId, user?.id);
         const { farm } = await farmsService.createFarm(record, user?.id, companyId);
         await farmsService.saveUserFarmAccess(farm.id, draft.users?.assignments || [], user?.id);
@@ -164,7 +164,7 @@ export default function FarmsManagementPanel({
   };
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-6">
       <FarmDemoModeBanner
         enabled={demoModeEnabled}
         onToggle={() => {
@@ -174,7 +174,7 @@ export default function FarmsManagementPanel({
         }}
       />
       {!demoModeEnabled && monoFarm && canManage ? (
-        <div className="rounded-2xl border border-violet-200 bg-violet-50 px-4 py-3 text-sm text-violet-900 flex flex-wrap items-center justify-between gap-2">
+        <div className="rounded-2xl border border-line bg-neutral-bg px-4 py-3 text-sm text-neutral flex flex-wrap items-center justify-between gap-2">
           <span>Activer le mode démo multi-fermes pour présenter consolidation et comparaison sans modifier vos données réelles.</span>
           <button
             type="button"
@@ -183,18 +183,18 @@ export default function FarmsManagementPanel({
               setDemoModeEnabled(true);
               window.location.reload();
             }}
-            className="rounded-lg border border-violet-300 bg-white px-3 py-1 text-xs font-black"
+            className="rounded-lg border border-line bg-white px-3 py-1 text-xs font-semibold"
           >
             Activer démo
           </button>
         </div>
       ) : null}
-      <section className="rounded-3xl border border-[#d6c3a0] bg-white p-5 shadow-sm">
+      <section className="rounded-3xl border border-line bg-white p-6 shadow-card">
         <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
           <div>
-            <p className="text-xs uppercase tracking-[0.25em] text-[#9a6b12] font-black">Multi-Fermes</p>
-            <h2 className="mt-1 text-xl font-black text-[#2f2415]">Gestion des fermes</h2>
-            <p className="mt-1 text-sm text-[#8a7456]">
+            <p className="text-xs uppercase tracking-normal text-horizon-dark font-semibold">Multi-Fermes</p>
+            <h2 className="mt-1 text-xl font-semibold text-earth">Gestion des fermes</h2>
+            <p className="mt-1 text-sm text-slate">
               {monoFarm
                 ? 'Horizon Farm est votre ferme par défaut.'
                 : `${activeFarms.length} ferme(s) accessible(s).`}
@@ -204,7 +204,7 @@ export default function FarmsManagementPanel({
             <button
               type="button"
               onClick={() => { setEditFarm(null); setWizardOpen(true); }}
-              className="inline-flex items-center gap-2 rounded-2xl bg-[#22c55e] px-4 py-3 text-sm font-black text-[#052e16]"
+              className="inline-flex items-center gap-2 rounded-2xl bg-leaf px-4 py-3 text-sm font-semibold text-earth"
             >
               <Plus size={16} />
               Ajouter une ferme
@@ -214,31 +214,31 @@ export default function FarmsManagementPanel({
       </section>
 
       {loading ? (
-        <div className="rounded-3xl border border-[#eadcc2] bg-[#fffdf8] p-6 text-sm text-[#8a7456]">Chargement des fermes…</div>
+        <div className="rounded-3xl border border-line bg-card p-6 text-sm text-slate">Chargement des fermes…</div>
       ) : (
         <div className="space-y-3">
           {farms.map((farm) => (
-            <article key={farm.id} className="rounded-3xl border border-[#eadcc2] bg-white p-5 shadow-sm">
+            <article key={farm.id} className="rounded-3xl border border-line bg-white p-6 shadow-card">
               <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
                 <div className="space-y-2">
                   <div className="flex flex-wrap items-center gap-2">
-                    <Building2 size={18} className="text-[#9a6b12]" />
-                    <h3 className="text-lg font-black text-[#2f2415]">{farm.name}</h3>
+                    <Building2 size={18} className="text-horizon-dark" />
+                    <h3 className="text-lg font-semibold text-earth">{farm.name}</h3>
                     {farm.is_default ? (
-                      <span className="inline-flex items-center gap-1 rounded-full border border-amber-200 bg-amber-50 px-2 py-0.5 text-[10px] font-black text-amber-800">
+                      <span className="inline-flex items-center gap-1 rounded-full border border-vigilance bg-vigilance-bg px-2 py-1 text-meta font-semibold text-horizon-dark">
                         <Star size={10} />
                         Défaut
                       </span>
                     ) : null}
                     <StatusPill status={farm.status} />
                   </div>
-                  <p className="text-sm text-[#8a7456]">
+                  <p className="text-sm text-slate">
                     {formatFarmActivitiesLabel(farm.activity_type)}
                   </p>
-                  <div className="grid grid-cols-1 gap-2 text-sm text-[#8a7456] md:grid-cols-3">
-                    <p><b className="text-[#2f2415]">Localisation :</b> {[farm.region, farm.location, farm.country].filter(Boolean).join(', ') || '—'}</p>
-                    <p><b className="text-[#2f2415]">Responsable :</b> {farm.settings?.manager_name || '—'}</p>
-                    <p><b className="text-[#2f2415]">Statut :</b> {farm.status}</p>
+                  <div className="grid grid-cols-1 gap-2 text-sm text-slate md:grid-cols-3">
+                    <p><b className="text-earth">Localisation :</b> {[farm.region, farm.location, farm.country].filter(Boolean).join(', ') || '—'}</p>
+                    <p><b className="text-earth">Responsable :</b> {farm.settings?.manager_name || '—'}</p>
+                    <p><b className="text-earth">Statut :</b> {farm.status}</p>
                   </div>
                 </div>
                 {canManage && farm.status !== 'archived' ? (
@@ -246,7 +246,7 @@ export default function FarmsManagementPanel({
                     <button
                       type="button"
                       onClick={() => { setEditFarm(farm); setWizardOpen(true); }}
-                      className="inline-flex items-center gap-1 rounded-xl border border-[#d6c3a0] px-3 py-2 text-xs font-black text-[#2f2415]"
+                      className="inline-flex items-center gap-1 rounded-xl border border-line px-3 py-2 text-xs font-semibold text-earth"
                     >
                       <Edit3 size={14} />
                       Modifier
@@ -255,7 +255,7 @@ export default function FarmsManagementPanel({
                       <button
                         type="button"
                         onClick={() => handleSetDefault(farm)}
-                        className="inline-flex items-center gap-1 rounded-xl border border-emerald-300 px-3 py-2 text-xs font-black text-emerald-800"
+                        className="inline-flex items-center gap-1 rounded-xl border border-positive px-3 py-2 text-xs font-semibold text-positive"
                       >
                         <Star size={14} />
                         Définir par défaut
@@ -265,7 +265,7 @@ export default function FarmsManagementPanel({
                       <button
                         type="button"
                         onClick={() => handleArchive(farm)}
-                        className="inline-flex items-center gap-1 rounded-xl border border-red-200 px-3 py-2 text-xs font-black text-red-700"
+                        className="inline-flex items-center gap-1 rounded-xl border border-urgent px-3 py-2 text-xs font-semibold text-urgent"
                       >
                         <Archive size={14} />
                         Archiver
@@ -281,32 +281,32 @@ export default function FarmsManagementPanel({
 
       {comparisonContext ? (
         <>
-          <section className="rounded-3xl border border-[#22c55e]/30 bg-gradient-to-br from-[#f0fdf4] to-white p-5 shadow-sm">
-            <p className="text-[11px] font-black uppercase tracking-[0.2em] text-emerald-800">Comparaison multi-fermes</p>
-            <h2 className="mt-1 text-lg font-black text-[#2f2415]">Performance par ferme</h2>
+          <section className="rounded-3xl border border-leaf/30 bg-positive-bg p-6 shadow-card">
+            <p className="text-meta font-semibold uppercase tracking-normal text-positive">Comparaison multi-fermes</p>
+            <h2 className="mt-1 text-lg font-semibold text-earth">Performance par ferme</h2>
             <div className="mt-3 grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-4">
               {comparisonContext.bestFarm ? (
-                <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-4">
-                  <p className="text-xs font-black uppercase text-emerald-800">Meilleure ferme</p>
-                  <p className="mt-1 font-black text-[#2f2415]">{comparisonContext.bestFarm.name}</p>
+                <div className="rounded-2xl border border-positive bg-positive-bg p-4">
+                  <p className="text-xs font-semibold uppercase text-positive">Meilleure ferme</p>
+                  <p className="mt-1 font-semibold text-earth">{comparisonContext.bestFarm.name}</p>
                 </div>
               ) : null}
               {comparisonContext.riskiestFarm ? (
-                <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4">
-                  <p className="text-xs font-black uppercase text-amber-800">Plus à risque</p>
-                  <p className="mt-1 font-black text-[#2f2415]">{comparisonContext.riskiestFarm.name}</p>
+                <div className="rounded-2xl border border-vigilance bg-vigilance-bg p-4">
+                  <p className="text-xs font-semibold uppercase text-horizon-dark">Plus à risque</p>
+                  <p className="mt-1 font-semibold text-earth">{comparisonContext.riskiestFarm.name}</p>
                 </div>
               ) : null}
               {comparisonContext.mostAlertsFarm ? (
-                <div className="rounded-2xl border border-red-200 bg-red-50 p-4">
-                  <p className="text-xs font-black uppercase text-red-800">Plus d&apos;alertes</p>
-                  <p className="mt-1 font-black text-[#2f2415]">{comparisonContext.mostAlertsFarm.name}</p>
+                <div className="rounded-2xl border border-urgent bg-urgent-bg p-4">
+                  <p className="text-xs font-semibold uppercase text-urgent">Plus d&apos;alertes</p>
+                  <p className="mt-1 font-semibold text-earth">{comparisonContext.mostAlertsFarm.name}</p>
                 </div>
               ) : null}
               {comparisonContext.launchingFarms?.length ? (
-                <div className="rounded-2xl border border-violet-200 bg-violet-50 p-4">
-                  <p className="text-xs font-black uppercase text-violet-800">En lancement</p>
-                  <p className="mt-1 font-black text-[#2f2415]">{comparisonContext.launchingFarms.map((farm) => farm.name).join(', ')}</p>
+                <div className="rounded-2xl border border-line bg-neutral-bg p-4">
+                  <p className="text-xs font-semibold uppercase text-neutral">En lancement</p>
+                  <p className="mt-1 font-semibold text-earth">{comparisonContext.launchingFarms.map((farm) => farm.name).join(', ')}</p>
                 </div>
               ) : null}
             </div>
@@ -317,7 +317,7 @@ export default function FarmsManagementPanel({
       ) : null}
 
       {!canManage ? (
-        <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800">
+        <div className="rounded-2xl border border-vigilance bg-vigilance-bg p-4 text-sm text-horizon-dark">
           <Users size={14} className="inline mr-1" />
           Vous consultez les fermes en lecture seule. Seuls les rôles direction/admin peuvent créer ou modifier une ferme.
         </div>

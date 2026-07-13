@@ -7,6 +7,7 @@
     "dev": "vite",
     "build": "vite build",
     "lint": "eslint .",
+    "audit:design": "node scripts/audit-design-system.mjs",
     "audit:reachability": "node scripts/audit-source-reachability.mjs",
     "preview": "vite preview",
     "pitch:generate": "node scripts/generate-pitch-assets.mjs",
@@ -19,7 +20,7 @@
     "test:e2e:report": "playwright show-report playwright-report",
     "test:e2e:roadmap": "PLAYWRIGHT_SKIP_WEBSERVER=1 playwright test tests/e2e/roadmap-completion.spec.js",
     "test:e2e:push-business": "PLAYWRIGHT_SKIP_WEBSERVER=1 playwright test tests/e2e/push-and-business-flows.spec.js",
-    "test:unit": "node --test tests/unit/*.test.js",
+    "test:unit": "node scripts/run-unit-tests.mjs",
     "test:unit:i18n": "node --test tests/unit/i18nCharteLibelles.test.js tests/unit/i18nChainesEnDur.test.js",
     "test:unit:demo-financeur": "npx vite-node tests/unit/demoFinanceurDryRun.test.js",
     "test:unit:financements": "npx vite-node tests/unit/financementsWorkflows.test.js",
@@ -67,7 +68,11 @@
     "test:unit:chart-explain": "node --test tests/unit/chartExplain.test.js",
     "test:unit:sales-publication": "npx vite-node tests/unit/salesPublication.test.js",
     "db:migrate": "bash scripts/apply_supabase_migrations.sh",
-    "db:migrate:verify": "node scripts/apply_supabase_migrations.mjs",
+    "db:migrate:status": "node scripts/supabase-management.mjs status",
+    "db:migrate:matrix": "node scripts/supabase-management.mjs matrix --json",
+    "db:migrate:isolation": "node scripts/supabase-management.mjs isolation",
+    "db:migrate:farm-rls": "node scripts/supabase-management.mjs apply supabase/migrations/20260713120000_farm_id_rls_all_business_tables.sql",
+    "db:migrate:verify": "node scripts/supabase-management.mjs verify supabase/verify_farm_id_rls.sql",
     "check": "npm run lint && npm run build && npm run test:e2e"
   },
   "dependencies": {
@@ -81,7 +86,7 @@
     "react-dom": "^19.2.5",
     "react-hot-toast": "^2.6.0",
     "recharts": "^3.8.1",
-    "xlsx": "^0.18.5"
+    "xlsx": "https://cdn.sheetjs.com/xlsx-0.20.3/xlsx-0.20.3.tgz"
   },
   "devDependencies": {
     "@babel/parser": "^7.29.3",
@@ -98,6 +103,7 @@
     "pg": "^8.21.0",
     "pptxgenjs": "^4.0.1",
     "tailwindcss": "^4.2.4",
-    "vite": "^8.0.10"
+    "vite": "^8.0.10",
+    "vite-node": "^6.0.0"
   }
 }

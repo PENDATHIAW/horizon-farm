@@ -30,20 +30,20 @@ const saleIdOf = (row = {}) => String(row.order_id || row.sale_id || row.source_
 const makeRepairId = (prefix) => `${prefix}-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 6).toUpperCase()}`;
 
 function ModuleSection({ icon: Icon, title, subtitle, children }) {
-  return <section className="rounded-3xl border border-[#d6c3a0] bg-white p-5 shadow-sm space-y-4"><div><p className="flex items-center gap-2 text-lg font-black text-[#2f2415]"><Icon size={20} /> {title}</p>{subtitle ? <p className="mt-1 text-sm text-[#8a7456]">{subtitle}</p> : null}</div>{children}</section>;
+  return <section className="rounded-3xl border border-line bg-white p-6 shadow-card space-y-4"><div><p className="flex items-center gap-2 text-lg font-semibold text-earth"><Icon size={20} /> {title}</p>{subtitle ? <p className="mt-1 text-sm text-slate">{subtitle}</p> : null}</div>{children}</section>;
 }
 
 function statusClass(status) {
-  if (status === 'critique') return 'border-red-200 bg-red-50 text-red-700';
-  if (status === 'a_verifier') return 'border-amber-200 bg-amber-50 text-amber-800';
-  return 'border-emerald-200 bg-emerald-50 text-emerald-700';
+  if (status === 'critique') return 'border-urgent bg-urgent-bg text-urgent';
+  if (status === 'a_verifier') return 'border-vigilance bg-vigilance-bg text-horizon-dark';
+  return 'border-positive bg-positive-bg text-positive';
 }
 function statusLabel(status) { if (status === 'critique') return 'Urgent'; if (status === 'a_verifier') return 'À revoir'; return 'OK'; }
 
 function FlowCard({ flow }) {
   return <div className={`rounded-2xl border p-4 ${statusClass(flow.status)}`}>
-    <div className="flex items-start justify-between gap-2"><div><p className="font-black">{flow.label}</p><p className="mt-1 text-xs opacity-80">{flow.issueCount} point(s) à regarder · {flow.criticalCount} urgent(s)</p></div><span className="rounded-full bg-white/60 px-2 py-1 text-xs font-black">{statusLabel(flow.status)}</span></div>
-    <details className="mt-3 text-xs"><summary className="cursor-pointer font-bold">Voir ce qui est vérifié</summary><ul className="mt-2 list-disc pl-4 space-y-1">{flow.checks.map((check) => <li key={check}>{check}</li>)}</ul></details>
+    <div className="flex items-start justify-between gap-2"><div><p className="font-semibold">{flow.label}</p><p className="mt-1 text-xs opacity-80">{flow.issueCount} point(s) à regarder · {flow.criticalCount} urgent(s)</p></div><span className="rounded-full bg-white/60 px-2 py-1 text-xs font-semibold">{statusLabel(flow.status)}</span></div>
+    <details className="mt-3 text-xs"><summary className="cursor-pointer font-semibold">Voir ce qui est vérifié</summary><ul className="mt-2 list-disc pl-4 space-y-1">{flow.checks.map((check) => <li key={check}>{check}</li>)}</ul></details>
   </div>;
 }
 
@@ -128,16 +128,16 @@ function IssueActions({ issue, props, onJustify }) {
   };
   return <div className="flex flex-wrap gap-1">
     {guidedActions.length ? guidedActions.map((action) => (
-      <button key={action.id} type="button" disabled={busy === action.id} onClick={() => runGuided(action)} className="rounded-full border border-emerald-200 bg-emerald-50 px-2 py-1 text-[11px] font-black text-emerald-700 disabled:opacity-40">
+      <button key={action.id} type="button" disabled={busy === action.id} onClick={() => runGuided(action)} className="rounded-full border border-positive bg-positive-bg px-2 py-1 text-meta font-semibold text-positive disabled:opacity-40">
         <Wrench size={12} className="inline" /> {busy === action.id ? 'Action...' : action.label}
       </button>
     )) : (
-      <button type="button" disabled={!fallbackAvailable || busy === 'fallback'} onClick={runFallback} className="rounded-full border border-emerald-200 bg-emerald-50 px-2 py-1 text-[11px] font-black text-emerald-700 disabled:opacity-40">
+      <button type="button" disabled={!fallbackAvailable || busy === 'fallback'} onClick={runFallback} className="rounded-full border border-positive bg-positive-bg px-2 py-1 text-meta font-semibold text-positive disabled:opacity-40">
         <Wrench size={12} className="inline" /> {busy === 'fallback' ? 'Action...' : fallbackLabel}
       </button>
     )}
-    <button type="button" onClick={() => props.onNavigate?.(routeForSyncIssue(issue), tabForSyncIssue(issue) ? { tab: tabForSyncIssue(issue) } : undefined)} className="rounded-full border border-sky-200 bg-sky-50 px-2 py-1 text-[11px] font-black text-sky-700">Ouvrir source</button>
-    <button type="button" disabled={Boolean(busy)} onClick={() => onJustify?.(issue)} className="rounded-full border border-violet-200 bg-violet-50 px-2 py-1 text-[11px] font-black text-violet-700 disabled:opacity-40"><ShieldCheck size={12} className="inline" /> Exception justifiée</button>
+    <button type="button" onClick={() => props.onNavigate?.(routeForSyncIssue(issue), tabForSyncIssue(issue) ? { tab: tabForSyncIssue(issue) } : undefined)} className="rounded-full border border-line bg-neutral-bg px-2 py-1 text-meta font-semibold text-neutral">Ouvrir source</button>
+    <button type="button" disabled={Boolean(busy)} onClick={() => onJustify?.(issue)} className="rounded-full border border-line bg-neutral-bg px-2 py-1 text-meta font-semibold text-neutral disabled:opacity-40"><ShieldCheck size={12} className="inline" /> Exception justifiée</button>
   </div>;
 }
 
@@ -149,10 +149,16 @@ function InterconnectionAudit(props) {
   const [pendingIssue, setPendingIssue] = useState(null);
   const [savingException, setSavingException] = useState(false);
   const audit = auditErpInterconnections(dataMap);
-  const justifiedRows = useMemo(() => readJustifiedExceptions(), [exceptionVersion]);
+  const justifiedRows = useMemo(() => {
+    void exceptionVersion;
+    return readJustifiedExceptions();
+  }, [exceptionVersion]);
   const activeJustifiedCount = useMemo(() => justifiedRows.filter((row) => row.active !== false && row.type_exception === JUSTIFIED_EXCEPTION_TYPES.INTERCONNECTION).length, [justifiedRows]);
   const domainFilteredIssues = useMemo(() => filterSyncIssuesByDomain(audit.issues, domainFilter), [audit.issues, domainFilter]);
-  const visibleIssues = useMemo(() => filterJustifiedIssues(domainFilteredIssues, issueKey), [domainFilteredIssues, exceptionVersion]);
+  const visibleIssues = useMemo(() => {
+    void exceptionVersion;
+    return filterJustifiedIssues(domainFilteredIssues, issueKey);
+  }, [domainFilteredIssues, exceptionVersion]);
   const visibleAudit = { ...audit, issues: visibleIssues, issueCount: visibleIssues.length, criticalCount: visibleIssues.filter((issue) => issue.severity === 'critical').length };
 
   useEffect(() => {
@@ -198,16 +204,16 @@ function InterconnectionAudit(props) {
           key={item.key}
           type="button"
           onClick={() => setDomainFilter(item.key)}
-          className={`rounded-full border px-3 py-1 text-xs font-black ${domainFilter === item.key ? 'border-[#2f2415] bg-[#2f2415] text-white' : 'border-[#d6c3a0] bg-white text-[#2f2415]'}`}
+          className={`rounded-full border px-3 py-1 text-xs font-semibold ${domainFilter === item.key ? 'border-earth bg-earth text-white' : 'border-line bg-white text-earth'}`}
         >
           {item.label}
         </button>
       ))}
     </div>
-    <div className="grid grid-cols-1 md:grid-cols-4 gap-3"><div className={`rounded-2xl border p-4 ${visibleAudit.issueCount === 0 ? 'bg-emerald-50 border-emerald-200' : 'bg-amber-50 border-amber-200'}`}><p className="text-xs uppercase tracking-wide text-[#8a7456]">État général</p><p className={`mt-2 text-xl font-black ${visibleAudit.issueCount === 0 ? 'text-emerald-700' : 'text-amber-800'}`}>{visibleAudit.issueCount === 0 ? 'Tout va bien' : 'À revoir'}</p></div><div className="rounded-2xl border border-[#eadcc2] bg-[#fffdf8] p-4"><p className="text-xs uppercase tracking-wide text-[#8a7456]">Vérifications</p><p className="mt-2 text-xl font-black text-[#2f2415]">{audit.flows.length}</p></div><div className="rounded-2xl border border-[#eadcc2] bg-[#fffdf8] p-4"><p className="text-xs uppercase tracking-wide text-[#8a7456]">À regarder</p><p className="mt-2 text-xl font-black text-[#2f2415]">{visibleAudit.issueCount}</p></div><div className="rounded-2xl border border-red-100 bg-red-50 p-4"><p className="text-xs uppercase tracking-wide text-red-700">Urgents</p><p className="mt-2 text-xl font-black text-red-700">{visibleAudit.criticalCount}</p></div></div>
-    {activeJustifiedCount ? <div className="flex items-center justify-between gap-3 rounded-2xl border border-violet-200 bg-violet-50 p-3 text-sm text-violet-800"><span><ShieldCheck size={14} className="inline" /> {activeJustifiedCount} exception(s) justifiée(s) masquée(s) des alertes actives (visible dans l’audit système).</span><button type="button" onClick={() => props.onNavigate?.('gestion_systeme')} className="rounded-full border border-violet-300 bg-white px-3 py-1 text-xs font-bold text-violet-800">Voir audit</button></div> : null}
+    <div className="grid grid-cols-1 md:grid-cols-4 gap-3"><div className={`rounded-2xl border p-4 ${visibleAudit.issueCount === 0 ? 'bg-positive-bg border-positive' : 'bg-vigilance-bg border-vigilance'}`}><p className="text-xs uppercase tracking-normal text-slate">État général</p><p className={`mt-2 text-xl font-semibold ${visibleAudit.issueCount === 0 ? 'text-positive' : 'text-horizon-dark'}`}>{visibleAudit.issueCount === 0 ? 'Tout va bien' : 'À revoir'}</p></div><div className="rounded-2xl border border-line bg-card p-4"><p className="text-xs uppercase tracking-normal text-slate">Vérifications</p><p className="mt-2 text-xl font-semibold text-earth">{audit.flows.length}</p></div><div className="rounded-2xl border border-line bg-card p-4"><p className="text-xs uppercase tracking-normal text-slate">À regarder</p><p className="mt-2 text-xl font-semibold text-earth">{visibleAudit.issueCount}</p></div><div className="rounded-2xl border border-urgent bg-urgent-bg p-4"><p className="text-xs uppercase tracking-normal text-urgent">Urgents</p><p className="mt-2 text-xl font-semibold text-urgent">{visibleAudit.criticalCount}</p></div></div>
+    {activeJustifiedCount ? <div className="flex items-center justify-between gap-3 rounded-2xl border border-line bg-neutral-bg p-3 text-sm text-neutral"><span><ShieldCheck size={14} className="inline" /> {activeJustifiedCount} exception(s) justifiée(s) masquée(s) des alertes actives (visible dans l’audit système).</span><button type="button" onClick={() => props.onNavigate?.('gestion_systeme')} className="rounded-full border border-line bg-white px-3 py-1 text-xs font-semibold text-neutral">Voir audit</button></div> : null}
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">{audit.flows.map((flow) => <FlowCard key={flow.id} flow={flow} />)}</div>
-    {visibleAudit.issueCount === 0 ? <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-800"><CheckCircle2 size={16} className="inline" /> Aucun point important à corriger pour le moment.</div> : <div className="overflow-x-auto rounded-2xl border border-amber-200"><table className="min-w-full text-sm"><thead><tr className="border-b border-amber-100 bg-amber-50 text-left text-xs uppercase text-amber-800"><th className="py-2 px-3">Sujet</th><th className="py-2 px-3">Espace</th><th className="py-2 px-3">Élément</th><th className="py-2 px-3">Lien</th><th className="py-2 px-3">Détail</th><th className="py-2 px-3">Actions</th></tr></thead><tbody>{visibleAudit.issues.slice(0, 40).map((issue, index) => <tr key={`${issue.module}-${issue.row_id}-${index}`} className="border-b border-amber-100"><td className="py-2 px-3 text-xs font-bold text-[#8a7456]">{audit.flows.find((flow) => flow.id === issue.flow)?.label || issue.flow || 'À vérifier'}</td><td className="py-2 px-3 font-bold text-[#2f2415]"><AlertTriangle size={14} className="inline text-amber-600" /> {issue.module}</td><td className="py-2 px-3">{issue.row_id || '—'}</td><td className="py-2 px-3">{issue.linked_id || '—'}</td><td className="py-2 px-3 text-[#8a7456]">{syncIssueReadableTitle(issue)}</td><td className="py-2 px-3"><IssueActions issue={issue} props={props} onJustify={setPendingIssue} /></td></tr>)}</tbody></table>{visibleAudit.issues.length > 40 ? <p className="p-3 text-xs text-[#8a7456]">{visibleAudit.issues.length - 40} autre(s) point(s) à traiter. Traite d’abord les urgents.</p> : null}</div>}
+    {visibleAudit.issueCount === 0 ? <div className="rounded-2xl border border-positive bg-positive-bg p-4 text-sm text-positive"><CheckCircle2 size={16} className="inline" /> Aucun point important à corriger pour le moment.</div> : <div className="overflow-x-auto rounded-2xl border border-vigilance"><table className="min-w-full text-sm"><thead><tr className="border-b border-vigilance bg-vigilance-bg text-left text-xs uppercase text-horizon-dark"><th className="py-2 px-3">Sujet</th><th className="py-2 px-3">Espace</th><th className="py-2 px-3">Élément</th><th className="py-2 px-3">Lien</th><th className="py-2 px-3">Détail</th><th className="py-2 px-3">Actions</th></tr></thead><tbody>{visibleAudit.issues.slice(0, 40).map((issue, index) => <tr key={`${issue.module}-${issue.row_id}-${index}`} className="border-b border-vigilance"><td className="py-2 px-3 text-xs font-semibold text-slate">{audit.flows.find((flow) => flow.id === issue.flow)?.label || issue.flow || 'À vérifier'}</td><td className="py-2 px-3 font-semibold text-earth"><AlertTriangle size={14} className="inline text-horizon-dark" /> {issue.module}</td><td className="py-2 px-3">{issue.row_id || '—'}</td><td className="py-2 px-3">{issue.linked_id || '—'}</td><td className="py-2 px-3 text-slate">{syncIssueReadableTitle(issue)}</td><td className="py-2 px-3"><IssueActions issue={issue} props={props} onJustify={setPendingIssue} /></td></tr>)}</tbody></table>{visibleAudit.issues.length > 40 ? <p className="p-3 text-xs text-slate">{visibleAudit.issues.length - 40} autre(s) point(s) à traiter. Traite d’abord les urgents.</p> : null}</div>}
     <JustifiedExceptionModal
       open={Boolean(pendingIssue)}
       onClose={() => setPendingIssue(null)}
@@ -220,21 +226,22 @@ function InterconnectionAudit(props) {
 }
 
 export default function SyncActivityCenter(props) {
-  const controlled = Boolean(props.onTabChange);
-  const [internalTab, setInternalTab] = useState(() => resolveSyncActivityTab(props.initialTab));
-  const tab = controlled ? resolveSyncActivityTab(props.initialTab) : internalTab;
+  const { initialTab, onTabChange } = props;
+  const controlled = Boolean(onTabChange);
+  const [internalTab, setInternalTab] = useState(() => resolveSyncActivityTab(initialTab));
+  const tab = controlled ? resolveSyncActivityTab(initialTab) : internalTab;
   const setTab = useCallback((value) => {
     const resolved = resolveSyncActivityTab(value);
     const raw = String(value || '').trim();
-    if (controlled) props.onTabChange?.(raw || resolved);
+    if (controlled) onTabChange?.(raw || resolved);
     else setInternalTab(resolved);
-  }, [controlled, props.onTabChange]);
+  }, [controlled, onTabChange]);
   const [exceptionVersion, setExceptionVersion] = useState(0);
 
   useEffect(() => {
-    if (!props.initialTab) return;
-    if (!controlled) setInternalTab(resolveSyncActivityTab(props.initialTab));
-  }, [controlled, props.initialTab]);
+    if (!initialTab) return;
+    if (!controlled) queueMicrotask(() => setInternalTab(resolveSyncActivityTab(initialTab)));
+  }, [controlled, initialTab]);
 
   useEffect(() => {
     const refresh = () => setExceptionVersion((v) => v + 1);
@@ -244,10 +251,14 @@ export default function SyncActivityCenter(props) {
 
   const auditSnapshot = useMemo(() => auditErpInterconnections(props.dataMap || {}), [props.dataMap]);
   const verificationBadge = useMemo(
-    () => filterJustifiedIssues(auditSnapshot.issues, issueKey).length,
+    () => {
+      void exceptionVersion;
+      return filterJustifiedIssues(auditSnapshot.issues, issueKey).length;
+    },
     [auditSnapshot.issues, exceptionVersion],
   );
   const connexionBadge = useMemo(() => {
+    void exceptionVersion;
     const pending = readOfflineQueue().filter((item) => item.status === 'pending').length;
     return pending + (props.online === false ? 1 : 0);
   }, [props.online, exceptionVersion]);
@@ -272,11 +283,11 @@ export default function SyncActivityCenter(props) {
   return (
     <div className="space-y-6 sync-activity-mobile">
       <style>{`@media (max-width: 640px){.sync-activity-mobile .rounded-2xl{border-radius:18px}.sync-activity-mobile table{font-size:12px}.sync-activity-mobile th,.sync-activity-mobile td{padding-left:10px!important;padding-right:10px!important}.sync-activity-mobile .text-2xl{font-size:1.35rem}.sync-activity-mobile .grid{gap:.75rem}.sync-activity-mobile .overflow-x-auto{max-width:100vw}}`}</style>
-      <section className="rounded-3xl border border-[#d6c3a0] bg-white p-5 shadow-sm">
+      <section className="rounded-3xl border border-line bg-white p-6 shadow-card">
         <div>
-          <p className="text-xs font-black uppercase tracking-[0.25em] text-[#9a6b12]">Administration</p>
-          <h1 className="mt-1 text-2xl font-black text-[#2f2415]">Activité & Sync ERP</h1>
-          <p className="mt-1 text-sm text-[#8a7456]">Vérifications inter-modules, connexion terrain et journal d’activité.</p>
+          <p className="text-xs font-semibold uppercase tracking-normal text-horizon-dark">Administration</p>
+          <h1 className="mt-1 text-2xl font-semibold text-earth">Activité & Sync ERP</h1>
+          <p className="mt-1 text-sm text-slate">Vérifications inter-modules, connexion terrain et journal d’activité.</p>
         </div>
       </section>
       <ModuleTabsBar moduleId="sync_activity" active={tab} onChange={setTab} tabBadges={tabBadges} />

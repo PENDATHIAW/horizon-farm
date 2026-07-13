@@ -6,9 +6,9 @@ import { fmtCurrency } from '../../utils/format';
 
 function ChartCard({ title, subtitle, children, tall = false }) {
   return (
-    <section className={`rounded-2xl border border-[#d6c3a0] bg-white p-4 shadow-sm ${tall ? 'min-h-[320px]' : ''}`}>
-      <p className="text-sm font-black text-[#2f2415]">{title}</p>
-      {subtitle ? <p className="mt-1 text-xs text-[#8a7456]">{subtitle}</p> : null}
+    <section className={`rounded-2xl border border-line bg-white p-4 shadow-card ${tall ? 'min-h-[320px]' : ''}`}>
+      <p className="text-sm font-semibold text-earth">{title}</p>
+      {subtitle ? <p className="mt-1 text-xs text-slate">{subtitle}</p> : null}
       <div className="mt-3">{children}</div>
     </section>
   );
@@ -16,7 +16,7 @@ function ChartCard({ title, subtitle, children, tall = false }) {
 
 export default function ObjectifsGraphiquesTab({ plan = {} }) {
   const chart = plan.chartData || {};
-  const zootechnical = plan.zootechnical || [];
+  const zootechnical = useMemo(() => plan.zootechnical || [], [plan.zootechnical]);
 
   const g1 = useMemo(() => {
     const ages = Array.from({ length: 25 }, (_, i) => i * 20);
@@ -30,7 +30,7 @@ export default function ObjectifsGraphiquesTab({ plan = {} }) {
   const g3 = chart.g3 || { months: [], caReal: [], breakEvenLine: [], caTarget: [] };
   const g5 = chart.g5 || [];
   const g6 = chart.g6 || {};
-  const g7 = chart.g7 || [];
+  const g7 = useMemo(() => chart.g7 || [], [chart.g7]);
 
   const g4Option = useMemo(() => {
     const lots = chart.g4 || [];
@@ -42,7 +42,7 @@ export default function ObjectifsGraphiquesTab({ plan = {} }) {
       series: [{
         type: 'bar',
         data: lots.map((l) => l.ageDays),
-        itemStyle: { color: '#2f855a' },
+        itemStyle: { color: 'var(--hf-positive)' },
         label: { show: true, position: 'right', formatter: ({ value }) => `J+${value}` },
       }],
     };
@@ -66,15 +66,15 @@ export default function ObjectifsGraphiquesTab({ plan = {} }) {
     xAxis: { type: 'category', data: g7.map((r) => r.activity) },
     yAxis: { type: 'value', name: 'FCFA' },
     series: [
-      { name: 'Coût revient', type: 'line', data: g7.map((r) => r.cost), itemStyle: { color: '#c53030' }, lineStyle: { width: 3 } },
-      { name: 'Marché local', type: 'line', data: g7.map((r) => r.market), itemStyle: { color: '#2b6cb0' }, lineStyle: { width: 3 } },
-      { name: 'Prix pratiqué', type: 'line', data: g7.map((r) => r.practiced), itemStyle: { color: '#2f2415' }, lineStyle: { width: 3 } },
+      { name: 'Coût revient', type: 'line', data: g7.map((r) => r.cost), itemStyle: { color: 'var(--hf-urgent)' }, lineStyle: { width: 3 } },
+      { name: 'Marché local', type: 'line', data: g7.map((r) => r.market), itemStyle: { color: 'var(--hf-neutral)' }, lineStyle: { width: 3 } },
+      { name: 'Prix pratiqué', type: 'line', data: g7.map((r) => r.practiced), itemStyle: { color: 'var(--hf-ink)' }, lineStyle: { width: 3 } },
     ],
   }), [g7]);
 
   return (
     <div className="space-y-4">
-      <p className="text-sm text-[#8a7456] rounded-xl border border-[#eadcc2] bg-[#fffdf8] px-4 py-2">
+      <p className="text-sm text-slate rounded-xl border border-line bg-card px-4 py-2">
         Tableau de bord décisionnel — 7 graphiques G1 à G7 alimentés par lots, ventes, BP et prix marché.
       </p>
 
@@ -86,8 +86,8 @@ export default function ObjectifsGraphiquesTab({ plan = {} }) {
             months={g1.ages.map((a) => `J${a}`)}
             leftUnit="%"
             series={[
-              { name: 'Théorique souche', type: 'line', unit: '%', data: g1.theoretical, color: '#2b6cb0' },
-              { name: 'Réel lot', type: 'line', unit: '%', data: g1.realSeries, color: '#2f855a' },
+              { name: 'Théorique souche', type: 'line', unit: '%', data: g1.theoretical, color: 'var(--hf-neutral)' },
+              { name: 'Réel lot', type: 'line', unit: '%', data: g1.realSeries, color: 'var(--hf-positive)' },
             ]}
           />
         </ChartCard>
@@ -99,8 +99,8 @@ export default function ObjectifsGraphiquesTab({ plan = {} }) {
             months={g2Data.map((r) => r.lot)}
             leftUnit="g"
             series={[
-              { name: 'Réel', type: 'bar', unit: 'g', data: g2Data.map((r) => r.real), color: '#2f855a' },
-              { name: 'Objectif', type: 'bar', unit: 'g', data: g2Data.map((r) => r.theoretical), color: '#b7791f' },
+              { name: 'Réel', type: 'bar', unit: 'g', data: g2Data.map((r) => r.real), color: 'var(--hf-positive)' },
+              { name: 'Objectif', type: 'bar', unit: 'g', data: g2Data.map((r) => r.theoretical), color: 'var(--hf-horizon-dark)' },
             ]}
           />
         </ChartCard>
@@ -113,8 +113,8 @@ export default function ObjectifsGraphiquesTab({ plan = {} }) {
             leftUnit="FCFA"
             series={[
               { name: 'CA réel', type: 'bar', unit: 'FCFA', data: g3.caReal },
-              { name: 'Seuil rentabilité', type: 'line', unit: 'FCFA', data: g3.breakEvenLine, color: '#c53030' },
-              { name: 'Objectif BP', type: 'line', unit: 'FCFA', data: g3.caTarget, color: '#805ad5' },
+              { name: 'Seuil rentabilité', type: 'line', unit: 'FCFA', data: g3.breakEvenLine, color: 'var(--hf-urgent)' },
+              { name: 'Objectif BP', type: 'line', unit: 'FCFA', data: g3.caTarget, color: 'var(--hf-leaf)' },
             ]}
           />
         </ChartCard>
@@ -131,14 +131,14 @@ export default function ObjectifsGraphiquesTab({ plan = {} }) {
             leftUnit="FCFA"
             series={[
               { name: 'Marge objectif', type: 'bar', unit: 'FCFA', data: g5.map((r) => r.marginTarget) },
-              { name: 'Marge réelle', type: 'bar', unit: 'FCFA', data: g5.map((r) => r.marginReal), color: '#2f855a' },
+              { name: 'Marge réelle', type: 'bar', unit: 'FCFA', data: g5.map((r) => r.marginReal), color: 'var(--hf-positive)' },
             ]}
           />
         </ChartCard>
 
         <ChartCard title="G6 — Progression CA annuel" subtitle={`Objectif ${fmtCurrency(g6.annualTarget)}`}>
           <ReactECharts option={g6Option} style={{ height: 260 }} opts={{ renderer: 'svg' }} />
-          <p className="text-center text-xs text-[#8a7456] mt-2">Réalisé : {fmtCurrency(g6.annualReal)}</p>
+          <p className="text-center text-xs text-slate mt-2">Réalisé : {fmtCurrency(g6.annualReal)}</p>
         </ChartCard>
       </div>
 

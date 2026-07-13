@@ -130,28 +130,28 @@ export default function FournisseursStockBridge({ suppliers = [], stocks = [], t
 
   if (!candidates.length) return null;
   return (
-    <div className="rounded-2xl border border-[#d6c3a0] bg-white p-5 space-y-4">
+    <div className="rounded-2xl border border-line bg-white p-6 space-y-4">
       <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3">
         <div>
-          <p className="text-xs uppercase tracking-widest text-[#8a7456]">Achats à préparer</p>
-          <h3 className="font-black text-[#2f2415]">Stocks critiques liés aux fournisseurs</h3>
-          <p className="text-sm text-[#8a7456] mt-1">Prépare la commande fournisseur et marque le stock en attente sans ressaisie.</p>
+          <p className="text-xs uppercase tracking-normal text-slate">Achats à préparer</p>
+          <h3 className="font-semibold text-earth">Stocks critiques liés aux fournisseurs</h3>
+          <p className="text-sm text-slate mt-1">Prépare la commande fournisseur et marque le stock en attente sans ressaisie.</p>
         </div>
-        <div className="rounded-xl border border-[#eadcc2] bg-[#fffdf8] px-3 py-2 text-sm text-[#7d6a4a]"><AlertTriangle size={14} className="inline" /> {candidates.length} achat(s)</div>
+        <div className="rounded-xl border border-line bg-card px-3 py-2 text-sm text-slate"><AlertTriangle size={14} className="inline" /> {candidates.length} achat(s)</div>
       </div>
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-2">
         {candidates.map(({ stock, supplier, task }) => {
           const key = taskKey(supplier, stock);
           const qty = reorderQty(stock);
           return (
-            <div key={key} className="rounded-xl border border-[#eadcc2] bg-[#fffdf8] p-3">
-              <p className="font-bold text-[#2f2415]"><Truck size={14} className="inline" /> {supplierName(supplier)}</p>
-              <p className="text-xs text-[#8a7456] mt-1"><Package size={13} className="inline" /> {productName(stock)}</p>
-              <p className="text-xs text-[#8a7456] mt-1">Stock: {fmtNumber(quantityOf(stock))} / seuil {fmtNumber(thresholdOf(stock))}</p>
-              <p className="text-xs text-[#8a7456] mt-1">À commander: <b>{fmtNumber(qty)} {stock.unite || ''}</b> · {fmtCurrency(qty * unitPriceOf(stock))}</p>
+            <div key={key} className="rounded-xl border border-line bg-card p-3">
+              <p className="font-semibold text-earth"><Truck size={14} className="inline" /> {supplierName(supplier)}</p>
+              <p className="text-xs text-slate mt-1"><Package size={13} className="inline" /> {productName(stock)}</p>
+              <p className="text-xs text-slate mt-1">Stock: {fmtNumber(quantityOf(stock))} / seuil {fmtNumber(thresholdOf(stock))}</p>
+              <p className="text-xs text-slate mt-1">À commander: <b>{fmtNumber(qty)} {stock.unite || ''}</b> · {fmtCurrency(qty * unitPriceOf(stock))}</p>
               <div className="mt-3 flex flex-wrap gap-2">
-                {task ? <p className="text-xs font-bold text-emerald-700"><CheckCircle2 size={13} className="inline" /> Déjà en suivi</p> : <button type="button" disabled={savingKey === key} className="text-sm font-bold text-emerald-700 disabled:opacity-60" onClick={() => createOrderTask(supplier, stock)}><CheckCircle2 size={14} className="inline" /> {savingKey === key ? 'Préparation...' : 'Préparer commande'}</button>}
-                <button type="button" disabled={savingKey === `receive:${key}`} className="text-sm font-bold text-[#2f2415] disabled:opacity-60" onClick={() => receiveStock(supplier, stock)}><Package size={14} className="inline" /> {savingKey === `receive:${key}` ? 'Réception...' : 'Réceptionner'}</button>
+                {task ? <p className="text-xs font-semibold text-positive"><CheckCircle2 size={13} className="inline" /> Déjà en suivi</p> : <button type="button" disabled={savingKey === key} className="text-sm font-semibold text-positive disabled:opacity-60" onClick={() => createOrderTask(supplier, stock)}><CheckCircle2 size={14} className="inline" /> {savingKey === key ? 'Préparation...' : 'Préparer commande'}</button>}
+                <button type="button" disabled={savingKey === `receive:${key}`} className="text-sm font-semibold text-earth disabled:opacity-60" onClick={() => receiveStock(supplier, stock)}><Package size={14} className="inline" /> {savingKey === `receive:${key}` ? 'Réception...' : 'Réceptionner'}</button>
               </div>
             </div>
           );

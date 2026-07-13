@@ -75,7 +75,7 @@ export default function VisionRisksTab({ data = {}, onNavigate, setTab, onCreate
   if (compact && urgentOnly && !hasStrategicBlock && !hasRiskRows) return null;
 
   return (
-    <div className={compact ? 'space-y-4' : 'space-y-5'}>
+    <div className={compact ? 'space-y-4' : 'space-y-6'}>
       {!compact ? (
         <TabIntro
           title={urgentOnly ? 'Urgences terrain & risques critiques' : 'Registre des risques'}
@@ -86,9 +86,9 @@ export default function VisionRisksTab({ data = {}, onNavigate, setTab, onCreate
         />
       ) : (
         <div className="flex items-center justify-between gap-2">
-          <p className="text-xs font-black uppercase tracking-widest text-[#9a6b12]">Blocages & risques critiques</p>
+          <p className="text-xs font-semibold uppercase tracking-normal text-horizon-dark">Blocages & risques critiques</p>
           {onNavigate ? (
-            <button type="button" onClick={() => onNavigate('activite_suivi', { tab: 'Alertes' })} className="text-xs font-black text-[#9a6b12] underline">
+            <button type="button" onClick={() => onNavigate('activite_suivi', { tab: 'Alertes' })} className="text-xs font-semibold text-horizon-dark underline">
               Toutes les alertes
             </button>
           ) : null}
@@ -154,10 +154,10 @@ export default function VisionRisksTab({ data = {}, onNavigate, setTab, onCreate
         <Section icon={ShieldAlert} title="Matrice risques IA">
           <div className="grid grid-cols-1 gap-2 md:grid-cols-2 xl:grid-cols-3">
             {engineRisks.map((r) => (
-              <button key={r.id} type="button" onClick={() => navigateVisionRisk(onNavigate, { module: r.module, domain: r.domain, title: r.title })} className="rounded-2xl border border-[#eadcc2] bg-[#fffdf8] p-4 text-left hover:bg-white">
-                <p className="text-xs uppercase tracking-wide text-[#8a7456]">{r.domain}</p>
-                <p className="mt-1 font-black text-[#2f2415]">{r.title}</p>
-                <p className="mt-1 text-xs text-[#8a7456] line-clamp-2">{r.detail}</p>
+              <button key={r.id} type="button" onClick={() => navigateVisionRisk(onNavigate, { module: r.module, domain: r.domain, title: r.title })} className="rounded-2xl border border-line bg-card p-4 text-left hover:bg-white">
+                <p className="text-xs uppercase tracking-normal text-slate">{r.domain}</p>
+                <p className="mt-1 font-semibold text-earth">{r.title}</p>
+                <p className="mt-1 text-xs text-slate line-clamp-2">{r.detail}</p>
                 <div className="mt-2 flex gap-2">
                   <Pill tone={r.level === 'critique' || r.level === 'eleve' ? 'bad' : r.level === 'moyen' ? 'warn' : 'good'}>{riskLevelLabel(r.level)}</Pill>
                   <Pill>{r.score}/100</Pill>
@@ -180,9 +180,9 @@ export default function VisionRisksTab({ data = {}, onNavigate, setTab, onCreate
                 onClick={() => navigateVisionRisk(onNavigate, r)}
                 actions={<>
                   <Pill tone={r.tone}>{r.resolutionStatus}</Pill>
-                  <button type="button" onClick={() => navigateVisionRisk(onNavigate, r)} className="rounded-lg border border-[#d6c3a0] px-2 py-1 text-xs font-black">Voir source</button>
-                  {onCreateTask ? <button type="button" onClick={() => createTaskFromRisk(r)} className="rounded-lg border border-emerald-300 px-2 py-1 text-xs font-black text-emerald-700">Tâche</button> : null}
-                  {onCreateAlert ? <button type="button" onClick={() => createAlertFromRisk(r)} className="rounded-lg border border-amber-300 px-2 py-1 text-xs font-black text-amber-700">Alerte</button> : null}
+                  <button type="button" onClick={() => navigateVisionRisk(onNavigate, r)} className="rounded-lg border border-line px-2 py-1 text-xs font-semibold">Voir source</button>
+                  {onCreateTask ? <button type="button" onClick={() => createTaskFromRisk(r)} className="rounded-lg border border-positive px-2 py-1 text-xs font-semibold text-positive">Tâche</button> : null}
+                  {onCreateAlert ? <button type="button" onClick={() => createAlertFromRisk(r)} className="rounded-lg border border-vigilance px-2 py-1 text-xs font-semibold text-horizon-dark">Alerte</button> : null}
                 </>}
               />
             ))}

@@ -14,9 +14,9 @@ const DEFAULT_ASSUMPTIONS = Object.freeze({
 
 function Result({ label, value, tone = '' }) {
   return (
-    <div className="border-b border-[#eadcc2] py-3">
-      <p className="text-xs text-[#8a7456]">{label}</p>
-      <p className={`mt-1 text-lg font-black ${tone || 'text-[#2f2415]'}`}>{value}</p>
+    <div className="border-b border-line py-3">
+      <p className="text-xs text-slate">{label}</p>
+      <p className={`mt-1 text-lg font-semibold ${tone || 'text-earth'}`}>{value}</p>
     </div>
   );
 }
@@ -68,7 +68,7 @@ export default function ObjectifsScenariosTab({
           ['salePricePerSubject', 'Prix de vente / sujet', 100],
           ['otherCostPerSubject', 'Autres coûts / sujet', 100],
         ].map(([key, label, step]) => (
-          <label key={key} className="text-xs font-bold text-[#2f2415]">
+          <label key={key} className="text-xs font-semibold text-earth">
             {label}
             <input
               type="number"
@@ -76,7 +76,7 @@ export default function ObjectifsScenariosTab({
               step={step}
               value={assumptions[key]}
               onChange={(event) => update(key, event.target.value)}
-              className="mt-1 w-full rounded-md border border-[#d6c3a0] bg-white px-3 py-2 text-sm"
+              className="mt-1 w-full rounded-md border border-line bg-white px-3 py-2 text-sm"
             />
           </label>
         ))}
@@ -85,8 +85,8 @@ export default function ObjectifsScenariosTab({
       <section className="grid gap-x-6 md:grid-cols-2 xl:grid-cols-4">
         <Result label="Besoins en aliments" value={`${fmtNumber(results.feedNeedKg)} kg`} />
         <Result label="Trésorerie projetée" value={fmtCurrency(results.projectedCash)} />
-        <Result label="Rentabilité projetée" value={`${fmtCurrency(results.projectedProfit)} · ${results.profitabilityPercent}%`} tone={results.projectedProfit >= 0 ? 'text-emerald-700' : 'text-red-700'} />
-        <Result label="Seuil de soutenabilité" value={results.sustainable ? 'Soutenable' : 'À ajuster'} tone={results.sustainable ? 'text-emerald-700' : 'text-amber-700'} />
+        <Result label="Rentabilité projetée" value={`${fmtCurrency(results.projectedProfit)} · ${results.profitabilityPercent}%`} tone={results.projectedProfit >= 0 ? 'text-positive' : 'text-urgent'} />
+        <Result label="Seuil de soutenabilité" value={results.sustainable ? 'Soutenable' : 'À ajuster'} tone={results.sustainable ? 'text-positive' : 'text-horizon-dark'} />
         <Result label="Capacité bâtiments" value={`${results.capacities.buildings.required} / ${results.capacities.buildings.available || 'non renseignée'}`} />
         <Result label="Capacité équipe" value={`${results.capacities.team.required} / ${results.capacities.team.available || 'non renseignée'}`} />
         <Result label="Capacité équipements" value={`${results.capacities.equipment.required} / ${results.capacities.equipment.available || 'non renseignée'}`} />
@@ -97,7 +97,7 @@ export default function ObjectifsScenariosTab({
         type="button"
         onClick={save}
         disabled={saving}
-        className="inline-flex items-center gap-2 rounded-md bg-emerald-700 px-4 py-2 text-sm font-bold text-white disabled:opacity-50"
+        className="inline-flex items-center gap-2 rounded-md bg-positive px-4 py-2 text-sm font-semibold text-white disabled:opacity-50"
       >
         <Save size={16} /> {saving ? 'Enregistrement...' : 'Enregistrer le scénario'}
       </button>

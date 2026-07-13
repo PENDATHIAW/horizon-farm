@@ -87,8 +87,8 @@ function buildLotRentabilite({ lots, alimentationLogs, productionLogs, salesOrde
     const feedCost = cost.realFeedCost || cost.estimatedFeedCost;
     const mca = revenue - feedCost;
     const feedKg = feedKgForLot(lot.id, alimentationLogs);
-    let unitCost = 0;
-    let unitLabel = '';
+    let unitCost;
+    let unitLabel;
     if (type === 'ponte') {
       unitCost = cost.costPerEgg || safeDiv(cost.totalCost, cost.sellableEggs);
       unitLabel = 'Coût / œuf';

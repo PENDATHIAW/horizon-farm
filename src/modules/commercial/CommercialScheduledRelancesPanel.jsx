@@ -60,9 +60,9 @@ export default function CommercialScheduledRelancesPanel({
 
   return (
     <div className="space-y-4">
-      <section className="rounded-2xl border border-[#d6c3a0] bg-white p-4">
-        <p className="text-xs uppercase tracking-widest text-[#8a7456] font-black">Relances planifiées</p>
-        <p className="mt-1 text-sm text-[#8a7456]">
+      <section className="rounded-2xl border border-line bg-white p-4">
+        <p className="text-xs uppercase tracking-normal text-slate font-semibold">Relances planifiées</p>
+        <p className="mt-1 text-sm text-slate">
           Niveaux {RELANCE_LEVELS.map((l) => l.label).join(', ')} — messages WhatsApp, SMS et Email générés automatiquement.
         </p>
         {rows.length ? (
@@ -70,15 +70,15 @@ export default function CommercialScheduledRelancesPanel({
             {rows.slice(0, 3).map((row) => {
               const plans = scheduledPlans.filter((p) => p.clientId === row.clientId && p.orderId === row.orderId).slice(0, 3);
               return (
-                <div key={`plan-block-${row.id}`} className="rounded-xl border border-[#eadcc2] bg-[#fffdf8] p-3">
-                  <p className="font-black text-sm text-[#2f2415]">{row.clientName} · {fmtCurrency(row.amount)}</p>
+                <div key={`plan-block-${row.id}`} className="rounded-xl border border-line bg-card p-3">
+                  <p className="font-semibold text-sm text-earth">{row.clientName} · {fmtCurrency(row.amount)}</p>
                   <div className="mt-2 flex flex-wrap gap-2">
                     {plans.map((plan) => (
                       <button
                         key={plan.id}
                         type="button"
                         onClick={() => prepareChannel(plan)}
-                        className="rounded-lg border border-[#2f2415] px-2 py-1 text-[10px] font-black text-[#2f2415]"
+                        className="rounded-lg border border-earth px-2 py-1 text-meta font-semibold text-earth"
                       >
                         {plan.levelLabel} · {plan.channel}
                       </button>
@@ -89,20 +89,20 @@ export default function CommercialScheduledRelancesPanel({
             })}
           </div>
         ) : (
-          <p className="mt-2 text-sm text-[#8a7456]">Aucune créance à relancer pour générer un plan de relance.</p>
+          <p className="mt-2 text-sm text-slate">Aucune créance à relancer pour générer un plan de relance.</p>
         )}
       </section>
 
       <CommercialRelancesPanel rows={rows} onOpenClient={onOpenClient} onPrepareWhatsApp={onPrepareWhatsApp} />
 
       {rows.length ? (
-        <section className="rounded-2xl border border-[#eadcc2] bg-[#fffdf8] p-4">
-          <p className="text-sm font-black text-[#2f2415] mb-2">Planifier une relance (tâche)</p>
+        <section className="rounded-2xl border border-line bg-card p-4">
+          <p className="text-sm font-semibold text-earth mb-2">Planifier une relance (tâche)</p>
           <div className="space-y-2">
             {rows.slice(0, 4).map((row) => (
-              <div key={`plan-${row.id}`} className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-[#eadcc2] bg-white px-3 py-2 text-sm">
-                <span className="font-bold text-[#2f2415]">{row.clientName} · {fmtCurrency(row.amount)}</span>
-                <button type="button" onClick={() => openScheduleModal(row)} className="rounded-lg border border-[#2f2415] px-2 py-1 text-[11px] font-black text-[#2f2415]">
+              <div key={`plan-${row.id}`} className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-line bg-white px-3 py-2 text-sm">
+                <span className="font-semibold text-earth">{row.clientName} · {fmtCurrency(row.amount)}</span>
+                <button type="button" onClick={() => openScheduleModal(row)} className="rounded-lg border border-earth px-2 py-1 text-meta font-semibold text-earth">
                   {row.scheduled ? `Planifiée ${row.scheduledDate}` : 'Planifier'}
                 </button>
               </div>

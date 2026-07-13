@@ -17,7 +17,7 @@ import {
 import { buildElevageHealthSnapshot } from './elevage/elevageVisionHelpers.js';
 import { buildElevageStartupProgress, isElevageStartupMode } from './elevage/elevageStartupHelpers.js';
 import ElevageWorkflowPanels, { buildElevageHandlers, useElevageWorkflowContext } from './elevage/ElevageWorkflowPanels.jsx';
-import ElevageMobileToolbar from './elevage/ElevageMobileToolbar.jsx';
+import ElevageMobileToolbar, { shouldShowElevageMobileToolbar } from './elevage/ElevageMobileToolbar.jsx';
 import { buildProductionHubSnapshot } from '../utils/productionHubMetrics.js';
 import { buildElevageActivityPnl, isBovinAnimal, isChairLot, isPondeuseLot } from '../utils/elevageActivityPnl.js';
 import { buildElevageCostAwareInsights } from '../utils/elevageIaInsights.js';
@@ -49,6 +49,9 @@ import { getTransformationPermissions, normalizeTransformationRole } from '../ut
 import ElevageLotsBandesTab from './elevage/ElevageLotsBandesTab.jsx';
 import ElevageCyclesReproductionTab from './elevage/ElevageCyclesReproductionTab.jsx';
 import { commitElevageEggProduction } from '../utils/elevageWorkflow.js';
+import ElevageOverviewTab from './elevage/ElevageOverviewTab.jsx';
+import ElevageAlimentationTab from './elevage/ElevageAlimentationTab.jsx';
+import ProductionHub from './elevage/ProductionHub.jsx';
 
 const lower = (value) => String(value || '').toLowerCase();
 const isClosedAnimal = (row = {}) => ['vendu', 'mort', 'vole', 'volé', 'perdu', 'abattu', 'cloture', 'clôture', 'sorti'].some((word) => lower(row.status || row.statut).includes(word));
@@ -622,8 +625,8 @@ export default function ElevageRecoveredModule(props) {
   const productionContent = (
     <div className="space-y-4">
       {lotsContent('avicole')}
-      <details className="border-t border-[#eadcc2] pt-4">
-        <summary className="cursor-pointer text-sm font-black text-[#2f2415]">Cycles et reproduction</summary>
+      <details className="border-t border-line pt-4">
+        <summary className="cursor-pointer text-sm font-semibold text-earth">Cycles et reproduction</summary>
         <div className="mt-4 space-y-4">
           <ElevageCyclesReproductionTab
             cyclesPanelProps={{
@@ -665,16 +668,51 @@ export default function ElevageRecoveredModule(props) {
     />
   );
 
-  const content = tab === 'Santé & Biosécurité' ? (
+  const overviewContent = (
+    <ElevageOverviewTab
+      data={data}
+      showStartup={showStartup}
+      startupProgress={startupProgress}
+      onSetTab={setTab}
+      onNavigate={guardedNavigate}
+      onOpenWorkflow={openWorkflow}
+    />
+  );
+
+  const alimentationContent = (
+    <ElevageAlimentationTab
+      data={data}
+      onOpenWorkflow={openWorkflow}
+      onNavigate={guardedNavigate}
+    />
+  );
+
+  const performanceContent = (
+    <ProductionHub
+      snapshot={data.productionSnapshot}
+      lots={lots}
+      animaux={animals}
+      marginContext={data.marginContext}
+      setTab={setTab}
+      onNavigate={guardedNavigate}
+      onOpenWorkflow={openWorkflow}
+      contextView="all"
+      placement="inline"
+    />
+  );
+
+  const content = tab === 'Vue élevage' ? overviewContent
+    : tab === 'Alimentation élevage' ? alimentationContent
+      : tab === 'Coûts & performance élevage' ? performanceContent
+        : tab === 'Santé & Biosécurité' ? (
     <SanteV8 {...healthProps} healthBlocks={evaluateElevageHealthBlocks({ healthRows: health })} sanitaryAlerts={buildSanitaryAlertsPanel(health)} />
-  ) : tab === 'Production élevage' ? productionContent
-    : tab === 'Transformation' ? transformationContent
-    : tab === 'Historique élevage' ? <JournalEvenements events={businessEvents} farmId={props.activeFarm?.id || props.farm?.id} module="elevage" recordType={props.recordType} recordId={props.recordId} period={props.periodScope} limit={150} onNavigate={props.onNavigate} />
-      : tab === 'Lots & animaux' ? lotsContent('animaux')
-        : lotsContent();
+        ) : tab === 'Production élevage' ? productionContent
+          : tab === 'Transformation' ? transformationContent
+            : tab === 'Historique élevage' ? <JournalEvenements events={businessEvents} farmId={props.activeFarm?.id || props.farm?.id} module="elevage" recordType={props.recordType} recordId={props.recordId} period={props.periodScope} limit={150} onNavigate={props.onNavigate} />
+              : lotsContent('animaux');
   return (
     <div className="space-y-6">
-      <section className="rounded-3xl border border-[#d6c3a0] bg-white p-5 shadow-sm"><div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between"><div><p className="text-xs uppercase tracking-[0.25em] text-[#9a6b12] font-black">Production</p><h1 className="mt-1 text-2xl font-black text-[#2f2415]">Élevage</h1><p className="mt-1 text-sm text-[#8a7456]">Lots, alimentation, production, santé, coûts et historique de l’élevage.</p>{props.periodLabel ? <div className="mt-2"><PeriodScopeBadge label={props.periodLabel} /></div> : null}<HeyHorizonQuickAsk moduleKey="elevage" onNavigate={guardedNavigate} onOpenAssistant={props.onOpenAssistant} className="mt-2" /></div><div className="rounded-2xl border border-[#eadcc2] bg-[#fffdf8] px-4 py-3 text-sm"><span className="text-[#8a7456]">Santé module </span><b className={data.healthScore >= 75 ? 'text-emerald-700' : 'text-amber-700'}>{data.healthScore}/100</b></div></div></section>
+      <section className="rounded-3xl border border-line bg-white p-6 shadow-card"><div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between"><div><p className="text-xs uppercase tracking-normal text-horizon-dark font-semibold">Production</p><h1 className="mt-1 text-2xl font-semibold text-earth">Élevage</h1><p className="mt-1 text-sm text-slate">Lots, alimentation, production, santé, coûts et historique de l’élevage.</p>{props.periodLabel ? <div className="mt-2"><PeriodScopeBadge label={props.periodLabel} /></div> : null}<HeyHorizonQuickAsk moduleKey="elevage" onNavigate={guardedNavigate} onOpenAssistant={props.onOpenAssistant} className="mt-2" /></div><div className="rounded-2xl border border-line bg-card px-4 py-3 text-sm"><span className="text-slate">Santé module </span><b className={data.healthScore >= 75 ? 'text-positive' : 'text-horizon-dark'}>{data.healthScore}/100</b></div></div></section>
       <ModuleProjectionsStrip projections={data.moduleProjections} onNavigate={guardedNavigate} />
       <Tabs active={tab} onChange={setTab} activeFarm={props.activeFarm} role={transformationRole} />
       {findActiveWithdrawals(health).length ? <SanitaryWithdrawalBanner healthRows={health} /> : null}
@@ -692,7 +730,9 @@ export default function ElevageRecoveredModule(props) {
         scope={workflowScope}
         onSuccess={refreshAfterWorkflow}
       />
-      <ElevageMobileToolbar scope={lotsSubview} onOpenWorkflow={openWorkflow} onNavigate={guardedNavigate} />
+      {shouldShowElevageMobileToolbar(tab) ? (
+        <ElevageMobileToolbar scope={lotsSubview} onOpenWorkflow={openWorkflow} onNavigate={guardedNavigate} />
+      ) : null}
     </div>
   );
 }

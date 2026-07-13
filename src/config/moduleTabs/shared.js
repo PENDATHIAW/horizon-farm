@@ -1,13 +1,6 @@
-export const ERP_ROLES = Object.freeze([
-  'promotrice_direction',
-  'responsable_filiere',
-  'terrain',
-  'finance',
-  'veterinaire',
-  'maintenance',
-  'financeur_externe',
-  'admin_support',
-]);
+import { ERP_ROLES } from '../erpRoles.js';
+
+export { ERP_ROLES } from '../erpRoles.js';
 
 export const INTERNAL_ROLES = Object.freeze(ERP_ROLES.filter((role) => role !== 'financeur_externe'));
 export const MANAGEMENT_ROLES = Object.freeze(['promotrice_direction', 'responsable_filiere', 'finance', 'admin_support']);

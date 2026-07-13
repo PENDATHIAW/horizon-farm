@@ -98,7 +98,7 @@ export default function SalesEvolution({
   return (
     <ChartsGrid>
       {undatedOrders > 0 ? (
-        <p className="col-span-full rounded-xl border border-amber-200 bg-amber-50 px-4 py-2 text-sm text-amber-900">
+        <p className="col-span-full rounded-xl border border-vigilance bg-vigilance-bg px-4 py-2 text-sm text-horizon-dark">
           {undatedOrders} vente(s) sans date valide — exclue(s) des graphiques mensuels. Renseignez la date sur la fiche vente.
         </p>
       ) : null}

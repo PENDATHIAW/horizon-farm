@@ -49,7 +49,7 @@ export default function AlertesCenterTechnical(props) {
         console.warn('Alerte technique critique non persistée', error);
       });
     });
-  }, [technicalAlerts, props.alertes, props.onCreate, props.onRefresh]);
+  }, [technicalAlerts, props]);
 
   return <AlertesCenter {...props} alertes={[...technicalAlerts, ...(props.alertes || [])]} />;
 }

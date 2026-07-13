@@ -4,21 +4,21 @@ export default function FinanceDataQualityPanel({ dataQuality = null, onNavigate
   if (!dataQuality) return null;
 
   return (
-    <section className="rounded-3xl border border-[#d6c3a0] bg-white p-5 shadow-sm">
+    <section className="rounded-3xl border border-line bg-white p-6 shadow-card">
       <div className="flex items-center gap-2">
-        <ClipboardCheck size={20} className="text-[#9a6b12]" />
+        <ClipboardCheck size={20} className="text-horizon-dark" />
         <div>
-          <h2 className="text-lg font-black text-[#2f2415]">Qualité des données financières</h2>
-          <p className="text-sm text-[#8a7456]">{dataQuality.summary}</p>
+          <h2 className="text-lg font-semibold text-earth">Qualité des données financières</h2>
+          <p className="text-sm text-slate">{dataQuality.summary}</p>
         </div>
       </div>
 
       {dataQuality.insufficientData ? (
-        <p className="mt-4 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+        <p className="mt-4 rounded-2xl border border-vigilance bg-vigilance-bg px-4 py-3 text-sm text-horizon-dark">
           En attente de données — les contrôles qualité s'activent après la première vente, paiement ou dépense.
         </p>
       ) : dataQuality.empty ? (
-        <p className="mt-4 rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">
+        <p className="mt-4 rounded-2xl border border-positive bg-positive-bg px-4 py-3 text-sm text-positive">
           Vos calculs financiers s'appuient sur des données suffisamment complètes.
         </p>
       ) : (
@@ -28,13 +28,13 @@ export default function FinanceDataQualityPanel({ dataQuality = null, onNavigate
               <button
                 type="button"
                 onClick={() => onNavigateTab?.(issue.tab)}
-                className="flex w-full items-start justify-between gap-3 rounded-xl border border-[#eadcc2] bg-[#fffdf8] px-3 py-2 text-left hover:bg-white"
+                className="flex w-full items-start justify-between gap-3 rounded-xl border border-line bg-card px-3 py-2 text-left hover:bg-white"
               >
                 <div>
-                  <p className="text-sm font-black text-[#2f2415]">{issue.label}</p>
-                  <p className="text-xs text-[#8a7456]">{issue.detail}</p>
+                  <p className="text-sm font-semibold text-earth">{issue.label}</p>
+                  <p className="text-xs text-slate">{issue.detail}</p>
                 </div>
-                <span className="shrink-0 rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-black text-amber-800">
+                <span className="shrink-0 rounded-full bg-vigilance-bg px-2 py-1 text-meta font-semibold text-horizon-dark">
                   {issue.count}
                 </span>
               </button>

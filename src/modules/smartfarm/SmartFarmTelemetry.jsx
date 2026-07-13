@@ -16,7 +16,7 @@ function Tabs({ active, onChange, criticalBadge = 0 }) {
     <div className="space-y-2">
       <ModuleTabsBar moduleId="smartfarm" active={active} onChange={onChange} />
       {criticalBadge > 0 && active === 'SmartFarmDevicesView' ? (
-        <p className="text-xs font-bold text-amber-700">{criticalBadge} signal(aux) critique(s) — consultez Dispositifs ou Activité & Suivi.</p>
+        <p className="text-xs font-semibold text-horizon-dark">{criticalBadge} signal(aux) critique(s) — consultez Dispositifs ou Activité & Suivi.</p>
       ) : null}
     </div>
   );
@@ -53,14 +53,14 @@ export default function SmartFarmTelemetry(props) {
 
   return (
     <div className="space-y-6">
-      <section className="rounded-3xl border border-[#d6c3a0] bg-white p-5 shadow-sm">
+      <section className="rounded-3xl border border-line bg-white p-6 shadow-card">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
           <div>
-            <p className="flex items-center gap-2 text-xs font-black uppercase tracking-[0.25em] text-[#9a6b12]">
+            <p className="flex items-center gap-2 text-xs font-semibold uppercase tracking-normal text-horizon-dark">
               <Radio size={16} /> Télémétrie IoT
             </p>
-            <h1 className="mt-1 text-2xl font-black text-[#2f2415]">Smart Farm</h1>
-            <p className="mt-1 text-sm text-[#8a7456]">
+            <h1 className="mt-1 text-2xl font-semibold text-earth">Smart Farm</h1>
+            <p className="mt-1 text-sm text-slate">
               Eau, énergie, bâtiments, dispositifs et alertes automatiques vers Activité & Suivi.
             </p>
             {props.periodLabel ? (
@@ -75,9 +75,9 @@ export default function SmartFarmTelemetry(props) {
               className="mt-2"
             />
           </div>
-          <div className="rounded-2xl border border-[#eadcc2] bg-[#fffdf8] px-4 py-3 text-sm">
-            <span className="text-[#8a7456]">Signaux critiques </span>
-            <b className={data.criticalCount ? 'text-amber-700' : 'text-emerald-700'}>{data.criticalCount}</b>
+          <div className="rounded-2xl border border-line bg-card px-4 py-3 text-sm">
+            <span className="text-slate">Signaux critiques </span>
+            <b className={data.criticalCount ? 'text-horizon-dark' : 'text-positive'}>{data.criticalCount}</b>
           </div>
         </div>
       </section>

@@ -34,7 +34,7 @@ function InlineDraftActions({
               type="button"
               disabled={isValidating}
               onClick={() => onCompletionChoice?.(choice)}
-              className="rounded-lg border px-3 py-2 text-xs font-semibold tracking-wide disabled:opacity-40"
+              className="rounded-lg border px-3 py-2 text-xs font-semibold tracking-normal disabled:opacity-40"
               style={{ borderColor: HORIZON.border, color: HORIZON.text, background: HORIZON.surface }}
             >
               {choice.label}
@@ -47,7 +47,7 @@ function InlineDraftActions({
         type="button"
         disabled={hasBlockingMissing || isValidating}
         onClick={onValidate}
-        className="rounded-lg px-4 py-2 text-xs font-semibold tracking-wide text-white disabled:opacity-40"
+        className="rounded-lg px-4 py-2 text-xs font-semibold tracking-normal text-white disabled:opacity-40"
         style={{ background: HORIZON.primary }}
       >
         {isValidating ? 'Confirmation…' : (completion ? 'VALIDER' : 'Confirmer')}
@@ -56,7 +56,7 @@ function InlineDraftActions({
         type="button"
         onClick={onCancel}
         disabled={isValidating}
-        className="rounded-lg border px-4 py-2 text-xs font-semibold tracking-wide disabled:opacity-40"
+        className="rounded-lg border px-4 py-2 text-xs font-semibold tracking-normal disabled:opacity-40"
         style={{ borderColor: HORIZON.border, color: HORIZON.text, background: HORIZON.surface }}
       >
         Annuler
@@ -78,33 +78,33 @@ function FullDraftPanel({ draft, onChangeField, onValidate, onCancel, onOpenModu
   };
 
   return (
-    <div className="rounded-3xl border border-[#d6c3a0] bg-[#fffdf8] p-4 space-y-4 shadow-sm">
+    <div className="rounded-3xl border border-line bg-card p-4 space-y-4 shadow-card">
       <div className="flex items-start justify-between gap-3">
         <div>
-          <p className="text-[11px] uppercase tracking-widest font-black text-[#8a7456]">Brouillon Horizon</p>
-          <h3 className="text-base font-black text-[#2f2415]">{draft.ui?.title || 'Action ERP à valider'}</h3>
-          <p className="text-xs text-[#8a7456] mt-1">{draft.ui?.subtitle || 'Vérifie les données avant validation.'}</p>
+          <p className="text-meta uppercase tracking-normal font-semibold text-slate">Brouillon Horizon</p>
+          <h3 className="text-base font-semibold text-earth">{draft.ui?.title || 'Action ERP à valider'}</h3>
+          <p className="text-xs text-slate mt-1">{draft.ui?.subtitle || 'Vérifie les données avant validation.'}</p>
         </div>
-        <span className={`rounded-full px-2.5 py-1 text-[10px] font-black ${hasBlockingMissing ? 'bg-amber-50 text-amber-700 border border-amber-200' : 'bg-emerald-50 text-emerald-700 border border-emerald-200'}`}>
+        <span className={`rounded-full px-3 py-1 text-meta font-semibold ${hasBlockingMissing ? 'bg-vigilance-bg text-horizon-dark border border-vigilance' : 'bg-positive-bg text-positive border border-positive'}`}>
           {hasBlockingMissing ? 'À compléter' : 'Prêt à valider'}
         </span>
       </div>
       {warnings.length ? (
         <div className="space-y-2">
           {warnings.map((warning) => (
-            <div key={warning} className="flex gap-2 rounded-2xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800">
-              <AlertTriangle size={14} className="shrink-0 mt-0.5" />
+            <div key={warning} className="flex gap-2 rounded-2xl border border-vigilance bg-vigilance-bg px-3 py-2 text-xs text-horizon-dark">
+              <AlertTriangle size={14} className="shrink-0 mt-1" />
               <span>{warning}</span>
             </div>
           ))}
         </div>
       ) : null}
       {missing.length ? (
-        <div className="rounded-2xl border border-red-200 bg-red-50 p-3">
-          <p className="text-xs font-black text-red-700 mb-2">Champs manquants</p>
+        <div className="rounded-2xl border border-urgent bg-urgent-bg p-3">
+          <p className="text-xs font-semibold text-urgent mb-2">Champs manquants</p>
           <div className="flex flex-wrap gap-2">
             {missing.map((field) => (
-              <span key={field} className="rounded-full bg-white border border-red-200 px-2 py-1 text-[11px] font-bold text-red-700">
+              <span key={field} className="rounded-full bg-white border border-urgent px-2 py-1 text-meta font-semibold text-urgent">
                 {labels[field] || field}
               </span>
             ))}
@@ -113,33 +113,33 @@ function FullDraftPanel({ draft, onChangeField, onValidate, onCancel, onOpenModu
       ) : null}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
         {Object.entries(fields).filter(([key]) => !['notes', 'product_id', 'supplier_id'].includes(key)).map(([key, value]) => (
-          <label key={key} className="rounded-2xl border border-[#eadcc2] bg-white p-3 space-y-1">
-            <span className="block text-[11px] font-black uppercase tracking-wide text-[#8a7456]">{labels[key] || key}</span>
-            <input value={valueLabel(value)} onChange={(event) => onChangeField?.(key, event.target.value)} className="w-full bg-transparent text-sm font-bold text-[#2f2415] outline-none" />
+          <label key={key} className="rounded-2xl border border-line bg-white p-3 space-y-1">
+            <span className="block text-meta font-semibold uppercase tracking-normal text-slate">{labels[key] || key}</span>
+            <input value={valueLabel(value)} onChange={(event) => onChangeField?.(key, event.target.value)} className="w-full bg-transparent text-sm font-semibold text-earth outline-none" />
           </label>
         ))}
       </div>
       {draft.next_required_form ? (
-        <div className="rounded-2xl border border-purple-200 bg-purple-50 p-3">
-          <p className="text-xs font-black text-purple-800">Formulaire lié requis</p>
-          <p className="text-sm font-bold text-[#2f2415] mt-1">{draft.next_required_form.title}</p>
-          <p className="text-xs text-purple-700 mt-1">{draft.next_required_form.subtitle}</p>
+        <div className="rounded-2xl border border-line bg-neutral-bg p-3">
+          <p className="text-xs font-semibold text-neutral">Formulaire lié requis</p>
+          <p className="text-sm font-semibold text-earth mt-1">{draft.next_required_form.title}</p>
+          <p className="text-xs text-neutral mt-1">{draft.next_required_form.subtitle}</p>
         </div>
       ) : null}
-      <div className="rounded-2xl border border-[#eadcc2] bg-white p-3">
-        <p className="flex items-center gap-2 text-xs font-black text-[#2f2415] mb-2"><Layers size={14} /> Modules impactés</p>
+      <div className="rounded-2xl border border-line bg-white p-3">
+        <p className="flex items-center gap-2 text-xs font-semibold text-earth mb-2"><Layers size={14} /> Modules impactés</p>
         <div className="flex flex-wrap gap-2">
           {(draft.impacted_modules || []).map((module) => (
-            <button key={module} type="button" onClick={() => onOpenModule?.(module)} className="rounded-full border border-[#d6c3a0] bg-[#fffdf8] px-2.5 py-1 text-[11px] font-bold text-[#7d6a4a] hover:border-emerald-500 hover:text-emerald-700">
+            <button key={module} type="button" onClick={() => onOpenModule?.(module)} className="rounded-full border border-line bg-card px-3 py-1 text-meta font-semibold text-slate hover:border-positive hover:text-positive">
               {moduleLabel(module)}
             </button>
           ))}
         </div>
       </div>
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
-        <button type="button" onClick={onCancel} className="rounded-2xl border border-[#d6c3a0] bg-white px-3 py-2 text-xs font-black text-[#8a7456] hover:bg-[#fff8e8]"><X size={14} className="inline" /> Annuler</button>
-        <button type="button" onClick={openForm} className="rounded-2xl border border-[#d6c3a0] bg-white px-3 py-2 text-xs font-black text-[#2f2415] hover:bg-[#fff8e8]"><Edit3 size={14} className="inline" /> {formTitle(draft)}</button>
-        <button type="button" disabled={hasBlockingMissing} onClick={onValidate} className="rounded-2xl bg-emerald-500 px-3 py-2 text-xs font-black text-white disabled:opacity-45 disabled:cursor-not-allowed"><CheckCircle size={14} className="inline" /> VALIDER</button>
+        <button type="button" onClick={onCancel} className="rounded-2xl border border-line bg-white px-3 py-2 text-xs font-semibold text-slate hover:bg-vigilance-bg"><X size={14} className="inline" /> Annuler</button>
+        <button type="button" onClick={openForm} className="rounded-2xl border border-line bg-white px-3 py-2 text-xs font-semibold text-earth hover:bg-vigilance-bg"><Edit3 size={14} className="inline" /> {formTitle(draft)}</button>
+        <button type="button" disabled={hasBlockingMissing} onClick={onValidate} className="rounded-2xl bg-positive px-3 py-2 text-xs font-semibold text-white disabled:opacity-45 disabled:cursor-not-allowed"><CheckCircle size={14} className="inline" /> VALIDER</button>
       </div>
     </div>
   );

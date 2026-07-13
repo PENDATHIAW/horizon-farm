@@ -17,7 +17,7 @@ export default function HeyHorizonDraftSummary({ draft, variant = 'inline' }) {
         className={isInline ? 'text-sm' : 'rounded-2xl border p-4 text-sm'}
         style={isInline ? { color: HORIZON.text } : { borderColor: HORIZON.border, background: HORIZON.surface, color: HORIZON.text }}
       >
-        <p className="text-[11px] font-semibold uppercase tracking-wide" style={{ color: HORIZON.textMuted }}>
+        <p className="text-meta font-semibold uppercase tracking-normal" style={{ color: HORIZON.textMuted }}>
           {actionLabel}
         </p>
 
@@ -33,11 +33,11 @@ export default function HeyHorizonDraftSummary({ draft, variant = 'inline' }) {
         {checklist.length ? (
           <ul className="mt-3 space-y-1">
             {checklist.map((item) => (
-              <li key={item.key} className="flex items-center gap-2 text-[14px]">
+              <li key={item.key} className="flex items-center gap-2 text-body">
                 {item.filled ? (
-                  <Check size={14} className="shrink-0 text-emerald-600" />
+                  <Check size={14} className="shrink-0 text-positive" />
                 ) : (
-                  <X size={14} className="shrink-0 text-amber-600" />
+                  <X size={14} className="shrink-0 text-horizon-dark" />
                 )}
                 <span>{item.label}</span>
               </li>
@@ -46,9 +46,9 @@ export default function HeyHorizonDraftSummary({ draft, variant = 'inline' }) {
         ) : null}
 
         {completion.pendingQuestion && completion.awaitingReply ? (
-          <p className="mt-3 text-[15px] leading-relaxed whitespace-pre-wrap">{completion.pendingQuestion}</p>
+          <p className="mt-3 text-body leading-relaxed whitespace-pre-wrap">{completion.pendingQuestion}</p>
         ) : (
-          <p className="mt-3 text-[14px] leading-relaxed" style={{ color: HORIZON.textMuted }}>
+          <p className="mt-3 text-body leading-relaxed" style={{ color: HORIZON.textMuted }}>
             Vérifiez le brouillon et validez si tout est correct.
           </p>
         )}
@@ -65,25 +65,25 @@ export default function HeyHorizonDraftSummary({ draft, variant = 'inline' }) {
       className={isInline ? 'text-sm' : 'rounded-2xl border p-4 text-sm'}
       style={isInline ? { color: HORIZON.text } : { borderColor: HORIZON.border, background: HORIZON.surface, color: HORIZON.text }}
     >
-      <p className="text-[15px] leading-relaxed">
+      <p className="text-body leading-relaxed">
         D'accord — je prépare {legacyActionLabel.toLowerCase().startsWith('l') ? legacyActionLabel.toLowerCase() : `l'enregistrement : ${legacyActionLabel.toLowerCase()}`}.
       </p>
 
       {recordLines.length ? (
-        <ul className="mt-3 space-y-1.5">
+        <ul className="mt-3 space-y-2">
           {recordLines.map((line) => (
-            <li key={line} className="text-[15px] leading-snug">{line}</li>
+            <li key={line} className="text-body leading-snug">{line}</li>
           ))}
         </ul>
       ) : null}
 
       {consequenceLines.length ? (
-        <p className="mt-3 text-[14px] leading-relaxed" style={{ color: HORIZON.textMuted }}>
+        <p className="mt-3 text-body leading-relaxed" style={{ color: HORIZON.textMuted }}>
           {consequenceLines.join(' · ')}
         </p>
       ) : null}
 
-      <p className="mt-3 text-[14px] leading-relaxed" style={{ color: HORIZON.textMuted }}>
+      <p className="mt-3 text-body leading-relaxed" style={{ color: HORIZON.textMuted }}>
         Vérifiez ci-dessous et confirmez si tout est correct.
       </p>
 

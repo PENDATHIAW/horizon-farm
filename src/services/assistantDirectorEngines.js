@@ -131,8 +131,8 @@ export function buildObjectifStatusAnswer(dataMap = {}, query = '') {
   const focusAdvance = /en avance|en retard|avance ou en retard|avance|retard/.test(q);
 
   let situation;
-  let cause = '';
-  let action = '';
+  let cause;
+  let action;
 
   if (focusAnnual && annualTarget > 0) {
     situation = `Votre objectif annuel est atteint à ${annualPct} % (${fmtCurrency(annualRealized)} sur ${fmtCurrency(annualTarget)}).`;

@@ -5,32 +5,39 @@ import { resolveFinanceNavigation, resolveFinanceTab, navigationOptionsForFindin
 
 test('resolveFinanceNavigation — Réconciliation ouvre sous-vue trésorerie', () => {
   const nav = resolveFinanceNavigation('Réconciliation');
-  assert.equal(nav.tab, 'Trésorerie');
+  assert.equal(nav.tab, 'Trésorerie finance');
   assert.equal(nav.treasurySubview, 'reconciliation');
   assert.equal(nav.pilotageSubview, null);
 });
 
-test('resolveFinanceNavigation — Investissements ouvre sous-vue pilotage', () => {
+test('resolveFinanceNavigation — Investissements ouvre la vue dédiée', () => {
   const nav = resolveFinanceNavigation('Investissements');
-  assert.equal(nav.tab, 'Pilotage');
+  assert.equal(nav.tab, 'Investissements & dettes finance');
   assert.equal(nav.pilotageSubview, 'investissements');
 });
 
-test('resolveFinanceNavigation — Rentabilité ouvre sous-vue rentabilite', () => {
+test('resolveFinanceNavigation — Rentabilité ouvre Coûts & marges', () => {
   const nav = resolveFinanceNavigation('Rentabilité');
-  assert.equal(nav.tab, 'Pilotage');
+  assert.equal(nav.tab, 'Coûts & marges finance');
   assert.equal(nav.pilotageSubview, 'rentabilite');
 });
 
-test('resolveFinanceNavigation — Dépenses ouvre Trésorerie saisie', () => {
+test('resolveFinanceNavigation — Dépenses ouvre Transactions', () => {
   const nav = resolveFinanceNavigation('Dépenses');
-  assert.equal(nav.tab, 'Trésorerie');
+  assert.equal(nav.tab, 'Transactions finance');
   assert.equal(nav.treasurySubview, 'saisie');
 });
 
-test('resolveFinanceTab — 5 onglets canoniques', () => {
-  assert.equal(resolveFinanceTab('Créances'), 'Créances & dettes');
-  assert.equal(resolveFinanceTab('Échéancier'), 'Pilotage');
+test('resolveFinanceTab — 6 vues canoniques', () => {
+  assert.equal(resolveFinanceTab('Créances'), 'Budget & écarts finance');
+  assert.equal(resolveFinanceTab('Échéancier'), 'Budget & écarts finance');
+  assert.equal(resolveFinanceTab('Financement'), 'Budget & écarts finance');
+});
+
+test('resolveFinanceNavigation — Créances ouvre l’échéancier clients et fournisseurs', () => {
+  const nav = resolveFinanceNavigation('Créances');
+  assert.equal(nav.tab, 'Budget & écarts finance');
+  assert.equal(nav.pilotageSubview, 'echeancier');
 });
 
 test('navigationOptionsForFinding — conserve l’alias finance pour sous-vues', () => {

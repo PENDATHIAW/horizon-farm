@@ -115,8 +115,8 @@ function OperationalSummary({  realRows = [] }) {
   </div>;
 }
 function SummaryCard({ title, rows = [], empty, render, tone = 'neutral' }) {
-  const cls = tone === 'warning' ? 'border-amber-200 bg-amber-50 text-amber-800' : tone === 'good' ? 'border-emerald-200 bg-emerald-50 text-emerald-800' : 'border-[#eadcc2] bg-[#fffdf8] text-[#7d6a4a]';
-  return <div className={`rounded-2xl border p-4 ${cls}`}><p className="font-black text-[#2f2415]">{title}</p><div className="mt-3 space-y-2 text-sm">{rows.length ? rows.map((row) => <div key={row.id} className="rounded-xl bg-white/60 px-3 py-2">{render(row)}</div>) : <div className="rounded-xl bg-white/60 px-3 py-2">{empty}</div>}</div></div>;
+  const cls = tone === 'warning' ? 'border-vigilance bg-vigilance-bg text-horizon-dark' : tone === 'good' ? 'border-positive bg-positive-bg text-positive' : 'border-line bg-card text-slate';
+  return <div className={`rounded-2xl border p-4 ${cls}`}><p className="font-semibold text-earth">{title}</p><div className="mt-3 space-y-2 text-sm">{rows.length ? rows.map((row) => <div key={row.id} className="rounded-xl bg-white/60 px-3 py-2">{render(row)}</div>) : <div className="rounded-xl bg-white/60 px-3 py-2">{empty}</div>}</div></div>;
 }
 
 export default function CulturesV3({
@@ -228,35 +228,35 @@ export default function CulturesV3({
   };
 
   const cultureColumns = [
-    { key: 'nom', label: 'Culture', sortable: true, render: (row) => <span className="font-black text-[#2f2415]">{row.nom || row.type || row.id}</span> },
+    { key: 'nom', label: 'Culture', sortable: true, render: (row) => <span className="font-semibold text-earth">{row.nom || row.type || row.id}</span> },
     { key: 'parcelle', label: 'Parcelle', sortable: true, render: parcelKey },
-    { key: 'terrain', label: 'Sol / eau', render: (row) => <div><b>{row.type_sol || 'sol ?'}</b><p className="text-xs text-[#8a7456]">eau {row.eau_disponible || '?'}</p></div> },
+    { key: 'terrain', label: 'Sol / eau', render: (row) => <div><b>{row.type_sol || 'sol ?'}</b><p className="text-xs text-slate">eau {row.eau_disponible || '?'}</p></div> },
     { key: 'campagne', label: 'Campagne', sortable: true, render: campaignKey },
     { key: 'surface', label: 'Surface', sortable: true, render: (row) => `${fmtNumber(surfaceOf(row))} ${row.unite_surface || 'm²'}` },
     { key: 'recolte_prevue', label: 'Récolte prévue', render: (row) => row.date_recolte_prevue || '—' },
     { key: 'rendement', label: 'Rendement', render: (row) => `${fmtNumber(toNumber(row.rendement_reel ?? row.quantite_recoltee))} / ${fmtNumber(toNumber(row.rendement_attendu ?? row.quantite_prevue))} ${row.unite_recolte || 'kg'}` },
     { key: 'revenu', label: 'Revenu', sortable: true, render: (row) => fmtCurrency(revenueOf(row)) },
-    { key: 'marge', label: 'Marge', sortable: true, render: (row) => <span className={marginOf(row) >= 0 ? 'text-emerald-600 font-bold' : 'text-red-500 font-bold'}>{fmtCurrency(marginOf(row))}</span> },
+    { key: 'marge', label: 'Marge', sortable: true, render: (row) => <span className={marginOf(row) >= 0 ? 'text-positive font-semibold' : 'text-urgent font-semibold'}>{fmtCurrency(marginOf(row))}</span> },
     { key: 'decision_ia', label: 'Décision suggérée', render: (row) => { const decision = buildCultureDecisionProfile(row); return <Badge color={decision.priority === 'haute' ? 'red' : 'amber'}>{decision.decision}</Badge>; } },
     { key: 'statut', label: 'Statut', render: (row) => <Badge status={row.statut || 'planifiee'} /> },
     { key: 'actions', label: 'Actions', render: (row) => <div className="flex gap-1"><ActionIconButton icon={Eye} title="Voir" color="sky" onClick={() => { setSelected({ ...row, horizon_decision: buildCultureDecisionProfile(row) }); setModal('details'); }} /><ActionIconButton icon={Edit} title="Modifier" color="amber" onClick={() => { setSelected(row); setModal('edit'); }} disabled={['vendue','vendu','perdu','sinistre'].includes(String(row.statut || row.status || '').toLowerCase())} /><ActionIconButton icon={Trash2} title="Supprimer" color="red" onClick={() => { setSelected(row); setModal('delete'); }} /></div> },
   ];
   const aggregateColumns = [
-    { key: 'nom', label: 'Nom', sortable: true, render: (row) => <span className="font-black text-[#2f2415]">{row.nom}</span> },
+    { key: 'nom', label: 'Nom', sortable: true, render: (row) => <span className="font-semibold text-earth">{row.nom}</span> },
     { key: 'cultures', label: 'Cultures', sortable: true, render: (row) => row.cultures ?? '—' },
     { key: 'surface', label: 'Surface', render: (row) => `${fmtNumber(row.surface)} m²` },
     { key: 'cout', label: 'Coût', render: (row) => fmtCurrency(row.cout) },
     { key: 'revenu', label: 'Revenu', render: (row) => fmtCurrency(row.revenu) },
-    { key: 'marge', label: 'Marge', render: (row) => <span className={toNumber(row.marge) >= 0 ? 'text-emerald-600 font-bold' : 'text-red-500 font-bold'}>{fmtCurrency(row.marge)}</span> },
+    { key: 'marge', label: 'Marge', render: (row) => <span className={toNumber(row.marge) >= 0 ? 'text-positive font-semibold' : 'text-urgent font-semibold'}>{fmtCurrency(row.marge)}</span> },
     { key: 'risques', label: 'Risques', sortable: true, render: (row) => row.risques ?? '—' },
-    { key: 'actions', label: 'Actions', render: (row) => isSupportRecord(row) ? <div className="flex gap-1"><ActionIconButton icon={Edit} title="Modifier" color="amber" onClick={() => { setSelected(row); setModal('edit'); }} disabled={['vendue','vendu','perdu','sinistre'].includes(String(row.statut || row.status || '').toLowerCase())} /><ActionIconButton icon={Trash2} title="Supprimer" color="red" onClick={() => { setSelected(row); setModal('delete'); }} /></div> : <span className="text-xs text-[#8a7456]">Auto</span> },
+    { key: 'actions', label: 'Actions', render: (row) => isSupportRecord(row) ? <div className="flex gap-1"><ActionIconButton icon={Edit} title="Modifier" color="amber" onClick={() => { setSelected(row); setModal('edit'); }} disabled={['vendue','vendu','perdu','sinistre'].includes(String(row.statut || row.status || '').toLowerCase())} /><ActionIconButton icon={Trash2} title="Supprimer" color="red" onClick={() => { setSelected(row); setModal('delete'); }} /></div> : <span className="text-xs text-slate">Auto</span> },
   ];
 
   return <div className="space-y-6">
     <SectionHeader title={embeddedMode ? 'Registre parcelles & cultures' : 'Cultures, Parcelles & Campagnes'} sub={embeddedMode ? 'Lecture et navigation — récoltes, intrants, pertes et ventes dans leurs onglets dédiés.' : 'Sol, eau, rendement, stade et décisions suggérées — récoltes et intrants dans leurs onglets dédiés.'} actions={<><Btn icon={RefreshCw} variant="outline" small onClick={onRefresh}>Refresh</Btn><Btn icon={Download} variant="outline" small onClick={doExports}>Exporter</Btn><Btn icon={Plus} variant="outline" small onClick={() => setModal('create_parcelle')}>Ajouter parcelle</Btn><Btn icon={Plus} small onClick={() => setModal('create')}>Ajouter culture</Btn></>} />
     {showWorkflowBridge ? <CulturesWorkflowBridge rows={realRows} onUpdate={onUpdate} onRefresh={onRefresh} /> : null}
     {showSaleBridge ? <CulturesSaleOpportunityBridge rows={realRows} opportunities={opportunities} onUpdate={onUpdate} onRefresh={onRefresh} onCreateOpportunity={onCreateOpportunity} onUpdateOpportunity={onUpdateOpportunity} onRefreshOpportunities={onRefreshOpportunities} onCreateBusinessEvent={onCreateBusinessEvent} onRefreshBusinessEvents={onRefreshBusinessEvents} /> : null}
-    {embeddedMode ? null : <div className="flex flex-wrap gap-2">{tabs.map((item) => <button type="button" key={item} onClick={() => setTab(item)} className={`rounded-xl border px-4 py-2 text-sm font-semibold ${tab === item ? 'bg-[#2f2415] text-white border-[#2f2415]' : 'bg-white text-[#8a7456] border-[#d6c3a0]'}`}>{item}</button>)}</div>}
+    {embeddedMode ? null : <div className="flex flex-wrap gap-2">{tabs.map((item) => <button type="button" key={item} onClick={() => setTab(item)} className={`rounded-xl border px-4 py-2 text-sm font-semibold ${tab === item ? 'bg-earth text-white border-earth' : 'bg-white text-slate border-line'}`}>{item}</button>)}</div>}
     {embeddedMode ? null : <CulturesTabActionsBridge tab={tab} rows={rows} stocks={stocks} stockMovements={stockMovements} onCreate={onCreate} onUpdate={onUpdate} onDelete={onDelete} onRefresh={onRefresh} onUpdateStock={onUpdateStock} onRefreshStock={onRefreshStock} onCreateStockMovement={onCreateStockMovement} onRefreshStockMovements={onRefreshStockMovements} onCreateBusinessEvent={onCreateBusinessEvent} onRefreshBusinessEvents={onRefreshBusinessEvents} />}
     <div className="grid grid-cols-2 lg:grid-cols-6 gap-4"><KpiCard icon={Sprout} label="Cultures" value={realRows.length} /><KpiCard icon={Leaf} label="Surface" value={`${fmtNumber(analytics.totalSurface)} m²`} /><KpiCard icon={TrendingUp} label="Revenu" value={fmtCurrency(analytics.totalRevenue)} /><KpiCard icon={TrendingUp} label="Marge" value={fmtCurrency(analytics.totalMargin)} /><KpiCard icon={AlertTriangle} label="Risques IA" value={analytics.risks} /><KpiCard icon={Calendar} label="Récoltes prêtes" value={analytics.readyForSale} /></div>
     {embeddedMode ? <>

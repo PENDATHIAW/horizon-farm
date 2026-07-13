@@ -13,15 +13,15 @@ const isMissingDoc = (row = {}) => !row.document_id && !row.linked_document_id &
 const isUnpaid = (row = {}) => ['impaye', 'partiel'].includes(String(row.statut || row.status || '').toLowerCase());
 
 function ModuleSection({ icon: Icon, title, subtitle, children }) {
-  return <section className="rounded-3xl border border-[#d6c3a0] bg-white p-5 shadow-sm space-y-4"><div><p className="flex items-center gap-2 text-lg font-black text-[#2f2415]"><Icon size={20} /> {title}</p>{subtitle ? <p className="mt-1 text-sm text-[#8a7456]">{subtitle}</p> : null}</div>{children}</section>;
+  return <section className="rounded-3xl border border-line bg-white p-6 shadow-card space-y-4"><div><p className="flex items-center gap-2 text-lg font-semibold text-earth"><Icon size={20} /> {title}</p>{subtitle ? <p className="mt-1 text-sm text-slate">{subtitle}</p> : null}</div>{children}</section>;
 }
 
 function ControlCard({ icon: Icon, label, value, hint, danger = false }) {
-  return <div className={`rounded-2xl border p-4 ${danger ? 'border-amber-200 bg-amber-50' : 'border-[#eadcc2] bg-[#fffdf8]'}`}><div className="flex items-center gap-2 text-xs uppercase tracking-wide text-[#8a7456]"><Icon size={14} /> {label}</div><p className="mt-2 text-xl font-black text-[#2f2415]">{value}</p>{hint ? <p className="mt-1 text-xs text-[#8a7456]">{hint}</p> : null}</div>;
+  return <div className={`rounded-2xl border p-4 ${danger ? 'border-vigilance bg-vigilance-bg' : 'border-line bg-card'}`}><div className="flex items-center gap-2 text-xs uppercase tracking-normal text-slate"><Icon size={14} /> {label}</div><p className="mt-2 text-xl font-semibold text-earth">{value}</p>{hint ? <p className="mt-1 text-xs text-slate">{hint}</p> : null}</div>;
 }
 
 function AccountingLine({ label, value, hint, danger = false }) {
-  return <div className="rounded-2xl border border-[#eadcc2] bg-[#fffdf8] px-4 py-3 flex items-center justify-between gap-4"><div><p className="text-sm font-bold text-[#2f2415]">{label}</p>{hint ? <p className="text-xs text-[#8a7456] mt-1">{hint}</p> : null}</div><p className={`text-sm font-black ${danger ? 'text-amber-700' : 'text-[#2f2415]'}`}>{value}</p></div>;
+  return <div className="rounded-2xl border border-line bg-card px-4 py-3 flex items-center justify-between gap-4"><div><p className="text-sm font-semibold text-earth">{label}</p>{hint ? <p className="text-xs text-slate mt-1">{hint}</p> : null}</div><p className={`text-sm font-semibold ${danger ? 'text-horizon-dark' : 'text-earth'}`}>{value}</p></div>;
 }
 
 function DerivedChargesPanel({ finance, counts = {} }) {
@@ -36,19 +36,19 @@ function DerivedChargesPanel({ finance, counts = {} }) {
     ['Investissements', detail.investissements, counts.investissements],
   ];
   return (
-    <div className="rounded-2xl border border-red-200 bg-red-50 p-4 space-y-3">
+    <div className="rounded-2xl border border-urgent bg-urgent-bg p-4 space-y-3">
       <div className="flex items-start justify-between gap-3">
         <div>
-          <p className="font-black text-red-800">Coûts métier visibles en comptabilité</p>
-          <p className="text-sm text-red-700">Déjà saisis : {fmtCurrency(finance?.chargesComptabilisees || 0)} · À synchroniser : {fmtCurrency(finance?.chargesDeriveesNonComptabilisees || 0)}</p>
+          <p className="font-semibold text-urgent">Coûts métier visibles en comptabilité</p>
+          <p className="text-sm text-urgent">Déjà saisis : {fmtCurrency(finance?.chargesComptabilisees || 0)} · À synchroniser : {fmtCurrency(finance?.chargesDeriveesNonComptabilisees || 0)}</p>
         </div>
-        <span className="rounded-full bg-white px-3 py-1 text-xs font-black text-red-700">{fmtCurrency(finance?.chargesMetier || 0)}</span>
+        <span className="rounded-full bg-white px-3 py-1 text-xs font-semibold text-urgent">{fmtCurrency(finance?.chargesMetier || 0)}</span>
       </div>
       <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-2">
         {rows.map(([label, value, count]) => (
-          <div key={label} className={`rounded-xl border p-3 ${toNumber(value) > 0 ? 'border-red-100 bg-white' : toNumber(count) > 0 ? 'border-amber-200 bg-amber-50' : 'border-[#eadcc2] bg-[#fffdf8]'}`}>
-            <p className="text-xs font-bold text-[#8a7456]">{label}</p>
-            <p className="mt-1 font-black text-[#2f2415]">{toNumber(value) > 0 ? fmtCurrency(value) : toNumber(count) > 0 ? 'À renseigner' : '—'}</p>
+          <div key={label} className={`rounded-xl border p-3 ${toNumber(value) > 0 ? 'border-urgent bg-white' : toNumber(count) > 0 ? 'border-vigilance bg-vigilance-bg' : 'border-line bg-card'}`}>
+            <p className="text-xs font-semibold text-slate">{label}</p>
+            <p className="mt-1 font-semibold text-earth">{toNumber(value) > 0 ? fmtCurrency(value) : toNumber(count) > 0 ? 'À renseigner' : '—'}</p>
           </div>
         ))}
       </div>
@@ -93,9 +93,9 @@ export default function ComptabiliteV6(props) {
     <style>{`@media (max-width: 640px){.compta-mobile-structured .rounded-2xl{border-radius:18px}.compta-mobile-structured table{font-size:12px}.compta-mobile-structured th,.compta-mobile-structured td{padding-left:10px!important;padding-right:10px!important}.compta-mobile-structured .text-2xl{font-size:1.35rem}.compta-mobile-structured .grid{gap:.75rem}.compta-mobile-structured .overflow-x-auto{max-width:100vw}}`}</style>
 
     <ModuleSection icon={ShieldCheck} title="Contrôle comptable" subtitle="Lignes comptables, preuves/factures, vérification caisse/banque, reste à encaisser, reste à payer et points à régulariser.">
-      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3"><div><p className="text-xs uppercase tracking-widest text-[#8a7456] font-bold">Rôle du module Comptabilité</p><h3 className="text-xl font-black text-[#2f2415]">Sécuriser les preuves et l’historique comptable</h3><p className="text-sm text-[#8a7456] mt-1">Le pilotage de l’argent reste dans Finances. Ici, on contrôle les preuves, les lignes comptables, le reste à payer, le reste à encaisser et la vérification caisse/banque.</p></div>{accounting.warnings.length ? <div className="rounded-2xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800"><AlertTriangle size={15} className="inline" /> {accounting.warnings.length} point(s) à traiter</div> : <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-800"><CheckCircle2 size={15} className="inline" /> Tout semble à jour</div>}</div>
+      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3"><div><p className="text-xs uppercase tracking-normal text-slate font-semibold">Rôle du module Comptabilité</p><h3 className="text-xl font-semibold text-earth">Sécuriser les preuves et l’historique comptable</h3><p className="text-sm text-slate mt-1">Le pilotage de l’argent reste dans Finances. Ici, on contrôle les preuves, les lignes comptables, le reste à payer, le reste à encaisser et la vérification caisse/banque.</p></div>{accounting.warnings.length ? <div className="rounded-2xl border border-vigilance bg-vigilance-bg p-3 text-sm text-horizon-dark"><AlertTriangle size={15} className="inline" /> {accounting.warnings.length} point(s) à traiter</div> : <div className="rounded-2xl border border-positive bg-positive-bg p-3 text-sm text-positive"><CheckCircle2 size={15} className="inline" /> Tout semble à jour</div>}</div>
       <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4"><ControlCard icon={Receipt} label="Lignes contrôlées" value={accounting.entries} hint={`${accounting.cashIn} argent reçu, ${accounting.cashOut} argent dépensé`} /><ControlCard icon={FileText} label="Preuves manquantes" value={accounting.missingDocs} hint="factures, reçus, photos ou preuves" danger={accounting.missingDocs > 0} /><ControlCard icon={ShieldCheck} label="Reste à encaisser" value={fmtCurrency(accounting.creances)} hint="clients / paiements partiels" danger={accounting.creances > 0} /><ControlCard icon={AlertTriangle} label="Reste à payer" value={fmtCurrency(accounting.dettes)} hint="fournisseurs / dépenses impayées" danger={accounting.dettes > 0} /></div>
-      {accounting.warnings.length ? <div className="grid grid-cols-1 md:grid-cols-2 gap-2">{accounting.warnings.slice(0, 4).map((warning) => <div key={warning} className="rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800">{warning}</div>)}</div> : null}
+      {accounting.warnings.length ? <div className="grid grid-cols-1 md:grid-cols-2 gap-2">{accounting.warnings.slice(0, 4).map((warning) => <div key={warning} className="rounded-xl border border-vigilance bg-vigilance-bg p-3 text-sm text-horizon-dark">{warning}</div>)}</div> : null}
     </ModuleSection>
 
     <ModuleSection icon={Scale} title="Lecture comptable simplifiée" subtitle="Vue de contrôle : argent reçu, argent dépensé, reste à encaisser, reste à payer et résultat à vérifier. Le pilotage opérationnel complet reste dans Finances.">

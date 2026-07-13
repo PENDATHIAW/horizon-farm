@@ -10,10 +10,6 @@ export const businessEventsService = crud;
 /** Idempotence — réexporté depuis le module pur businessEventDedup. */
 export { findDuplicateBusinessEvent };
 
-const arr = (v) => (Array.isArray(v) ? v : []);
-const clean = (v) => String(v || '').trim();
-const lower = (v) => clean(v).toLowerCase();
-
 export const createBusinessEvent = async ({
   event_type,
   module_source,

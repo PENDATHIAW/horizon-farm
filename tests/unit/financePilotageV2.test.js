@@ -194,9 +194,9 @@ test('buildFinanceHeyHorizonQuestions — questions multi-fermes', () => {
   assert.ok(multi.length > mono.length);
 });
 
-test('resolveFinanceTab — aliases Financement et Réconciliation vers 5 onglets', () => {
-  assert.equal(resolveFinanceTab('Financement'), 'Pilotage');
-  assert.equal(resolveFinanceTab('Réconciliation'), 'Trésorerie');
+test('resolveFinanceTab — aliases Financement et Réconciliation vers les vues dédiées', () => {
+  assert.equal(resolveFinanceTab('Financement'), 'Budget & écarts finance');
+  assert.equal(resolveFinanceTab('Réconciliation'), 'Trésorerie finance');
   assert.ok(FINANCE_TABS.includes('Pilotage'));
   assert.ok(MODULE_TARGET_TABS.finance_pilotage.includes('Trésorerie'));
 });

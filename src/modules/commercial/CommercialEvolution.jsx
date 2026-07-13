@@ -12,10 +12,10 @@ const arr = (v) => (Array.isArray(v) ? v : []);
 
 function ChartSection({ title, question, chartDataset, insightIds = [], children }) {
   return (
-    <section className="rounded-3xl border border-[#d6c3a0] bg-[#fffdf8] p-5 shadow-sm space-y-4">
+    <section className="rounded-3xl border border-line bg-card p-6 shadow-card space-y-4">
       <div>
-        <h2 className="text-lg font-black text-[#2f2415]">{title}</h2>
-        {question ? <p className="mt-1 text-sm font-semibold text-[#9a6b12]">{question}</p> : null}
+        <h2 className="text-lg font-semibold text-earth">{title}</h2>
+        {question ? <p className="mt-1 text-sm font-semibold text-horizon-dark">{question}</p> : null}
       </div>
       {children}
       {chartDataset ? (
@@ -30,15 +30,15 @@ function ChartSection({ title, question, chartDataset, insightIds = [], children
 
 function AttainmentKpi({ label, hint, actual, target, attainment }) {
   const tone = attainment >= 100
-    ? 'border-emerald-200 bg-emerald-50 text-emerald-800'
+    ? 'border-positive bg-positive-bg text-positive'
     : attainment >= 75
-      ? 'border-amber-200 bg-amber-50 text-amber-900'
-      : 'border-red-200 bg-red-50 text-red-800';
+      ? 'border-vigilance bg-vigilance-bg text-horizon-dark'
+      : 'border-urgent bg-urgent-bg text-urgent';
   return (
     <div className={`rounded-2xl border p-4 ${tone}`}>
-      <p className="text-[11px] font-bold uppercase tracking-wide opacity-80">{label}</p>
-      {hint ? <p className="mt-0.5 text-[10px] font-medium normal-case opacity-75">{hint}</p> : null}
-      <p className="mt-1 text-2xl font-black">{attainment}%</p>
+      <p className="text-meta font-semibold uppercase tracking-normal opacity-80">{label}</p>
+      {hint ? <p className="mt-1 text-meta font-medium normal-case opacity-75">{hint}</p> : null}
+      <p className="mt-1 text-2xl font-semibold">{attainment}%</p>
       <p className="mt-1 text-xs">{actual.toLocaleString('fr-FR')} / {target.toLocaleString('fr-FR')} FCFA</p>
     </div>
   );
@@ -53,7 +53,7 @@ export default function CommercialEvolution(props) {
   );
   const filteredProps = useMemo(
     () => applyCommercialChartFilters(props, filters),
-    [props, filters, baseRows.length],
+    [props, filters],
   );
   const data = useMemo(() => buildCommercialChartDataset(filteredProps), [filteredProps]);
   const monthlyLabels = data.monthly.map((row) => row.mois);
@@ -70,8 +70,8 @@ export default function CommercialEvolution(props) {
         totalCount={baseRows.length}
       />
 
-      <p className="rounded-xl border border-[#eadcc2] bg-[#fffdf8] px-4 py-2 text-sm text-[#5f4b2f]">
-        <span className="font-bold text-[#2f2415]">Année 1 d&apos;activité</span>
+      <p className="rounded-xl border border-line bg-card px-4 py-2 text-sm text-slate">
+        <span className="font-semibold text-earth">Année 1 d&apos;activité</span>
         {' — '}
         démarrage {new Date(data.activityYear.startDate).toLocaleDateString('fr-FR')}
         {' ('}
@@ -83,7 +83,7 @@ export default function CommercialEvolution(props) {
         objectifs calés sur 12 mois après le démarrage (BP Investissements à terme).
       </p>
       {data.undatedOrders > 0 ? (
-        <p className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-2 text-sm text-amber-900">
+        <p className="rounded-xl border border-vigilance bg-vigilance-bg px-4 py-2 text-sm text-horizon-dark">
           {data.undatedOrders} vente(s) sans date — exclue(s) des graphiques mensuels.
         </p>
       ) : null}
@@ -171,7 +171,7 @@ export default function CommercialEvolution(props) {
             series={[
               { name: 'CA réalisé', type: 'bar', unit: 'FCFA', data: data.targetAttainment.map((row) => row.realise) },
               { name: 'Objectif CA', type: 'bar', unit: 'FCFA', data: data.targetAttainment.map((row) => row.objectif) },
-              { name: 'Taux d\'atteinte', type: 'line', unit: '%', axis: 'right', color: '#c53030', showLabels: true, data: data.targetAttainment.map((row) => row.attainment) },
+              { name: 'Taux d\'atteinte', type: 'line', unit: '%', axis: 'right', color: 'var(--hf-urgent)', showLabels: true, data: data.targetAttainment.map((row) => row.attainment) },
             ]}
           />
           <SmartEvolutionChart
@@ -186,7 +186,7 @@ export default function CommercialEvolution(props) {
             height={400}
             showValueLabels
             series={[
-              { name: 'Taux atteinte CA', type: 'line', unit: '%', color: '#2b6cb0', data: data.volumeVsTarget.map((row) => row.attainmentCa) },
+              { name: 'Taux atteinte CA', type: 'line', unit: '%', color: 'var(--hf-neutral)', data: data.volumeVsTarget.map((row) => row.attainmentCa) },
             ]}
           />
         </ChartsGrid>

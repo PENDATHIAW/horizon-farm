@@ -1,3 +1,5 @@
+import { purgeStalePwaCache } from '../services/pwa.js';
+
 const CHUNK_RELOAD_FLAG = 'horizon-farm-chunk-reload';
 
 function isChunkLoadError(error) {
@@ -13,7 +15,6 @@ export async function lazyWithRetry(importer, retries = 2) {
 
     if (!sessionStorage.getItem(CHUNK_RELOAD_FLAG)) {
       sessionStorage.setItem(CHUNK_RELOAD_FLAG, '1');
-      const { purgeStalePwaCache } = await import('../services/pwa.js');
       await purgeStalePwaCache({ reload: true });
     }
 
@@ -28,7 +29,7 @@ export function installChunkLoadRecovery() {
     if (!isChunkLoadError(reason)) return;
     if (sessionStorage.getItem(CHUNK_RELOAD_FLAG)) return;
     sessionStorage.setItem(CHUNK_RELOAD_FLAG, '1');
-    import('../services/pwa.js').then(({ purgeStalePwaCache }) => purgeStalePwaCache({ reload: true }));
+    void purgeStalePwaCache({ reload: true });
   };
 
   window.addEventListener('unhandledrejection', handler);

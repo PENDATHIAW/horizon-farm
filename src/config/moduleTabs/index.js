@@ -12,6 +12,7 @@ import documentsRapports from './documentsRapports.config.js';
 import equipe from './equipe.config.js';
 import equipements from './equipements.config.js';
 import gestionSysteme from './gestionSysteme.config.js';
+import syncActivity from './syncActivity.config.js';
 import agriFeeds from './agriFeeds.config.js';
 import smartfarm from './smartfarm.config.js';
 import financements, { financementExternalTabs } from './financements.config.js';
@@ -31,6 +32,7 @@ export const MODULE_TAB_CONFIGS = Object.freeze({
   equipe,
   equipements,
   gestion_systeme: gestionSysteme,
+  sync_activity: syncActivity,
   agri_feeds: agriFeeds,
   smartfarm,
   financements,
@@ -40,7 +42,6 @@ export const MODULE_TAB_CONFIGS = Object.freeze({
 export const MODULE_TAB_ALIASES = Object.freeze({
   centre_ia: 'centre_decisionnel',
   rh: 'equipe',
-  sync_activity: 'gestion_systeme',
 });
 
 const normalize = (value = '') => String(value).normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim();

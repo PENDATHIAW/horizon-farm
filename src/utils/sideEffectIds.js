@@ -37,6 +37,7 @@ export const documentIds = {
   healthProof: (healthId) => `DOC-SANTE-${clean(healthId)}`,
   cultureExpense: (cultureId, expenseId = '') => `DOC-CULT-DEP-${clean(cultureId)}${expenseId ? `-${clean(expenseId)}` : ''}`,
   transactionLink: (transactionId) => `DOC-LINK-${clean(transactionId)}`,
+  rhPayroll: (personId, period = '') => `DOC-RH-${clean(personId)}-${clean(period)}`,
 };
 
 export const alertIds = {

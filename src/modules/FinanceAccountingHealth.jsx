@@ -46,19 +46,19 @@ function buildHealth({ transactions = [], salesOrders = [], payments = [], docum
 }
 
 function Mini({ icon: Icon, label, value, danger = false }) {
-  return <div className={`rounded-xl border px-3 py-2 ${danger ? 'border-amber-200 bg-amber-50' : 'border-[#eadcc2] bg-white'}`}><Icon size={14} className={danger ? 'text-amber-700' : 'text-[#9a6b12]'} /><b className="block text-[#2f2415] break-words">{value}</b><span className="text-xs text-[#8a7456]">{label}</span></div>;
+  return <div className={`rounded-xl border px-3 py-2 ${danger ? 'border-vigilance bg-vigilance-bg' : 'border-line bg-white'}`}><Icon size={14} className={danger ? 'text-horizon-dark' : 'text-horizon-dark'} /><b className="block text-earth break-words">{value}</b><span className="text-xs text-slate">{label}</span></div>;
 }
 
 export default function FinanceAccountingHealth({ transactions = [], salesOrders = [], payments = [], documents = [], clients = [], fournisseurs = [], onNavigate }) {
   const health = buildHealth({ transactions, salesOrders, payments, documents, clients, fournisseurs });
-  return <section className="rounded-3xl border border-[#d6c3a0] bg-white p-5 shadow-sm space-y-4">
+  return <section className="rounded-3xl border border-line bg-white p-6 shadow-card space-y-4">
     <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-3">
       <div>
-        <p className="text-xs uppercase tracking-widest text-[#8a7456] font-black flex items-center gap-2"><Scale size={15} /> Contrôle argent et preuves</p>
-        <h3 className="text-xl font-black text-[#2f2415] mt-1">Vérifier les doublons et les preuves</h3>
-        <p className="text-sm text-[#8a7456] mt-1">Vue commune pour vérifier ventes, argent reçu, argent dépensé, reste à encaisser, reste à payer et preuves/factures.</p>
+        <p className="text-xs uppercase tracking-normal text-slate font-semibold flex items-center gap-2"><Scale size={15} /> Contrôle argent et preuves</p>
+        <h3 className="text-xl font-semibold text-earth mt-1">Vérifier les doublons et les preuves</h3>
+        <p className="text-sm text-slate mt-1">Vue commune pour vérifier ventes, argent reçu, argent dépensé, reste à encaisser, reste à payer et preuves/factures.</p>
       </div>
-      {health.warnings.length ? <div className="rounded-2xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800"><AlertTriangle size={15} className="inline" /> {health.warnings.length} point(s) à traiter</div> : <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-800"><CheckCircle2 size={15} className="inline" /> Cohérence correcte</div>}
+      {health.warnings.length ? <div className="rounded-2xl border border-vigilance bg-vigilance-bg p-3 text-sm text-horizon-dark"><AlertTriangle size={15} className="inline" /> {health.warnings.length} point(s) à traiter</div> : <div className="rounded-2xl border border-positive bg-positive-bg p-3 text-sm text-positive"><CheckCircle2 size={15} className="inline" /> Cohérence correcte</div>}
     </div>
     <div className="grid grid-cols-2 md:grid-cols-4 xl:grid-cols-7 gap-2 text-sm">
       <Mini icon={Receipt} label="Ventes enregistrées" value={fmtCurrency(health.ca)} />
@@ -69,8 +69,8 @@ export default function FinanceAccountingHealth({ transactions = [], salesOrders
       <Mini icon={AlertTriangle} label="Reste à payer" value={fmtCurrency(health.dettes)} danger={health.dettes > 0} />
       <Mini icon={FileText} label="Preuves manquantes" value={health.missingProof.length} danger={health.missingProof.length > 0} />
     </div>
-    {health.warnings.length ? <div className="grid grid-cols-1 md:grid-cols-2 gap-2">{health.warnings.slice(0, 6).map((warning) => <div key={warning} className="rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800">{warning}</div>)}</div> : null}
-    {health.missingProof.length ? <div className="rounded-2xl border border-[#eadcc2] bg-[#fffdf8] p-4"><p className="font-black text-[#2f2415]">Lignes sans preuve / facture</p><div className="mt-3 grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-2 text-sm">{health.missingProof.slice(0, 4).map((tx) => <div key={tx.id || tx.libelle} className="rounded-xl bg-white border border-[#eadcc2] px-3 py-2"><b className="text-[#2f2415]">{tx.libelle || tx.id}</b><p className="text-xs text-[#8a7456]">{fmtCurrency(amount(tx))} · {tx.type || 'mouvement'}</p></div>)}</div></div> : null}
+    {health.warnings.length ? <div className="grid grid-cols-1 md:grid-cols-2 gap-2">{health.warnings.slice(0, 6).map((warning) => <div key={warning} className="rounded-xl border border-vigilance bg-vigilance-bg p-3 text-sm text-horizon-dark">{warning}</div>)}</div> : null}
+    {health.missingProof.length ? <div className="rounded-2xl border border-line bg-card p-4"><p className="font-semibold text-earth">Lignes sans preuve / facture</p><div className="mt-3 grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-2 text-sm">{health.missingProof.slice(0, 4).map((tx) => <div key={tx.id || tx.libelle} className="rounded-xl bg-white border border-line px-3 py-2"><b className="text-earth">{tx.libelle || tx.id}</b><p className="text-xs text-slate">{fmtCurrency(amount(tx))} · {tx.type || 'mouvement'}</p></div>)}</div></div> : null}
     <div className="flex flex-wrap justify-end gap-2"><Btn small variant="outline" onClick={() => onNavigate?.('documents')}>Ouvrir documents</Btn><Btn small variant="outline" onClick={() => onNavigate?.('comptabilite')}>Ouvrir comptabilité</Btn><Btn small variant="outline" onClick={() => onNavigate?.('finances')}>Ouvrir finances</Btn></div>
   </section>;
 }

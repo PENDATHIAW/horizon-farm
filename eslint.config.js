@@ -40,7 +40,9 @@ export default defineConfig([
       'react-hooks/rules-of-hooks': 'warn',
       'react-hooks/static-components': 'warn',
       'react-hooks/use-memo': 'warn',
-      'react-refresh/only-export-components': 'warn',
+      // Components and their domain helpers intentionally share files in this ERP.
+      // HMR export shape is therefore not a useful correctness signal here.
+      'react-refresh/only-export-components': 'off',
     },
   },
 ])

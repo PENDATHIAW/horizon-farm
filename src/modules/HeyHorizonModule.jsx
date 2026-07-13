@@ -153,11 +153,13 @@ export default function HeyHorizonModule({
   }, []);
 
   useEffect(() => {
-    setMessages((prev) => {
-      const conversation = prev.filter((message) => !message.isWelcome);
-      if (!conversation.length && !prev.length) return [welcomeMessage];
-      if (prev.some((message) => message.isWelcome)) return [welcomeMessage, ...conversation];
-      return [welcomeMessage, ...prev];
+    queueMicrotask(() => {
+      setMessages((prev) => {
+        const conversation = prev.filter((message) => !message.isWelcome);
+        if (!conversation.length && !prev.length) return [welcomeMessage];
+        if (prev.some((message) => message.isWelcome)) return [welcomeMessage, ...conversation];
+        return [welcomeMessage, ...prev];
+      });
     });
   }, [welcomeMessage]);
 
@@ -264,7 +266,7 @@ export default function HeyHorizonModule({
     } finally {
       setVoiceBusy(false);
     }
-  }, [appendMessage, cancelDraft, command, isProcessing, runCommand, voiceBusy]);
+  }, [appendMessage, cancelDraft, command, isProcessing, runCommand, scrollToBottom, voiceBusy]);
 
   useEffect(() => {
     const handler = (event) => {
@@ -288,7 +290,7 @@ export default function HeyHorizonModule({
       <HorizonPhoneHeader />
       {llmStatus && !llmStatus.configured ? (
         <div
-          className="mx-4 mb-2 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-[11px] text-amber-900"
+          className="mx-4 mb-2 rounded-xl border border-vigilance bg-vigilance-bg px-3 py-2 text-meta text-horizon-dark"
           role="status"
         >
           L’assistant vocal avancé sera bientôt disponible. En attendant, décrivez simplement votre besoin (vente, achat, alerte…).

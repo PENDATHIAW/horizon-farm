@@ -150,11 +150,11 @@ export default function CentreDecisionModule({
 
   const urgentCount = openCentralAlerts.length;
 
-  const tabBadges = useMemo(() => ({
+  const tabBadges = {
     'À traiter': urgentCount,
     'Décisions': (decisionPlan.commercialRecommendations?.length || 0)
       + (decisionPlan.recommendations?.filter((r) => r.should_recommend_investment || r.technical_rule).length || 0),
-  }), [decisionPlan, urgentCount]);
+  };
 
   const risksData = useMemo(() => ({
     ...data,
@@ -163,7 +163,7 @@ export default function CentreDecisionModule({
 
   const content = tab === 'À traiter'
     ? (
-      <div className="grid gap-5 xl:grid-cols-2">
+      <div className="grid gap-6 xl:grid-cols-2">
         <ListeAlertes
           title="Alertes à traiter"
           alertes={centralAlerts}
@@ -252,19 +252,19 @@ export default function CentreDecisionModule({
 
   return (
     <div className="space-y-6">
-      <section className="rounded-3xl border border-[#d6c3a0] bg-[#fffdf8] p-6 shadow-sm">
+      <section className="rounded-3xl border border-line bg-card p-6 shadow-card">
         <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
           <div>
-            <p className="text-xs uppercase tracking-[0.25em] text-[#9a6b12] font-black">Intelligence décisionnelle</p>
-            <h1 className="mt-1 text-3xl font-black text-[#2f2415]">Centre décisionnel</h1>
-            <p className="mt-2 text-sm text-[#8a7456] max-w-2xl">
+            <p className="text-xs uppercase tracking-normal text-horizon-dark font-semibold">Intelligence décisionnelle</p>
+            <h1 className="mt-1 text-3xl font-semibold text-earth">Centre décisionnel</h1>
+            <p className="mt-2 text-sm text-slate max-w-2xl">
               Décidez quoi traiter maintenant, quoi développer et quoi anticiper selon les ventes, les risques, la trésorerie, les saisons et les marchés.
             </p>
             {onOpenAssistant ? (
               <button
                 type="button"
                 onClick={() => onOpenAssistant('Comment va la ferme ?')}
-                className="mt-2 inline-flex items-center gap-1.5 text-xs font-black text-[#9a6b12] hover:underline"
+                className="mt-2 inline-flex items-center gap-2 text-xs font-semibold text-horizon-dark hover:underline"
               >
                 <Bot size={14} /> Question à Hey Horizon (vocal ou texte)
               </button>
@@ -272,15 +272,15 @@ export default function CentreDecisionModule({
             {periodLabel ? <div className="mt-2"><PeriodScopeBadge label={periodLabel} /></div> : null}
           </div>
           <div className="flex flex-wrap items-center gap-2 text-sm">
-            <span className="rounded-xl border border-[#eadcc2] bg-white px-3 py-2">
-              <span className="text-[#8a7456]">Actions critiques </span>
+            <span className="rounded-xl border border-line bg-white px-3 py-2">
+              <span className="text-slate">Actions critiques </span>
               <b>{urgentCount}</b>
             </span>
-            <span className="rounded-xl border border-[#eadcc2] bg-white px-3 py-2">
-              <span className="text-[#8a7456]">ITH </span>
+            <span className="rounded-xl border border-line bg-white px-3 py-2">
+              <span className="text-slate">ITH </span>
               <b>{strategicPlan.ith ?? '—'}</b>
             </span>
-            <button type="button" onClick={() => onNavigate?.('objectifs_croissance', { tab: 'Suivi du Business Plan' })} className="rounded-xl border border-[#d6c3a0] bg-white px-3 py-2 text-xs font-black text-[#9a6b12] hover:bg-[#dcfce7]">
+            <button type="button" onClick={() => onNavigate?.('objectifs_croissance', { tab: 'Suivi du Business Plan' })} className="rounded-xl border border-line bg-white px-3 py-2 text-xs font-semibold text-horizon-dark hover:bg-positive-bg">
               Objectifs →
             </button>
             <Btn
@@ -305,8 +305,8 @@ export default function CentreDecisionModule({
         </div>
       </section>
 
-      <details className="rounded-2xl border border-[#d6c3a0] bg-[#fffdf8] px-4 py-3">
-        <summary className="cursor-pointer text-sm font-black text-[#2f2415]">Paramètres de pilotage (clients, fêtes)</summary>
+      <details className="rounded-2xl border border-line bg-card px-4 py-3">
+        <summary className="cursor-pointer text-sm font-semibold text-earth">Paramètres de pilotage (clients, fêtes)</summary>
         <div className="mt-3 flex flex-col gap-3 lg:flex-row lg:items-start">
           <div className="flex-1">
             <PilotageSettingsPanel clients={props.clients || dataMap.clients} onChange={() => setPilotageVersion((v) => v + 1)} />
@@ -315,7 +315,7 @@ export default function CentreDecisionModule({
             <button
               type="button"
               onClick={() => syncStrategicAlertsToCenter({ strategicPlan, existingAlerts: props.existingAlerts, onCreateAlert: props.onCreateAlert, onRefreshAlertes: props.onRefreshAlertes }).catch(() => undefined)}
-              className="shrink-0 rounded-xl border border-[#d6c3a0] bg-white px-4 py-2 text-xs font-black text-[#2f2415] hover:bg-[#dcfce7]"
+              className="shrink-0 rounded-xl border border-line bg-white px-4 py-2 text-xs font-semibold text-earth hover:bg-positive-bg"
             >
               Synchroniser alertes critiques
             </button>

@@ -182,7 +182,7 @@ export default function AvicoleEvolution({ rows = [], productionLogs = [], alime
 
 
 
-  if (!activeRows.length) return <div className="rounded-2xl border border-[#eadcc2] bg-[#fffdf8] p-4 text-sm text-[#8a7456]">Aucun lot avicole — graphiques indisponibles.</div>;
+  if (!activeRows.length) return <div className="rounded-2xl border border-line bg-card p-4 text-sm text-slate">Aucun lot avicole — graphiques indisponibles.</div>;
 
   const chargePieChair = showChair ? [
     { name: 'Coût bande', value: chair.reduce((s, r) => s + toNumber(r.charges_aliments), 0) },

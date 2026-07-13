@@ -29,7 +29,7 @@ export default function QuickInputModal({
     onSubmit?.(value);
   };
 
-  const inputClass = 'w-full rounded-xl border border-[#d6c3a0] bg-white px-3 py-2 text-sm outline-none';
+  const inputClass = 'w-full rounded-xl border border-line bg-white px-3 py-2 text-sm outline-none';
 
   return (
     <BaseModal
@@ -38,14 +38,14 @@ export default function QuickInputModal({
       onClose={onClose}
       footer={(
         <div className="flex flex-wrap justify-end gap-2">
-          <button type="button" onClick={onClose} className="rounded-xl border border-[#d6c3a0] bg-white px-4 py-2 text-sm font-black text-[#2f2415]">
+          <button type="button" onClick={onClose} className="rounded-xl border border-line bg-white px-4 py-2 text-sm font-semibold text-earth">
             {cancelLabel}
           </button>
           <button
             type="button"
             disabled={!canSubmit || busy}
             onClick={handleSubmit}
-            className="rounded-xl bg-[#2f2415] px-4 py-2 text-sm font-black text-white disabled:opacity-40"
+            className="rounded-xl bg-earth px-4 py-2 text-sm font-semibold text-white disabled:opacity-40"
           >
             {busy ? 'Enregistrement…' : submitLabel}
           </button>
@@ -53,9 +53,9 @@ export default function QuickInputModal({
       )}
     >
       <div className="space-y-4">
-        {description ? <p className="text-sm text-[#8a7456]">{description}</p> : null}
+        {description ? <p className="text-sm text-slate">{description}</p> : null}
         <label className="block space-y-1 text-sm">
-          {label ? <span className="font-black text-[#2f2415]">{label}</span> : null}
+          {label ? <span className="font-semibold text-earth">{label}</span> : null}
           {type === 'textarea' ? (
             <textarea
               value={value}

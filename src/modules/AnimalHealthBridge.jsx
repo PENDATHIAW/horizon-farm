@@ -122,12 +122,12 @@ export default function AnimalHealthBridge({ rows = [], alimentationLogs = [], v
   };
 
   return (
-    <div className="rounded-2xl border border-[#d6c3a0] bg-white p-5 space-y-4">
+    <div className="rounded-2xl border border-line bg-white p-6 space-y-4">
       <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3">
         <div>
-          <p className="text-xs uppercase tracking-widest text-[#8a7456]">Suivi animal</p>
-          <h3 className="font-black text-[#2f2415]">Santé, alimentation et alertes</h3>
-          <p className="mt-1 text-sm text-[#8a7456]">Repère les animaux à contrôler et crée directement le suivi santé, la tâche et l’alerte.</p>
+          <p className="text-xs uppercase tracking-normal text-slate">Suivi animal</p>
+          <h3 className="font-semibold text-earth">Santé, alimentation et alertes</h3>
+          <p className="mt-1 text-sm text-slate">Repère les animaux à contrôler et crée directement le suivi santé, la tâche et l’alerte.</p>
         </div>
         <div className="grid grid-cols-3 gap-2 text-sm">
           <Box icon={HeartPulse} label="À suivre" value={atRisk.length} />
@@ -140,16 +140,16 @@ export default function AnimalHealthBridge({ rows = [], alimentationLogs = [], v
           {atRisk.map((animal) => {
             const growth = buildGrowthSummary(animal);
             const reason = isAtRisk(animal) ? animal.health_status || 'à contrôler' : growth.label;
-            return <div key={animal.id} className="rounded-xl border border-amber-200 bg-amber-50/60 p-3"><p className="font-bold text-[#2f2415]"><AlertTriangle size={14} className="inline text-amber-600" /> {animalName(animal)}</p><p className="text-xs text-[#8a7456] mt-1">{reason}</p><button type="button" className="mt-3 text-sm font-bold text-emerald-700" onClick={() => createHealthFollowUp(animal)}>Créer suivi</button></div>;
+            return <div key={animal.id} className="rounded-xl border border-vigilance bg-vigilance-bg p-3"><p className="font-semibold text-earth"><AlertTriangle size={14} className="inline text-horizon-dark" /> {animalName(animal)}</p><p className="text-xs text-slate mt-1">{reason}</p><button type="button" className="mt-3 text-sm font-semibold text-positive" onClick={() => createHealthFollowUp(animal)}>Créer suivi</button></div>;
           })}
         </div>
       ) : (
-        <div className="rounded-xl border border-[#eadcc2] bg-[#fffdf8] p-3 text-sm text-[#8a7456]"><CheckCircle2 size={14} className="inline" /> Aucun animal à risque détecté.</div>
+        <div className="rounded-xl border border-line bg-card p-3 text-sm text-slate"><CheckCircle2 size={14} className="inline" /> Aucun animal à risque détecté.</div>
       )}
     </div>
   );
 }
 
 function Box({ icon: Icon, label, value }) {
-  return <div className="rounded-xl bg-[#fffdf8] border border-[#eadcc2] px-3 py-2 min-w-[110px]"><Icon size={14} className="text-[#9a6b12]" /><b className="block text-[#2f2415]">{value}</b><span className="text-xs text-[#8a7456]">{label}</span></div>;
+  return <div className="rounded-xl bg-card border border-line px-3 py-2 min-w-[110px]"><Icon size={14} className="text-horizon-dark" /><b className="block text-earth">{value}</b><span className="text-xs text-slate">{label}</span></div>;
 }

@@ -43,7 +43,7 @@ export function buildElevageGapRows({
     const financeId = financeIds.feeding(logId);
     const hasFinance = arr(transactions).some((t) => clean(t.id) === financeId || clean(t.source_record_id) === logId);
 
-    if (logId && qty > 0 && clean(log.stock_id) && !log.side_effects_managed) {
+    if (logId && hasStockOut && !log.side_effects_managed) {
       const stock = arr(stocks).find((s) => clean(s.id) === clean(log.stock_id));
       if (stock && !log.stock_movement_ref) {
         push({

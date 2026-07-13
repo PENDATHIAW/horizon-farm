@@ -187,7 +187,7 @@ export const BUSINESS_EVENT_IMPLEMENTATION_MATRIX = Object.freeze([
     screen: 'src/modules/EquipementsQuickActionsBridge.jsx', screenMarker: 'runEquipmentMaintenanceSideEffects',
     workflow: 'src/utils/equipmentSideEffects.js', workflowMarker: 'runEquipmentMaintenanceSideEffects',
     test: 'tests/unit/businessEventOperationalGaps.vite.js',
-    stock: 'N/A.', finance: 'Dépense maintenance idempotente.', commercial: 'N/A.', tasks: 'Tâche créée ou mise à jour.', alerts: 'Alerte panne conservée jusqu’à réparation.', documents: 'Preuve maintenance liée au coût.', reporting: 'Coût, disponibilité et prochaine échéance.',
+    stock: 'N/A.', finance: 'Dépense de maintenance enregistrée une seule fois.', commercial: 'N/A.', tasks: 'Tâche créée ou mise à jour.', alerts: 'Alerte panne conservée jusqu’à réparation.', documents: 'Preuve maintenance liée au coût.', reporting: 'Coût, disponibilité et prochaine échéance.',
     review: 'Équipement, date, type, responsable, coût non négatif et prochaine échéance sont validés.',
   }),
   entry({

@@ -40,24 +40,24 @@ export default function VisionCyclesTab({
   const pivotSlice = compact ? pivotDecisions.slice(0, 4) : pivotDecisions;
 
   return (
-    <div className={compact ? 'space-y-4' : 'space-y-5'}>
+    <div className={compact ? 'space-y-4' : 'space-y-6'}>
       {!compact ? (
         <>
           <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
             <div>
-              <p className="text-xs uppercase tracking-widest text-[#9a6b12] font-black">Cycles de production</p>
-              <h3 className="text-lg font-black text-[#2f2415] mt-1">Quand lancer une bande</h3>
+              <p className="text-xs uppercase tracking-normal text-horizon-dark font-semibold">Cycles de production</p>
+              <h3 className="text-lg font-semibold text-earth mt-1">Quand lancer une bande</h3>
             </div>
             {onNavigate ? <Btn onClick={() => onNavigate('elevage', { tab: 'Cycles & Reproduction' })}>Élevage → Cycles</Btn> : null}
           </div>
         </>
       ) : (
-        <p className="text-xs font-black uppercase tracking-widest text-[#9a6b12]">Dates pivot & lancement</p>
+        <p className="text-xs font-semibold uppercase tracking-normal text-horizon-dark">Dates pivot & lancement</p>
       )}
 
       {!hideBfr && strategicPlan.bfr?.blocked ? (
-        <div className="rounded-2xl border border-red-400 bg-red-50 p-3 text-sm text-red-800">
-          <p className="font-black flex items-center gap-2"><AlertTriangle size={16} /> Lancement suspendu — trésorerie</p>
+        <div className="rounded-2xl border border-urgent bg-urgent-bg p-3 text-sm text-urgent">
+          <p className="font-semibold flex items-center gap-2"><AlertTriangle size={16} /> Lancement suspendu — trésorerie</p>
           <p className="mt-1 text-xs">{strategicPlan.bfr.message}</p>
         </div>
       ) : null}
@@ -115,8 +115,8 @@ export default function VisionCyclesTab({
         </Section>
       ) : null}
 
-      <details ref={calendarDetailsRef} className="rounded-2xl border border-[#eadcc2] bg-[#fffdf8] p-4">
-        <summary className="cursor-pointer font-black text-[#2f2415] text-sm">Calendrier détaillé des lots (J+40, J+90…)</summary>
+      <details ref={calendarDetailsRef} className="rounded-2xl border border-line bg-card p-4">
+        <summary className="cursor-pointer font-semibold text-earth text-sm">Calendrier détaillé des lots (J+40, J+90…)</summary>
         <div className="mt-4">
           <ProductionCycleDecisionPanel
             dataMap={dataMap}

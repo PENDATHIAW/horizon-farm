@@ -14,9 +14,9 @@ const stockLabel = (row = {}) => row.produit || row.name || row.nom || row.id ||
 
 function Mini({ label, value, danger = false }) {
   return (
-    <div className={`rounded-xl border px-3 py-2 ${danger ? 'border-amber-200 bg-amber-50' : 'border-[#eadcc2] bg-white'}`}>
-      <p className="text-xs text-[#8a7456]">{label}</p>
-      <b className="block text-[#2f2415] break-words">{value}</b>
+    <div className={`rounded-xl border px-3 py-2 ${danger ? 'border-vigilance bg-vigilance-bg' : 'border-line bg-white'}`}>
+      <p className="text-xs text-slate">{label}</p>
+      <b className="block text-earth break-words">{value}</b>
     </div>
   );
 }
@@ -33,27 +33,27 @@ export default function CultureInputsWeatherPanel({ stocks = [], meteo = null, w
 
   return (
     <div className="grid grid-cols-1 xl:grid-cols-3 gap-3">
-      <article className="rounded-2xl border border-[#eadcc2] bg-[#fffdf8] p-4">
-        <p className="flex items-center gap-2 font-black text-[#2f2415]"><Package size={17} className="text-[#9a6b12]" /> Intrants cultures</p>
-        <p className="mt-1 text-sm text-[#8a7456]">Semences, engrais, traitements et irrigation — stock géré dans Achats & Stock.</p>
+      <article className="rounded-2xl border border-line bg-card p-4">
+        <p className="flex items-center gap-2 font-semibold text-earth"><Package size={17} className="text-horizon-dark" /> Intrants cultures</p>
+        <p className="mt-1 text-sm text-slate">Semences, engrais, traitements et irrigation — stock géré dans Achats & Stock.</p>
         <div className="mt-3 grid grid-cols-2 gap-2 text-sm">
           <Mini label="Intrants suivis" value={cultureInputs.length} />
           <Mini label="Sous seuil" value={criticalInputs.length} danger={criticalInputs.length > 0} />
         </div>
         <div className="mt-3 space-y-2 text-sm">
           {criticalInputs.slice(0, 3).map((row) => (
-            <div key={row.id || stockLabel(row)} className="rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-amber-800">
+            <div key={row.id || stockLabel(row)} className="rounded-xl border border-vigilance bg-vigilance-bg px-3 py-2 text-horizon-dark">
               <AlertTriangle size={14} className="inline" /> {stockLabel(row)} · {fmtNumber(stockQty(row))} {row.unite || ''}
             </div>
           ))}
-          {!criticalInputs.length ? <div className="rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-emerald-700">Aucun intrant culture sous seuil.</div> : null}
+          {!criticalInputs.length ? <div className="rounded-xl border border-positive bg-positive-bg px-3 py-2 text-positive">Aucun intrant culture sous seuil.</div> : null}
         </div>
         <div className="mt-3 flex justify-end"><Btn small variant="outline" onClick={() => onNavigate?.('achats_stock', { tab: 'Stock' })}>Ouvrir stock</Btn></div>
       </article>
 
-      <article className="rounded-2xl border border-[#eadcc2] bg-[#fffdf8] p-4">
-        <p className="flex items-center gap-2 font-black text-[#2f2415]"><CloudSun size={17} className="text-[#9a6b12]" /> Météo (contexte actions)</p>
-        <p className="mt-1 text-sm text-[#8a7456]">Intégrée aux décisions irrigation et traitements — pas d&apos;onglet météo séparé.</p>
+      <article className="rounded-2xl border border-line bg-card p-4">
+        <p className="flex items-center gap-2 font-semibold text-earth"><CloudSun size={17} className="text-horizon-dark" /> Météo (contexte actions)</p>
+        <p className="mt-1 text-sm text-slate">Intégrée aux décisions irrigation et traitements — pas d&apos;onglet météo séparé.</p>
         <div className="mt-3 grid grid-cols-2 gap-2 text-sm">
           <Mini label="État" value={weatherLoading ? 'Chargement' : weatherLabel} />
           <Mini label="Température" value={temp !== undefined && temp !== null ? `${fmtNumber(temp)}°C` : '—'} />
@@ -63,15 +63,15 @@ export default function CultureInputsWeatherPanel({ stocks = [], meteo = null, w
         <div className="mt-3 flex justify-end"><Btn small variant="outline" onClick={() => onNavigate?.('smartfarm')}>Capteurs Smart Farm</Btn></div>
       </article>
 
-      <article className="rounded-2xl border border-[#eadcc2] bg-[#fffdf8] p-4">
-        <p className="font-black text-[#2f2415]">Intrants disponibles</p>
+      <article className="rounded-2xl border border-line bg-card p-4">
+        <p className="font-semibold text-earth">Intrants disponibles</p>
         <div className="mt-3 space-y-2 text-sm">
           {readyInputs.length ? readyInputs.map((row) => (
-            <div key={row.id || stockLabel(row)} className="rounded-xl bg-white border border-[#eadcc2] px-3 py-2">
-              <b className="text-[#2f2415]">{stockLabel(row)}</b>
-              <p className="text-xs text-[#8a7456]">{fmtNumber(stockQty(row))} {row.unite || ''} disponible(s)</p>
+            <div key={row.id || stockLabel(row)} className="rounded-xl bg-white border border-line px-3 py-2">
+              <b className="text-earth">{stockLabel(row)}</b>
+              <p className="text-xs text-slate">{fmtNumber(stockQty(row))} {row.unite || ''} disponible(s)</p>
             </div>
-          )) : <div className="rounded-xl border border-[#eadcc2] bg-white px-3 py-2 text-[#8a7456]">Aucun intrant culture identifié dans le stock.</div>}
+          )) : <div className="rounded-xl border border-line bg-white px-3 py-2 text-slate">Aucun intrant culture identifié dans le stock.</div>}
         </div>
       </article>
     </div>

@@ -10,7 +10,7 @@ export default function ATraiterMaintenantTab({
   onRefresh,
 }) {
   return (
-    <div className="space-y-5">
+    <div className="space-y-6">
       <ActiviteWorkflowBridge
         {...workflowBridgeProps}
         onLinked={onRefresh}

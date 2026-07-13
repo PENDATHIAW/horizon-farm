@@ -57,7 +57,7 @@ function AlertesVolumePanel({ alertes = [] }) {
 
 export default function PerformanceAnalytiqueTab({ data, tasks, alertes, onNavigate }) {
   return (
-    <div className="space-y-5">
+    <div className="space-y-6">
       <div className="grid grid-cols-2 gap-3 xl:grid-cols-4">
         <ActiviteKpi label="Tâches ouvertes" value={fmtNumber(data.openTasks.length)} tone={data.openTasks.length ? 'warn' : 'good'} />
         <ActiviteKpi label="En retard" value={fmtNumber(data.lateTasks.length)} tone={data.lateTasks.length ? 'bad' : 'good'} />

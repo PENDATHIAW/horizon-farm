@@ -1,3 +1,15 @@
+export const STATUTS_TACHE_OUVERTE = Object.freeze([
+  'a_faire',
+  'à faire',
+  'en_cours',
+  'en cours',
+  'todo',
+  'in_progress',
+  'nouvelle',
+  'ouverte',
+  'open',
+]);
+
 export default {
   actions: {
     ouvrirSource: 'Ouvrir le module source',

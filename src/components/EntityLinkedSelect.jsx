@@ -55,12 +55,12 @@ export default function EntityLinkedSelect({
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:col-span-2">
       <label className="space-y-1">
-        <span className="text-xs text-[#8a7456]">{moduleLabel}</span>
+        <span className="text-xs text-slate">{moduleLabel}</span>
         <select
           disabled={disabled || !sources.length}
           value={moduleValue || active?.value || ''}
           onChange={(e) => onModuleChange?.(e.target.value)}
-          className="w-full border rounded-lg px-3 py-2 text-sm text-[#2f2415] bg-[#fffdf8] border-[#d6c3a0]"
+          className="w-full border rounded-lg px-3 py-2 text-sm text-earth bg-card border-line"
         >
           {!sources.length ? <option value="">Aucun module avec fiches</option> : null}
           {sources.map((source) => (
@@ -69,12 +69,12 @@ export default function EntityLinkedSelect({
         </select>
       </label>
       <label className="space-y-1">
-        <span className="text-xs text-[#8a7456]">{entityLabel}</span>
+        <span className="text-xs text-slate">{entityLabel}</span>
         <select
           disabled={disabled || !options.length}
           value={entityValue || ''}
           onChange={(e) => onEntityChange?.(e.target.value)}
-          className="w-full border rounded-lg px-3 py-2 text-sm text-[#2f2415] bg-[#fffdf8] border-[#d6c3a0]"
+          className="w-full border rounded-lg px-3 py-2 text-sm text-earth bg-card border-line"
         >
           <option value="">{options.length ? 'Sélectionner…' : 'Aucune entité pour ce module'}</option>
           {options.map((option) => (

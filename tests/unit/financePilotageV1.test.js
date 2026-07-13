@@ -136,8 +136,8 @@ test('isFinanceStartupMode — aucune donnée financière', () => {
 test('resolveFinanceTab — anciens liens vers les 6 vues cibles', () => {
   assert.equal(resolveFinanceTab('Échéancier'), 'Budget & écarts finance');
   assert.equal(resolveFinanceTab('Investissements'), 'Investissements & dettes finance');
-  assert.equal(resolveFinanceTab('Réconciliation'), 'Transactions finance');
-  assert.equal(resolveFinanceTab('Créances & dettes'), 'Investissements & dettes finance');
+  assert.equal(resolveFinanceTab('Réconciliation'), 'Trésorerie finance');
+  assert.equal(resolveFinanceTab('Créances & dettes'), 'Budget & écarts finance');
   assert.deepEqual(MODULE_TARGET_TABS.finance_pilotage, ['Vue d’ensemble', 'Transactions', 'Trésorerie', 'Budget & écarts', 'Coûts & marges', 'Investissements & dettes']);
 });
 

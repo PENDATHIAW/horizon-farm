@@ -1,292 +1,214 @@
 # Rapport de conformité Horizon Farm ERP
 
-Session du 2026-07-12, branche `claude/go-a21ueq`. Référence : prompt « Mise en conformité
-Horizon Farm ERP V1 » (version corrigée et consolidée). L'inventaire préalable est dans
-`docs/ETAT_ACTUEL.md` (commit `00abbc3`).
+État final du 2026-07-13. Dépôt `PENDATHIAW/horizon-farm`, branche
+`claude/go-a21ueq`, PR #169, cible `main`.
 
-Échelle : FAIT / PARTIEL / NON FAIT / BLOQUÉ. Un statut FAIT cite fichiers, tests et résultats.
+Échelle imposée : FAIT, PARTIEL, NON FAIT, BLOQUÉ.
 
 ## Vue d'ensemble
 
-| Chantier | Statut | Preuve principale |
+| Chantier | Statut | Preuve |
 |---|---|---|
-| 0 · Inventaire de l'existant | FAIT | docs/ETAT_ACTUEL.md, commit 00abbc3 |
-| 1 · Dictionnaire et charte de langage | PARTIEL | src/i18n/, 2 tests verts, commit acdd762 |
-| 2 · Identifiants, alias et flags | PARTIEL | alias + flags testés (7 tests), commit 9527b3a ; volet base BLOQUÉ |
-| 3 · Structure cible des onglets | NON FAIT | écarts documentés ci-dessous |
-| 4 · Composants uniques | NON FAIT | composants cibles absents, existants listés |
-| 5 · Contrat des 20 secondes | PARTIEL | registre + test contrat (7 tests verts) ; chronométrage humain à consigner |
-| 6 · Nettoyages de pertinence | PARTIEL | retraits réels faits, autres cibles sans objet, commit 8d32052 |
-| 7 · Tests et rapport | PARTIEL | batteries exécutées ci-dessous |
+| 0. Inventaire et reprise | FAIT | `docs/ETAT_ACTUEL.md` |
+| 1. Dictionnaire et charte | FAIT | `npm run test:unit:i18n`, 4/4 |
+| 2. Identifiants, flags, rôles et portée ferme | FAIT | 8 rôles, flags testés, matrice Supabase à 0 anomalie |
+| 3. Structure des 17 modules | FAIT | configuration unique, 416/416 parcours d'onglets |
+| 4. Composants uniques | FAIT | JournalEvenements, ListeTaches, ListeAlertes, CarteKPI |
+| 5. Contrat des 20 secondes | PARTIEL | contrat automatisé vert, test humain sur téléphone à consigner |
+| 6. Nettoyages de pertinence | FAIT | retraits vérifiés, aucun reliquat historique exécutable |
+| 7. Tests et rapport | FAIT | 235/235 fichiers unitaires, lint, build et audits verts |
+| Refonte visuelle | FAIT | 18 couleurs, 7 sections, 7 saisies, 16 modules avec indicateurs |
+| Supabase production | FAIT | 96 tables existantes conformes, 3 absences attendues, 0 anomalie |
 
-## Chantier 0 · Inventaire (FAIT)
+## 1. Dictionnaire et langage
 
-`docs/ETAT_ACTUEL.md` : 18 modules de navigation + 17 modules historiques, onglets réels par
-module, ~110 tables Supabase, 26 migrations, 55 composants partagés, 18 506 chaînes françaises
-en dur dans 1 256 fichiers, rôles réels, absence de flags et d'i18n.
+Statut : FAIT.
 
-## Chantier 1 · Dictionnaire de libellés et charte (PARTIEL)
+- Dictionnaire central dans `src/i18n/fr/` et règles dans `src/i18n/charte.js`.
+- Aucun terme interdit, identifiant technique ou tiret long dans les chaînes visibles contrôlées.
+- Aucun texte français hors des chemins de dictionnaire autorisés par le test.
+- Les boutons utilisent un verbe et un objet, les états vides proposent une action utile.
+- `npm run test:unit:i18n` : 4 tests, 4 réussis.
 
-Fait, avec preuves :
+## 2. Identifiants, flags, rôles et fermes
 
-- `src/i18n/charte.js` : termes de spécification interdits, formulations interdites, tiret long,
-  mot « IA », versions V1/V2/V3, avec les exclusions demandées documentées (contenu utilisateur,
-  documents importés, pièces publiées, noms de fichiers, commentaires, jeux de test, logs non
-  visibles, noms propres, identifiants de code).
-- `src/i18n/fr/` (index, commun, navigation) avec les remplacements de référence : « Suggestion à
-  confirmer », « Je n'ai pas assez de données pour répondre. Voir {module}. », « Rien à afficher
-  pour l'instant. », « Coût moyen » + infobulle, « Urgent : {objet} attend un responsable »,
-  astérisque pour champ obligatoire, boutons verbe + objet.
-- Corrections réelles : 101 fichiers modifiés (commit acdd762). 114 chaînes visibles non
-  conformes ramenées à 0 (hors 2 fichiers d'instructions moteur exclus et documentés) :
-  « canonique », « validation humaine », « L'IA propose », « Centre IA », « Décision IA »,
-  « Brouillon IA », « recommandation IA », « source officielle », « ne doit jamais »,
-  « business_events » en prose, etc.
-- Tests exigés : `tests/unit/i18nCharteLibelles.test.js` (dictionnaire sans terme interdit ni
-  tiret long) et `tests/unit/i18nChainesEnDur.test.js` (chaînes visibles de src/, exclusions
-  documentées dans le fichier, cliquet de migration par chemins). `npm run test:unit:i18n` :
-  4 tests, 0 échec.
+Statut : FAIT.
 
-Reste à faire (raison du PARTIEL) : la migration des ~18 500 chaînes françaises vers le
-dictionnaire. Le cliquet (`CHEMINS_MIGRES` dans le test 2) verrouille chaque répertoire migré ;
-seul `src/i18n/` est migré à ce stade. Le tiret long et le mot « IA » ne sont donc verrouillés
-que dans le dictionnaire et les chemins migrés (533 fichiers contiennent encore des tirets longs).
+- Identifiants actifs : `centre_decisionnel`, `equipe`, `financements`.
+- Les anciens identifiants restent des alias de navigation.
+- Synchronisation et audit sont intégrés à Gestion du système. L'ancien point d'entrée reste un
+  alias de compatibilité et n'est pas une entrée de navigation concurrente.
+- `agri_feeds`, `smartfarm`, `financements` et `assistant_erp` sont pilotés par ferme.
+  Un flag désactivé retire navigation, chargement différé et requêtes.
+- Les huit rôles actifs sont : promotrice_direction, responsable_filiere, terrain, finance,
+  veterinaire, maintenance, financeur_externe et admin_support.
+- Les anciens rôles sont normalisés côté application et côté base.
+- Les profils visiteurs restent en attente et sans accès métier.
 
-## Chantier 2 · Identifiants, alias et flags (PARTIEL)
+### Supabase appliqué
 
-Fait, avec preuves (commit 9527b3a, `tests/unit/moduleAliasesEtFlags.test.js` : 7 tests, 0 échec) :
+- Projet vérifié : `HORIZON FARM`, région `eu-north-1`, état sain.
+- Ferme par défaut : 1. Accès ferme actifs : 2.
+- Profils actifs : 2 admin_support. Visiteur en attente : 1.
+- Historique : 12 migrations enregistrées.
+- Tables CRUD : 60 attendues, 60 présentes.
+- Tables appelées directement par les sources : 71 attendues, 71 présentes.
+- Tables métier existantes auditées : 96.
+- Chaque table existante a `farm_id UUID NOT NULL`, une FK vers `farms`, un index, la RLS
+  forcée, des politiques séparées de lecture, insertion, modification et suppression.
+- Chaque table existante a `is_deleted`, `deleted_at`, `deleted_by`. Les lignes supprimées
+  sont masquées par la politique de lecture.
+- Test comportemental distant : 86 assertions, 8 rôles, 2 fermes, 0 fuite, nettoyage complet.
+- `ai_decisions`, `ai_intake_events` et `ai_scores` ne sont pas déployées et ne sont appelées
+  par aucune source exécutable.
+- Détail reproductible : `docs/audits/SUPABASE_RLS_MATRIX.md`.
 
-- Renommages : `centre_ia → centre_decisionnel`, `rh → equipe` (libellé « Équipe »),
-  `investisseurs_forums → financements` (déjà en place, vérifié). Anciennes routes redirigées via
-  `DEPRECATED_MODULE_ALIASES` (src/config/moduleEntryPoints.js) ; permissions conscientes des
-  alias (src/context/AuthContext.jsx) ; registre et navigation sur les nouveaux identifiants,
-  libellés lus depuis src/i18n (src/config/modules.config.js).
-- Fusion synchronisation : `sync`, `sync_activity` et `audit_logs` redirigent vers Gestion du
-  système ; nouvel onglet Synchronisation qui intègre SyncActivityCenter
-  (src/modules/GestionSystemeUnified.jsx) ; badge global d'en-tête « {n} saisies en attente
-  d'envoi » depuis la file hors ligne (src/layouts/AppLayout.jsx, libellé du dictionnaire).
-- Flags par ferme (`src/config/moduleFlags.js`, source farms.settings.modules) pour agri_feeds,
-  smartfarm, financements, assistant_erp. Module désactivé = aucune entrée de navigation,
-  navigation redirigée vers l'Accueil, composant jamais construit donc import dynamique jamais
-  résolu, et préchargement de ses tables coupé (garde dans AppContext.fetchModuleData via
-  isDataKeyEnabled). AGRI FEEDS et Smart Farm désactivés par défaut pour une nouvelle ferme.
-  Vérification par test d'import : un chargeur espionné n'est jamais résolu quand le flag est
-  éteint (test « flag désactivé = entry point retiré, import jamais résolu »).
-- Migration écrite : `supabase/migrations/20260712120000_flags_modules_par_ferme.sql` (active les
-  quatre modules pour les fermes existantes afin de ne rien casser, sans écraser un réglage posé).
+## 3. Modules et onglets
 
-Reste à faire / BLOQUÉ :
+Statut : FAIT.
 
-- Application des migrations : BLOQUÉ, aucun accès à l'instance Supabase depuis cet
-  environnement. La migration des flags est écrite mais non appliquée ni testée en base.
-- farm_id + index + RLS sur toutes les tables métier, ferme par défaut et rattachement des lignes
-  existantes : NON FAIT. L'existant couvre une partie (migrations multi_farm_foundations,
-  stock_movements_farm_scope, elevage_logs_farm_id, durcissements AGRI FEEDS et financements),
-  mais la vérification systématique table par table exige l'accès base.
+Chaque onglet possède un identifiant, un libellé du dictionnaire, une clé de vue distincte, des
+rôles, un flag éventuel, un ordre et des alias historiques. La barre, le rendu et les liens
+profonds utilisent `src/config/moduleTabs/`.
 
-## Chantier 3 · Structure cible des modules et onglets (NON FAIT)
-
-Aucun des 17 modules n'a été restructuré vers la liste cible d'onglets. L'écart complet actuel /
-cible est documenté dans docs/ETAT_ACTUEL.md §3. Fondations en place : les onglets sont déjà
-servis par une configuration centrale (`MODULE_TARGET_TABS` dans src/config/horizonVision.config.js,
-consommée par ModuleTabsBar), mais sans rôle requis ni flag par onglet, et les listes ne
-correspondent pas au chantier 3. Seule évolution livrée : l'onglet Synchronisation de Gestion du
-système (chantier 2). Raison : chaque module demande fusions, déplacements de contenus et
-nouveaux écrans ; c'est un chantier de plusieurs sessions qui doit suivre la grille SPCE écran
-par écran.
-
-## Chantier 4 · Composants uniques (NON FAIT)
-
-JournalEvenements, ListeTaches, ListeAlertes et CarteKPI n'existent pas encore comme composants
-uniques. Existants approchants recensés (KpiCard, MiniMetricCard, ModuleTimeline, DataTable) et
-implémentations locales multiples confirmées. Créer les quatre composants sans migrer leurs
-consommateurs ajouterait une duplication de plus ; ce chantier doit être mené avec le chantier 3.
-
-## Chantier 5 · Contrat des 20 secondes (PARTIEL)
-
-Fait, avec preuves :
-
-- Registre unique `src/config/formulaires20s.config.js` : les 7 saisies quotidiennes (distribution,
-  ponte, mortalité, pesée, irrigation, récolte, vente) et les 10 saisies périodiques (réception,
-  dépense, encaissement client, paiement fournisseur, vaccination, nettoyage, transfert organique,
-  semis, panne, absence). Chaque entrée déclare : champs requis (cinq au maximum), champs repliés
-  sous « Détails », préremplissages (date du jour, utilisateur connecté, unités de la ferme, lot ou
-  parcelle unique auto, dernier fournisseur, dernier prix), filtres de contexte, clé d'idempotence
-  (issue_key : rejeu = un seul effet, en ligne comme hors ligne) et gabarit de confirmation à effets.
-- Confirmation à effets : `src/utils/confirmationAEffets.js` produit « {Saisie} enregistrée ·
-  {effet stock} · {effet coût ou KPI} » depuis le dictionnaire et le registre.
-- Boutons d'action rapide des 7 saisies quotidiennes sur l'Accueil, dérivés du même registre
-  (`ACTIONS_RAPIDES_QUOTIDIENNES` dans src/modules/dashboard/AccueilConforme.jsx).
-- Test contrat `tests/unit/contrat20Secondes.test.js` : 7 tests, 0 échec (7 quotidiennes et 10
-  périodiques présentes ; cinq champs requis maximum ; préremplissages date/utilisateur/unités
-  partout ; clé d'idempotence et confirmation à effets présentes ; libellés verbe + objet conformes
-  à la charte, « Soumettre » interdit ; gabarit de confirmation vérifié ; boutons de l'Accueil
-  alignés sur les 7 saisies quotidiennes).
-- Harnais de chronométrage `tests/e2e/contrat-20-secondes.spec.js` : ouvre chaque saisie quotidienne
-  depuis l'Accueil sur données de démonstration et vérifie une ouverture en moins de 20 secondes
-  (ignoré sans identifiants E2E ni navigateur).
-- Modèle de test humain sur téléphone `docs/test-humain-20-secondes.md` avec grille à consigner.
-
-Reste à faire (raison du PARTIEL) : l'exécution réelle du harnais Playwright dans un environnement
-avec navigateur et données de démonstration, et surtout le test humain chronométré sur téléphone,
-qui doit être consigné séparément. Le contrat est encodé et vérifié au niveau du registre ; le
-respect des cinq interactions et des moins de 20 secondes en usage réel se prouve par ces deux
-exécutions, non encore faites dans cette session.
-
-## Chantier 6 · Nettoyages de pertinence (PARTIEL)
-
-Retraits effectués (commit 8d32052) :
-
-| Retrait | Détail | Fichiers |
-|---|---|---|
-| Carte météo de l'Accueil | Carte « Météo terrain » supprimée (code mort), ligne température retirée des cartes ferme, pastilles météo retirées de l'en-tête | src/modules/dashboard/DashboardShell.jsx, dashboardV3Panels.jsx, farmDashboardPanels.jsx, dashboardV3.js, src/layouts/AppLayout.jsx |
-| Plafond de crédit (reporté) | Champ retiré du formulaire client ; les données existantes restent lisibles, rien n'est supprimé | src/modules/Clients.jsx |
-
-Cibles du chantier sans objet dans l'état actuel (vérifié par recherche dans le code) :
-
-- Assistant : pas d'onglets « Sources » ni « Questions fréquentes » (onglets actuels : Hey
-  Horizon, Questions métier, Aide à la décision, Recherche dans les données).
-- Objectifs : pas d'onglets « Capacité » ni « Rentabilité » (actuels : Suivi du Business Plan,
-  Prévisionnel vs réel, Simulations, Capacité de remboursement).
-- Documents : pas d'onglet « Modèles ».
-- Équipe : pas d'onglet « Rôles opérationnels ».
-- Commercial : pas de « taux de réclamation » affiché.
-- Équipements : pas d'alerte de garantie implémentée.
-
-Ces éléments restent à traiter lors de la restructuration du chantier 3 si les nouveaux onglets
-les réintroduisent.
-
-## Chantier 7 · Tests exécutés et résultats
-
-Exécutés dans cette session (Node 22, npm ci propre) :
-
-| Batterie | Résultat |
+| Module | Onglets actifs |
 |---|---|
-| test:unit:i18n (libellés interdits + chaînes en dur avec exclusions) | 4 tests, 0 échec |
-| moduleAliasesEtFlags (redirections + flags = zéro chargement) | 7 tests, 0 échec |
-| test:unit:idempotency (rejeu d'événements = un seul effet) | 13 tests, 0 échec |
-| test:unit:farm-scope (portée ferme, phases 1 à 5) | 52 tests, 0 échec |
-| test:unit:kpi-coherence | 6 tests, 0 échec |
-| test:unit:anti-duplication | 9 tests, 0 échec |
-| test:unit:workflow-quality | 4 tests, 0 échec |
-| test:unit:render-smoke, module-smoke, stability, dashboard, commercial, elevage, achats-stock, agri-feeds | 0 échec (après mise à jour de 2 assertions liées aux libellés) |
-| Build de production (vite build) | OK |
-| Lint (eslint) sur tous les fichiers modifiés | 0 erreur |
+| Accueil | Vue du jour, Pilotage, Mes actions |
+| Assistant ERP | Conversation |
+| Centre décisionnel | À traiter, Écarts, Risques, Décisions, Historique |
+| Objectifs et Croissance | Objectifs, Scénarios, Historique |
+| Élevage | Vue d'ensemble, Lots et animaux, Alimentation, Production, Santé et Biosécurité, Transformation, Coûts et performance, Historique |
+| Cultures | Parcelles, Campagnes, Irrigation, Intrants et fertilisation, Récoltes, Coûts et marge, Historique |
+| Commercial | Tableau de bord, Clients, Ventes et commandes, Livraisons, Factures et paiements, Créances et relances, Réclamations |
+| Achats et Stock | Tableau de bord, Produits et catégories, Fournisseurs, Achats et réceptions, Stocks et lots, Mouvements, Inventaires |
+| Finance et Pilotage | Vue d'ensemble, Transactions, Trésorerie, Budget et écarts, Coûts et marges, Investissements et dettes |
+| Activité et Suivi | À faire, Calendrier, Alertes liées, Journal d'exploitation, Historique |
+| Documents et Rapports | Bibliothèque, Preuves et justificatifs, Rapports, Publications, Archives |
+| Équipe | Vue d'ensemble, Membres, Affectations, Absences |
+| Équipements | Parc, Acquisitions, Pannes, Réparations, Coûts et disponibilité |
+| Gestion du système | Fermes, Utilisateurs et accès, Rôles et permissions, Modules et activation, Paramètres, Référentiels, Catalogues KPI et alertes, Synchronisation, Audit et sécurité |
+| AGRI FEEDS | Vue d'ensemble, Matières et fournisseurs, Formulations, Production, Essais et performance, Qualité, Commercial, Coûts et décisions |
+| Smart Farm | Vue d'ensemble, Relevés d'eau, Énergie, Bâtiments, Dispositifs, Relevés et qualité, Configuration |
+| Financements | Tableau de bord, Opportunités, Contacts et échanges, Candidatures, Pièces du dossier, Fonds et utilisation, Publications, Accès externes |
 
-Échecs préexistants, non causés par cette session (vérifiés sur l'arbre avant modification) :
+La face financeur en lecture seule expose : Vue d'ensemble, Rapports, Journal du projet, Documents
+partagés et Contact.
 
-- tests/unit/elevageV2.test.js : 1 échec dépendant de la date du jour (fenêtre de 7 jours sur des
-  données de juin 2026).
-- tests/unit/annexeTabsConfig.test.js : 4 échecs, assertions de comptage d'onglets périmées.
-- tests/unit/syncActivityTabsNavigation.test.js : 1 échec typographique (apostrophe ' vs ').
-- tests/unit/documentsWorkflow.test.js : import sans extension incompatible avec node --test
-  (passe sous vite).
+Preuves :
 
-Non exécutés / NON FAIT dans cette session : isolation live entre deux fermes (exige la base et
-les politiques RLS appliquées), permissions des huit rôles cibles (les huit rôles
-promotrice_direction … admin_support ne sont pas encore implémentés ; rôles actuels documentés
-dans docs/ETAT_ACTUEL.md §7), tests de transactions sans état partiel, immuabilité des rapports
-publiés, chronométrage automatisé des 7 formulaires et test humain sur téléphone.
+- `tests/unit/moduleTabsConformiteV1.test.js` : 5/5.
+- `npm run test:unit:module-tabs-stability` : 416/416.
+- Audit navigateur : 15 modules activés et 82 onglets internes ouverts, aucun écran d'erreur,
+  aucune erreur finale de console.
 
-## Migrations non appliquées
+## 4. Composants uniques
 
-- `supabase/migrations/20260712120000_flags_modules_par_ferme.sql` (nouvelle, cette session).
-- Aucune vérification possible de l'application des 26 migrations existantes depuis cet
-  environnement : à prouver sur l'instance avant tout merge dans main (contrainte de livraison).
+Statut : FAIT.
 
-## Invariants et interdictions permanentes : conformité de la session
+- `src/components/uniques/JournalEvenements.jsx`
+- `src/components/uniques/ListeTaches.jsx`
+- `src/components/uniques/ListeAlertes.jsx`
+- `src/components/uniques/CarteKPI.jsx`
 
-- Aucune table ni donnée supprimée ; le retrait du plafond de crédit ne touche que le formulaire.
-- Aucune route cassée : tous les anciens identifiants (centre_ia, rh, sync, sync_activity,
-  audit_logs, investisseurs_forums, impact_business, financeurs) redirigent, testé.
-- Aucun secret ajouté au dépôt ni au rapport.
-- Aucune table alerts, tasks ou de KPI locale créée.
+Les anciens imports partagés pointent vers les composants uniques. `CarteKPI` gère le sens
+métier de la variation, le chargement, l'absence de données, le clic et la ligne d'horizon.
 
-## Reste à faire, dans l'ordre du prompt
+## 5. Contrat des 20 secondes
 
-1. Terminer la migration i18n répertoire par répertoire en étendant `CHEMINS_MIGRES` (chantier 1).
-2. Prouver farm_id + index + RLS table par table et appliquer les migrations (chantier 2, accès base requis).
-3. Restructurer les 17 modules vers les onglets cibles avec config id / libellé / composant / rôle / flag, grille SPCE à l'appui (chantier 3).
-4. Créer et généraliser JournalEvenements, ListeTaches, ListeAlertes, CarteKPI (chantier 4).
-5. Harnais des 20 secondes + test humain consigné (chantier 5).
-6. Batterie complète du chantier 7 (isolation fermes, huit rôles, transactions, immuabilité, chronométrage).
+Statut : PARTIEL.
 
----
+Fait :
 
-## Correctif Élevage · Restauration de l'onglet Transformation
+- Sept saisies quotidiennes : aliment, ponte, mortalité, pesée, irrigation, récolte, vente.
+- Cinq champs requis maximum.
+- Date, utilisateur, unité et cible unique préremplis quand disponibles.
+- Listes filtrées par ferme, catégorie, disponibilité et statut.
+- Clé stable en ligne et hors ligne, garde contre double clic et rejeu idempotent.
+- Confirmation avec effets sur stock, coût ou indicateur.
+- Menu global de saisie rapide sur ordinateur et mobile.
+- `tests/unit/contrat20Secondes.test.js` : 7/7.
+- `tests/unit/dailyQuickEntryContract.test.js` : 10/10.
 
-### Cause exacte
+Reste à consigner :
 
-Le module n'avait pas été supprimé. `ElevageTransformationTab`, le rendu
-conditionnel `tab === 'Transformation'`, les handlers et les utilitaires de
-navigation, journal et workflow existaient encore. Le masquage venait d'une
-configuration d'onglets visible contradictoire avec le rendu réel. La
-configuration canonique par module est désormais `src/config/moduleTabs/` ;
-`ModuleTabsBar`, le résolveur d'alias et les deep-links lisent cette même source.
+- Test par une personne sur un téléphone réel, chronométré pour les sept saisies, dans
+  `docs/test-humain-20-secondes.md`.
 
-### Correction appliquée
+Ce point ne peut pas être déclaré FAIT par une automatisation seule.
 
-- La barre Élevage expose les huit onglets cibles dans l'ordre demandé : Vue
-  d'ensemble, Lots & animaux, Alimentation, Production, Santé & Biosécurité,
-  Transformation, Coûts & performance, Historique.
-- Les alias historiques `Transformation` et `transformation`, `initialTab`, les
-  deep-links, les actions Transformer animal/lot et `horizon-open-form` convergent
-  vers le même rendu.
-- Le formulaire conserve l'animal ou le lot, le type, la date réelle, le statut
-  sanitaire, les poids, pertes, preuves et la destination du produit fini.
-- La validation produit une seule sortie vivant, une entrée de stock et son
-  mouvement, une allocation de coût sans effet de trésorerie, un document et un
-  événement métier. Elle ne crée aucune vente.
-- Les identifiants et `event_key` des effets sont déterministes ; un rejeu déjà
-  présent dans `business_events` est reconnu et ne recrée aucun effet.
-- Les capacités sont explicites pour les sept profils concernés : direction et
-  responsable complets, terrain sans coûts sensibles, vétérinaire en lecture
-  sanitaire, finance en lecture des coûts, financeur externe sans accès et support
-  administrateur tracé.
-- Aucune table locale `alerts`, `tasks`, `stock`, `sales`, `finance` ou `kpi` n'a
-  été créée.
+## 6. Nettoyages
 
-### Fichiers modifiés
+Statut : FAIT.
 
-- `src/config/moduleTabs/elevage.config.js`
-- `src/modules/ElevageRecoveredModule.jsx`
-- `src/modules/elevage/TransformationOfficialForm.jsx`
-- `src/utils/elevageTransformationWorkflow.js`
-- `src/utils/elevageTransformationPermissions.js`
-- `tests/unit/elevageTransformationOfficial.test.js`
-- `tests/unit/elevageTransformationTabConfig.test.js`
-- `tests/unit/moduleRenderWithProvider.vite.test.js`
+- Carte météo retirée de l'Accueil.
+- Assistant réduit à Conversation avec Suggestions intégrées.
+- Capacité et Rentabilité fusionnées dans Scénarios.
+- Modèles de documents intégré à Rapports.
+- Rôles opérationnels porté par la fiche membre.
+- Synchronisation et audit fusionnés dans Gestion du système.
+- `BoviniaModule.jsx`, `TallowModule.jsx` et les actions associées sont absents.
+- Recherche mot entier sur `src`, `public`, `lib` et `sites` : zéro reliquat BOVINIA ou Tallow.
+- Service mort `src/services/erpRules/documentRules.js` supprimé.
+- Aucun composant JSX orphelin, aucune route source orpheline, aucun import non résolu.
 
-### Comportement avant / après
+## 7. Transformation Élevage
 
-- Avant : le code Transformation existait mais sa configuration visible pouvait
-  l'écarter ; certains alias retombaient sur la vue Lots & bandes.
-- Après : Transformation occupe la sixième position de la structure à huit
-  onglets et rend `ElevageTransformationTab` dans le module réel, y compris par
-  deep-link et formulaire prérempli.
+Statut : FAIT.
 
-### Tests exécutés et résultats
+- Onglet placé après Santé et Biosécurité et avant Coûts et performance.
+- Alias `Transformation` et `transformation` conservés.
+- Clic, `initialTab`, lien profond, action animal, action lot et événement d'ouverture utilisent
+  la même configuration.
+- Le formulaire conserve cible, date réelle, statut sanitaire, délai de retrait, poids d'entrée,
+  produits finis, pertes, rendement, coûts, documents et traçabilité.
+- La vente reste dans Commercial.
+- Stock fini, mouvements, coûts, documents, événement et rafraîchissements sont produits une fois.
+- Tests officiels : 14/14. Configuration et navigation : 6/6.
 
-- `elevageTransformationTabConfig.test.js` : 6 réussites, 0 échec.
-- `elevageTransformationOfficial.test.js` : 14 réussites, 0 échec.
-- `moduleRenderWithProvider.vite.test.js` : 5 modules rendus, dont Élevage ouvert
-  directement sur Transformation ; 5 réussites, 0 échec.
-- `npm run lint` : succès, 0 erreur.
-- `npm run build` : succès, 3 519 modules transformés ; avertissements de taille
-  de chunks et d'imports dynamiques inefficaces déjà connus, sans échec.
+## 8. Design final
 
-### Navigation, formulaire, idempotence, permissions
+Statut : FAIT.
 
-- Navigation : opérationnelle pour clic, alias, `initialTab`, deep-link, actions
-  animal/lot et événement d'ouverture de formulaire.
-- Formulaire : opérationnel avec validation sanitaire, sortie vivant, stock,
-  mouvement, coûts, preuve et événement métier ; aucune vente automatique.
-- Idempotence : prouvée par un double appel avec la même `event_key`, sans doublon.
-- Permissions : appliquées dans la visibilité de l'onglet et dans le formulaire ;
-  les coûts, la saisie, la validation et la dérogation sanitaire sont séparés.
+- Tokens uniques dans `src/styles/tokens.css`.
+- Palette exacte de 18 couleurs, Fraunces et Inter.
+- Navigation en 7 sections.
+- 16 modules de navigation hors Accueil ouvrent avec leur bande d'indicateurs.
+- Accueil limité aux indicateurs vitaux.
+- Sept saisies disponibles partout.
+- États de chargement, états vides, focus clavier et mouvement réduit.
+- Barre mobile, menu latéral et fond de fermeture vérifiés.
+- `npm run audit:design` : audit valide.
+- Captures de contrôle réalisées sur ordinateur et mobile.
 
-### Éléments encore partiels
+## 9. Validations finales
 
-Le contrôle navigateur de tous les onglets, le responsive et la validation
-Supabase font partie de la batterie finale du chantier global et sont consignés
-séparément après exécution.
+| Validation | Résultat |
+|---|---|
+| Suite unitaire complète | 235/235 fichiers, 0 échec |
+| Stabilité des onglets | 416/416 |
+| Événements métier | 26/26 complets, 5/5 tests de matrice |
+| Rôles et portée d'écriture | verts dans la suite complète |
+| Isolation entre fermes | 52/52 |
+| Idempotence | 13/13 |
+| Saisies quotidiennes | 10/10 |
+| Cohérence KPI | 6/6 |
+| Rapports figés | 3/3 |
+| i18n | 4/4 |
+| Lint | 0 erreur |
+| Build production | réussi |
+| Audit design | réussi |
+| Atteignabilité source | 1021 sources, 957 atteignables, 64 supports, 0 orpheline |
+| Imports | 0 non résolu |
+| Dépendances | 0 vulnérabilité |
+| Supabase | 96 conformes, 3 absences attendues, 0 anomalie |
+| Isolation Supabase réelle | 86 assertions, 8 rôles, 2 fermes, 0 fuite |
+| Navigateur | 15 modules et 82 onglets, aucune page d'erreur |
+
+Le build conserve seulement un avertissement de taille sur quelques bundles lourds. Il ne bloque
+ni l'exécution ni la fusion.
+
+## Conclusion
+
+La conformité logicielle, métier, visuelle et Supabase est FAITE. Le seul statut PARTIEL concerne
+le test d'usage chronométré par une personne sur un téléphone physique. Il est volontairement
+laissé visible pour ne pas transformer une preuve automatisée en preuve humaine.

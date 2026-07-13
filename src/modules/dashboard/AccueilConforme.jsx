@@ -21,6 +21,7 @@ import CarteKPI from '../../components/uniques/CarteKPI.jsx';
 import { runKpiEngine } from '../../services/kpiEngine/index.js';
 import { resolveDashboardTab } from '../../utils/commercialNavigation.js';
 import { SAISIES_QUOTIDIENNES } from '../../config/formulaires20s.config.js';
+import { openDailyQuickEntry } from '../../utils/dailyQuickEntry.js';
 
 const ROLES_TERRAIN = new Set(['terrain', 'farm_agent', 'employe', 'farm_readonly']);
 
@@ -61,7 +62,7 @@ export default function AccueilConforme(props) {
   }, [controlled, onTabChange]);
   useEffect(() => {
     if (controlled || !initialTab) return;
-    setInternalTab(resolveDashboardTab(initialTab));
+    queueMicrotask(() => setInternalTab(resolveDashboardTab(initialTab)));
   }, [controlled, initialTab]);
 
   const terrain = estRoleTerrain(user);
@@ -101,31 +102,48 @@ export default function AccueilConforme(props) {
 
   const vueDuJour = (
     <div className="space-y-4">
+      {!terrain ? (
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
+          <CarteKPI code="tresorerie" periode={periodLabel} donnees={donnees} kpis={kpis} onNavigate={onNavigate} />
+          <CarteKPI code="ponte" periode={periodLabel} donnees={donnees} kpis={kpis} onNavigate={onNavigate} />
+          <CarteKPI code="ca" periode={periodLabel} donnees={donnees} kpis={kpis} onNavigate={onNavigate} />
+          <CarteKPI code="alertes_urgentes" periode={periodLabel} donnees={donnees} kpis={kpis} onNavigate={onNavigate} />
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+          <CarteKPI code="effectif_animaux" periode={periodLabel} donnees={donnees} kpis={kpis} onNavigate={onNavigate} />
+          <CarteKPI code="ponte" periode={periodLabel} donnees={donnees} kpis={kpis} onNavigate={onNavigate} />
+          <CarteKPI code="alertes_urgentes" periode={periodLabel} donnees={donnees} kpis={kpis} onNavigate={onNavigate} />
+        </div>
+      )}
+      <section className="hf-card">
+        <p className="text-label font-semibold uppercase text-earth">Gestes du jour</p>
+        <div className="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-7">
+          {ACTIONS_RAPIDES_QUOTIDIENNES.map((action) => (
+            <button
+              key={action.id}
+              type="button"
+              onClick={() => openDailyQuickEntry(action, onNavigate)}
+              className="min-h-11 rounded-control border border-line bg-pure px-3 py-2 text-sm font-semibold text-ink hover:border-leaf hover:bg-positive-bg"
+            >
+              {action.libelle}
+            </button>
+          ))}
+        </div>
+      </section>
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
         <ListeAlertes alertes={alertes} filtres={{ gravite: 'critique', limite: 6 }} titre="Priorités : alertes critiques" onNavigate={onNavigate} onCreerTache={props.onCreateTask ? (alerte) => props.onCreateTask({ title: `Traiter : ${alerte.title || alerte.id}`, alert_id: alerte.id, module_lie: alerte.module_source, priority: 'critique', status: 'a_faire' }) : undefined} />
         <ListeTaches taches={tachesUrgentes} filtres={{ statut: 'toutes', limite: 6 }} titre="Priorités : tâches urgentes" onOuvrirTache={() => onNavigate?.('activite_suivi')} />
       </div>
-      {!terrain ? (
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          <CarteKPI code="ponte" periode={periodLabel} donnees={donnees} kpis={kpis} onNavigate={onNavigate} />
-          <CarteKPI code="ca" periode={periodLabel} donnees={donnees} kpis={kpis} onNavigate={onNavigate} />
-          <CarteKPI code="encaissements" periode={periodLabel} donnees={donnees} kpis={kpis} onNavigate={onNavigate} />
-        </div>
-      ) : (
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-          <CarteKPI code="ponte" periode={periodLabel} donnees={donnees} kpis={kpis} onNavigate={onNavigate} />
-          <CarteKPI code="produits_sous_seuil" periode={periodLabel} donnees={donnees} kpis={kpis} onNavigate={onNavigate} />
-        </div>
-      )}
-      <section className="rounded-3xl border border-[#d6c3a0] bg-white p-5 shadow-sm">
-        <p className="text-xs font-black uppercase tracking-[0.2em] text-[#9a6b12]">Stocks sensibles</p>
+      <section className="hf-card">
+        <p className="text-label font-semibold uppercase text-earth">Stocks sensibles</p>
         {stocksSensibles.length === 0 ? (
-          <p className="mt-3 text-sm text-[#8a7456]">Rien à afficher pour l'instant. Aucun produit sous seuil.</p>
+          <p className="mt-3 text-sm text-slate">Aucun produit sous seuil. Le stock est maîtrisé.</p>
         ) : (
           <ul className="mt-3 space-y-1">
             {stocksSensibles.map((ligne) => (
               <li key={ligne.id}>
-                <button type="button" onClick={() => onNavigate?.('achats_stock')} className="text-sm font-bold text-[#2f2415] hover:underline">
+                <button type="button" onClick={() => onNavigate?.('achats_stock')} className="text-sm font-semibold text-earth hover:underline">
                   {ligne.name} {ligne.daysLeft != null ? `· ${ligne.daysLeft} j restants` : ''}
                 </button>
               </li>
@@ -156,24 +174,12 @@ export default function AccueilConforme(props) {
 
   return (
     <div className="space-y-4">
-      <section className="rounded-3xl border border-[#d6c3a0] bg-white p-5 shadow-sm">
+      <section className="hf-card">
         <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <p className="text-xs font-black uppercase tracking-[0.25em] text-[#9a6b12]">Accueil</p>
-            <h1 className="mt-1 text-2xl font-black text-[#2f2415]">Bonjour {identifiantUtilisateur(user) || 'Horizon Farm'}</h1>
+            <p className="text-label font-semibold uppercase text-horizon-dark">Accueil</p>
+            <h1 className="mt-1 text-ink">Bonjour {identifiantUtilisateur(user) || 'Horizon Farm'}</h1>
             {periodLabel ? <div className="mt-2"><PeriodScopeBadge label={periodLabel} /></div> : null}
-          </div>
-          <div className="flex flex-wrap gap-2">
-            {ACTIONS_RAPIDES_QUOTIDIENNES.map((action) => (
-              <button
-                key={action.id}
-                type="button"
-                onClick={() => onNavigate?.(action.module, { tab: action.tab })}
-                className="rounded-xl border border-emerald-300 bg-emerald-50 px-3 py-1.5 text-xs font-black text-emerald-800"
-              >
-                {action.libelle}
-              </button>
-            ))}
           </div>
         </div>
       </section>

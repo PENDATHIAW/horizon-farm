@@ -1,3 +1,5 @@
+import { normalizeErpRole } from '../config/erpRoles.js';
+
 /** Scope ferme global — calqué sur periodScope.js (Phase 2 fondations). */
 
 export const FARM_SCOPE_KEY = 'horizon_farm_scope';
@@ -158,9 +160,9 @@ export function resolveFarmContext(scope = {}, accessibleFarms = []) {
   };
 }
 
-const ALL_FARMS_ROLES = new Set(['admin', 'manager', 'comptable']);
+const ALL_FARMS_ROLES = new Set(['promotrice_direction', 'finance', 'admin_support']);
 
 export function canSelectAllFarmsScope(user = {}) {
-  const role = String(user?.role || user?.user_metadata?.role || user?.profile?.role || '').toLowerCase();
+  const role = normalizeErpRole(user?.role || user?.user_metadata?.role || user?.profile?.role || '', 'visiteur');
   return ALL_FARMS_ROLES.has(role);
 }

@@ -15,11 +15,11 @@ import { getRealCultureRows } from '../CulturesTabActionsBridge.jsx';
 
 const today = () => new Date().toISOString().slice(0, 10);
 const label = (row = {}) => row.nom || row.type || row.culture || row.id || t('dailyEntries.harvest.defaultCulture');
-const inputClass = 'min-h-[42px] w-full rounded-lg border border-[#eadcc2] bg-white px-3 py-2 text-sm text-[#2f2415]';
+const inputClass = 'min-h-[42px] w-full rounded-lg border border-line bg-white px-3 py-2 text-sm text-earth';
 const fees = (row = {}) => toNumber(row.frais_recolte) + toNumber(row.frais_transport) + toNumber(row.frais_conditionnement) + toNumber(row.frais_main_oeuvre) + toNumber(row.autres_frais);
 
 function Field({ label: fieldLabel, children }) {
-  return <label className="block text-sm"><span className="mb-1 block text-xs font-bold text-[#7d6a4a]">{fieldLabel}</span>{children}</label>;
+  return <label className="block text-sm"><span className="mb-1 block text-xs font-semibold text-slate">{fieldLabel}</span>{children}</label>;
 }
 
 function createInitial(cultures = []) {
@@ -75,15 +75,15 @@ export default function CulturesHarvestPanel({ rows = [], context, handlers, onS
   };
 
   return (
-    <section className="space-y-4 rounded-lg border border-[#d6c3a0] bg-white p-5 shadow-sm" data-testid="daily-harvest-panel">
-      <h3 className="flex items-center gap-2 text-lg font-black text-[#2f2415]"><PackageCheck size={20} /> {t('dailyEntries.harvest.title')}</h3>
+    <section className="space-y-4 rounded-lg border border-line bg-white p-6 shadow-card" data-testid="daily-harvest-panel">
+      <h3 className="flex items-center gap-2 text-lg font-semibold text-earth"><PackageCheck size={20} /> {t('dailyEntries.harvest.title')}</h3>
       <form onSubmit={submit} className="space-y-3" data-testid="daily-harvest-form">
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
           <Field label={t('dailyEntries.harvest.culture')}><select className={inputClass} value={form.culture_id} onChange={(event) => update('culture_id', event.target.value)} required data-testid="daily-harvest-target"><option value="">{t('dailyEntries.common.choose')}</option>{cultures.map((row) => <option key={row.id} value={row.id}>{label(row)}</option>)}</select></Field>
           <Field label={t('dailyEntries.common.quantityWithUnit', { unit: form.unite })}><input className={inputClass} type="number" min="0.01" step="0.01" value={form.quantite_recoltee} onChange={(event) => update('quantite_recoltee', event.target.value)} required data-testid="daily-harvest-quantity" /></Field>
         </div>
-        <details className="rounded-lg border border-[#eadcc2] bg-[#fffdf8] p-3">
-          <summary className="cursor-pointer text-sm font-black text-[#2f2415]">{t('dailyEntries.common.details')}</summary>
+        <details className="rounded-lg border border-line bg-card p-3">
+          <summary className="cursor-pointer text-sm font-semibold text-earth">{t('dailyEntries.common.details')}</summary>
           <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
             <Field label={t('dailyEntries.common.date')}><input className={inputClass} type="date" value={form.date} onChange={(event) => update('date', event.target.value)} /></Field>
             <Field label={t('dailyEntries.harvest.unit')}><select className={inputClass} value={form.unite} onChange={(event) => update('unite', event.target.value)}><option value="kg">kg</option><option value="sac">sac</option><option value="caisse">caisse</option><option value="botte">botte</option></select></Field>
@@ -97,9 +97,9 @@ export default function CulturesHarvestPanel({ rows = [], context, handlers, onS
             <Field label={t('dailyEntries.common.notes')}><input className={inputClass} value={form.notes} onChange={(event) => update('notes', event.target.value)} /></Field>
           </div>
         </details>
-        <div className="flex flex-col gap-2 border-t border-[#eadcc2] pt-3 sm:flex-row sm:items-center sm:justify-between">
-          <p className="text-sm text-[#7d6a4a]">{t('dailyEntries.harvest.estimatedCost')} <b>{unitCost ? fmtCurrency(unitCost) : t('dailyEntries.common.unavailable')}</b> / {form.unite} · {t('dailyEntries.harvest.fees')} <b>{fmtNumber(extra)} F</b></p>
-          <button type="submit" disabled={busy} className="min-h-[42px] rounded-lg bg-[#2f2415] px-5 text-sm font-black text-white disabled:opacity-50" data-testid="daily-harvest-submit">{busy ? t('dailyEntries.common.saving') : t('dailyEntries.common.save')}</button>
+        <div className="flex flex-col gap-2 border-t border-line pt-3 sm:flex-row sm:items-center sm:justify-between">
+          <p className="text-sm text-slate">{t('dailyEntries.harvest.estimatedCost')} <b>{unitCost ? fmtCurrency(unitCost) : t('dailyEntries.common.unavailable')}</b> / {form.unite} · {t('dailyEntries.harvest.fees')} <b>{fmtNumber(extra)} F</b></p>
+          <button type="submit" disabled={busy} className="min-h-[42px] rounded-lg bg-earth px-6 text-sm font-semibold text-white disabled:opacity-50" data-testid="daily-harvest-submit">{busy ? t('dailyEntries.common.saving') : t('dailyEntries.common.save')}</button>
         </div>
       </form>
     </section>

@@ -13,11 +13,11 @@ export default function StockProductionSourcesPanel({ rows = [], onNavigate }) {
   }));
 
   return (
-    <section className="rounded-3xl border border-[#d6c3a0] bg-white p-5 shadow-sm space-y-3">
+    <section className="rounded-3xl border border-line bg-white p-6 shadow-card space-y-3">
       <div>
-        <p className="text-xs uppercase tracking-widest text-[#9a6b12] font-black">Produits issus de la production</p>
-        <h3 className="text-lg font-black text-[#2f2415] mt-1">Ce qui doit apparaître en stock</h3>
-        <p className="text-sm text-[#8a7456] mt-1">
+        <p className="text-xs uppercase tracking-normal text-horizon-dark font-semibold">Produits issus de la production</p>
+        <h3 className="text-lg font-semibold text-earth mt-1">Ce qui doit apparaître en stock</h3>
+        <p className="text-sm text-slate mt-1">
           Les têtes vivantes restent dans Élevage (lots / animaux). Seuls les <b>produits finis</b> sont inventoriés ici.
         </p>
       </div>
@@ -28,18 +28,18 @@ export default function StockProductionSourcesPanel({ rows = [], onNavigate }) {
           return (
             <div
               key={item.key}
-              className={`rounded-2xl border p-4 ${empty ? 'border-amber-200 bg-amber-50' : 'border-emerald-200 bg-emerald-50'}`}
+              className={`rounded-2xl border p-4 ${empty ? 'border-vigilance bg-vigilance-bg' : 'border-positive bg-positive-bg'}`}
             >
-              <p className="flex items-center gap-2 font-black text-[#2f2415]">
+              <p className="flex items-center gap-2 font-semibold text-earth">
                 <Icon size={18} aria-hidden="true" />
                 {item.label}
               </p>
-              <p className="mt-1 text-xs text-[#8a7456]">{item.source}</p>
+              <p className="mt-1 text-xs text-slate">{item.source}</p>
               <p className="mt-2 text-sm">
                 {empty ? (
-                  <span className="text-amber-800 font-bold">Aucune ligne stock</span>
+                  <span className="text-horizon-dark font-semibold">Aucune ligne stock</span>
                 ) : (
-                  <span className="text-emerald-800 font-bold">
+                  <span className="text-positive font-semibold">
                     {item.lines} ligne(s) · {fmtNumber(item.qty)} {item.unite}
                   </span>
                 )}
@@ -52,14 +52,14 @@ export default function StockProductionSourcesPanel({ rows = [], onNavigate }) {
         <button
           type="button"
           onClick={() => onNavigate?.('elevage')}
-          className="rounded-xl border border-[#eadcc2] px-3 py-2 font-bold text-[#2f2415]"
+          className="rounded-xl border border-line px-3 py-2 font-semibold text-earth"
         >
           Élevage
         </button>
         <button
           type="button"
           onClick={() => onNavigate?.('cultures')}
-          className="rounded-xl border border-[#eadcc2] px-3 py-2 font-bold text-[#2f2415]"
+          className="rounded-xl border border-line px-3 py-2 font-semibold text-earth"
         >
           Cultures
         </button>

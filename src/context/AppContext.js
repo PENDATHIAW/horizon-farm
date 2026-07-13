@@ -32,7 +32,10 @@ export function useAppData() {
     return () => window.removeEventListener('horizon-farm-data-mode-changed', handler);
   }, []);
   const filteredDataMap = useMemo(
-    () => filterSeedRows(filterDataMapDeleted(ctx?.dataMap || {})),
+    () => {
+      void dataModeTick;
+      return filterSeedRows(filterDataMapDeleted(ctx?.dataMap || {}));
+    },
     [ctx?.dataMap, dataModeTick],
   );
   return useMemo(() => ({ ...ctx, rawDataMap: ctx?.dataMap || {}, dataMap: filteredDataMap }), [ctx, filteredDataMap]);

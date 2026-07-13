@@ -346,7 +346,7 @@ export async function speakChatReply(reply) {
 
   if (typeof window === 'undefined' || !('speechSynthesis' in window)) return false;
 
-  const utterance = new SpeechSynthesisUtterance(reply.text.replace(/[🥚🌿🌾📈✅]/g, '').trim());
+  const utterance = new SpeechSynthesisUtterance(reply.text.replace(/[🥚🌿🌾📈✅]/gu, '').trim());
   utterance.lang = getSpeechSynthesisLang(reply.language);
   utterance.rate = 0.98;
   window.speechSynthesis.cancel();

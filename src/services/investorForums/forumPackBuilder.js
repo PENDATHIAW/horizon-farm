@@ -4,7 +4,6 @@
  */
 
 import { buildModuleReportPdf, saveModuleReportExport } from '../../utils/moduleReportExports.js';
-import { fmtCurrency } from '../../utils/format.js';
 import { HORIZON_FARM_TAGLINE, INVESTOR_FORUMS_SOURCE } from './investorProfileService.js';
 import { adaptProfileForAudience, FORUM_AUDIENCES } from './forumAudienceAdapter.js';
 import { computeForumReadinessScore } from './forumReadinessScore.js';
@@ -26,10 +25,6 @@ export const FORUM_PACK_TYPES = {
   rapport_impact: { id: 'rapport_impact', label: 'Rapport impact', pages: 1, format: 'landscape', useModuleReport: true },
   rapport_financier: { id: 'rapport_financier', label: 'Rapport financier simplifié', pages: 1, format: 'landscape', useModuleReport: true },
 };
-
-const arr = (value) => (Array.isArray(value) ? value : []);
-const money = (value) => fmtCurrency(Number(value || 0));
-const today = () => new Date().toISOString().slice(0, 10);
 
 function packAudienceKey(packType, audienceKey) {
   if (packType === 'dossier_subvention') return 'ong_subvention';

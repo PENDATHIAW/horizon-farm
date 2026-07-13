@@ -14,7 +14,7 @@ export function documentNeedsProof(document = {}) {
   const status = lower(document.statut || document.status || document.etat || document.verification_status);
   const verification = lower(document.verification_status || document.proof_status);
   if (missingDocumentStatuses.includes(status) || missingDocumentStatuses.includes(verification)) return true;
-  return !Boolean(document.file_url || document.url || document.storage_path || document.justificatif_url || document.proof_url || document.preuve_url);
+  return !(document.file_url || document.url || document.storage_path || document.justificatif_url || document.proof_url || document.preuve_url);
 }
 
 export function buildDocumentProofFollowUp({ document = {}, transaction = {}, date = today() } = {}) {

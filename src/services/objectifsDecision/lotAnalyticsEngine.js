@@ -64,7 +64,7 @@ export function buildRentabilityAnalysis(dataMap = {}, options = {}) {
       .slice(-7)
       .reduce((s, r) => s + num(r.oeufs_produits ?? r.eggs), 0);
 
-    let revenueEstimate = 0;
+    let revenueEstimate;
     if (workshop === 'pondeuses') revenueEstimate = eggs7 * eggPrice;
     else if (workshop === 'poulets_chair') revenueEstimate = subjects * liveWeight * num(lot.prix_vente_kg ?? 1900);
     else revenueEstimate = num(lot.ca_estime);

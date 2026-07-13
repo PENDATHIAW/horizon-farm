@@ -34,10 +34,10 @@ function dedupeRows(rows = []) {
 }
 
 function badgeClass(status) {
-  if (['critique', 'critical', 'urgence', 'retard', 'error', 'failed', 'echec'].some((key) => status.includes(key))) return 'bg-red-50 text-red-700 border-red-200';
-  if (['warning', 'alerte', 'pending', 'attente', 'haute'].some((key) => status.includes(key))) return 'bg-amber-50 text-amber-700 border-amber-200';
-  if (['success', 'ok', 'done', 'termine', 'terminé', 'resolved', 'resolu', 'validé', 'valide'].some((key) => status.includes(key))) return 'bg-emerald-50 text-emerald-700 border-emerald-200';
-  return 'bg-[#fffdf8] text-[#7d6a4a] border-[#eadcc2]';
+  if (['critique', 'critical', 'urgence', 'retard', 'error', 'failed', 'echec'].some((key) => status.includes(key))) return 'bg-urgent-bg text-urgent border-urgent';
+  if (['warning', 'alerte', 'pending', 'attente', 'haute'].some((key) => status.includes(key))) return 'bg-vigilance-bg text-horizon-dark border-vigilance';
+  if (['success', 'ok', 'done', 'termine', 'terminé', 'resolved', 'resolu', 'validé', 'valide'].some((key) => status.includes(key))) return 'bg-positive-bg text-positive border-positive';
+  return 'bg-card text-slate border-line';
 }
 
 export default function ModuleTimeline({
@@ -59,16 +59,16 @@ export default function ModuleTimeline({
     .slice(0, limit);
 
   return (
-    <section className="rounded-3xl border border-[#d6c3a0] bg-white p-5 shadow-sm space-y-4">
+    <section className="rounded-3xl border border-line bg-white p-6 shadow-card space-y-4">
       <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
         <div>
-          <p className="flex items-center gap-2 text-lg font-black text-[#2f2415]"><Clock size={20} /> {title}</p>
-          <p className="mt-1 text-sm text-[#8a7456]">{subtitle}</p>
-          {duplicateCount ? <p className="mt-1 text-xs font-semibold text-amber-700">{duplicateCount} événement(s) répétitif(s) masqué(s) pour éviter les doublons.</p> : null}
+          <p className="flex items-center gap-2 text-lg font-semibold text-earth"><Clock size={20} /> {title}</p>
+          <p className="mt-1 text-sm text-slate">{subtitle}</p>
+          {duplicateCount ? <p className="mt-1 text-xs font-semibold text-horizon-dark">{duplicateCount} événement(s) répétitif(s) masqué(s) pour éviter les doublons.</p> : null}
         </div>
         <div className="flex flex-wrap gap-2">
-          {onRefresh ? <button type="button" onClick={onRefresh} className="inline-flex items-center gap-2 rounded-xl border border-[#d6c3a0] bg-[#fffdf8] px-3 py-2 text-xs font-bold text-[#2f2415]"><RefreshCw size={14} /> Actualiser</button> : null}
-          {onNavigate ? <button type="button" onClick={onNavigate} className="inline-flex items-center gap-2 rounded-xl bg-[#2f2415] px-3 py-2 text-xs font-bold text-white"><FileText size={14} /> {navigateLabel}</button> : null}
+          {onRefresh ? <button type="button" onClick={onRefresh} className="inline-flex items-center gap-2 rounded-xl border border-line bg-card px-3 py-2 text-xs font-semibold text-earth"><RefreshCw size={14} /> Actualiser</button> : null}
+          {onNavigate ? <button type="button" onClick={onNavigate} className="inline-flex items-center gap-2 rounded-xl bg-earth px-3 py-2 text-xs font-semibold text-white"><FileText size={14} /> {navigateLabel}</button> : null}
         </div>
       </div>
 
@@ -76,19 +76,19 @@ export default function ModuleTimeline({
         {items.length ? items.map((row, index) => {
           const status = statusOf(row);
           return (
-            <div key={timelineKey(row) || row.id || `${title}-${index}`} className="relative rounded-2xl border border-[#eadcc2] bg-[#fffdf8] p-4 pl-5">
-              <span className="absolute left-0 top-5 h-3 w-3 -translate-x-1.5 rounded-full bg-[#c9a96a] ring-4 ring-white" />
+            <div key={timelineKey(row) || row.id || `${title}-${index}`} className="relative rounded-2xl border border-line bg-card p-4 pl-6">
+              <span className="absolute left-0 top-5 h-3 w-3 -translate-x-1.5 rounded-full bg-horizon ring-4 ring-white" />
               <div className="flex flex-col gap-2 md:flex-row md:items-start md:justify-between">
                 <div>
-                  <p className="font-black text-[#2f2415]">{titleOf(row)}</p>
-                  {descOf(row) ? <p className="mt-1 text-sm text-[#7d6a4a]">{descOf(row)}</p> : null}
-                  <p className="mt-1 text-xs text-[#8a7456]">{dateOf(row) || 'Date non renseignée'}</p>
+                  <p className="font-semibold text-earth">{titleOf(row)}</p>
+                  {descOf(row) ? <p className="mt-1 text-sm text-slate">{descOf(row)}</p> : null}
+                  <p className="mt-1 text-xs text-slate">{dateOf(row) || 'Date non renseignée'}</p>
                 </div>
-                {status ? <span className={`w-fit rounded-full border px-2 py-1 text-[11px] font-bold ${badgeClass(status)}`}>{status}</span> : null}
+                {status ? <span className={`w-fit rounded-full border px-2 py-1 text-meta font-semibold ${badgeClass(status)}`}>{status}</span> : null}
               </div>
             </div>
           );
-        }) : <div className="rounded-2xl border border-dashed border-[#d6c3a0] bg-[#fffdf8] p-6 text-center text-sm text-[#8a7456]">{emptyText}</div>}
+        }) : <div className="rounded-2xl border border-dashed border-line bg-card p-6 text-center text-sm text-slate">{emptyText}</div>}
       </div>
     </section>
   );

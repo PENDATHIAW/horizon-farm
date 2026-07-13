@@ -20,9 +20,7 @@ const MODULE_DATA_KEYS = {
   rh: ['equipements', 'finances', 'documents'],
   gestion_systeme: ['audit_logs'],
   smartfarm: ['sensor_devices', 'camera_devices', 'alertes_center'],
-  sync_activity: ['audit_logs'],
   impact_business: ['business_events', 'documents', 'finances'],
-  centre_ia: ['sales_orders', 'finances', 'alertes_center', 'business_events'],
 };
 
 function scoreFromIssues(issues) {

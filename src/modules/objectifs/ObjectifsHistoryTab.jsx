@@ -9,15 +9,15 @@ export default function ObjectifsHistoryTab({ simulations = [] }) {
   return (
     <section aria-label="Historique des scénarios">
       {rows.length ? rows.map((row) => (
-        <div key={row.id || `${row.scenario_key}-${row.version}`} className="grid gap-2 border-b border-[#eadcc2] py-3 md:grid-cols-[1fr_auto_auto] md:items-center">
+        <div key={row.id || `${row.scenario_key}-${row.version}`} className="grid gap-2 border-b border-line py-3 md:grid-cols-[1fr_auto_auto] md:items-center">
           <span>
-            <strong className="block text-sm text-[#2f2415]">{row.name || 'Scénario de croissance'} · v{row.version}</strong>
-            <span className="text-xs text-[#8a7456]">{formatDateTime(row.created_at)}</span>
+            <strong className="block text-sm text-earth">{row.name || 'Scénario de croissance'} · v{row.version}</strong>
+            <span className="text-xs text-slate">{formatDateTime(row.created_at)}</span>
           </span>
-          <span className="text-sm font-bold text-[#2f2415]">{row.results?.sustainable ? 'Soutenable' : 'À ajuster'}</span>
-          <span className="text-xs uppercase text-[#8a7456]">{row.status || 'brouillon'}</span>
+          <span className="text-sm font-semibold text-earth">{row.results?.sustainable ? 'Soutenable' : 'À ajuster'}</span>
+          <span className="text-xs uppercase text-slate">{row.status || 'brouillon'}</span>
         </div>
-      )) : <p className="py-8 text-center text-sm text-[#8a7456]">Rien à afficher pour l’instant.</p>}
+      )) : <p className="py-8 text-center text-sm text-slate">Rien à afficher pour l’instant.</p>}
     </section>
   );
 }

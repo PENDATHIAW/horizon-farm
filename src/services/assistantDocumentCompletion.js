@@ -383,7 +383,7 @@ export function analyzeDocumentForCompletion(text = '', dataMap = {}, options = 
   let intent = 'purchase_stock';
   let primary_module = 'stock';
   let form_type = 'stock_purchase';
-  let fields = {};
+  let fields;
 
   if (docKind === 'sale_invoice') {
     intent = 'sale_record';

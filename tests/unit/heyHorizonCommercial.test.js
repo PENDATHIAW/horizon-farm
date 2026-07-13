@@ -41,7 +41,8 @@ describe('Hey Horizon Commercial V1', () => {
   it('réponse summary avec KPI canoniques', () => {
     const answer = buildCommercialPilotageAnswer('summary', dataMap);
     assert.match(answer.situation, /CA/);
-    assert.match(answer.summary, /SITUATION/);
+    assert.match(answer.summary, /CA/);
+    assert.doesNotMatch(answer.summary, /SITUATION|Source ERP/);
     assert.ok(answer.sources.length >= 2);
   });
 
@@ -54,7 +55,8 @@ describe('Hey Horizon Commercial V1', () => {
   it('detectCommercialPilotageQuery prioritaire sur questions génériques', () => {
     assert.equal(detectCommercialPilotageQuery('Que dois-je faire aujourd\'hui ?'), 'today_actions');
     const answer = buildCommercialPilotageAnswer('today_actions', dataMap);
-    assert.match(answer.summary, /SITUATION/);
+    assert.match(answer.summary, /Aujourd'hui/);
+    assert.doesNotMatch(answer.summary, /SITUATION|CAUSE|ACTION/);
     assert.ok(answer.rows.length >= 1);
   });
 });

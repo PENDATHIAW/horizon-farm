@@ -1,7 +1,7 @@
-/* eslint-disable react-refresh/only-export-components */
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import { ROUTE_TO_MODULE } from '../config/modules.config';
 import { DEPRECATED_MODULE_ALIASES, resolveActiveModuleId } from '../config/moduleEntryPoints';
+import { normalizeErpRole } from '../config/erpRoles.js';
 import { supabase } from '../lib/supabase';
 import { applyDefaultDataModeForRole } from '../utils/uiPreferences';
 
@@ -11,6 +11,26 @@ const LOGIN_ALIASES = {
   penda: 'penda@horizonfarm.app',
 };
 const PROFILES_TABLE_ENABLED = import.meta.env.VITE_ENABLE_PROFILES_TABLE === 'true';
+const LOCAL_PREVIEW_ENABLED = Boolean(
+  import.meta.env.DEV
+  && typeof window !== 'undefined'
+  && new URLSearchParams(window.location.search).get('demo') === '1',
+);
+const LOCAL_PREVIEW_USER = Object.freeze({
+  id: 'local-preview-user',
+  email: 'preview@horizonfarm.local',
+  user_metadata: Object.freeze({ name: 'Aperçu local', role: 'admin_support', status: 'active' }),
+});
+const LOCAL_PREVIEW_PROFILE = Object.freeze({
+  id: LOCAL_PREVIEW_USER.id,
+  email: LOCAL_PREVIEW_USER.email,
+  full_name: 'Aperçu local',
+  role: 'admin_support',
+  status: 'active',
+  company_id: null,
+  permissions: Object.freeze({}),
+  source: 'local_preview',
+});
 
 const LEGACY_KEYS_BY_GRAND_MODULE = Object.entries(ROUTE_TO_MODULE).reduce((acc, [legacy, grand]) => {
   if (!acc[grand]) acc[grand] = [];
@@ -57,141 +77,45 @@ export const ERP_MODULE_PERMISSIONS = [
   'gestion_systeme',
 ];
 
-export const ROLE_PERMISSIONS = {
-  admin: ['*'],
-  manager: ERP_MODULE_PERMISSIONS,
-  employe: [
-    'dashboard',
-    'assistant_erp',
-    'animaux',
-    'avicole',
-    'sante',
-    'elevage',
-    'agri_feeds',
-    'stock',
-    'cultures',
-    'documents',
-    'taches',
-    'equipements',
-    'alertes',
-    'sync',
-    'sync_activity',
-  ],
-  veterinaire: [
-    'dashboard',
-    'assistant_erp',
-    'animaux',
-    'avicole',
-    'sante',
-    'elevage',
-    'agri_feeds',
-    'tracabilite',
-    'alertes',
-    'documents',
-    'taches',
-    'sync_activity',
-  ],
-  comptable: [
-    'dashboard',
-    'assistant_erp',
-    'sante',
-    'finances',
-    'comptabilite',
-    'investissements',
-    'impact_business',
-    'agri_feeds',
-    'clients',
-    'ventes',
-    'fournisseurs',
-    'documents',
-    'rapports',
-    'audit_logs',
-    'alertes',
-    'sync',
-    'sync_activity',
-  ],
-  responsable_agri_feeds: [
-    'dashboard',
-    'assistant_erp',
-    'centre_ia',
-    'elevage',
-    'agri_feeds',
-    'commercial',
-    'achats_stock',
-    'finance_pilotage',
-    'documents_rapports',
-    'animaux',
-    'avicole',
-    'stock',
-    'clients',
-    'ventes',
-    'fournisseurs',
-    'tracabilite',
-    'alertes',
-    'documents',
-    'taches',
-    'rapports',
-    'equipements',
-    'audit_logs',
-    'sync_activity',
-  ],
-  technicien_elevage: [
-    'dashboard',
-    'assistant_erp',
-    'elevage',
-    'agri_feeds',
-    'animaux',
-    'avicole',
-    'sante',
-    'stock',
-    'tracabilite',
-    'alertes',
-    'documents',
-    'taches',
-    'equipements',
-    'sync_activity',
-  ],
-  commercial: [
-    'dashboard',
-    'assistant_erp',
-    'agri_feeds',
-    'commercial',
-    'clients',
-    'ventes',
-    'stock',
-    'documents',
-    'taches',
-    'alertes',
-    'sync_activity',
-  ],
-  finance: [
-    'dashboard',
-    'assistant_erp',
-    'agri_feeds',
-    'finance_pilotage',
-    'finances',
-    'comptabilite',
-    'investissements',
-    'clients',
-    'ventes',
-    'fournisseurs',
-    'documents',
-    'rapports',
-    'audit_logs',
-    'alertes',
-    'sync_activity',
-  ],
-  lecteur_financeur: [
-    'dashboard',
-    'agri_feeds',
-    'finance_pilotage',
-    'documents_rapports',
-    'rapports',
-    'audit_logs',
-    'alertes',
-  ],
-  visiteur: ['dashboard', 'assistant_erp'],
-};
+const CANONICAL_ROLE_PERMISSIONS = Object.freeze({
+  promotrice_direction: Object.freeze(['*']),
+  responsable_filiere: Object.freeze(ERP_MODULE_PERMISSIONS.filter((moduleId) => moduleId !== 'gestion_systeme')),
+  terrain: Object.freeze([
+    'dashboard', 'assistant_erp', 'elevage', 'cultures', 'achats_stock',
+    'activite_suivi', 'documents_rapports', 'equipements', 'animaux', 'avicole',
+    'sante', 'stock', 'tracabilite', 'documents', 'taches', 'alertes',
+  ]),
+  finance: Object.freeze([
+    'dashboard', 'assistant_erp', 'centre_decisionnel', 'objectifs_croissance',
+    'commercial', 'achats_stock', 'finance_pilotage', 'documents_rapports',
+    'financements', 'finances', 'comptabilite', 'investissements', 'clients',
+    'ventes', 'fournisseurs', 'documents', 'rapports', 'audit_logs', 'alertes',
+  ]),
+  veterinaire: Object.freeze([
+    'dashboard', 'assistant_erp', 'elevage', 'agri_feeds', 'activite_suivi',
+    'documents_rapports', 'animaux', 'avicole', 'sante', 'stock', 'tracabilite',
+    'alertes', 'documents', 'taches',
+  ]),
+  maintenance: Object.freeze([
+    'dashboard', 'assistant_erp', 'activite_suivi', 'documents_rapports',
+    'equipements', 'smartfarm', 'stock', 'documents', 'taches', 'alertes',
+  ]),
+  financeur_externe: Object.freeze(['dashboard', 'financements', 'documents_rapports', 'rapports']),
+  admin_support: Object.freeze(['*']),
+});
+
+export const ROLE_PERMISSIONS = Object.freeze({
+  ...CANONICAL_ROLE_PERMISSIONS,
+  admin: CANONICAL_ROLE_PERMISSIONS.admin_support,
+  manager: CANONICAL_ROLE_PERMISSIONS.promotrice_direction,
+  employe: CANONICAL_ROLE_PERMISSIONS.terrain,
+  comptable: CANONICAL_ROLE_PERMISSIONS.finance,
+  responsable_agri_feeds: CANONICAL_ROLE_PERMISSIONS.responsable_filiere,
+  technicien_elevage: CANONICAL_ROLE_PERMISSIONS.terrain,
+  commercial: CANONICAL_ROLE_PERMISSIONS.responsable_filiere,
+  lecteur_financeur: CANONICAL_ROLE_PERMISSIONS.financeur_externe,
+  visiteur: Object.freeze(['dashboard', 'assistant_erp']),
+});
 
 const resolveLogin = (login) => {
   const value = String(login || '').trim().toLowerCase();
@@ -207,7 +131,7 @@ const fallbackProfile = (user, defaults = {}) => ({
   id: user?.id || 'local-user',
   email: user?.email || defaults.email || '',
   full_name: defaults.full_name || user?.user_metadata?.full_name || user?.user_metadata?.name || '',
-  role: defaults.role || user?.user_metadata?.role || 'visiteur',
+  role: normalizeErpRole(defaults.role || user?.user_metadata?.role || 'visiteur', 'visiteur'),
   status: defaults.status || user?.user_metadata?.status || 'pending',
   company_id: defaults.company_id || user?.user_metadata?.company_id || null,
   permissions: defaults.permissions || {},
@@ -221,7 +145,7 @@ async function upsertProfile(user, defaults = {}) {
     id: user.id,
     email: user.email,
     full_name: user.user_metadata?.full_name || user.user_metadata?.name || '',
-    role: defaults.role || user.user_metadata?.role || 'visiteur',
+    role: normalizeErpRole(defaults.role || user.user_metadata?.role || 'visiteur', 'visiteur'),
     status: defaults.status || 'pending',
     company_id: defaults.company_id || user.user_metadata?.company_id || null,
     updated_at: new Date().toISOString(),
@@ -236,10 +160,10 @@ async function upsertProfile(user, defaults = {}) {
 }
 
 export function AuthProvider({ children }) {
-  const [session, setSession] = useState(null);
-  const [user, setUser] = useState(null);
-  const [profile, setProfile] = useState(null);
-  const [loading, setLoading] = useState(true);
+  const [session, setSession] = useState(() => (LOCAL_PREVIEW_ENABLED ? { user: LOCAL_PREVIEW_USER } : null));
+  const [user, setUser] = useState(() => (LOCAL_PREVIEW_ENABLED ? LOCAL_PREVIEW_USER : null));
+  const [profile, setProfile] = useState(() => (LOCAL_PREVIEW_ENABLED ? LOCAL_PREVIEW_PROFILE : null));
+  const [loading, setLoading] = useState(() => !LOCAL_PREVIEW_ENABLED);
 
   const loadProfile = useCallback(async (authUser) => {
     if (!authUser) {
@@ -252,6 +176,7 @@ export function AuthProvider({ children }) {
   }, []);
 
   useEffect(() => {
+    if (LOCAL_PREVIEW_ENABLED) return undefined;
     let mounted = true;
     supabase.auth.getSession().then(async ({ data }) => {
       if (!mounted) return;
@@ -275,7 +200,7 @@ export function AuthProvider({ children }) {
   }, [loadProfile]);
 
   useEffect(() => {
-    applyDefaultDataModeForRole(profile?.role);
+    applyDefaultDataModeForRole(normalizeErpRole(profile?.role, 'visiteur'));
   }, [profile?.role]);
 
   const signIn = useCallback(async ({ email, password, login }) => {
@@ -283,16 +208,16 @@ export function AuthProvider({ children }) {
     return supabase.auth.signInWithPassword({ email: resolvedEmail, password });
   }, []);
 
-  const signUp = useCallback(async ({ email, password, metadata }) => supabase.auth.signUp({
+  const signUp = useCallback(async ({ email, password, metadata = {} }) => supabase.auth.signUp({
     email,
     password,
-    options: { data: metadata },
+    options: { data: { ...metadata, role: normalizeErpRole(metadata.role, 'visiteur') } },
   }), []);
 
   const signOut = useCallback(async () => supabase.auth.signOut(), []);
 
   const hasModuleAccess = useCallback((moduleId) => {
-    const role = profile?.role || user?.user_metadata?.role || 'visiteur';
+    const role = normalizeErpRole(profile?.role || user?.user_metadata?.role || 'visiteur', 'visiteur');
     const allowed = ROLE_PERMISSIONS[role] || [];
     if (allowed.includes('*')) return true;
     const resolved = resolveActiveModuleId(ROUTE_TO_MODULE[moduleId] || moduleId);

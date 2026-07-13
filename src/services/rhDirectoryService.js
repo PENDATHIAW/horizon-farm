@@ -1,7 +1,8 @@
 import { supabase } from '../lib/supabase';
+import { DEFAULT_FARM_ID } from '../utils/farmScope.js';
 import { RH_DEFAULT_PEOPLE, RH_STORAGE_KEY, RH_TEAMS } from '../utils/rhDirectory.js';
 
-const SETTINGS_ROW_ID = 'default';
+const SETTINGS_ROW_ID = DEFAULT_FARM_ID;
 const storageKey = (farmId = SETTINGS_ROW_ID) => `${RH_STORAGE_KEY}:${farmId}`;
 
 function normalizeDirectory(raw = {}) {

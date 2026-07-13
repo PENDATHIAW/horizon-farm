@@ -73,11 +73,13 @@ export default function ReproductionWorkflowForm({
   const predictedDue = selectedFemale ? predictDueDate(selectedFemale, date) : '';
 
   useEffect(() => {
-    setAnimalId(fields.animal_id || fields.target_id || '');
-    setMaleId(fields.male_id || '');
-    setDate(fields.date || today());
-    setNotes(fields.notes || draft?.raw_input || '');
-    setPorteeSize(String(fields.portee_size || 1));
+    queueMicrotask(() => {
+      setAnimalId(fields.animal_id || fields.target_id || '');
+      setMaleId(fields.male_id || '');
+      setDate(fields.date || today());
+      setNotes(fields.notes || draft?.raw_input || '');
+      setPorteeSize(String(fields.portee_size || 1));
+    });
   }, [draft, fields.animal_id, fields.target_id, fields.male_id, fields.date, fields.notes, fields.portee_size, draft?.raw_input]);
 
   const applyScan = () => {
@@ -279,22 +281,22 @@ export default function ReproductionWorkflowForm({
 
   if (formType === 'reproduction_document') {
     return (
-      <section id={REPRODUCTION_WORKFLOW_FORM_ID} className="rounded-3xl border border-emerald-200 bg-emerald-50 p-5 shadow-sm space-y-4">
+      <section id={REPRODUCTION_WORKFLOW_FORM_ID} className="rounded-3xl border border-positive bg-positive-bg p-6 shadow-card space-y-4">
         <div className="flex items-start justify-between gap-3">
           <div>
-            <p className="text-xs uppercase tracking-widest text-emerald-700 font-black">Preuve reproduction</p>
-            <h3 className="mt-1 text-xl font-black text-[#2f2415]">Joindre preuve</h3>
-            <p className="mt-1 text-sm text-emerald-800">Mère obligatoire · photo stockée dans Documents · lien animal + module reproduction.</p>
+            <p className="text-xs uppercase tracking-normal text-positive font-semibold">Preuve reproduction</p>
+            <h3 className="mt-1 text-xl font-semibold text-earth">Joindre preuve</h3>
+            <p className="mt-1 text-sm text-positive">Mère obligatoire · photo stockée dans Documents · lien animal + module reproduction.</p>
           </div>
-          <button type="button" onClick={onClose} className="rounded-full border border-emerald-200 bg-white p-2 text-emerald-700"><X size={16} /></button>
+          <button type="button" onClick={onClose} className="rounded-full border border-positive bg-white p-2 text-positive"><X size={16} /></button>
         </div>
         <div className={ELEVAGE_FORM_GRID}>
           <label className="space-y-1">
-            <span className="text-xs font-bold text-emerald-800">Mère (obligatoire)</span>
+            <span className="text-xs font-semibold text-positive">Mère (obligatoire)</span>
             <select
               value={animalId}
               onChange={(e) => setAnimalId(e.target.value)}
-              className="w-full min-h-[48px] rounded-xl border border-emerald-200 bg-white px-3 py-2 text-sm"
+              className="w-full min-h-[48px] rounded-xl border border-positive bg-white px-3 py-2 text-sm"
             >
               <option value="">Choisir la mère</option>
               {females.map((row) => (
@@ -303,34 +305,34 @@ export default function ReproductionWorkflowForm({
             </select>
           </label>
           <label className="space-y-1">
-            <span className="text-xs font-bold text-emerald-800">Date</span>
-            <input type="date" value={date} onChange={(e) => setDate(e.target.value)} className="w-full min-h-[48px] rounded-xl border border-emerald-200 bg-white px-3 py-2 text-sm" />
+            <span className="text-xs font-semibold text-positive">Date</span>
+            <input type="date" value={date} onChange={(e) => setDate(e.target.value)} className="w-full min-h-[48px] rounded-xl border border-positive bg-white px-3 py-2 text-sm" />
           </label>
           <label className="space-y-1 md:col-span-2">
-            <span className="text-xs font-bold text-emerald-800">Titre</span>
-            <input value={documentTitle} onChange={(e) => setDocumentTitle(e.target.value)} className="w-full min-h-[48px] rounded-xl border border-emerald-200 bg-white px-3 py-2 text-sm" />
+            <span className="text-xs font-semibold text-positive">Titre</span>
+            <input value={documentTitle} onChange={(e) => setDocumentTitle(e.target.value)} className="w-full min-h-[48px] rounded-xl border border-positive bg-white px-3 py-2 text-sm" />
           </label>
           <label className="space-y-1 md:col-span-2">
-            <span className="text-xs font-bold text-emerald-800">Notes</span>
-            <input value={notes} onChange={(e) => setNotes(e.target.value)} className="w-full min-h-[48px] rounded-xl border border-emerald-200 bg-white px-3 py-2 text-sm" />
+            <span className="text-xs font-semibold text-positive">Notes</span>
+            <input value={notes} onChange={(e) => setNotes(e.target.value)} className="w-full min-h-[48px] rounded-xl border border-positive bg-white px-3 py-2 text-sm" />
           </label>
         </div>
         <div className="space-y-2">
-          <span className="text-xs font-bold text-emerald-800">Photo preuve</span>
-          <label className="flex min-h-[48px] cursor-pointer items-center justify-center gap-2 rounded-xl border border-dashed border-emerald-300 bg-white px-3 py-4 text-sm font-bold text-emerald-800 hover:bg-emerald-50">
+          <span className="text-xs font-semibold text-positive">Photo preuve</span>
+          <label className="flex min-h-[48px] cursor-pointer items-center justify-center gap-2 rounded-xl border border-dashed border-positive bg-white px-3 py-4 text-sm font-semibold text-positive hover:bg-positive-bg">
             <Upload size={18} /> Prendre / importer une photo
             <input type="file" accept="image/*" capture="environment" className="hidden" onChange={(e) => handleProofFile(e.target.files?.[0])} />
           </label>
           {proofPhoto.preuve_photo_data ? (
-            <div className="flex items-center gap-3 rounded-xl border border-emerald-200 bg-white p-2">
+            <div className="flex items-center gap-3 rounded-xl border border-positive bg-white p-2">
               <img src={proofPhoto.preuve_photo_data} alt="preuve" className="h-14 w-14 rounded-lg object-cover" />
               <div className="min-w-0">
-                <p className="truncate text-sm font-bold text-emerald-800">{proofPhoto.preuve_file_name || 'Photo ajoutée'}</p>
-                <p className="text-xs text-emerald-700">Stockée avec le document reproduction.</p>
+                <p className="truncate text-sm font-semibold text-positive">{proofPhoto.preuve_file_name || 'Photo ajoutée'}</p>
+                <p className="text-xs text-positive">Stockée avec le document reproduction.</p>
               </div>
             </div>
           ) : (
-            <p className="text-xs text-amber-800 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2">
+            <p className="text-xs text-horizon-dark rounded-xl border border-vigilance bg-vigilance-bg px-3 py-2">
               <Camera size={13} className="inline mr-1" /> Sans photo : métadonnée seule (preuve_manquante).
             </p>
           )}
@@ -381,7 +383,7 @@ export default function ReproductionWorkflowForm({
                 setSaving(false);
               }
             }}
-            className="min-h-[48px] rounded-xl bg-[#2f2415] px-5 py-2 text-sm font-black text-white disabled:opacity-60"
+            className="min-h-[48px] rounded-xl bg-earth px-6 py-2 text-sm font-semibold text-white disabled:opacity-60"
           >
             {saving ? '…' : 'Rattacher'}
           </button>
@@ -391,32 +393,32 @@ export default function ReproductionWorkflowForm({
   }
 
   return (
-    <section id={REPRODUCTION_WORKFLOW_FORM_ID} className="rounded-3xl border border-emerald-200 bg-emerald-50 p-5 shadow-sm space-y-4">
+    <section id={REPRODUCTION_WORKFLOW_FORM_ID} className="rounded-3xl border border-positive bg-positive-bg p-6 shadow-card space-y-4">
       <div className="flex items-start justify-between gap-3">
         <div>
-          <p className="text-xs uppercase tracking-widest text-emerald-700 font-black flex items-center gap-2">
+          <p className="text-xs uppercase tracking-normal text-positive font-semibold flex items-center gap-2">
             <Camera size={15} /> Workflow reproduction
           </p>
-          <h3 className="mt-1 text-xl font-black text-[#2f2415]">{title}</h3>
-          <p className="mt-2 rounded-xl border border-sky-200 bg-sky-50 px-3 py-2 text-sm text-sky-900">{REPRODUCTION_TERRAIN_BANNER}</p>
+          <h3 className="mt-1 text-xl font-semibold text-earth">{title}</h3>
+          <p className="mt-2 rounded-xl border border-line bg-neutral-bg px-3 py-2 text-sm text-neutral">{REPRODUCTION_TERRAIN_BANNER}</p>
         </div>
-        <button type="button" onClick={onClose} className="rounded-full border border-emerald-200 bg-white p-2 text-emerald-700"><X size={16} /></button>
+        <button type="button" onClick={onClose} className="rounded-full border border-positive bg-white p-2 text-positive"><X size={16} /></button>
       </div>
 
       {workflow === 'mise_bas' ? (
         <div className="flex flex-col gap-2 sm:flex-row sm:items-end">
           <label className="flex-1 space-y-1">
-            <span className="text-xs font-bold text-emerald-800">Scan mère (QR / boucle)</span>
-            <input value={scanValue} onChange={(e) => setScanValue(e.target.value)} placeholder="BOV-001 ou scan" className="w-full min-h-[48px] rounded-xl border border-emerald-200 bg-white px-3 py-2 text-sm" />
+            <span className="text-xs font-semibold text-positive">Scan mère (QR / boucle)</span>
+            <input value={scanValue} onChange={(e) => setScanValue(e.target.value)} placeholder="BOV-001 ou scan" className="w-full min-h-[48px] rounded-xl border border-positive bg-white px-3 py-2 text-sm" />
           </label>
-          <button type="button" onClick={applyScan} className="min-h-[48px] rounded-xl border border-emerald-300 bg-white px-4 text-sm font-black text-emerald-800">Identifier mère</button>
+          <button type="button" onClick={applyScan} className="min-h-[48px] rounded-xl border border-positive bg-white px-4 text-sm font-semibold text-positive">Identifier mère</button>
         </div>
       ) : null}
 
       <div className={ELEVAGE_FORM_GRID}>
         <label className="space-y-1">
-          <span className="text-xs font-bold text-emerald-800">Femelle</span>
-          <select value={animalId} onChange={(e) => setAnimalId(e.target.value)} className="w-full min-h-[48px] rounded-xl border border-emerald-200 bg-white px-3 py-2 text-sm">
+          <span className="text-xs font-semibold text-positive">Femelle</span>
+          <select value={animalId} onChange={(e) => setAnimalId(e.target.value)} className="w-full min-h-[48px] rounded-xl border border-positive bg-white px-3 py-2 text-sm">
             <option value="">Choisir</option>
             {females.map((row) => (
               <option key={row.id} value={row.id}>{labelOf(row)} · {row.id}</option>
@@ -426,8 +428,8 @@ export default function ReproductionWorkflowForm({
 
         {workflow !== 'gestation' ? (
           <label className="space-y-1">
-            <span className="text-xs font-bold text-emerald-800">Mâle reproducteur</span>
-            <select value={maleId} onChange={(e) => setMaleId(e.target.value)} className="w-full min-h-[48px] rounded-xl border border-emerald-200 bg-white px-3 py-2 text-sm">
+            <span className="text-xs font-semibold text-positive">Mâle reproducteur</span>
+            <select value={maleId} onChange={(e) => setMaleId(e.target.value)} className="w-full min-h-[48px] rounded-xl border border-positive bg-white px-3 py-2 text-sm">
               <option value="">Optionnel</option>
               {males.map((row) => (
                 <option key={row.id} value={row.id}>{labelOf(row)} · {row.id}</option>
@@ -437,33 +439,33 @@ export default function ReproductionWorkflowForm({
         ) : null}
 
         <label className="space-y-1">
-          <span className="text-xs font-bold text-emerald-800">Date</span>
-          <input type="date" value={date} onChange={(e) => setDate(e.target.value)} className="w-full min-h-[48px] rounded-xl border border-emerald-200 bg-white px-3 py-2 text-sm" />
+          <span className="text-xs font-semibold text-positive">Date</span>
+          <input type="date" value={date} onChange={(e) => setDate(e.target.value)} className="w-full min-h-[48px] rounded-xl border border-positive bg-white px-3 py-2 text-sm" />
         </label>
 
         {workflow === 'gestation' && predictedDue ? (
           <label className="space-y-1">
-            <span className="text-xs font-bold text-emerald-800">Mise bas prévue (règles d’élevage)</span>
-            <input readOnly value={predictedDue} className="w-full min-h-[48px] rounded-xl border border-emerald-200 bg-[#fffdf8] px-3 py-2 text-sm font-black" />
+            <span className="text-xs font-semibold text-positive">Mise bas prévue (règles d’élevage)</span>
+            <input readOnly value={predictedDue} className="w-full min-h-[48px] rounded-xl border border-positive bg-card px-3 py-2 text-sm font-semibold" />
           </label>
         ) : null}
 
         {workflow === 'mise_bas' ? (
           <>
             <label className="space-y-1">
-              <span className="text-xs font-bold text-emerald-800">Nombre de jeunes</span>
-              <input type="number" min={1} value={porteeSize} onChange={(e) => setPorteeSize(e.target.value)} className="w-full min-h-[48px] rounded-xl border border-emerald-200 bg-white px-3 py-2 text-sm" />
+              <span className="text-xs font-semibold text-positive">Nombre de jeunes</span>
+              <input type="number" min={1} value={porteeSize} onChange={(e) => setPorteeSize(e.target.value)} className="w-full min-h-[48px] rounded-xl border border-positive bg-white px-3 py-2 text-sm" />
             </label>
             <label className="space-y-1">
-              <span className="text-xs font-bold text-emerald-800">Document portée</span>
-              <input value={documentTitle} onChange={(e) => setDocumentTitle(e.target.value)} className="w-full min-h-[48px] rounded-xl border border-emerald-200 bg-white px-3 py-2 text-sm" />
+              <span className="text-xs font-semibold text-positive">Document portée</span>
+              <input value={documentTitle} onChange={(e) => setDocumentTitle(e.target.value)} className="w-full min-h-[48px] rounded-xl border border-positive bg-white px-3 py-2 text-sm" />
             </label>
           </>
         ) : null}
 
         <label className="space-y-1 md:col-span-2">
-          <span className="text-xs font-bold text-emerald-800">Notes</span>
-          <input value={notes} onChange={(e) => setNotes(e.target.value)} className="w-full min-h-[48px] rounded-xl border border-emerald-200 bg-white px-3 py-2 text-sm" />
+          <span className="text-xs font-semibold text-positive">Notes</span>
+          <input value={notes} onChange={(e) => setNotes(e.target.value)} className="w-full min-h-[48px] rounded-xl border border-positive bg-white px-3 py-2 text-sm" />
         </label>
       </div>
 
@@ -472,12 +474,12 @@ export default function ReproductionWorkflowForm({
           <button
             type="button"
             onClick={() => onOpenBirthDraft({ animalId, date, notes, portee_size: porteeSize })}
-            className="min-h-[48px] rounded-xl border border-emerald-300 bg-white px-4 text-sm font-black text-emerald-800"
+            className="min-h-[48px] rounded-xl border border-positive bg-white px-4 text-sm font-semibold text-positive"
           >
             Fiche jeune (1 animal)
           </button>
         ) : null}
-        <button type="button" onClick={submit} disabled={saving} className="min-h-[48px] rounded-xl bg-[#2f2415] px-5 py-2 text-sm font-black text-white disabled:opacity-60">
+        <button type="button" onClick={submit} disabled={saving} className="min-h-[48px] rounded-xl bg-earth px-6 py-2 text-sm font-semibold text-white disabled:opacity-60">
           {saving ? 'Validation…' : 'Valider'}
         </button>
       </div>

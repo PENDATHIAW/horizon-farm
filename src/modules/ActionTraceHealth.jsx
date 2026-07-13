@@ -27,7 +27,7 @@ function buildModuleStats({ tasks = [], alerts = [], events = [] }) {
 }
 
 function Mini({ icon: Icon, label, value, danger = false }) {
-  return <div className={`rounded-xl border px-3 py-2 ${danger ? 'border-amber-200 bg-amber-50' : 'border-[#eadcc2] bg-white'}`}><Icon size={14} className={danger ? 'text-amber-700' : 'text-[#9a6b12]'} /><b className="block text-[#2f2415] break-words">{value}</b><span className="text-xs text-[#8a7456]">{label}</span></div>;
+  return <div className={`rounded-xl border px-3 py-2 ${danger ? 'border-vigilance bg-vigilance-bg' : 'border-line bg-white'}`}><Icon size={14} className={danger ? 'text-horizon-dark' : 'text-horizon-dark'} /><b className="block text-earth break-words">{value}</b><span className="text-xs text-slate">{label}</span></div>;
 }
 
 export default function ActionTraceHealth({ tasks = [], alertes = [], alerts = [], events = [], auditLogs = [], online = true, onNavigate }) {
@@ -41,14 +41,14 @@ export default function ActionTraceHealth({ tasks = [], alertes = [], alerts = [
     .sort((a, b) => Number(isCritical(b)) - Number(isCritical(a)) || String(rowDate(b)).localeCompare(String(rowDate(a))))
     .slice(0, 6);
 
-  return <section className="rounded-3xl border border-[#d6c3a0] bg-white p-5 shadow-sm space-y-4">
+  return <section className="rounded-3xl border border-line bg-white p-6 shadow-card space-y-4">
     <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-3">
       <div>
-        <p className="text-xs uppercase tracking-widest text-[#8a7456] font-black flex items-center gap-2"><GitBranch size={15} /> Actions & traçabilité</p>
-        <h3 className="text-xl font-black text-[#2f2415] mt-1">Ce qui reste à traiter</h3>
-        <p className="text-sm text-[#8a7456] mt-1">Vue commune des tâches, alertes, faits critiques et synchronisation.</p>
+        <p className="text-xs uppercase tracking-normal text-slate font-semibold flex items-center gap-2"><GitBranch size={15} /> Actions & traçabilité</p>
+        <h3 className="text-xl font-semibold text-earth mt-1">Ce qui reste à traiter</h3>
+        <p className="text-sm text-slate mt-1">Vue commune des tâches, alertes, faits critiques et synchronisation.</p>
       </div>
-      {!online ? <div className="rounded-2xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800"><WifiOff size={15} className="inline" /> Hors ligne : vérifier la synchronisation.</div> : <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-800"><CheckCircle2 size={15} className="inline" /> Connexion active</div>}
+      {!online ? <div className="rounded-2xl border border-vigilance bg-vigilance-bg p-3 text-sm text-horizon-dark"><WifiOff size={15} className="inline" /> Hors ligne : vérifier la synchronisation.</div> : <div className="rounded-2xl border border-positive bg-positive-bg p-3 text-sm text-positive"><CheckCircle2 size={15} className="inline" /> Connexion active</div>}
     </div>
 
     <div className="grid grid-cols-2 md:grid-cols-4 xl:grid-cols-6 gap-2 text-sm">
@@ -61,16 +61,16 @@ export default function ActionTraceHealth({ tasks = [], alertes = [], alerts = [
     </div>
 
     <div className="grid grid-cols-1 xl:grid-cols-2 gap-3">
-      <div className="rounded-2xl border border-[#eadcc2] bg-[#fffdf8] p-4">
-        <p className="font-black text-[#2f2415]">Priorités</p>
+      <div className="rounded-2xl border border-line bg-card p-4">
+        <p className="font-semibold text-earth">Priorités</p>
         <div className="mt-3 space-y-2 text-sm">
-          {priorities.length ? priorities.map((row) => <div key={`${row.kind}-${row.id || rowTitle(row)}`} className="rounded-xl border border-[#eadcc2] bg-white px-3 py-2"><div className="flex items-start justify-between gap-2"><b className="text-[#2f2415]">{row.kind} · {rowTitle(row)}</b>{isCritical(row) ? <span className="rounded-full bg-amber-100 px-2 py-0.5 text-xs font-bold text-amber-800">prioritaire</span> : null}</div><p className="text-xs text-[#8a7456]">{moduleOf(row)} · {rowDate(row) || 'date non renseignée'}</p></div>) : <div className="rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-emerald-700">Aucune action urgente ouverte.</div>}
+          {priorities.length ? priorities.map((row) => <div key={`${row.kind}-${row.id || rowTitle(row)}`} className="rounded-xl border border-line bg-white px-3 py-2"><div className="flex items-start justify-between gap-2"><b className="text-earth">{row.kind} · {rowTitle(row)}</b>{isCritical(row) ? <span className="rounded-full bg-vigilance-bg px-2 py-1 text-xs font-semibold text-horizon-dark">prioritaire</span> : null}</div><p className="text-xs text-slate">{moduleOf(row)} · {rowDate(row) || 'date non renseignée'}</p></div>) : <div className="rounded-xl border border-positive bg-positive-bg px-3 py-2 text-positive">Aucune action urgente ouverte.</div>}
         </div>
       </div>
-      <div className="rounded-2xl border border-[#eadcc2] bg-[#fffdf8] p-4">
-        <p className="font-black text-[#2f2415]">Modules à surveiller</p>
+      <div className="rounded-2xl border border-line bg-card p-4">
+        <p className="font-semibold text-earth">Modules à surveiller</p>
         <div className="mt-3 grid grid-cols-1 md:grid-cols-2 gap-2 text-sm">
-          {stats.length ? stats.map((row) => <div key={row.module} className={`rounded-xl border px-3 py-2 ${row.critical ? 'border-amber-200 bg-amber-50' : 'border-[#eadcc2] bg-white'}`}><b className="text-[#2f2415]">{row.module}</b><p className="text-xs text-[#8a7456]">{row.tasks} tâche(s) · {row.alerts} alerte(s) · {row.events} fait(s)</p></div>) : <div className="rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-emerald-700">Aucun module sous pression.</div>}
+          {stats.length ? stats.map((row) => <div key={row.module} className={`rounded-xl border px-3 py-2 ${row.critical ? 'border-vigilance bg-vigilance-bg' : 'border-line bg-white'}`}><b className="text-earth">{row.module}</b><p className="text-xs text-slate">{row.tasks} tâche(s) · {row.alerts} alerte(s) · {row.events} fait(s)</p></div>) : <div className="rounded-xl border border-positive bg-positive-bg px-3 py-2 text-positive">Aucun module sous pression.</div>}
         </div>
       </div>
     </div>

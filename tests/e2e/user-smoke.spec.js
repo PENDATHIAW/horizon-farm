@@ -1,4 +1,4 @@
-import { expect, test } from '@playwright/test';
+import { test } from '@playwright/test';
 import { assertNoBadUiText, collectRuntimeErrors, goToModule, login } from './helpers.js';
 
 const MODULE_LABELS = [

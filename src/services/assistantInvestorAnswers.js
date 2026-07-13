@@ -84,11 +84,11 @@ export function buildInvestorPilotageAnswer(type = 'farm_status', dataMap = {}) 
   const monthTarget = n(growth?.monthlyTarget ?? growth?.objectifMois);
   const monthRealized = n(growth?.monthlyRealized ?? growth?.caMois);
 
-  let situation = '';
-  let cause = '';
-  let action = '';
-  let sources = [];
-  let title = 'Horizon — Exploitation';
+  let situation;
+  let cause;
+  let action;
+  let sources;
+  let title;
 
   switch (type) {
     case 'treasury':

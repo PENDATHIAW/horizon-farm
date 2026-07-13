@@ -1,7 +1,7 @@
 import { fmtCurrency } from './format.js';
 
 /** Une seule vérité financière Élevage — moteur unifiedCostService (aligné Finance). */
-export const PRODUCTION_FINANCE_SOURCE = 'Coût unifié ERP (alimentation + santé + achat) — même moteur que Finance & Rentabilité.';
+export const PRODUCTION_FINANCE_SOURCE = 'Achats, alimentation et santé enregistrés — même calcul que Finance & Rentabilité.';
 
 export const MARGIN_GROSS_DEFINITION_SHORT = 'Revenus − coût de production unifié ERP';
 export const MARGIN_GROSS_DEFINITION = `Marge brute technique = ${MARGIN_GROSS_DEFINITION_SHORT}`;

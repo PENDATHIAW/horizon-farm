@@ -400,7 +400,7 @@ export async function commitOfficialTransformation({
     kind: transformType,
     animal_id: animalId,
     lot_id: lotId,
-    source_type: animalId ? 'animal' : 'lot_avicole',
+    source_entity_type: animalId ? 'animal' : 'lot_avicole',
     effectif,
     poids_vif: num(form.poids_vif),
     poids_carcasse: poidsCarcasse,

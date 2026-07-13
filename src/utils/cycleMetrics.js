@@ -15,6 +15,16 @@ const addDays = (days) => {
   return d.toISOString().slice(0, 10);
 };
 const dueSoonOrLate = (date = '') => date && date <= addDays(2);
+const normalizeReferenceDate = (value) => {
+  const parsed = value ? new Date(value) : new Date();
+  return Number.isNaN(parsed.getTime()) ? new Date() : parsed;
+};
+const dateKey = (value) => normalizeReferenceDate(value).toISOString().slice(0, 10);
+const addDaysFrom = (value, days) => {
+  const date = normalizeReferenceDate(value);
+  date.setUTCDate(date.getUTCDate() + days);
+  return date.toISOString().slice(0, 10);
+};
 const norm = (value = '') => String(value || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim();
 const isResolved = (row = {}) => ['resolue', 'résolue', 'cloturee', 'clôturée', 'terminee', 'terminée', 'fermee', 'fermée', 'ok', 'traitee', 'traitée'].includes(norm(row.status || row.statut || row.etat));
 
@@ -164,11 +174,12 @@ export function buildCycleAlertsForPanel({
 }
 
 /** Pipeline cycles pour export investisseur. */
-export function buildCycleInvestorPipeline({ lots = [], animaux = [], horizonDays = 90 } = {}) {
-  const end = addDays(horizonDays);
+export function buildCycleInvestorPipeline({ lots = [], animaux = [], horizonDays = 90, referenceDate } = {}) {
+  const start = dateKey(referenceDate);
+  const end = addDaysFrom(referenceDate, horizonDays);
   const cycles = buildCalculatedCycleDates({ lots, animaux });
   const pipeline = arr(cycles.all)
-    .filter((row) => row.targetDate && row.targetDate >= today() && row.targetDate <= end)
+    .filter((row) => row.targetDate && row.targetDate >= start && row.targetDate <= end)
     .sort((a, b) => String(a.targetDate).localeCompare(String(b.targetDate)))
     .map((row) => ({
       label: row.label || row.id,
@@ -177,7 +188,9 @@ export function buildCycleInvestorPipeline({ lots = [], animaux = [], horizonDay
       targetDate: row.targetDate,
       quantity: row.quantity,
       cycleDays: row.cycleDays,
-      daysUntil: daysUntil(row.targetDate),
+      daysUntil: referenceDate
+        ? Math.ceil((new Date(row.targetDate).getTime() - normalizeReferenceDate(referenceDate).getTime()) / 86400000)
+        : daysUntil(row.targetDate),
     }));
 
   const upcomingExits = pipeline.slice(0, 8);
@@ -187,6 +200,6 @@ export function buildCycleInvestorPipeline({ lots = [], animaux = [], horizonDay
     upcomingExits,
     horizonDays,
     totalUpcoming: pipeline.length,
-    lateCount: arr(cycles.all).filter((row) => row.targetDate && row.targetDate < today()).length,
+    lateCount: arr(cycles.all).filter((row) => row.targetDate && row.targetDate < start).length,
   };
 }

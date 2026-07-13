@@ -2,7 +2,6 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { formatFinanceSCA, HEY_HORIZON_FINANCE_SYSTEM_PROMPT } from '../../src/services/heyHorizonFinancePrompt.js';
 import {
-  detectFinancePilotageQuery,
   buildFinancePilotageAnswer,
 } from '../../src/services/heyHorizonFinanceAnswers.js';
 

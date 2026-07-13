@@ -5,13 +5,14 @@ import { resolveElevageLotsSubview, resolveElevageTab } from '../../src/utils/co
 
 const TAB_IDS = MODULE_TARGET_TABS.elevage;
 
-test('elevage expose les 7 onglets cibles', () => {
+test('elevage expose les 8 onglets cibles, dont Transformation', () => {
   assert.deepEqual(TAB_IDS, [
     'Vue d’ensemble',
     'Lots & animaux',
     'Alimentation',
     'Production',
     'Santé & Biosécurité',
+    'Transformation',
     'Coûts & performance',
     'Historique',
   ]);

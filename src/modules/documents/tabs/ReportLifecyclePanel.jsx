@@ -17,7 +17,7 @@ function stateOf(report = {}) {
 
 function ActionButton({ icon: Icon, children, onClick, disabled = false }) {
   return (
-    <button type="button" disabled={disabled} onClick={onClick} className="inline-flex items-center gap-1.5 rounded-lg border border-[#d6c3a0] bg-white px-3 py-2 text-xs font-black text-[#2f2415] disabled:cursor-not-allowed disabled:opacity-45">
+    <button type="button" disabled={disabled} onClick={onClick} className="inline-flex items-center gap-2 rounded-lg border border-line bg-white px-3 py-2 text-xs font-semibold text-earth disabled:cursor-not-allowed disabled:opacity-45">
       <Icon size={14} /> {children}
     </button>
   );
@@ -79,37 +79,37 @@ export default function ReportLifecyclePanel({ reports = [], dataMap = {}, user 
   };
 
   return (
-    <section className="rounded-2xl border border-[#d6c3a0] bg-white p-5 shadow-sm">
+    <section className="rounded-2xl border border-line bg-white p-6 shadow-card">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div>
-          <h2 className="flex items-center gap-2 font-black text-[#2f2415]"><FileClock size={19} /> Cycle des rapports</h2>
-          <p className="mt-1 text-sm text-[#8a7456]">Collecte automatique, aperçu daté, validation, gel puis publication.</p>
+          <h2 className="flex items-center gap-2 font-semibold text-earth"><FileClock size={19} /> Cycle des rapports</h2>
+          <p className="mt-1 text-sm text-slate">Collecte automatique, aperçu daté, validation, gel puis publication.</p>
         </div>
-        <button type="button" disabled={busy === 'new' || !onCreateReport} onClick={createPreview} className="rounded-lg bg-[#22c55e] px-4 py-2 text-sm font-black text-[#052e16] disabled:opacity-50">
+        <button type="button" disabled={busy === 'new' || !onCreateReport} onClick={createPreview} className="rounded-lg bg-leaf px-4 py-2 text-sm font-semibold text-earth disabled:opacity-50">
           {busy === 'new' ? 'Génération...' : 'Générer un aperçu'}
         </button>
       </div>
 
       <div className="mt-4 flex flex-wrap items-center gap-2">
-        <label className="text-xs font-bold text-[#8a7456]" htmlFor="report-publication-channel">Canal</label>
-        <select id="report-publication-channel" value={channel} onChange={(event) => setChannel(event.target.value)} className="rounded-lg border border-[#d6c3a0] bg-white px-3 py-2 text-sm">
+        <label className="text-xs font-semibold text-slate" htmlFor="report-publication-channel">Canal</label>
+        <select id="report-publication-channel" value={channel} onChange={(event) => setChannel(event.target.value)} className="rounded-lg border border-line bg-white px-3 py-2 text-sm">
           <option>Portail financeur</option>
           <option>Partage interne</option>
           <option>Courriel sécurisé</option>
         </select>
-        {!actor ? <span className="text-xs font-bold text-amber-700">Un compte utilisateur identifié est requis pour valider.</span> : null}
+        {!actor ? <span className="text-xs font-semibold text-horizon-dark">Un compte utilisateur identifié est requis pour valider.</span> : null}
       </div>
 
-      <div className="mt-5 space-y-3">
+      <div className="mt-6 space-y-3">
         {rows.length ? rows.map((report) => {
           const state = stateOf(report);
           return (
-            <article key={report.id} className="rounded-xl border border-[#eadcc2] bg-[#fffdf8] p-4">
+            <article key={report.id} className="rounded-xl border border-line bg-card p-4">
               <div className="flex flex-col gap-2 lg:flex-row lg:items-start lg:justify-between">
                 <div>
-                  <p className="font-black text-[#2f2415]">{report.title || report.id}</p>
-                  <p className="text-xs text-[#8a7456]">Version {report.version_number || 1} · {String(report.generated_at || report.created_at || '').slice(0, 16).replace('T', ' ')} · {statusLabel[state] || state || 'Brouillon'}</p>
-                  <p className="mt-1 text-sm text-[#6f6048]">{report.summary || 'Chiffres collectés depuis les sources métier.'}</p>
+                  <p className="font-semibold text-earth">{report.title || report.id}</p>
+                  <p className="text-xs text-slate">Version {report.version_number || 1} · {String(report.generated_at || report.created_at || '').slice(0, 16).replace('T', ' ')} · {statusLabel[state] || state || 'Brouillon'}</p>
+                  <p className="mt-1 text-sm text-slate">{report.summary || 'Chiffres collectés depuis les sources métier.'}</p>
                 </div>
                 <div className="flex flex-wrap gap-2">
                   {state === REPORT_STATES.PREVIEW ? <ActionButton icon={Check} disabled={!actor || busy === `${report.id}:validate`} onClick={() => saveTransition(report, 'validate')}>Valider</ActionButton> : null}
@@ -120,7 +120,7 @@ export default function ReportLifecyclePanel({ reports = [], dataMap = {}, user 
               </div>
             </article>
           );
-        }) : <p className="rounded-xl border border-[#eadcc2] bg-[#fffdf8] p-4 text-sm text-[#8a7456]">Aucun rapport. Le premier aperçu sera calculé depuis les ventes validées, paiements, finances, stocks, tâches, alertes et preuves.</p>}
+        }) : <p className="rounded-xl border border-line bg-card p-4 text-sm text-slate">Aucun rapport. Le premier aperçu sera calculé depuis les ventes validées, paiements, finances, stocks, tâches, alertes et preuves.</p>}
       </div>
     </section>
   );

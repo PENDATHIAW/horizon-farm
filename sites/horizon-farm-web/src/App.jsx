@@ -4,7 +4,7 @@ const businessUnits = [
   ['Élevage intégré', 'Embouche bovine, aviculture, œufs, fumier et suivi sanitaire centralisé.'],
   ['ERP Horizon Farm', 'Pilotage finance, stock, commercial, documents, objectifs, IA et traçabilité.'],
   ['Transformation', 'Valorisation des sous-produits, chaîne de valeur locale et produits finis.'],
-  ['Cosmétique naturelle', 'Tallow & Go : valorisation premium du beef tallow dans une logique Farm to Skin.'],
+  ['Économie circulaire', 'Valorisation locale des sous-produits agricoles dans des filières utiles et traçables.'],
 ];
 
 const metrics = [
@@ -34,7 +34,7 @@ function Hero() {
       <div className="heroText">
         <p className="eyebrow">Ferme intégrée · ERP agricole · Traçabilité</p>
         <h1>Horizon Farm transforme l’élevage en chaîne de valeur pilotée par la donnée.</h1>
-        <p className="lead">Un projet agricole sénégalais pensé pour produire, tracer, vendre, financer et valoriser chaque ressource — de la ferme au marché, puis de la ferme à la peau.</p>
+        <p className="lead">Un projet agricole sénégalais pensé pour produire, tracer, vendre, financer et valoriser chaque ressource, de la ferme au marché.</p>
         <div className="actions">
           <a className="primary" href={PDF_URL} target="_blank" rel="noreferrer">Télécharger le dossier investisseur</a>
           <a className="secondary" href="#units">Découvrir les pôles</a>

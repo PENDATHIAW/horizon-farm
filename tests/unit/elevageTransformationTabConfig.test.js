@@ -13,7 +13,6 @@ import assert from 'node:assert/strict';
 import React from 'react';
 import { renderToString } from 'react-dom/server';
 import { MODULE_TABS_CONFIG, MODULE_TABS_LABELS } from '../../src/config/moduleTabs.config.js';
-import { MODULE_TARGET_TABS } from '../../src/config/horizonVision.config.js';
 import { ELEVAGE_TABS, resolveElevageTab } from '../../src/utils/commercialNavigation.js';
 import ModuleTabsBar from '../../src/components/module/ModuleTabsBar.jsx';
 
@@ -40,6 +39,10 @@ test('la barre d\'onglets Élevage affiche l\'onglet Transformation', () => {
   assert.match(html, /Transformation/);
   assert.match(html, /Lots &(amp;)? animaux/);
   assert.match(html, /Santé &(amp;)? Biosécurité/);
+  assert.match(html, /role="tablist"/);
+  assert.match(html, /role="tab"/);
+  assert.match(html, /aria-label="Transformation"/);
+  assert.match(html, /aria-selected="true"/);
 });
 
 test('les alias Transformation et transformation résolvent vers l\'onglet', () => {

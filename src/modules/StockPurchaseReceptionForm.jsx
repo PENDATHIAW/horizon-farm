@@ -104,23 +104,25 @@ export default function StockPurchaseReceptionForm({
 
   useEffect(() => {
     const m = mapDraftFields(initialDraft || {});
-    setStockId(m.stock_id);
-    setProduit(m.produit);
-    setQuantite(String(m.quantite || ''));
-    setUnite(m.unite);
-    setPrixUnitaire(String(m.prix_unitaire || ''));
-    setFournisseurId(m.fournisseur_id);
-    setStatutPaiement(m.statut_paiement);
-    setMontantPaye(String(m.montant_paye || ''));
-    setMoyenPaiement(m.moyen_paiement);
-    setDate(m.date);
-    setDestination(m.destination);
-    setLotId(m.lot_id);
-    setAnimalId(m.animal_id);
-    setCultureId(m.culture_id);
-    setProofUrl(m.proof_url);
-    setNotes(m.notes);
-    setEntryKind(m.entry_kind);
+    queueMicrotask(() => {
+      setStockId(m.stock_id);
+      setProduit(m.produit);
+      setQuantite(String(m.quantite || ''));
+      setUnite(m.unite);
+      setPrixUnitaire(String(m.prix_unitaire || ''));
+      setFournisseurId(m.fournisseur_id);
+      setStatutPaiement(m.statut_paiement);
+      setMontantPaye(String(m.montant_paye || ''));
+      setMoyenPaiement(m.moyen_paiement);
+      setDate(m.date);
+      setDestination(m.destination);
+      setLotId(m.lot_id);
+      setAnimalId(m.animal_id);
+      setCultureId(m.culture_id);
+      setProofUrl(m.proof_url);
+      setNotes(m.notes);
+      setEntryKind(m.entry_kind);
+    });
   }, [initialDraft]);
 
   const amounts = useMemo(() => computePurchaseAmounts({
@@ -250,32 +252,32 @@ export default function StockPurchaseReceptionForm({
   if (!open) return null;
 
   return (
-    <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/40 p-3">
-      <div className="flex max-h-[92vh] w-full max-w-3xl flex-col overflow-hidden rounded-3xl border border-[#eadcc2] bg-white shadow-2xl">
-        <div className="flex items-start justify-between border-b border-[#eadcc2] p-5">
+    <div className="fixed inset-0 z-[60] flex items-center justify-center bg-earth/30 p-3">
+      <div className="flex max-h-[92vh] w-full max-w-3xl flex-col overflow-hidden rounded-3xl border border-line bg-white shadow-float">
+        <div className="flex items-start justify-between border-b border-line p-6">
           <div>
-            <p className="flex items-center gap-2 text-xs font-black uppercase tracking-widest text-emerald-700">
+            <p className="flex items-center gap-2 text-xs font-semibold uppercase tracking-normal text-positive">
               <Package size={14} /> Achats & Stock · source de vérité
             </p>
-            <h2 className="mt-1 text-xl font-black text-[#2f2415]">{title}</h2>
+            <h2 className="mt-1 text-xl font-semibold text-earth">{title}</h2>
             {repairTxId ? (
-              <p className="mt-1 text-sm text-amber-800">Réparation historique depuis finance {repairTxId}</p>
+              <p className="mt-1 text-sm text-horizon-dark">Réparation historique depuis finance {repairTxId}</p>
             ) : (
-              <p className="mt-1 text-sm text-[#8a7456]">Stock, mouvement, finance et fournisseur en une saisie.</p>
+              <p className="mt-1 text-sm text-slate">Stock, mouvement, finance et fournisseur en une saisie.</p>
             )}
           </div>
-          <button type="button" onClick={onClose} aria-label="Fermer" className="rounded-full border border-[#eadcc2] p-2">
+          <button type="button" onClick={onClose} aria-label="Fermer" className="rounded-full border border-line p-2">
             <X size={16} />
           </button>
         </div>
-        <div className="space-y-4 overflow-y-auto p-5">
+        <div className="space-y-4 overflow-y-auto p-6">
           <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
             <label className="space-y-1 md:col-span-2">
-              <span className="text-xs font-bold text-[#8a7456]">Type d&apos;entrée</span>
+              <span className="text-xs font-semibold text-slate">Type d&apos;entrée</span>
               <select
                 value={entryKind}
                 onChange={(e) => setEntryKind(e.target.value)}
-                className="w-full min-h-[44px] rounded-xl border border-[#d6c3a0] bg-[#fffdf8] px-3 py-2 text-sm"
+                className="w-full min-h-[44px] rounded-xl border border-line bg-card px-3 py-2 text-sm"
               >
                 <option value={ENTRY_KINDS.ACHAT_STOCKABLE}>Achat stockable (fournisseur)</option>
                 <option value={ENTRY_KINDS.STOCK_INITIAL}>Stock initial / inventaire</option>
@@ -284,7 +286,7 @@ export default function StockPurchaseReceptionForm({
               </select>
             </label>
             <label className="space-y-1">
-              <span className="text-xs font-bold text-[#8a7456]">Produit existant</span>
+              <span className="text-xs font-semibold text-slate">Produit existant</span>
               <select
                 value={stockId}
                 onChange={(e) => {
@@ -297,7 +299,7 @@ export default function StockPurchaseReceptionForm({
                     if (!fournisseurId) setFournisseurId(row.fournisseur_id || '');
                   }
                 }}
-                className="w-full min-h-[44px] rounded-xl border border-[#d6c3a0] bg-[#fffdf8] px-3 py-2 text-sm"
+                className="w-full min-h-[44px] rounded-xl border border-line bg-card px-3 py-2 text-sm"
               >
                 <option value="">— Nouveau produit —</option>
                 {stocks.map((row) => (
@@ -308,47 +310,47 @@ export default function StockPurchaseReceptionForm({
               </select>
             </label>
             <label className="space-y-1">
-              <span className="text-xs font-bold text-[#8a7456]">Produit *</span>
+              <span className="text-xs font-semibold text-slate">Produit *</span>
               <input
                 value={produit}
                 onChange={(e) => setProduit(e.target.value)}
-                className="w-full min-h-[44px] rounded-xl border border-[#d6c3a0] bg-[#fffdf8] px-3 py-2 text-sm"
+                className="w-full min-h-[44px] rounded-xl border border-line bg-card px-3 py-2 text-sm"
               />
             </label>
             <label className="space-y-1">
-              <span className="text-xs font-bold text-[#8a7456]">Quantité *</span>
+              <span className="text-xs font-semibold text-slate">Quantité *</span>
               <input
                 type="number"
                 value={quantite}
                 onChange={(e) => setQuantite(e.target.value)}
-                className="w-full min-h-[44px] rounded-xl border border-[#d6c3a0] bg-[#fffdf8] px-3 py-2 text-sm"
+                className="w-full min-h-[44px] rounded-xl border border-line bg-card px-3 py-2 text-sm"
               />
             </label>
             <label className="space-y-1">
-              <span className="text-xs font-bold text-[#8a7456]">Unité</span>
+              <span className="text-xs font-semibold text-slate">Unité</span>
               <input
                 value={unite}
                 onChange={(e) => setUnite(e.target.value)}
-                className="w-full min-h-[44px] rounded-xl border border-[#d6c3a0] bg-[#fffdf8] px-3 py-2 text-sm"
+                className="w-full min-h-[44px] rounded-xl border border-line bg-card px-3 py-2 text-sm"
               />
             </label>
             {entryKind === ENTRY_KINDS.ACHAT_STOCKABLE ? (
               <>
                 <label className="space-y-1">
-                  <span className="text-xs font-bold text-[#8a7456]">Prix unitaire</span>
+                  <span className="text-xs font-semibold text-slate">Prix unitaire</span>
                   <input
                     type="number"
                     value={prixUnitaire}
                     onChange={(e) => setPrixUnitaire(e.target.value)}
-                    className="w-full min-h-[44px] rounded-xl border border-[#d6c3a0] bg-[#fffdf8] px-3 py-2 text-sm"
+                    className="w-full min-h-[44px] rounded-xl border border-line bg-card px-3 py-2 text-sm"
                   />
                 </label>
                 <label className="space-y-1">
-                  <span className="text-xs font-bold text-[#8a7456]">Fournisseur</span>
+                  <span className="text-xs font-semibold text-slate">Fournisseur</span>
                   <select
                     value={fournisseurId}
                     onChange={(e) => setFournisseurId(e.target.value)}
-                    className="w-full min-h-[44px] rounded-xl border border-[#d6c3a0] bg-[#fffdf8] px-3 py-2 text-sm"
+                    className="w-full min-h-[44px] rounded-xl border border-line bg-card px-3 py-2 text-sm"
                   >
                     <option value="">—</option>
                     {fournisseurs.map((f) => (
@@ -357,11 +359,11 @@ export default function StockPurchaseReceptionForm({
                   </select>
                 </label>
                 <label className="space-y-1">
-                  <span className="text-xs font-bold text-[#8a7456]">Statut paiement</span>
+                  <span className="text-xs font-semibold text-slate">Statut paiement</span>
                   <select
                     value={statutPaiement}
                     onChange={(e) => setStatutPaiement(e.target.value)}
-                    className="w-full min-h-[44px] rounded-xl border border-[#d6c3a0] bg-[#fffdf8] px-3 py-2 text-sm"
+                    className="w-full min-h-[44px] rounded-xl border border-line bg-card px-3 py-2 text-sm"
                   >
                     <option value={PAYMENT_STATUS.PAYE}>Payé</option>
                     <option value={PAYMENT_STATUS.PARTIEL}>Partiel</option>
@@ -370,40 +372,40 @@ export default function StockPurchaseReceptionForm({
                 </label>
                 {statutPaiement === PAYMENT_STATUS.PARTIEL ? (
                   <label className="space-y-1">
-                    <span className="text-xs font-bold text-[#8a7456]">Montant payé</span>
+                    <span className="text-xs font-semibold text-slate">Montant payé</span>
                     <input
                       type="number"
                       value={montantPaye}
                       onChange={(e) => setMontantPaye(e.target.value)}
-                      className="w-full min-h-[44px] rounded-xl border border-[#d6c3a0] bg-[#fffdf8] px-3 py-2 text-sm"
+                      className="w-full min-h-[44px] rounded-xl border border-line bg-card px-3 py-2 text-sm"
                     />
                   </label>
                 ) : null}
                 <label className="space-y-1">
-                  <span className="text-xs font-bold text-[#8a7456]">Mode paiement</span>
+                  <span className="text-xs font-semibold text-slate">Mode paiement</span>
                   <input
                     value={moyenPaiement}
                     onChange={(e) => setMoyenPaiement(e.target.value)}
-                    className="w-full min-h-[44px] rounded-xl border border-[#d6c3a0] bg-[#fffdf8] px-3 py-2 text-sm"
+                    className="w-full min-h-[44px] rounded-xl border border-line bg-card px-3 py-2 text-sm"
                   />
                 </label>
               </>
             ) : null}
             <label className="space-y-1">
-              <span className="text-xs font-bold text-[#8a7456]">Date</span>
+              <span className="text-xs font-semibold text-slate">Date</span>
               <input
                 type="date"
                 value={date}
                 onChange={(e) => setDate(e.target.value)}
-                className="w-full min-h-[44px] rounded-xl border border-[#d6c3a0] bg-[#fffdf8] px-3 py-2 text-sm"
+                className="w-full min-h-[44px] rounded-xl border border-line bg-card px-3 py-2 text-sm"
               />
             </label>
             <label className="space-y-1">
-              <span className="text-xs font-bold text-[#8a7456]">Destination</span>
+              <span className="text-xs font-semibold text-slate">Destination</span>
               <select
                 value={destination}
                 onChange={(e) => setDestination(e.target.value)}
-                className="w-full min-h-[44px] rounded-xl border border-[#d6c3a0] bg-[#fffdf8] px-3 py-2 text-sm"
+                className="w-full min-h-[44px] rounded-xl border border-line bg-card px-3 py-2 text-sm"
               >
                 <option value="stock_general">Stock général</option>
                 <option value="lot">Lot avicole</option>
@@ -413,8 +415,8 @@ export default function StockPurchaseReceptionForm({
             </label>
             {destination === 'lot' ? (
               <label className="space-y-1">
-                <span className="text-xs font-bold text-[#8a7456]">Lot</span>
-                <select value={lotId} onChange={(e) => setLotId(e.target.value)} className="w-full min-h-[44px] rounded-xl border border-[#d6c3a0] bg-[#fffdf8] px-3 py-2 text-sm">
+                <span className="text-xs font-semibold text-slate">Lot</span>
+                <select value={lotId} onChange={(e) => setLotId(e.target.value)} className="w-full min-h-[44px] rounded-xl border border-line bg-card px-3 py-2 text-sm">
                   <option value="">—</option>
                   {lots.map((row) => <option key={row.id} value={row.id}>{row.nom || row.name || row.id}</option>)}
                 </select>
@@ -422,8 +424,8 @@ export default function StockPurchaseReceptionForm({
             ) : null}
             {destination === 'animal' ? (
               <label className="space-y-1">
-                <span className="text-xs font-bold text-[#8a7456]">Animal</span>
-                <select value={animalId} onChange={(e) => setAnimalId(e.target.value)} className="w-full min-h-[44px] rounded-xl border border-[#d6c3a0] bg-[#fffdf8] px-3 py-2 text-sm">
+                <span className="text-xs font-semibold text-slate">Animal</span>
+                <select value={animalId} onChange={(e) => setAnimalId(e.target.value)} className="w-full min-h-[44px] rounded-xl border border-line bg-card px-3 py-2 text-sm">
                   <option value="">—</option>
                   {animaux.map((row) => <option key={row.id} value={row.id}>{row.name || row.tag || row.id}</option>)}
                 </select>
@@ -431,32 +433,32 @@ export default function StockPurchaseReceptionForm({
             ) : null}
             {destination === 'culture' ? (
               <label className="space-y-1">
-                <span className="text-xs font-bold text-[#8a7456]">Culture</span>
-                <select value={cultureId} onChange={(e) => setCultureId(e.target.value)} className="w-full min-h-[44px] rounded-xl border border-[#d6c3a0] bg-[#fffdf8] px-3 py-2 text-sm">
+                <span className="text-xs font-semibold text-slate">Culture</span>
+                <select value={cultureId} onChange={(e) => setCultureId(e.target.value)} className="w-full min-h-[44px] rounded-xl border border-line bg-card px-3 py-2 text-sm">
                   <option value="">—</option>
                   {cultures.map((row) => <option key={row.id} value={row.id}>{row.culture || row.nom || row.id}</option>)}
                 </select>
               </label>
             ) : null}
             <label className="space-y-1 md:col-span-2">
-              <span className="text-xs font-bold text-[#8a7456]">Facture / reçu (URL)</span>
+              <span className="text-xs font-semibold text-slate">Facture / reçu (URL)</span>
               <input
                 value={proofUrl}
                 onChange={(e) => setProofUrl(e.target.value)}
-                className="w-full min-h-[44px] rounded-xl border border-[#d6c3a0] bg-[#fffdf8] px-3 py-2 text-sm"
+                className="w-full min-h-[44px] rounded-xl border border-line bg-card px-3 py-2 text-sm"
                 placeholder="https://..."
               />
             </label>
             <label className="space-y-1 md:col-span-2">
-              <span className="text-xs font-bold text-[#8a7456]">Notes</span>
+              <span className="text-xs font-semibold text-slate">Notes</span>
               <input
                 value={notes}
                 onChange={(e) => setNotes(e.target.value)}
-                className="w-full min-h-[44px] rounded-xl border border-[#d6c3a0] bg-[#fffdf8] px-3 py-2 text-sm"
+                className="w-full min-h-[44px] rounded-xl border border-line bg-card px-3 py-2 text-sm"
               />
             </label>
           </div>
-          <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-900">
+          <div className="rounded-2xl border border-positive bg-positive-bg p-4 text-sm text-positive">
             <p>
               Total : <b>{fmtCurrency(amounts.total)}</b>
               {entryKind === ENTRY_KINDS.ACHAT_STOCKABLE ? (
@@ -467,15 +469,15 @@ export default function StockPurchaseReceptionForm({
             </p>
           </div>
         </div>
-        <div className="flex justify-end gap-2 border-t border-[#eadcc2] p-5">
-          <button type="button" onClick={onClose} className="min-h-[44px] rounded-xl border border-[#eadcc2] px-4 py-2 text-sm font-bold text-[#8a7456]">
+        <div className="flex justify-end gap-2 border-t border-line p-6">
+          <button type="button" onClick={onClose} className="min-h-[44px] rounded-xl border border-line px-4 py-2 text-sm font-semibold text-slate">
             Annuler
           </button>
           <button
             type="button"
             onClick={handleSubmit}
             disabled={workflowBusy}
-            className="min-h-[44px] rounded-xl bg-[#2f2415] px-5 py-2 text-sm font-black text-white disabled:opacity-60"
+            className="min-h-[44px] rounded-xl bg-earth px-6 py-2 text-sm font-semibold text-white disabled:opacity-60"
           >
             {workflowBusy ? 'Enregistrement…' : 'Valider réception'}
           </button>

@@ -1,4 +1,5 @@
 import { supabase } from '../lib/supabase.js';
+import { normalizeErpRole } from '../config/erpRoles.js';
 import {
   DEFAULT_FARM,
   DEFAULT_FARM_ID,
@@ -92,8 +93,8 @@ export function getDefaultFarmRecord(farms = []) {
 }
 
 export function canManageFarms(user = {}) {
-  const role = String(user?.role || user?.user_metadata?.role || user?.profile?.role || '').toLowerCase();
-  return ['admin', 'manager', 'comptable'].includes(role);
+  const role = normalizeErpRole(user?.role || user?.user_metadata?.role || user?.profile?.role || '', 'visiteur');
+  return ['promotrice_direction', 'finance', 'admin_support'].includes(role);
 }
 
 export const farmsService = {
@@ -211,7 +212,7 @@ export const farmsService = {
     persistAccessible(local.filter((entry) => entry.status !== 'archived'));
 
     if (userId) {
-      await this.saveUserFarmAccess(farm.id, [{ user_id: userId, access_role: 'farm_manager' }], userId);
+      await this.saveUserFarmAccess(farm.id, [{ user_id: userId, access_role: 'promotrice_direction' }], userId);
     }
 
     return { farm, error: error?.message || null, localOnly: Boolean(error) };
@@ -281,13 +282,13 @@ export const farmsService = {
     const rows = arr(assignments).filter((entry) => entry.user_id);
 
     if (!rows.length && creatorUserId) {
-      rows.push({ user_id: creatorUserId, access_role: 'direction' });
+      rows.push({ user_id: creatorUserId, access_role: 'promotrice_direction' });
     }
 
     const payload = rows.map((entry) => ({
       user_id: entry.user_id,
       farm_id: farmId,
-      access_role: entry.access_role || 'farm_agent',
+      access_role: normalizeErpRole(entry.access_role, 'terrain'),
       modules: entry.modules || {},
     }));
 

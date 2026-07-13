@@ -4,15 +4,15 @@ import FicheTabsBar from './FicheTabsBar.jsx';
 import { fmtCurrency, fmtNumber } from '../utils/format';
 
 const Field = ({ label, value }) => (
-  <div className="rounded-xl border border-[#eadcc2] bg-white px-3 py-2">
-    <p className="text-[11px] uppercase tracking-wide text-[#8a7456]">{label}</p>
-    <p className="mt-1 text-sm font-semibold text-[#2f2415] break-words">{value ?? '-'}</p>
+  <div className="rounded-xl border border-line bg-white px-3 py-2">
+    <p className="text-meta uppercase tracking-normal text-slate">{label}</p>
+    <p className="mt-1 text-sm font-semibold text-earth break-words">{value ?? '-'}</p>
   </div>
 );
 
 const Section = ({ title, children }) => (
-  <section className="rounded-2xl border border-[#d6c3a0] bg-[#fffdf8] p-4">
-    <h3 className="text-sm font-black text-[#2f2415] mb-3">{title}</h3>
+  <section className="rounded-2xl border border-line bg-card p-4">
+    <h3 className="text-sm font-semibold text-earth mb-3">{title}</h3>
     <div className="grid grid-cols-1 md:grid-cols-2 gap-3">{children}</div>
   </section>
 );
@@ -21,7 +21,7 @@ export default function FournisseurFicheModal({ open, onClose, supplier, metrics
   const [tab, setTab] = useState('identite');
 
   useEffect(() => {
-    if (open) setTab('identite');
+    if (open) queueMicrotask(() => setTab('identite'));
   }, [open, supplier?.id]);
 
   if (!supplier) return null;
@@ -36,10 +36,10 @@ export default function FournisseurFicheModal({ open, onClose, supplier, metrics
   return (
     <BaseModal open={open} onClose={onClose} title={`Fiche fournisseur — ${supplier.nom || supplier.name || supplier.id}`} size="4xl">
       <div className="space-y-4">
-        <div className="rounded-2xl border border-[#d6c3a0] bg-[#2f2415] p-4 text-white">
-          <p className="text-xs uppercase tracking-widest text-[#c9a96a]">Fournisseur</p>
-          <h2 className="text-xl font-black mt-1">{supplier.nom || supplier.name}</h2>
-          <p className="text-sm text-[#f4e6c8]">{supplier.tel || supplier.telephone || supplier.contact || 'Contact non renseigné'}</p>
+        <div className="rounded-2xl border border-line bg-earth p-4 text-white">
+          <p className="text-xs uppercase tracking-normal text-horizon">Fournisseur</p>
+          <h2 className="text-xl font-semibold mt-1">{supplier.nom || supplier.name}</h2>
+          <p className="text-sm text-line">{supplier.tel || supplier.telephone || supplier.contact || 'Contact non renseigné'}</p>
         </div>
         <FicheTabsBar tabs={tabs} active={tab} onChange={setTab} />
         {tab === 'identite' ? (

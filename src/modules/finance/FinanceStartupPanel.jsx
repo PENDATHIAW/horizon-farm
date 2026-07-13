@@ -19,10 +19,10 @@ export default function FinanceStartupPanel({ journey = null, onNavigate, setTab
   };
 
   return (
-    <section className="rounded-3xl border border-emerald-200 bg-gradient-to-br from-emerald-50 to-white p-5 shadow-sm">
-      <p className="text-[11px] font-black uppercase tracking-[0.2em] text-emerald-800">Démarrage Finance</p>
-      <h2 className="mt-1 text-xl font-black text-[#2f2415]">Parcours de mise en route</h2>
-      <p className="mt-1 text-sm text-[#8a7456]">
+    <section className="rounded-3xl border border-positive bg-positive-bg p-6 shadow-card">
+      <p className="text-meta font-semibold uppercase tracking-normal text-positive">Démarrage Finance</p>
+      <h2 className="mt-1 text-xl font-semibold text-earth">Parcours de mise en route</h2>
+      <p className="mt-1 text-sm text-slate">
         Progression :
         {' '}
         {journey?.completed ?? 0}
@@ -38,10 +38,10 @@ export default function FinanceStartupPanel({ journey = null, onNavigate, setTab
         <button
           type="button"
           onClick={() => openStep(nextStep)}
-          className="mt-3 w-full rounded-2xl border border-emerald-300 bg-emerald-100 px-4 py-3 text-left hover:bg-emerald-200/70"
+          className="mt-3 w-full rounded-2xl border border-positive bg-positive-bg px-4 py-3 text-left hover:bg-positive-bg"
         >
-          <p className="text-xs font-black uppercase tracking-wide text-emerald-900">Prochaine étape</p>
-          <p className="mt-1 font-black text-[#2f2415]">{nextStep.label}</p>
+          <p className="text-xs font-semibold uppercase tracking-normal text-positive">Prochaine étape</p>
+          <p className="mt-1 font-semibold text-earth">{nextStep.label}</p>
         </button>
       ) : null}
 
@@ -51,14 +51,14 @@ export default function FinanceStartupPanel({ journey = null, onNavigate, setTab
             <button
               type="button"
               onClick={() => openStep(step)}
-              className={`flex w-full items-center gap-2 rounded-xl border px-3 py-2 text-left text-sm hover:bg-emerald-50 ${step.done ? 'border-emerald-300 bg-emerald-50/60' : 'border-emerald-200 bg-white'}`}
+              className={`flex w-full items-center gap-2 rounded-xl border px-3 py-2 text-left text-sm hover:bg-positive-bg ${step.done ? 'border-positive bg-positive-bg' : 'border-positive bg-white'}`}
             >
               {step.done ? (
-                <CheckCircle2 size={14} className="text-emerald-700 shrink-0" />
+                <CheckCircle2 size={14} className="text-positive shrink-0" />
               ) : (
-                <Circle size={14} className="text-[#8a7456] shrink-0" />
+                <Circle size={14} className="text-slate shrink-0" />
               )}
-              <span className={`font-bold ${step.done ? 'text-emerald-900' : 'text-[#2f2415]'}`}>{step.label}</span>
+              <span className={`font-semibold ${step.done ? 'text-positive' : 'text-earth'}`}>{step.label}</span>
             </button>
           </li>
         ))}

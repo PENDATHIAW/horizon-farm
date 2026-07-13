@@ -1,4 +1,5 @@
 import { horizonFarmSimulationSeed } from './horizonFarmSimulationSeed';
+import { DEFAULT_FARM_ID } from './farmScope.js';
 
 export const RH_STORAGE_KEY = 'horizon_farm_rh_directory_v1';
 
@@ -90,36 +91,61 @@ export const RH_DEFAULT_PEOPLE = [
 
 export function getRoleFunctions(role) { return RH_FUNCTIONS_BY_ROLE[role] || RH_FUNCTIONS_BY_ROLE['Nouveau rôle']; }
 
-export function getRhDirectory() {
+const rhFarmStorageKey = (farmId = DEFAULT_FARM_ID) => `${RH_STORAGE_KEY}:${String(farmId || DEFAULT_FARM_ID)}`;
+
+const normalizeRhDirectory = (directory = {}) => {
+  const people = Array.isArray(directory.people) && directory.people.length ? directory.people : RH_DEFAULT_PEOPLE;
+  const mergedPeople = [...people, ...RH_DEFAULT_PEOPLE.filter((demo) => !people.some((person) => person.id === demo.id))];
+  return {
+    people: mergedPeople,
+    teams: Array.isArray(directory.teams) && directory.teams.length ? directory.teams : RH_TEAMS,
+    absences: Array.isArray(directory.absences) ? directory.absences : [],
+    updated_at: directory.updated_at || new Date().toISOString(),
+  };
+};
+
+const writeRhDirectoryLocal = (directory, farmId = DEFAULT_FARM_ID) => {
+  if (typeof window === 'undefined') return directory;
+  const next = normalizeRhDirectory(directory);
+  window.localStorage.setItem(rhFarmStorageKey(farmId), JSON.stringify(next));
+  if (String(farmId || DEFAULT_FARM_ID) === DEFAULT_FARM_ID) {
+    window.localStorage.setItem(RH_STORAGE_KEY, JSON.stringify(next));
+  }
+  window.dispatchEvent(new CustomEvent('horizon-farm-rh-updated', { detail: next }));
+  return next;
+};
+
+export function getRhDirectory({ farmId = DEFAULT_FARM_ID } = {}) {
   if (typeof window === 'undefined') return { people: RH_DEFAULT_PEOPLE, teams: RH_TEAMS };
   try {
-    const raw = window.localStorage.getItem(RH_STORAGE_KEY);
-    if (!raw) return { people: RH_DEFAULT_PEOPLE, teams: RH_TEAMS };
-    const parsed = JSON.parse(raw);
-    const people = Array.isArray(parsed.people) && parsed.people.length ? parsed.people : RH_DEFAULT_PEOPLE;
-    const mergedPeople = [...people, ...RH_DEFAULT_PEOPLE.filter((demo) => !people.some((p) => p.id === demo.id))];
-    return { people: mergedPeople, teams: Array.isArray(parsed.teams) && parsed.teams.length ? parsed.teams : RH_TEAMS };
+    const raw = window.localStorage.getItem(rhFarmStorageKey(farmId)) || window.localStorage.getItem(RH_STORAGE_KEY);
+    return raw ? normalizeRhDirectory(JSON.parse(raw)) : normalizeRhDirectory({});
   } catch {
-    return { people: RH_DEFAULT_PEOPLE, teams: RH_TEAMS };
+    return normalizeRhDirectory({});
   }
 }
 
-export async function loadRhDirectoryFromCloud() {
+export async function loadRhDirectoryFromCloud({ farmId = DEFAULT_FARM_ID } = {}) {
   try {
     const { rhDirectoryService } = await import('../services/rhDirectoryService.js');
-    return rhDirectoryService.load();
+    return rhDirectoryService.load({ farmId });
   } catch {
-    return getRhDirectory();
+    return getRhDirectory({ farmId });
   }
 }
 
-export function saveRhDirectory(directory) {
-  if (typeof window === 'undefined') return directory;
-  const next = { people: Array.isArray(directory.people) ? directory.people : RH_DEFAULT_PEOPLE, teams: Array.isArray(directory.teams) ? directory.teams : RH_TEAMS, updated_at: new Date().toISOString() };
-  window.localStorage.setItem(RH_STORAGE_KEY, JSON.stringify(next));
-  window.dispatchEvent(new CustomEvent('horizon-farm-rh-updated', { detail: next }));
-  void import('../services/rhDirectoryService.js').then(({ rhDirectoryService }) => rhDirectoryService.save(next)).catch(() => undefined);
+export function saveRhDirectory(directory, { farmId = DEFAULT_FARM_ID } = {}) {
+  const next = writeRhDirectoryLocal(directory, farmId);
+  void import('../services/rhDirectoryService.js')
+    .then(({ rhDirectoryService }) => rhDirectoryService.save(next, { farmId }))
+    .catch(() => undefined);
   return next;
+}
+
+export async function saveRhDirectoryToCloud(directory, { farmId = DEFAULT_FARM_ID } = {}) {
+  const next = writeRhDirectoryLocal(directory, farmId);
+  const { rhDirectoryService } = await import('../services/rhDirectoryService.js');
+  return rhDirectoryService.save(next, { farmId });
 }
 
 export function getResponsibleOptions({ includeTeams = true, includePeople = true, moduleKey = '' } = {}) {

@@ -1,4 +1,9 @@
 
+import { showWorkflowImpactToast } from './workflowImpactToast.js';
+import { IMPACT_STATUS } from './workflowImpactConstants.js';
+
+export { IMPACT_STATUS } from './workflowImpactConstants.js';
+
 export const IMPACT_KEYS = {
   STOCK_UPDATED: 'stock_updated',
   STOCK_MOVEMENT: 'stock_movement',
@@ -7,12 +12,6 @@ export const IMPACT_KEYS = {
   TASK_ALERT: 'task_alert',
   BUSINESS_EVENT: 'business_event',
   ISSUE_KEY: 'issue_key',
-};
-
-export const IMPACT_STATUS = {
-  CREATED: 'created',
-  NA: 'na',
-  ERROR: 'error',
 };
 
 export const IMPACT_LABELS = {
@@ -178,7 +177,6 @@ export async function commitWithImpactJournal({
   const impactJournal = finalizeImpactJournal(journal, exp);
   if (showImpactToast !== false && handlers.showImpactToast !== false) {
     try {
-      const { showWorkflowImpactToast } = await import('./workflowImpactToast.js');
       showWorkflowImpactToast(impactJournal);
     } catch {
       // toast optionnel (tests / environnements sans UI)

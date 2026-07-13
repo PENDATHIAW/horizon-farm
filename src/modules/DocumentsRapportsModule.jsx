@@ -121,7 +121,7 @@ export default function DocumentsRapportsModule(props) {
       navigateDocuments={navigateDocuments}
     />
   ) : tab === 'ReportsLifecycleView' ? (
-    <div className="space-y-5">
+    <div className="space-y-6">
       <ReportLifecyclePanel
         reports={data.reports}
         dataMap={reportDataMap}
@@ -155,18 +155,18 @@ export default function DocumentsRapportsModule(props) {
 
   return (
     <div className="space-y-6">
-      <div className="rounded-3xl border border-[#d6c3a0] bg-white p-5 shadow-sm">
+      <div className="rounded-3xl border border-line bg-white p-6 shadow-card">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
           <div>
-            <p className="text-xs uppercase tracking-[0.25em] text-[#9a6b12] font-black">Dossiers</p>
-            <h1 className="mt-1 text-2xl font-black text-[#2f2415]">Documents & Rapports</h1>
-            <p className="mt-1 text-sm text-[#8a7456]">Bibliothèque unique, preuves, rapports versionnés et publications.</p>
+            <p className="text-xs uppercase tracking-normal text-horizon-dark font-semibold">Dossiers</p>
+            <h1 className="mt-1 text-2xl font-semibold text-earth">Documents & Rapports</h1>
+            <p className="mt-1 text-sm text-slate">Bibliothèque unique, preuves, rapports versionnés et publications.</p>
             {props.periodLabel ? <div className="mt-2"><PeriodScopeBadge label={props.periodLabel} /></div> : null}
           </div>
           <div className="flex flex-wrap items-center gap-2">
-            <div className="rounded-2xl border border-[#eadcc2] bg-[#fffdf8] px-4 py-3 text-sm">
-              <span className="text-[#8a7456]">Santé </span>
-              <b className={data.healthScore >= 75 ? 'text-emerald-700' : 'text-amber-700'}>{data.healthScore}/100</b>
+            <div className="rounded-2xl border border-line bg-card px-4 py-3 text-sm">
+              <span className="text-slate">Santé </span>
+              <b className={data.healthScore >= 75 ? 'text-positive' : 'text-horizon-dark'}>{data.healthScore}/100</b>
             </div>
             <Button onClick={() => navigateDocuments('Bibliothèque')}>Bibliothèque</Button>
             <Button onClick={() => navigateDocuments('Rapports')}>Rapports</Button>

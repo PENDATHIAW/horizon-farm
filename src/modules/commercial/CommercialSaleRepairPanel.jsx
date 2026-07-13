@@ -106,7 +106,7 @@ export default function CommercialSaleRepairPanel({
 
   if (!gaps.length) {
     return (
-      <section className="rounded-2xl border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-800">
+      <section className="rounded-2xl border border-positive bg-positive-bg p-4 text-sm text-positive">
         Aucun écart détecté sur les ventes récentes (paiement, finance, stock, livraison, documents).
       </section>
     );
@@ -114,14 +114,14 @@ export default function CommercialSaleRepairPanel({
 
   return (
     <section className="space-y-3">
-      <p className="text-sm text-[#8a7456]">
+      <p className="text-sm text-slate">
         Panneau admin/qualité — ne fait pas partie du flux « Nouvelle vente ». {gaps.length} écart(s).
       </p>
       {gaps.slice(0, 12).map((row) => (
-        <div key={row.id} className="flex flex-col gap-2 rounded-xl border border-[#eadcc2] bg-white p-3 sm:flex-row sm:items-center sm:justify-between">
+        <div key={row.id} className="flex flex-col gap-2 rounded-xl border border-line bg-white p-3 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <p className="font-black text-sm text-[#2f2415]">{row.title}</p>
-            <p className="text-xs text-[#8a7456]">{row.detail}</p>
+            <p className="font-semibold text-sm text-earth">{row.title}</p>
+            <p className="text-xs text-slate">{row.detail}</p>
           </div>
           <Btn
             icon={row.kind.includes('finance') ? Plus : row.kind.includes('delivery') ? Truck : row.kind.includes('stock') ? Package : row.kind.includes('invoice') ? Receipt : Wrench}

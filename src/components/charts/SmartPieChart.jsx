@@ -5,7 +5,7 @@ import ChartExplainPanel from './ChartExplainPanel.jsx';
 import { useChartExplainContext } from './chartExplainContext.jsx';
 import { buildChartExplainPayload } from '../../services/aiGateway/chartExplainService.js';
 
-const defaultPalette = ['#b7791f', '#2f855a', '#2b6cb0', '#c53030', '#805ad5', '#dd6b20', '#319795', '#4a5568'];
+const defaultPalette = ['var(--hf-horizon-dark)', 'var(--hf-positive)', 'var(--hf-neutral)', 'var(--hf-urgent)', 'var(--hf-leaf)', 'var(--hf-horizon)', 'var(--hf-leaf)', 'var(--hf-slate)'];
 
 const formatCompact = (value, unit = '') => {
   const number = Number(value || 0);
@@ -70,15 +70,15 @@ export default function SmartPieChart({
       subtext: subtitle,
       left: 0,
       top: 0,
-      textStyle: { color: '#2f2415', fontSize: 15, fontWeight: 800 },
-      subtextStyle: { color: '#8a7456', fontSize: 11, lineHeight: 16 },
+      textStyle: { color: 'var(--hf-ink)', fontSize: 15, fontWeight: 800 },
+      subtextStyle: { color: 'var(--hf-slate)', fontSize: 11, lineHeight: 16 },
     },
     tooltip: {
       trigger: 'item',
       formatter: ({ name, value, percent }) => `${name}<br/>${formatCompact(value, unit)} (${percent}%)`,
-      backgroundColor: 'rgba(255,253,248,0.96)',
-      borderColor: '#d6c3a0',
-      textStyle: { color: '#2f2415' },
+      backgroundColor: 'var(--hf-card)',
+      borderColor: 'var(--hf-line)',
+      textStyle: { color: 'var(--hf-ink)' },
     },
     legend: {
       type: 'scroll',
@@ -86,7 +86,7 @@ export default function SmartPieChart({
       bottom: 0,
       left: 'center',
       width: '94%',
-      textStyle: { color: '#5f4b2f', fontSize: 10 },
+      textStyle: { color: 'var(--hf-slate)', fontSize: 10 },
       itemGap: 10,
     },
     series: [{
@@ -95,12 +95,12 @@ export default function SmartPieChart({
       center: ['50%', showSliceLabels ? '46%' : '48%'],
       avoidLabelOverlap: true,
       minShowLabelAngle: 8,
-      itemStyle: { borderRadius: 8, borderColor: '#fffdf8', borderWidth: 2 },
+      itemStyle: { borderRadius: 8, borderColor: 'var(--hf-card)', borderWidth: 2 },
       label: {
         show: showSliceLabels,
         formatter: '{b}\n{d}%',
         fontSize: 10,
-        color: '#2f2415',
+        color: 'var(--hf-ink)',
         overflow: 'truncate',
         width: 88,
       },
@@ -120,21 +120,21 @@ export default function SmartPieChart({
 
   if (!hasData) {
     return (
-      <div className="rounded-2xl border border-[#d6c3a0] bg-white p-4">
-        <p className="font-black text-[#2f2415]">{title}</p>
-        {subtitle ? <p className="mt-1 text-xs text-[#8a7456]">{subtitle}</p> : null}
-        <div className="mt-4 flex h-56 items-center justify-center rounded-xl border border-[#eadcc2] bg-[#fffdf8] text-sm text-[#8a7456]">{emptyText}</div>
+      <div className="rounded-2xl border border-line bg-white p-4">
+        <p className="font-semibold text-earth">{title}</p>
+        {subtitle ? <p className="mt-1 text-xs text-slate">{subtitle}</p> : null}
+        <div className="mt-4 flex h-56 items-center justify-center rounded-xl border border-line bg-card text-sm text-slate">{emptyText}</div>
       </div>
     );
   }
 
   return (
-    <div className="rounded-2xl border border-[#d6c3a0] bg-white p-4 shadow-sm">
+    <div className="rounded-2xl border border-line bg-white p-4 shadow-card">
       <div className="mb-2 flex justify-end">
-        <button type="button" onClick={exportPdf} className="rounded-xl bg-[#2f2415] px-3 py-1.5 text-[11px] font-bold text-white">Exporter PDF</button>
+        <button type="button" onClick={exportPdf} className="rounded-xl bg-earth px-3 py-2 text-meta font-semibold text-white">Exporter PDF</button>
       </div>
-      <ReactECharts option={option} style={{ height, width: '100%' }} notMerge lazyUpdate />
-      {!compact && !showSliceLabels ? <p className="mt-2 text-[11px] text-[#8a7456]">Survolez une part ou consultez la légende pour le détail.</p> : null}
+      <ReactECharts option={option} style={{ height, width: '100%' }} opts={{ renderer: 'svg' }} notMerge lazyUpdate />
+      {!compact && !showSliceLabels ? <p className="mt-2 text-meta text-slate">Survolez une part ou consultez la légende pour le détail.</p> : null}
       {explainPayload ? <ChartExplainPanel payload={explainPayload} /> : null}
     </div>
   );

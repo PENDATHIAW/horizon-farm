@@ -16,7 +16,6 @@ import {
   ensureOrgaloopEffluentOpportunity,
   enhanceManureWorkflowForOrgaloop,
   emitOrgaloopEffluentSaleSideEffects,
-  isOrgaloopEffluentOpportunity,
 } from '../../src/services/greenpreneurs/orgaloopEffluentWorkflow.js';
 import { computeCircularEconomyMetrics } from '../../src/services/greenpreneurs/circularEconomyMetrics.js';
 import { buildGreenpreneursCentreAlerts } from '../../src/services/greenpreneurs/greenpreneursMetrics.js';

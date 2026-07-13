@@ -199,12 +199,12 @@ export default function ObjectifsDecisionModule({
 
   return (
     <div className="space-y-6">
-      <section className="rounded-3xl border border-[#d6c3a0] bg-[#fffdf8] p-6 shadow-sm">
+      <section className="rounded-3xl border border-line bg-card p-6 shadow-card">
         <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
           <div>
-            <p className="text-xs uppercase tracking-[0.25em] text-[#9a6b12] font-black">Stratégie long terme</p>
-            <h1 className="mt-1 text-3xl font-black text-[#2f2415]">Objectifs & Croissance</h1>
-            <p className="mt-2 text-sm text-[#8a7456] max-w-3xl">
+            <p className="text-xs uppercase tracking-normal text-horizon-dark font-semibold">Stratégie long terme</p>
+            <h1 className="mt-1 text-3xl font-semibold text-earth">Objectifs & Croissance</h1>
+            <p className="mt-2 text-sm text-slate max-w-3xl">
               Objectifs calculés, scénarios versionnés et historique des hypothèses de croissance.
             </p>
             {periodLabel ? <div className="mt-2"><PeriodScopeBadge label={periodLabel} /></div> : null}
@@ -217,9 +217,9 @@ export default function ObjectifsDecisionModule({
             <button
               type="button"
               onClick={() => onNavigate?.('centre_decisionnel', { tab: 'Décisions' })}
-              className="rounded-2xl border border-[#d6c3a0] bg-white px-4 py-3 text-left text-sm hover:bg-[#dcfce7]"
+              className="rounded-2xl border border-line bg-white px-4 py-3 text-left text-sm hover:bg-positive-bg"
             >
-              <span className="text-[#8a7456]">Actions du jour → </span><b>Centre décisionnel</b>
+              <span className="text-slate">Actions du jour → </span><b>Centre décisionnel</b>
             </button>
           </div>
         </div>

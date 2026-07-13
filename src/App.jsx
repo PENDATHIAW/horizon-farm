@@ -1,5 +1,5 @@
 import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState, useTransition } from 'react';
-import { MODULE_REGISTRY, NAV_MODULE_ORDER } from './config/modules.config';
+import { CRUD_KEYS, MODULE_REGISTRY, NAV_MODULE_ORDER } from './config/modules.config';
 import { MODULE_ENTRY_POINTS, resolveActiveModuleId } from './config/moduleEntryPoints';
 import { isModuleEnabled, persistModuleFlags, resolveModuleFlags } from './config/moduleFlags';
 import { lazyWithRetry } from './utils/lazyWithRetry';
@@ -34,15 +34,18 @@ import { farmsService, getDefaultFarmRecord } from './services/farmsService';
 import { formatFarmScopeLabel, normalizeFarmScope, resolveFarmContext } from './utils/farmScope';
 import { enrichAssistantDataMap } from './utils/assistantDataMap.js';
 import { mergeDemoFarms } from './utils/farmDemoMode.js';
+import { getRhDirectory } from './utils/rhDirectory.js';
 import { scheduleHeyHorizonQuery } from './utils/openHeyHorizonAssistant.js';
 import { clearPeriodFilterCache } from './utils/periodFilterCache';
 import { formatPeriodScopeLabel, isAllTimeScope, normalizePeriodScope } from './utils/periodScope';
+import { getInitialSidebarOpen, watchSidebarViewport } from './utils/sidebarViewport.js';
 import LoginPage from './pages/LoginPage';
+import { KpiOverviewProvider } from './context/KpiOverviewContext.jsx';
+import ModuleOverviewStrip from './components/module/ModuleOverviewStrip.jsx';
 
 const MODULES = Object.fromEntries(
   Object.entries(MODULE_ENTRY_POINTS).map(([id, loader]) => [id, lazy(() => lazyWithRetry(loader))]),
 );
-const CRUD_KEYS = ['animaux','avicole','sante','veterinaires','finances','investissements','business_plans','bp_investment_lines','bp_recurring_costs','bp_revenue_projections','bp_funding_sources','bp_links','bp_risks','stock','stock_movements','clients','fournisseurs','tracabilite','cultures','documents','taches','rapports','equipements','audit_logs','alimentation_logs','production_oeufs_logs','sensor_devices','business_events','alertes_center','whatsapp_templates','whatsapp_logs','sales_orders','sales_order_items','deliveries','invoices','payments','sales_opportunities','funding_opportunities','funding_contacts','funding_applications','funding_document_library','funding_agreements','funding_expense_allocations','funding_reports','funding_project_journal','funder_accounts','funder_access_logs'];
 const rows = (crud) => crud?.rows || [];
 const arr = (value) => (Array.isArray(value) ? value : []);
 const crudRowsMap = (c) => Object.fromEntries(CRUD_KEYS.map((key) => [key, rows(c[key])]));
@@ -209,7 +212,8 @@ export default function App() {
     setActiveState(resolved);
   }, []);
   const setActive = navigateModule;
-  const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [sidebarOpen, setSidebarOpen] = useState(getInitialSidebarOpen);
+  useEffect(() => watchSidebarViewport(setSidebarOpen), []);
   const [assistantOpen, setAssistantOpen] = useState(false);
   const openAssistantWithQuery = useCallback((query) => {
     setAssistantOpen(true);
@@ -281,6 +285,10 @@ export default function App() {
     [farmScope, effectiveAccessibleFarms],
   );
   const activeFarm = farmContext.activeFarm || getDefaultFarmRecord(effectiveAccessibleFarms);
+  const objectiveTeam = useMemo(
+    () => getRhDirectory({ farmId: String(activeFarm?.id || 'default') }).people || [],
+    [activeFarm?.id],
+  );
   const moduleFlags = useMemo(() => resolveModuleFlags(activeFarm), [activeFarm]);
   useEffect(() => { persistModuleFlags(moduleFlags); }, [moduleFlags]);
   const periodLabel = useMemo(() => formatPeriodScopeLabel(periodScope), [periodScope]);
@@ -449,7 +457,7 @@ export default function App() {
       existingAlerts: rows(c.alertes_center),
       businessEvents: rows(c.business_events),
       businessEventsAll: rows(c.business_events),
-    }, centre_decisionnel: { initialTab: centreTab, onTabChange: (nextTab) => setCentreTab(resolveCentreTab(nextTab)), animaux: rows(c.animaux), lots: rows(c.avicole), cultures: rows(c.cultures), stocks: rows(c.stock), clients: rows(c.clients), alertes: rows(c.alertes_center), taches: rows(c.taches), documents: rows(c.documents), opportunities: rows(c.sales_opportunities), businessPlans: rows(c.business_plans), investissements: rows(c.investissements), productionLogs: rows(c.production_oeufs_logs), alimentationLogs: rows(c.alimentation_logs), marketPrices: dataMap.market_prices || [], marketCalendarEvents: dataMap.market_calendar_events || [], salesOrders: rows(c.sales_orders), salesOrdersAll: rows(c.sales_orders), payments: rows(c.payments), paymentsAll: rows(c.payments), transactions: rows(c.finances), transactionsAll: rows(c.finances), smartfarmEvents: dataMap.smartfarm_events || [], sensors: rows(c.sensor_devices), meteo: liveMeteo, dataMap: decisionDataMapRaw, onNavigate: setActive, onCreateTask: c.taches.create, onRefreshTasks: c.taches.refresh, onCreateBusinessEvent: c.business_events.create, onRefreshBusinessEvents: c.business_events.refresh, onCreateAlert: c.alertes_center.create, onUpdateAlert: c.alertes_center.update, onRefreshAlertes: c.alertes_center.refresh, onOpenAssistant: openAssistantWithQuery, existingTasks: rows(c.taches), existingAlerts: rows(c.alertes_center) }, objectifs_croissance: { initialTab: objectifsTab, onTabChange: (nextTab) => setObjectifsTab(nextTab), user, dataMap: decisionDataMapRaw, animaux: rows(c.animaux), lots: rows(c.avicole), productionLogs: rows(c.production_oeufs_logs), cultures: rows(c.cultures), stocks: rows(c.stock), clients: rows(c.clients), alertes: rows(c.alertes_center), taches: rows(c.taches), documents: rows(c.documents), opportunities: rows(c.sales_opportunities), businessPlans: rows(c.business_plans), investissements: rows(c.investissements), planningSimulations: rows(c.planning_simulations), equipements: rows(c.equipements), team: rows(c.farm_rh_directory), salesOrders: rows(c.sales_orders), salesOrdersAll: rows(c.sales_orders), payments: rows(c.payments), paymentsAll: rows(c.payments), transactions: rows(c.finances), transactionsAll: rows(c.finances), onNavigate: setActive, onCreateBusinessPlan: c.business_plans.create, onRefreshBusinessPlans: c.business_plans.refresh, onCreatePlanningSimulation: c.planning_simulations.create, onRefreshPlanningSimulations: c.planning_simulations.refresh, onCreateTask: c.taches.create, onRefreshTasks: c.taches.refresh, onCreateAlert: c.alertes_center.create, onUpdateAlert: c.alertes_center.update, onRefreshAlertes: c.alertes_center.refresh, onCreateBusinessEvent: c.business_events.create, onRefreshBusinessEvents: c.business_events.refresh, existingTasks: rows(c.taches), existingAlerts: rows(c.alertes_center) },
+    }, centre_decisionnel: { initialTab: centreTab, onTabChange: (nextTab) => setCentreTab(resolveCentreTab(nextTab)), animaux: rows(c.animaux), lots: rows(c.avicole), cultures: rows(c.cultures), stocks: rows(c.stock), clients: rows(c.clients), alertes: rows(c.alertes_center), taches: rows(c.taches), documents: rows(c.documents), opportunities: rows(c.sales_opportunities), businessPlans: rows(c.business_plans), investissements: rows(c.investissements), productionLogs: rows(c.production_oeufs_logs), alimentationLogs: rows(c.alimentation_logs), marketPrices: dataMap.market_prices || [], marketCalendarEvents: dataMap.market_calendar_events || [], salesOrders: rows(c.sales_orders), salesOrdersAll: rows(c.sales_orders), payments: rows(c.payments), paymentsAll: rows(c.payments), transactions: rows(c.finances), transactionsAll: rows(c.finances), smartfarmEvents: dataMap.smartfarm_events || [], sensors: rows(c.sensor_devices), meteo: liveMeteo, dataMap: decisionDataMapRaw, onNavigate: setActive, onCreateTask: c.taches.create, onRefreshTasks: c.taches.refresh, onCreateBusinessEvent: c.business_events.create, onRefreshBusinessEvents: c.business_events.refresh, onCreateAlert: c.alertes_center.create, onUpdateAlert: c.alertes_center.update, onRefreshAlertes: c.alertes_center.refresh, onOpenAssistant: openAssistantWithQuery, existingTasks: rows(c.taches), existingAlerts: rows(c.alertes_center) }, objectifs_croissance: { initialTab: objectifsTab, onTabChange: (nextTab) => setObjectifsTab(nextTab), user, dataMap: decisionDataMapRaw, animaux: rows(c.animaux), lots: rows(c.avicole), productionLogs: rows(c.production_oeufs_logs), cultures: rows(c.cultures), stocks: rows(c.stock), clients: rows(c.clients), alertes: rows(c.alertes_center), taches: rows(c.taches), documents: rows(c.documents), opportunities: rows(c.sales_opportunities), businessPlans: rows(c.business_plans), investissements: rows(c.investissements), planningSimulations: rows(c.planning_simulations), equipements: rows(c.equipements), team: objectiveTeam, salesOrders: rows(c.sales_orders), salesOrdersAll: rows(c.sales_orders), payments: rows(c.payments), paymentsAll: rows(c.payments), transactions: rows(c.finances), transactionsAll: rows(c.finances), onNavigate: setActive, onCreateBusinessPlan: c.business_plans.create, onRefreshBusinessPlans: c.business_plans.refresh, onCreatePlanningSimulation: c.planning_simulations.create, onRefreshPlanningSimulations: c.planning_simulations.refresh, onCreateTask: c.taches.create, onRefreshTasks: c.taches.refresh, onCreateAlert: c.alertes_center.create, onUpdateAlert: c.alertes_center.update, onRefreshAlertes: c.alertes_center.refresh, onCreateBusinessEvent: c.business_events.create, onRefreshBusinessEvents: c.business_events.refresh, existingTasks: rows(c.taches), existingAlerts: rows(c.alertes_center) },
     elevage: {
       initialTab: elevageTab,
       onTabChange: (nextTab) => setElevageTab(resolveElevageTab(nextTab)),
@@ -855,7 +863,7 @@ export default function App() {
       existingAlerts: rows(c.alertes_center),
     },
   };
-  }, [c, user, liveMeteo, decisionDataMapRaw, crudFingerprint, centreTab, objectifsTab, commercialTab, elevageTab, agriFeedsTab, culturesTab, achatsStockTab, achatsStockContext, financeTab, activiteSuiviTab, documentsRapportsTab, rhTab, equipementsTab, gestionSystemeTab, financementsTab, smartfarmTab, farmsPanelAction, effectiveAccessibleFarms, activeFarm, refreshAccessibleFarms, online, lastOnlineAt, dataMap, refreshAll, refreshSalesWorkflowFn, navigateModule, setActive, flushOfflineQueue, handleManageFarms, farmComparisonData, openAssistantWithQuery, base, weatherLoading]);
+  }, [c, user, liveMeteo, decisionDataMapRaw, crudFingerprint, centreTab, objectifsTab, commercialTab, elevageTab, agriFeedsTab, culturesTab, achatsStockTab, achatsStockContext, financeTab, activiteSuiviTab, documentsRapportsTab, rhTab, equipementsTab, gestionSystemeTab, financementsTab, smartfarmTab, farmsPanelAction, effectiveAccessibleFarms, activeFarm, objectiveTeam, refreshAccessibleFarms, online, lastOnlineAt, dataMap, refreshAll, refreshSalesWorkflowFn, navigateModule, setActive, flushOfflineQueue, handleManageFarms, farmComparisonData, openAssistantWithQuery, base, weatherLoading]);
 
   const activeModuleId0 = resolveActiveModuleId(active);
   const activeModuleId = isModuleEnabled(activeModuleId0, moduleFlags) ? activeModuleId0 : 'dashboard';
@@ -888,8 +896,17 @@ export default function App() {
     },
     [assistantOpen, dataMap, crudFingerprint, periodScope, farmScope, effectiveAccessibleFarms, activeFarm, c.sales_orders, c.payments, c.finances],
   );
+  const overviewDataMap = useMemo(() => {
+    const periodScoped = isAllTimeScope(periodScope)
+      ? decisionDataMapRaw
+      : applyPeriodScopeToDataMap(decisionDataMapRaw, periodScope, crudFingerprint);
+    return applyFarmScopeToDataMap(periodScoped, farmScope, {
+      accessibleFarms: effectiveAccessibleFarms,
+      activeFarm,
+    });
+  }, [decisionDataMapRaw, periodScope, crudFingerprint, farmScope, effectiveAccessibleFarms, activeFarm]);
 
-  if (authLoading) return <div className="min-h-screen bg-[#f6efe2] flex items-center justify-center text-[#2f2415] font-black">Chargement Horizon Farm...</div>;
+  if (authLoading) return <div className="min-h-screen bg-mist flex items-center justify-center text-earth font-semibold">Chargement Horizon Farm...</div>;
   if (!user) return <LoginPage />;
   const resolvedActive0 = resolveActiveModuleId(active);
   const resolvedActive = isModuleEnabled(resolvedActive0, moduleFlags) ? resolvedActive0 : 'dashboard';
@@ -899,9 +916,16 @@ export default function App() {
 
   return <>
     <ProductionUpdateBanner />
-    <AppLayout navItems={navItems} active={resolvedActive} onNavigate={setActive} sidebarOpen={sidebarOpen} setSidebarOpen={setSidebarOpen} user={user} signOut={signOut} online={online} notifs={notifs} weather={liveMeteo} weatherLoading={weatherLoading} weatherSource={weatherSource} onOpenAssistant={() => openAssistantWithQuery()} periodScope={periodScope} onPeriodScopeChange={handlePeriodScopeChange} farmScope={normalizeFarmScope(farmScope, effectiveAccessibleFarms)} accessibleFarms={effectiveAccessibleFarms} onFarmScopeChange={handleFarmScopeChange} activeFarm={activeFarm} onManageFarms={handleManageFarms}>
+    <AppLayout navItems={navItems} active={resolvedActive} onNavigate={setActive} sidebarOpen={sidebarOpen} setSidebarOpen={setSidebarOpen} user={user} signOut={signOut} online={online} notifs={notifs} weather={liveMeteo} weatherLoading={weatherLoading} weatherSource={weatherSource} dataMap={overviewDataMap} onOpenAssistant={() => openAssistantWithQuery()} periodScope={periodScope} onPeriodScopeChange={handlePeriodScopeChange} farmScope={normalizeFarmScope(farmScope, effectiveAccessibleFarms)} accessibleFarms={effectiveAccessibleFarms} onFarmScopeChange={handleFarmScopeChange} activeFarm={activeFarm} onManageFarms={handleManageFarms}>
     <FarmActivityNotice message={activeModuleProps.farmActivityNotice} farmName={activeFarm?.name} actionLabel={activeModuleProps.farmActivityNoticeDetail?.actionLabel} onAction={activeModuleProps.farmActivityNoticeDetail ? handleFarmActivityAction : undefined} />
-    <ErrorBoundary moduleName={activeModuleLabel} resetKey={resolvedActive} onBackToDashboard={() => setActive('dashboard')}><Suspense fallback={<div className="rounded-3xl border border-[#d6c3a0] bg-white p-6 text-[#8a7456]">Chargement du module...</div>}><ActiveModule {...activeModuleProps} periodLabel={periodLabel} farmScopeLabel={formatFarmScopeLabel(farmScope, effectiveAccessibleFarms)} /></Suspense></ErrorBoundary>
+    <ErrorBoundary moduleName={activeModuleLabel} resetKey={resolvedActive} onBackToDashboard={() => setActive('dashboard')}>
+      <KpiOverviewProvider dataMap={overviewDataMap} periodScope={periodScope} periodLabel={periodLabel} onNavigate={setActive}>
+        {resolvedActive === 'assistant_erp' ? <ModuleOverviewStrip moduleId="assistant_erp" /> : null}
+        <Suspense fallback={<div className="hf-card text-slate">Chargement du module...</div>}>
+          <ActiveModule {...activeModuleProps} periodLabel={periodLabel} farmScopeLabel={formatFarmScopeLabel(farmScope, effectiveAccessibleFarms)} />
+        </Suspense>
+      </KpiOverviewProvider>
+    </ErrorBoundary>
     <AssistantPanel open={assistantOpen} onClose={() => setAssistantOpen(false)} dataMap={scopedAssistantDataMap} onNavigate={setActive} onCreateBusinessEvent={c.business_events.create} />
     <ErpInterconnectionBridge cruds={c} />
     <AppNotificationManager />

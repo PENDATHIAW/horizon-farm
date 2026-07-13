@@ -146,12 +146,12 @@ export default function AiReconciliationPanel({
   }
 
   return (
-    <section className="rounded-3xl border border-violet-200 bg-violet-50/50 p-5 space-y-4">
+    <section className="rounded-3xl border border-line bg-neutral-bg p-6 space-y-4">
       <div className="flex items-start gap-2">
-        <Sparkles className="text-violet-700 shrink-0" size={22} />
+        <Sparkles className="text-neutral shrink-0" size={22} />
         <div>
-          <h3 className="text-lg font-black text-[#2f2415]">Signaux métier — rapprochement</h3>
-          <p className="text-sm text-[#8a7456]">
+          <h3 className="text-lg font-semibold text-earth">Signaux métier — rapprochement</h3>
+          <p className="text-sm text-slate">
             Règles métier et suggestions. Vous validez, puis l’ERP exécute via les workflows existants — aucune écriture directe.
           </p>
         </div>
@@ -164,23 +164,23 @@ export default function AiReconciliationPanel({
           return (
             <div
               key={draft.id}
-              className="rounded-2xl border border-violet-100 bg-white p-4 space-y-3"
+              className="rounded-2xl border border-line bg-white p-4 space-y-3"
             >
               <div>
-                <p className="font-black text-[#2f2415] flex items-center gap-2 flex-wrap">
-                  <Wallet size={16} className="text-violet-700" />
+                <p className="font-semibold text-earth flex items-center gap-2 flex-wrap">
+                  <Wallet size={16} className="text-neutral" />
                   {draftSummary(draft)}
                   {isValidated ? (
-                    <span className="inline-flex items-center gap-1 rounded-full bg-emerald-100 px-2 py-0.5 text-[10px] font-black text-emerald-800">
+                    <span className="inline-flex items-center gap-1 rounded-full bg-positive-bg px-2 py-1 text-meta font-semibold text-positive">
                       <CheckCircle2 size={12} />
                       Validé
                     </span>
                   ) : null}
                 </p>
-                <p className="text-xs text-violet-800 mt-1 font-semibold">
+                <p className="text-xs text-neutral mt-1 font-semibold">
                   {WORKFLOW_LABELS[draft.target_workflow] || draft.target_workflow}
                 </p>
-                <p className="text-xs text-[#8a7456] mt-1">{draft.warnings?.join(' · ') || ''}</p>
+                <p className="text-xs text-slate mt-1">{draft.warnings?.join(' · ') || ''}</p>
               </div>
 
               <div className="flex flex-wrap gap-2">

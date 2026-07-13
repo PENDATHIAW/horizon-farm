@@ -213,18 +213,18 @@ export default function SanteV8(props) {
   const sanitaryAlerts = props.sanitaryAlerts || [];
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-6">
       {healthBlocks.blocked ? (
-        <div className="rounded-2xl border border-red-200 bg-red-50 p-4 text-sm text-red-900">
+        <div className="rounded-2xl border border-urgent bg-urgent-bg p-4 text-sm text-urgent">
           <b>Blocage vente / transformation actif</b>
           <p className="mt-1 text-xs">{healthBlocks.messages?.join(' ') || 'Interventions sanitaires en retard.'}</p>
         </div>
       ) : null}
       {sanitaryAlerts.length ? (
-        <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4 space-y-2">
-          <p className="text-xs font-black uppercase text-amber-900">Alertes sanitaires</p>
+        <div className="rounded-2xl border border-vigilance bg-vigilance-bg p-4 space-y-2">
+          <p className="text-xs font-semibold uppercase text-horizon-dark">Alertes sanitaires</p>
           {sanitaryAlerts.map((a) => (
-            <p key={a.id || a.title} className="text-sm text-amber-900"><b>{a.title}</b> — {a.message}</p>
+            <p key={a.id || a.title} className="text-sm text-horizon-dark"><b>{a.title}</b> — {a.message}</p>
           ))}
         </div>
       ) : null}

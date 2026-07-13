@@ -6,9 +6,9 @@ import { opportunityMessageForClient } from './commercialOpportunityMatching.js'
 
 function Row({ label, value, warn = false }) {
   return (
-    <div className="flex items-start justify-between gap-3 rounded-xl border border-[#eadcc2] bg-[#fffdf8] px-3 py-2">
-      <span className="text-xs text-[#8a7456]">{label}</span>
-      <span className={`text-sm font-black text-right ${warn ? 'text-amber-800' : 'text-[#2f2415]'}`}>{value}</span>
+    <div className="flex items-start justify-between gap-3 rounded-xl border border-line bg-card px-3 py-2">
+      <span className="text-xs text-slate">{label}</span>
+      <span className={`text-sm font-semibold text-right ${warn ? 'text-horizon-dark' : 'text-earth'}`}>{value}</span>
     </div>
   );
 }
@@ -47,7 +47,7 @@ export default function ClientProfileModal({
     >
       <div className="space-y-4">
         <section>
-          <p className="text-xs font-black uppercase text-[#8a7456] mb-2">Segmentation</p>
+          <p className="text-xs font-semibold uppercase text-slate mb-2">Segmentation</p>
           <div className="grid gap-2 sm:grid-cols-2">
             <Row label="Segment" value={segment.segment || '—'} />
             <Row label="Canal" value={segment.channel || '—'} />
@@ -65,7 +65,7 @@ export default function ClientProfileModal({
         </section>
 
         <section>
-          <p className="text-xs font-black uppercase text-[#8a7456] mb-2">Historique ventes</p>
+          <p className="text-xs font-semibold uppercase text-slate mb-2">Historique ventes</p>
           <div className="grid gap-2 sm:grid-cols-2">
             <Row label="CA total" value={fmtCurrency(summary.totalAchete || 0)} />
             <Row label="Payé" value={fmtCurrency(summary.totalPaye || 0)} />
@@ -77,29 +77,29 @@ export default function ClientProfileModal({
         </section>
 
         {segment.action ? (
-          <section className="rounded-xl border border-emerald-200 bg-emerald-50 p-3">
-            <p className="text-xs font-black text-emerald-800">Action recommandée</p>
-            <p className="text-sm text-emerald-900 mt-1">{segment.action}</p>
+          <section className="rounded-xl border border-positive bg-positive-bg p-3">
+            <p className="text-xs font-semibold text-positive">Action recommandée</p>
+            <p className="text-sm text-positive mt-1">{segment.action}</p>
           </section>
         ) : null}
 
         {client.prefs ? (
-          <section className="rounded-xl border border-[#eadcc2] bg-white p-3">
-            <p className="text-xs font-black text-[#8a7456]">Préférences / besoins</p>
-            <p className="text-sm text-[#2f2415] mt-1">{client.prefs}</p>
+          <section className="rounded-xl border border-line bg-white p-3">
+            <p className="text-xs font-semibold text-slate">Préférences / besoins</p>
+            <p className="text-sm text-earth mt-1">{client.prefs}</p>
           </section>
         ) : null}
 
         <section>
-          <p className="text-xs font-black uppercase text-[#8a7456] mb-2 flex items-center gap-1"><Lightbulb size={14} /> Opportunités compatibles</p>
+          <p className="text-xs font-semibold uppercase text-slate mb-2 flex items-center gap-1"><Lightbulb size={14} /> Opportunités compatibles</p>
           {matchedOpportunities.length ? (
             <div className="space-y-2">
               {matchedOpportunities.map(({ opportunity, score }) => (
-                <div key={opportunity.id} className="rounded-xl border border-amber-200 bg-amber-50/50 p-3">
+                <div key={opportunity.id} className="rounded-xl border border-vigilance bg-vigilance-bg p-3">
                   <div className="flex items-start justify-between gap-2">
                     <div>
-                      <p className="font-black text-[#2f2415]">{opportunity.title || opportunity.libelle || 'Opportunité'}</p>
-                      <p className="text-xs text-[#8a7456] mt-1">
+                      <p className="font-semibold text-earth">{opportunity.title || opportunity.libelle || 'Opportunité'}</p>
+                      <p className="text-xs text-slate mt-1">
                         Adéquation {score}%
                         {segment.frequencyLabel ? ` · ${segment.frequencyLabel}` : ''}
                         {segment.isDueForReorder ? ' · à renouveler' : ''}
@@ -113,7 +113,7 @@ export default function ClientProfileModal({
               ))}
             </div>
           ) : (
-            <p className="text-sm text-[#8a7456]">Aucune opportunité ouverte ne correspond clairement à ce profil pour le moment.</p>
+            <p className="text-sm text-slate">Aucune opportunité ouverte ne correspond clairement à ce profil pour le moment.</p>
           )}
         </section>
       </div>

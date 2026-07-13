@@ -166,11 +166,11 @@ export default function FinanceTransactionsOnly({
 
   const columns = [
     { key: 'date', label: 'Date', sortable: true },
-    { key: 'libelle', label: 'Libellé', sortable: true, render: (row) => <span className="font-semibold text-[#2f2415]">{row.libelle || row.label || '-'}</span> },
-    { key: 'type', label: 'Type', sortable: true, render: (row) => <span className={`inline-flex items-center gap-1 font-semibold ${isIn(row) ? 'text-emerald-600' : 'text-red-500'}`}>{isIn(row) ? <ArrowUp size={12} /> : <ArrowDown size={12} />}{isIn(row) ? 'argent reçu' : 'argent dépensé'}</span> },
+    { key: 'libelle', label: 'Libellé', sortable: true, render: (row) => <span className="font-semibold text-earth">{row.libelle || row.label || '-'}</span> },
+    { key: 'type', label: 'Type', sortable: true, render: (row) => <span className={`inline-flex items-center gap-1 font-semibold ${isIn(row) ? 'text-positive' : 'text-urgent'}`}>{isIn(row) ? <ArrowUp size={12} /> : <ArrowDown size={12} />}{isIn(row) ? 'argent reçu' : 'argent dépensé'}</span> },
     { key: 'categorie', label: 'Activité', sortable: true, render: (row) => activityLabels[detectActivity(row)] || '-' },
     { key: 'module_lie', label: 'Module lié', sortable: true, render: (row) => row.module_lie || row.source_module || '-' },
-    { key: 'montant', label: 'Montant', sortable: true, render: (row) => <span className={`font-black ${isIn(row) ? 'text-emerald-600' : 'text-red-500'}`}>{isIn(row) ? '+' : '-'}{fmtCurrency(amount(row))}</span> },
+    { key: 'montant', label: 'Montant', sortable: true, render: (row) => <span className={`font-semibold ${isIn(row) ? 'text-positive' : 'text-urgent'}`}>{isIn(row) ? '+' : '-'}{fmtCurrency(amount(row))}</span> },
     { key: 'statut', label: 'Statut', sortable: true, render: (row) => <Badge status={row.statut || row.status || 'paye'} /> },
     { key: 'paiement', label: 'Paiement', sortable: true },
     {
@@ -193,13 +193,13 @@ export default function FinanceTransactionsOnly({
   ];
 
   return <div className="space-y-4">
-    <div className="rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">
+    <div className="rounded-xl border border-vigilance bg-vigilance-bg p-3 text-sm text-horizon-dark">
       Les <b>achats stockables</b> (intrants, aliments, matériel…) doivent être enregistrés via <b>Achats & Stock → Réception achat</b>. La finance est créée automatiquement. Ici : frais divers et ajustements manuels. Santé / stock / paie : modules source. Rapprochement pour l’historique.
     </div>
     <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3">
       <div>
-        <p className="font-black text-[#2f2415]">Lignes finance manuelles</p>
-        <p className="text-sm text-[#8a7456]">Table des saisies manuelles uniquement. La synthèse des dépenses est au-dessus.</p>
+        <p className="font-semibold text-earth">Lignes finance manuelles</p>
+        <p className="text-sm text-slate">Table des saisies manuelles uniquement. La synthèse des dépenses est au-dessus.</p>
       </div>
       <div className="flex flex-wrap gap-2">
         <Btn icon={RefreshCw} variant="outline" small onClick={() => onRefresh?.()}>Actualiser</Btn>

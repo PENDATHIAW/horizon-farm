@@ -60,8 +60,8 @@ export function classifyScannerDocumentType(text = '', fileName = '', forcedType
 
 function extractSupplierName(text = '') {
   const patterns = [
-    /fournisseur\s*[:\-]?\s*([^\n]+)/i,
-    /vendeur\s*[:\-]?\s*([^\n]+)/i,
+    /fournisseur\s*[:-]?\s*([^\n]+)/i,
+    /vendeur\s*[:-]?\s*([^\n]+)/i,
     /de\s+la\s+societe\s+([^\n]+)/i,
   ];
   for (const p of patterns) {
@@ -136,7 +136,7 @@ export function parsePurchaseInvoice(text = {}, context = {}) {
 
 export function parseVetPrescription(text = {}, context = {}) {
   const raw = typeof text === 'string' ? text : text.text || '';
-  const medMatch = raw.match(/(?:medicament|médicament|produit|traitement)\s*[:\-]?\s*([^\n]+)/i)
+  const medMatch = raw.match(/(?:medicament|médicament|produit|traitement)\s*[:-]?\s*([^\n]+)/i)
     || raw.match(/(vaccin[a-zéèêë\s-]+|antibio[a-zéèêë\s-]+|ivermectin[a-z]*|vitamine[a-z\s]*)/i);
   const doseMatch = raw.match(/(\d+(?:[.,]\d+)?)\s*(?:ml|mg|g|dose|doses)/i);
   const durationMatch = raw.match(/(\d+)\s*(?:jour|jours|semaine|semaines)/i);
@@ -171,7 +171,7 @@ export function parsePaymentReceipt(text = {}) {
   const raw = typeof text === 'string' ? text : text.text || '';
   const amounts = extractAmounts(raw);
   const amount = amounts.length ? amounts[amounts.length - 1] : null;
-  const clientMatch = raw.match(/client\s*[:\-]?\s*([^\n]+)/i);
+  const clientMatch = raw.match(/client\s*[:-]?\s*([^\n]+)/i);
   const saleMatch = raw.match(/\b(CMD|VTE|SALE|ORD)[-_]?\d{1,8}\b/i);
   const paymentMethod = /mobile|wave|orange|om\b/i.test(raw) ? 'mobile_money' : /virement|banque/i.test(raw) ? 'virement' : 'especes';
 

@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { createConversationContext, updateConversationContext } from '../../src/services/assistantConversationContext.js';
+import { createConversationContext } from '../../src/services/assistantConversationContext.js';
 import { routeNaturalLanguageQuery } from '../../src/services/assistantLanguageRouter.js';
 import { shouldRouteToAssistant } from '../../src/services/assistantChatRouting.js';
 

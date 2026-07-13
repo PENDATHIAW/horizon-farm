@@ -87,22 +87,22 @@ export default function AnimalSaleReadinessBridge({
 
   if (!candidates.length) return null;
   return (
-    <div className="rounded-2xl border border-[#d6c3a0] bg-white p-5 space-y-4">
+    <div className="rounded-2xl border border-line bg-white p-6 space-y-4">
       <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3">
         <div>
-          <p className="text-xs uppercase tracking-widest text-[#8a7456]">Vente cheptel</p>
-          <h3 className="font-black text-[#2f2415]">Animaux prêts à vendre ou à confirmer</h3>
+          <p className="text-xs uppercase tracking-normal text-slate">Vente cheptel</p>
+          <h3 className="font-semibold text-earth">Animaux prêts à vendre ou à confirmer</h3>
         </div>
-        <div className="rounded-xl border border-[#eadcc2] bg-[#fffdf8] px-3 py-2 text-sm text-[#7d6a4a]"><Tag size={14} className="inline" /> {candidates.length} tête(s)</div>
+        <div className="rounded-xl border border-line bg-card px-3 py-2 text-sm text-slate"><Tag size={14} className="inline" /> {candidates.length} tête(s)</div>
       </div>
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-2">
         {candidates.map(({ animal, state, existing }) => (
-          <div key={idOf(animal)} className="rounded-xl border border-[#eadcc2] bg-[#fffdf8] p-3">
-            <p className="font-bold text-[#2f2415]">{animalName(animal)}</p>
-            <p className="text-xs text-[#8a7456] mt-1">{state.label} · {state.reason}</p>
-            <p className="text-xs text-[#8a7456] mt-1">Poids {fmtNumber(state.state?.currentWeight || animal.poids || 0)} kg</p>
-            {existing ? <p className="text-xs text-emerald-700 mt-1">Opportunité existante : mise à jour</p> : null}
-            <button type="button" disabled={savingId === idOf(animal)} className="mt-3 text-sm font-bold text-emerald-700 disabled:opacity-60" onClick={() => confirmReady(animal, state)}>
+          <div key={idOf(animal)} className="rounded-xl border border-line bg-card p-3">
+            <p className="font-semibold text-earth">{animalName(animal)}</p>
+            <p className="text-xs text-slate mt-1">{state.label} · {state.reason}</p>
+            <p className="text-xs text-slate mt-1">Poids {fmtNumber(state.state?.currentWeight || animal.poids || 0)} kg</p>
+            {existing ? <p className="text-xs text-positive mt-1">Opportunité existante : mise à jour</p> : null}
+            <button type="button" disabled={savingId === idOf(animal)} className="mt-3 text-sm font-semibold text-positive disabled:opacity-60" onClick={() => confirmReady(animal, state)}>
               <CheckCircle2 size={14} className="inline" /> {savingId === idOf(animal) ? 'Confirmation...' : 'Confirmer vente'}
             </button>
           </div>

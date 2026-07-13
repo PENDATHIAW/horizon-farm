@@ -53,7 +53,7 @@ function buildCentreRecommendationsAnswer(dataMap = {}, options = {}) {
     intent: 'centre_recommendations',
     situation,
     cause: plan.goals?.month?.attainment != null
-      ? `Objectif mois à ${n(plan.goals.month.attainment)} % — les recommandations visent l\'écart restant.`
+      ? `Objectif mois à ${n(plan.goals.month.attainment)} % — les recommandations visent l'écart restant.`
       : 'Synthèse croissance + alertes techniques.',
     action,
     sources: ['buildDecisionCenterPlan', 'buildStrategicDecisionPlan'],

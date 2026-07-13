@@ -4,17 +4,17 @@ import { BP_LINE_STATUS } from '../../utils/bpLineConcretization.js';
 import { resolveBpLineActions } from '../../utils/bpLineLinkage.js';
 
 const toneCls = {
-  primary: 'bg-[#2f2415] text-white border-[#2f2415]',
-  secondary: 'border-[#eadcc2] bg-white text-[#2f2415]',
-  warn: 'border-amber-300 bg-amber-50 text-amber-900',
-  danger: 'border-red-300 bg-red-50 text-red-800',
+  primary: 'bg-earth text-white border-earth',
+  secondary: 'border-line bg-white text-earth',
+  warn: 'border-vigilance bg-vigilance-bg text-horizon-dark',
+  danger: 'border-urgent bg-urgent-bg text-urgent',
 };
 
 export function BpLineLinkageAlert({ linkage }) {
   if (!linkage?.linkageIssue || !linkage?.linkageMessage) return null;
   return (
-    <p className="mt-1 flex items-start gap-1 text-[10px] text-red-700">
-      <AlertTriangle size={11} className="shrink-0 mt-0.5" />
+    <p className="mt-1 flex items-start gap-1 text-meta text-urgent">
+      <AlertTriangle size={11} className="shrink-0 mt-1" />
       {linkage.linkageMessage}
     </p>
   );
@@ -52,16 +52,16 @@ export default function BpLineActionsMenu({
   if (showPreviewMenu) {
     return (
       <div className={`flex flex-wrap gap-1 justify-end ${compact ? '' : 'min-w-[200px]'}`}>
-        <button type="button" onClick={() => run('concretize')} className={`rounded-lg border px-2 py-1 text-[10px] font-black ${toneCls.primary}`}>
+        <button type="button" onClick={() => run('concretize')} className={`rounded-lg border px-2 py-1 text-meta font-semibold ${toneCls.primary}`}>
           Concrétiser
         </button>
-        <button type="button" onClick={() => run('edit')} className={`rounded-lg border px-2 py-1 text-[10px] font-black ${toneCls.secondary}`}>
+        <button type="button" onClick={() => run('edit')} className={`rounded-lg border px-2 py-1 text-meta font-semibold ${toneCls.secondary}`}>
           Modifier
         </button>
-        <button type="button" onClick={() => run('postpone')} className={`rounded-lg border px-2 py-1 text-[10px] font-black ${toneCls.warn}`}>
+        <button type="button" onClick={() => run('postpone')} className={`rounded-lg border px-2 py-1 text-meta font-semibold ${toneCls.warn}`}>
           Reporter
         </button>
-        <button type="button" onClick={() => run('cancel')} className={`rounded-lg border px-2 py-1 text-[10px] font-black ${toneCls.danger}`}>
+        <button type="button" onClick={() => run('cancel')} className={`rounded-lg border px-2 py-1 text-meta font-semibold ${toneCls.danger}`}>
           Annuler
         </button>
       </div>
@@ -76,7 +76,7 @@ export default function BpLineActionsMenu({
             key={action.id}
             type="button"
             onClick={() => run(action.id)}
-            className={`rounded-lg border px-2 py-1 text-[10px] font-black ${toneCls[action.tone] || toneCls.secondary}`}
+            className={`rounded-lg border px-2 py-1 text-meta font-semibold ${toneCls[action.tone] || toneCls.secondary}`}
           >
             {action.label}
           </button>
@@ -86,20 +86,20 @@ export default function BpLineActionsMenu({
             <button
               type="button"
               onClick={() => setOpen((v) => !v)}
-              className="rounded-lg border border-[#eadcc2] bg-[#fffdf8] px-2 py-1 text-[10px] font-black text-[#7d6a4a]"
+              className="rounded-lg border border-line bg-card px-2 py-1 text-meta font-semibold text-slate"
               title="Réparer · actions avancées"
             >
               <MoreHorizontal size={12} className="inline" />
             </button>
             {open ? (
-              <div className="absolute right-0 top-full z-20 mt-1 min-w-[220px] rounded-xl border border-[#d6c3a0] bg-white py-1 shadow-lg">
-                <p className="px-3 py-1 text-[9px] font-black uppercase tracking-widest text-[#8a7456]">Réparer</p>
+              <div className="absolute right-0 top-full z-20 mt-1 min-w-[220px] rounded-xl border border-line bg-white py-1 shadow-float">
+                <p className="px-3 py-1 text-meta font-semibold uppercase tracking-normal text-slate">Réparer</p>
                 {repair.map((item) => (
                   <button
                     key={`${item.id}-${item.label}`}
                     type="button"
                     onClick={() => run(item.id, item)}
-                    className={`block w-full px-3 py-2 text-left text-xs hover:bg-[#fffdf8] ${item.advanced ? 'text-[#7d6a4a]' : 'font-bold text-[#2f2415]'}`}
+                    className={`block w-full px-3 py-2 text-left text-xs hover:bg-card ${item.advanced ? 'text-slate' : 'font-semibold text-earth'}`}
                   >
                     {item.label}
                   </button>

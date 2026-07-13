@@ -122,17 +122,17 @@ export default function CulturesRepairPanel({
   if (!gaps.length) return null;
 
   return (
-    <section className="rounded-3xl border border-amber-200 bg-amber-50/80 p-4">
+    <section className="rounded-3xl border border-vigilance bg-vigilance-bg p-4">
       <button type="button" onClick={() => setOpen((v) => !v)} className="flex w-full items-center justify-between text-left">
-        <span className="text-sm font-black text-amber-900">Contrôle qualité cultures ({gaps.length})</span>
-        <span className="text-xs font-bold text-amber-800">{open ? 'Replier' : 'Déplier'}</span>
+        <span className="text-sm font-semibold text-horizon-dark">Contrôle qualité cultures ({gaps.length})</span>
+        <span className="text-xs font-semibold text-horizon-dark">{open ? 'Replier' : 'Déplier'}</span>
       </button>
       {open ? (
         <ul className="mt-3 max-h-64 space-y-2 overflow-y-auto">
           {gaps.map((gap) => (
-            <li key={gap.issue_key} className="flex flex-col gap-2 rounded-xl border border-amber-200 bg-white p-3 sm:flex-row sm:items-center sm:justify-between">
-              <div><b className="text-sm text-[#2f2415]">{gap.title}</b><p className="text-xs text-[#8a7456]">{gap.detail}</p></div>
-              <button type="button" disabled={busy === gap.issue_key} onClick={() => repair(gap)} className="shrink-0 rounded-lg bg-[#22c55e] px-3 py-1.5 text-xs font-black text-[#052e16] disabled:opacity-50">{busy === gap.issue_key ? '…' : 'Réparer'}</button>
+            <li key={gap.issue_key} className="flex flex-col gap-2 rounded-xl border border-vigilance bg-white p-3 sm:flex-row sm:items-center sm:justify-between">
+              <div><b className="text-sm text-earth">{gap.title}</b><p className="text-xs text-slate">{gap.detail}</p></div>
+              <button type="button" disabled={busy === gap.issue_key} onClick={() => repair(gap)} className="shrink-0 rounded-lg bg-leaf px-3 py-2 text-xs font-semibold text-earth disabled:opacity-50">{busy === gap.issue_key ? '…' : 'Réparer'}</button>
             </li>
           ))}
         </ul>

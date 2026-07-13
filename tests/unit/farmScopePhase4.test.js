@@ -11,7 +11,6 @@ import {
 import {
   buildFarmRecordFromCreationDraft,
   cloneFarmCreationDraft,
-  EMPTY_FARM_CREATION_DRAFT,
   getCapacityFieldsForActivities,
   validateFarmCreationStep,
 } from '../../src/config/farmCreationModel.js';

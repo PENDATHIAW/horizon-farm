@@ -10,8 +10,8 @@ import {
 } from '../../config/farmCreationModel.js';
 import { FARM_ACCESS_ROLES } from '../../config/farmActivities.js';
 
-const inputClass = 'w-full rounded-2xl border border-[#d6c3a0] bg-white px-4 py-3 text-sm outline-none focus:border-[#22c55e]';
-const labelClass = 'block text-xs font-black uppercase tracking-[0.15em] text-[#8a7456] mb-1';
+const inputClass = 'w-full rounded-2xl border border-line bg-white px-4 py-3 text-sm outline-none focus:border-leaf';
+const labelClass = 'block text-xs font-semibold uppercase tracking-normal text-slate mb-1';
 
 function Field({ label, children }) {
   return <label className="block space-y-1">{label ? <span className={labelClass}>{label}</span> : null}{children}</label>;
@@ -72,9 +72,9 @@ function StepActivities({ draft, updateActivities }) {
   return (
     <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
       {FARM_ACTIVITY_TYPES.filter((entry) => entry.key !== 'mixte').map((entry) => (
-        <label key={entry.key} className={`flex items-center gap-3 rounded-2xl border px-4 py-3 cursor-pointer ${selected.includes(entry.key) ? 'border-[#22c55e] bg-[#dcfce7]' : 'border-[#eadcc2] bg-[#fffdf8]'}`}>
+        <label key={entry.key} className={`flex items-center gap-3 rounded-2xl border px-4 py-3 cursor-pointer ${selected.includes(entry.key) ? 'border-leaf bg-positive-bg' : 'border-line bg-card'}`}>
           <input type="checkbox" checked={selected.includes(entry.key)} onChange={() => toggle(entry.key)} />
-          <span className="text-sm font-semibold text-[#2f2415]">{entry.label}</span>
+          <span className="text-sm font-semibold text-earth">{entry.label}</span>
         </label>
       ))}
     </div>
@@ -85,14 +85,14 @@ function StepCapacities({ draft, updateCapacities }) {
   const fields = getCapacityFieldsForActivities(draft.activities?.activity_type || []);
   const capacities = draft.capacities || {};
   if (!fields.length) {
-    return <p className="text-sm text-[#8a7456]">Sélectionnez des activités à l’étape précédente pour afficher les capacités associées.</p>;
+    return <p className="text-sm text-slate">Sélectionnez des activités à l’étape précédente pour afficher les capacités associées.</p>;
   }
   return (
     <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
       {fields.map((field) => (
         <Field key={field.key} label={field.label}>
           {field.type === 'checkbox' ? (
-            <label className="inline-flex items-center gap-2 text-sm font-semibold text-[#2f2415]">
+            <label className="inline-flex items-center gap-2 text-sm font-semibold text-earth">
               <input type="checkbox" checked={Boolean(capacities[field.key])} onChange={(e) => updateCapacities({ [field.key]: e.target.checked })} />
               Oui
             </label>
@@ -158,9 +158,9 @@ function StepUsers({ draft, updateUsers, user }) {
 
   return (
     <div className="space-y-4">
-      <p className="text-sm text-[#8a7456]">Affectez des utilisateurs à la ferme. Si aucun utilisateur n’est ajouté, le créateur sera automatiquement responsable / direction.</p>
+      <p className="text-sm text-slate">Affectez des utilisateurs à la ferme. Si aucun utilisateur n’est ajouté, le créateur sera automatiquement responsable / direction.</p>
       {assignments.map((row, index) => (
-        <div key={`${row.user_id}-${index}`} className="grid grid-cols-1 gap-3 rounded-2xl border border-[#eadcc2] p-4 md:grid-cols-[1fr_220px_auto]">
+        <div key={`${row.user_id}-${index}`} className="grid grid-cols-1 gap-3 rounded-2xl border border-line p-4 md:grid-cols-[1fr_220px_auto]">
           <Field label="Identifiant utilisateur">
             <input className={inputClass} value={row.user_id || ''} onChange={(e) => updateRow(index, { user_id: e.target.value })} placeholder="UUID utilisateur" />
           </Field>
@@ -172,11 +172,11 @@ function StepUsers({ draft, updateUsers, user }) {
             </select>
           </Field>
           <div className="flex items-end">
-            <button type="button" onClick={() => removeRow(index)} className="rounded-xl border border-red-200 px-3 py-3 text-xs font-black text-red-700">Retirer</button>
+            <button type="button" onClick={() => removeRow(index)} className="rounded-xl border border-urgent px-3 py-3 text-xs font-semibold text-urgent">Retirer</button>
           </div>
         </div>
       ))}
-      <button type="button" onClick={addRow} className="rounded-xl border border-[#d6c3a0] px-4 py-2 text-sm font-black text-[#2f2415]">Ajouter un utilisateur</button>
+      <button type="button" onClick={addRow} className="rounded-xl border border-line px-4 py-2 text-sm font-semibold text-earth">Ajouter un utilisateur</button>
     </div>
   );
 }
@@ -194,14 +194,14 @@ function StepValidation({ draft }) {
   ];
   return (
     <div className="space-y-4">
-      <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-4">
-        <p className="text-xs font-black uppercase tracking-[0.2em] text-emerald-800">Résumé</p>
-        <h3 className="mt-1 text-xl font-black text-[#2f2415]">{summary.name}</h3>
+      <div className="rounded-2xl border border-positive bg-positive-bg p-4">
+        <p className="text-xs font-semibold uppercase tracking-normal text-positive">Résumé</p>
+        <h3 className="mt-1 text-xl font-semibold text-earth">{summary.name}</h3>
       </div>
       {sections.map(([title, items]) => (
-        <div key={title} className="rounded-2xl border border-[#eadcc2] bg-[#fffdf8] p-4">
-          <p className="text-sm font-black text-[#2f2415]">{title}</p>
-          <ul className="mt-2 space-y-1 text-sm text-[#8a7456]">
+        <div key={title} className="rounded-2xl border border-line bg-card p-4">
+          <p className="text-sm font-semibold text-earth">{title}</p>
+          <ul className="mt-2 space-y-1 text-sm text-slate">
             {(items || []).length ? items.map((item) => <li key={String(item)}>• {item}</li>) : <li>—</li>}
           </ul>
         </div>
@@ -257,42 +257,42 @@ export default function FarmCreationWizard({
   }[current.id];
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-3">
-      <div className="w-full max-w-4xl max-h-[94vh] overflow-y-auto rounded-3xl border border-[#eadcc2] bg-white shadow-2xl">
-        <div className="flex items-start justify-between border-b border-[#eadcc2] p-5">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-earth/30 p-3">
+      <div className="w-full max-w-4xl max-h-[94vh] overflow-y-auto rounded-3xl border border-line bg-white shadow-float">
+        <div className="flex items-start justify-between border-b border-line p-6">
           <div>
-            <p className="text-xs uppercase tracking-widest text-[#8a7456]">
+            <p className="text-xs uppercase tracking-normal text-slate">
               {mode === 'edit' ? `Modifier ${farmName || 'la ferme'}` : 'Créer une ferme'}
             </p>
-            <h2 className="text-xl font-black text-[#2f2415]">{current.title}</h2>
-            <p className="text-sm text-[#8a7456] mt-1">Étape {step + 1} / {FARM_CREATION_STEPS.length}</p>
+            <h2 className="text-xl font-semibold text-earth">{current.title}</h2>
+            <p className="text-sm text-slate mt-1">Étape {step + 1} / {FARM_CREATION_STEPS.length}</p>
           </div>
           <button type="button" onClick={onClose} aria-label="Fermer"><X size={18} /></button>
         </div>
 
-        <div className="hidden md:grid md:grid-cols-8 gap-1 border-b border-[#eadcc2] bg-[#fffdf8] p-3">
+        <div className="hidden md:grid md:grid-cols-8 gap-1 border-b border-line bg-card p-3">
           {FARM_CREATION_STEPS.map((item, index) => (
-            <div key={item.id} className={`rounded-xl px-2 py-2 text-center text-[10px] font-black ${index === step ? 'bg-[#2f2415] text-white' : index < step ? 'bg-emerald-100 text-emerald-800' : 'text-[#8a7456]'}`}>
+            <div key={item.id} className={`rounded-xl px-2 py-2 text-center text-meta font-semibold ${index === step ? 'bg-earth text-white' : index < step ? 'bg-positive-bg text-positive' : 'text-slate'}`}>
               {item.title}
             </div>
           ))}
         </div>
 
-        <form onSubmit={submit} className="p-5 space-y-4">
-          {error ? <div className="rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-700">{error}</div> : null}
+        <form onSubmit={submit} className="p-6 space-y-4">
+          {error ? <div className="rounded-xl border border-urgent bg-urgent-bg p-3 text-sm text-urgent">{error}</div> : null}
           {content}
           <div className="flex flex-wrap items-center justify-between gap-3 pt-2">
-            <button type="button" onClick={goPrev} disabled={step === 0} className="inline-flex items-center gap-1 rounded-xl border border-[#d6c3a0] px-4 py-2 text-sm font-black disabled:opacity-40">
+            <button type="button" onClick={goPrev} disabled={step === 0} className="inline-flex items-center gap-1 rounded-xl border border-line px-4 py-2 text-sm font-semibold disabled:opacity-40">
               <ChevronLeft size={16} />
               Précédent
             </button>
             {step < FARM_CREATION_STEPS.length - 1 ? (
-              <button type="button" onClick={goNext} className="inline-flex items-center gap-1 rounded-xl bg-[#22c55e] px-4 py-2 text-sm font-black text-[#052e16]">
+              <button type="button" onClick={goNext} className="inline-flex items-center gap-1 rounded-xl bg-leaf px-4 py-2 text-sm font-semibold text-earth">
                 Suivant
                 <ChevronRight size={16} />
               </button>
             ) : (
-              <button type="submit" disabled={busy} className="inline-flex items-center gap-1 rounded-xl bg-[#22c55e] px-4 py-2 text-sm font-black text-[#052e16] disabled:opacity-50">
+              <button type="submit" disabled={busy} className="inline-flex items-center gap-1 rounded-xl bg-leaf px-4 py-2 text-sm font-semibold text-earth disabled:opacity-50">
                 <CheckCircle2 size={16} />
                 {busy ? 'Enregistrement…' : mode === 'edit' ? 'Enregistrer la ferme' : 'Créer la ferme'}
               </button>

@@ -425,8 +425,8 @@ export default function CulturesRecoveredModule(props) {
         onRefreshBusinessEvents={sharedV3Props.onRefreshBusinessEvents}
         onNavigate={props.onNavigate}
       />
-      <details ref={transformationDetailsRef} className="rounded-2xl border border-[#eadcc2] bg-[#fffdf8] p-4">
-        <summary className="cursor-pointer font-black text-sm text-[#2f2415]">Transformation cultures</summary>
+      <details ref={transformationDetailsRef} className="rounded-2xl border border-line bg-card p-4">
+        <summary className="cursor-pointer font-semibold text-sm text-earth">Transformation cultures</summary>
         <div className="mt-3">
           <CulturesTransformationHub
             rows={rows}
@@ -446,14 +446,14 @@ export default function CulturesRecoveredModule(props) {
   ) : (
     <div className="space-y-4">
       <JournalEvenements events={businessEvents} farmId={props.activeFarm?.id || props.farm?.id} module="cultures" recordType={props.recordType} recordId={props.recordId} period={props.periodScope} limit={150} onNavigate={props.onNavigate} />
-      <details ref={annexeDetailsRef} className="border-t border-[#eadcc2] pt-4">
-        <summary className="cursor-pointer text-sm font-black text-[#2f2415]">Documents liés</summary>
+      <details ref={annexeDetailsRef} className="border-t border-line pt-4">
+        <summary className="cursor-pointer text-sm font-semibold text-earth">Documents liés</summary>
         <div className="mt-3"><CulturesAnnexeTab documents={documents} onNavigate={props.onNavigate} /></div>
       </details>
-      <details ref={graphiquesDetailsRef} className="border-t border-[#eadcc2] pt-4">
-        <summary className="cursor-pointer text-sm font-black text-[#2f2415]">Courbes historiques</summary>
+      <details ref={graphiquesDetailsRef} className="border-t border-line pt-4">
+        <summary className="cursor-pointer text-sm font-semibold text-earth">Courbes historiques</summary>
         <div className="mt-3 space-y-4">
-          {chartNarratives.map((line) => <p key={line} className="text-sm text-[#7d6a4a]">{line}</p>)}
+          {chartNarratives.map((line) => <p key={line} className="text-sm text-slate">{line}</p>)}
           <ModuleGraphiquesTab moduleId="cultures" periodFiltered={periodFiltered} periodScope={props.periodScope} periodLabel={props.periodLabel} cultures={rows} salesOrders={salesOrders} payments={payments} transactions={transactions} stocks={stocks} onNavigate={props.onNavigate} />
         </div>
       </details>
@@ -462,10 +462,10 @@ export default function CulturesRecoveredModule(props) {
 
   return (
     <div className="space-y-6 cultures-v1-root">
-      <section className="rounded-3xl border border-[#d6c3a0] bg-white p-5 shadow-sm">
-        <p className="text-xs uppercase tracking-[0.25em] text-[#9a6b12] font-black">Production</p>
-        <h1 className="mt-1 text-2xl font-black text-[#2f2415]">Cultures</h1>
-        <p className="mt-1 text-sm text-[#8a7456]">Parcelles, campagnes, irrigation, intrants, récoltes, coûts et historique.</p>
+      <section className="rounded-3xl border border-line bg-white p-6 shadow-card">
+        <p className="text-xs uppercase tracking-normal text-horizon-dark font-semibold">Production</p>
+        <h1 className="mt-1 text-2xl font-semibold text-earth">Cultures</h1>
+        <p className="mt-1 text-sm text-slate">Parcelles, campagnes, irrigation, intrants, récoltes, coûts et historique.</p>
         {props.periodLabel ? <div className="mt-2"><PeriodScopeBadge label={props.periodLabel} /></div> : null}
       </section>
       <ModuleTabsBar moduleId="cultures" active={tab} onChange={setTab} activeFarm={props.activeFarm} />

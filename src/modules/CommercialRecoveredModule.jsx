@@ -63,15 +63,15 @@ function CommercialComplaintsPanel({ events = [], tasks = [] }) {
       {complaints.length ? complaints.map((event) => {
         const linkedTasks = tasks.filter((task) => String(task.source_event_id || task.event_id || '') === String(event.id));
         return (
-          <div key={event.id || event.event_key} className="grid gap-2 border-b border-[#eadcc2] py-3 md:grid-cols-[1fr_auto] md:items-center">
+          <div key={event.id || event.event_key} className="grid gap-2 border-b border-line py-3 md:grid-cols-[1fr_auto] md:items-center">
             <span>
-              <strong className="block text-sm text-[#2f2415]">{event.title || 'Réclamation client'}</strong>
-              <span className="text-xs text-[#8a7456]">{event.occurred_at || event.created_at || 'Date inconnue'}</span>
+              <strong className="block text-sm text-earth">{event.title || 'Réclamation client'}</strong>
+              <span className="text-xs text-slate">{event.occurred_at || event.created_at || 'Date inconnue'}</span>
             </span>
-            <span className="text-xs font-bold text-[#8a7456]">{linkedTasks.length ? `${linkedTasks.length} action(s)` : 'À traiter'}</span>
+            <span className="text-xs font-semibold text-slate">{linkedTasks.length ? `${linkedTasks.length} action(s)` : 'À traiter'}</span>
           </div>
         );
-      }) : <p className="py-8 text-center text-sm text-[#8a7456]">Rien à afficher pour l’instant.</p>}
+      }) : <p className="py-8 text-center text-sm text-slate">Rien à afficher pour l’instant.</p>}
     </section>
   );
 }
@@ -83,11 +83,11 @@ function Summary({ data, setTab, onNavigate, onApplyFinding, busyId }) {
   const simulatedMode = isSimulatedDataModeEnabled();
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-6">
       {showStartup ? (
         <>
           {!simulatedMode ? (
-            <div className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+            <div className="rounded-2xl border border-vigilance bg-vigilance-bg px-4 py-3 text-sm text-horizon-dark">
               Aucune donnée commerciale chargée. Activez <strong>Données simulées</strong> dans Paramètres (⚙️) pour afficher le scénario Horizon Farm, ou saisissez vos premiers clients et ventes.
             </div>
           ) : null}
@@ -103,7 +103,7 @@ function Summary({ data, setTab, onNavigate, onApplyFinding, busyId }) {
         <CommercialKpi label="Clients actifs" value={fmtNumber(kpis?.activeClients ?? 0)} tone="good" onClick={() => setTab('Clients & créances')} />
         <CommercialKpi label="Panier moyen" value={fmtCurrency(kpis?.basketAvg ?? 0)} tone="good" onClick={() => setTab('Pilotage')} />
       </div>
-      <p className="text-[11px] font-semibold text-[#8a7456]">KPI période active · cliquer pour ouvrir le détail</p>
+      <p className="text-meta font-semibold text-slate">KPI période active · cliquer pour ouvrir le détail</p>
 
       <ModuleProjectionsStrip
         projections={data.moduleProjections}
@@ -121,18 +121,18 @@ function Summary({ data, setTab, onNavigate, onApplyFinding, busyId }) {
       />
 
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-5">
-        <section className="lg:col-span-3 rounded-2xl border border-[#d6c3a0] bg-white p-4 shadow-sm">
+        <section className="lg:col-span-3 rounded-2xl border border-line bg-white p-4 shadow-card">
           <div className="mb-3 flex items-center justify-between gap-2">
             <div>
-              <h2 className="text-sm font-black text-[#2f2415]">À traiter aujourd&apos;hui</h2>
-              <p className="text-[11px] text-[#8a7456]">Encaissements, livraisons, factures — actions directes.</p>
+              <h2 className="text-sm font-semibold text-earth">À traiter aujourd&apos;hui</h2>
+              <p className="text-meta text-slate">Encaissements, livraisons, factures — actions directes.</p>
             </div>
             {data.todoCount > 0 ? (
-              <button type="button" onClick={() => setTab('Ventes')} className="text-xs font-black text-[#9a6b12]">Tout voir →</button>
+              <button type="button" onClick={() => setTab('Ventes')} className="text-xs font-semibold text-horizon-dark">Tout voir →</button>
             ) : null}
           </div>
           {todos.length ? (
-            <div className="divide-y divide-[#eadcc2]/60">
+            <div className="divide-y divide-line/60">
               {todos.map((row) => (
                 <CommercialTodoRow
                   key={row.id}
@@ -145,7 +145,7 @@ function Summary({ data, setTab, onNavigate, onApplyFinding, busyId }) {
               ))}
             </div>
           ) : (
-            <div className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-6 text-center text-sm text-emerald-800">
+            <div className="rounded-xl border border-positive bg-positive-bg px-4 py-6 text-center text-sm text-positive">
               Rien d&apos;urgent — ventes, factures et livraisons sont à jour.
             </div>
           )}
@@ -153,10 +153,10 @@ function Summary({ data, setTab, onNavigate, onApplyFinding, busyId }) {
 
         <div className="lg:col-span-2 space-y-4">
           {data.receivable > 0 ? (
-            <button type="button" onClick={() => setTab('Clients & créances')} className="w-full rounded-2xl border border-amber-200 bg-amber-50 p-4 text-left hover:bg-amber-100/80">
-              <p className="text-[11px] font-bold uppercase tracking-wide text-amber-800">Créances clients</p>
-              <p className="mt-1 text-2xl font-black text-amber-900">{fmtCurrency(data.receivable)}</p>
-              <p className="mt-1 text-xs text-amber-800">{data.clientsDebtCount} client(s) à relancer</p>
+            <button type="button" onClick={() => setTab('Clients & créances')} className="w-full rounded-2xl border border-vigilance bg-vigilance-bg p-4 text-left hover:bg-vigilance-bg">
+              <p className="text-meta font-semibold uppercase tracking-normal text-horizon-dark">Créances clients</p>
+              <p className="mt-1 text-2xl font-semibold text-horizon-dark">{fmtCurrency(data.receivable)}</p>
+              <p className="mt-1 text-xs text-horizon-dark">{data.clientsDebtCount} client(s) à relancer</p>
             </button>
           ) : null}
           <CommercialTopClients rows={data.topClients} setTab={setTab} />
@@ -167,26 +167,27 @@ function Summary({ data, setTab, onNavigate, onApplyFinding, busyId }) {
 }
 
 export default function CommercialRecoveredModule(props) {
-  const controlled = Boolean(props.onTabChange);
-  const [internalTab, setInternalTab] = useState(() => resolveCommercialTab(props.initialTab || 'Tableau de bord'));
+  const { initialTab, onTabChange, onRefreshWorkflow } = props;
+  const controlled = Boolean(onTabChange);
+  const [internalTab, setInternalTab] = useState(() => resolveCommercialTab(initialTab || 'Tableau de bord'));
   const tab = controlled
-    ? resolveCommercialTab(props.initialTab || 'Tableau de bord')
+    ? resolveCommercialTab(initialTab || 'Tableau de bord')
     : internalTab;
   const setTab = useCallback((value) => {
     const resolved = resolveCommercialTab(value);
     if (controlled) {
-      props.onTabChange?.(resolved);
+      onTabChange?.(resolved);
       return;
     }
     setInternalTab(resolved);
-  }, [controlled, props.onTabChange]);
+  }, [controlled, onTabChange]);
   const [pendingSaleDraft, setPendingSaleDraft] = useState(null);
   const [busyId, setBusyId] = useState(null);
 
   useEffect(() => {
-    if (controlled || !props.initialTab) return;
-    setInternalTab(resolveCommercialTab(props.initialTab));
-  }, [controlled, props.initialTab]);
+    if (controlled || !initialTab) return;
+    queueMicrotask(() => setInternalTab(resolveCommercialTab(initialTab)));
+  }, [controlled, initialTab]);
 
   useEffect(() => {
     const handler = (event) => {
@@ -224,7 +225,7 @@ export default function CommercialRecoveredModule(props) {
   const investissementsCrud = useCrudModule('investissements');
   const whatsappLogsCrud = useCrudModule('whatsapp_logs');
   const periodFiltered = Boolean(props.periodFiltered);
-  const live = useMemo(() => resolveCommercialDataset({
+  const live = resolveCommercialDataset({
     props,
     ordersCrud,
     paymentsCrud,
@@ -234,26 +235,9 @@ export default function CommercialRecoveredModule(props) {
     invoicesCrud,
     periodFiltered,
     periodScope: props.periodScope,
-  }), [
-    props.salesOrders,
-    props.salesOrdersAll,
-    props.payments,
-    props.paymentsAll,
-    props.clients,
-    props.opportunities,
-    props.deliveries,
-    props.invoices,
-    props.periodScope,
-    periodFiltered,
-    ordersCrud.rows,
-    paymentsCrud.rows,
-    clientsCrud.rows,
-    opportunitiesCrud.rows,
-    deliveriesCrud.rows,
-    invoicesCrud.rows,
-  ]);
+  });
 
-  const { orders, ordersAll, payments, paymentsAll, deliveriesAll, invoicesAll, clients: clientsRaw, opportunities } = live;
+  const { orders, ordersAll, paymentsAll, deliveriesAll, invoicesAll, clients: clientsRaw, opportunities } = live;
 
   const clients = useMemo(
     () => resolveCommercialClients(clientsRaw, ordersAll),
@@ -276,12 +260,19 @@ export default function CommercialRecoveredModule(props) {
   const eventRows = rowsOf(props.businessEvents, eventsCrud, false);
   const sellableStocks = useMemo(() => listSellableStocks(stockRows, 50), [stockRows]);
 
-  const refreshWorkflow = props.onRefreshWorkflow || (async () => Promise.allSettled([
-    ordersCrud.refresh?.(), itemsCrud.refresh?.(), deliveriesCrud.refresh?.(), invoicesCrud.refresh?.(),
-    paymentsCrud.refresh?.(), opportunitiesCrud.refresh?.(), clientsCrud.refresh?.(), financesCrud.refresh?.(),
-    docsCrud.refresh?.(), eventsCrud.refresh?.(), tasksCrud.refresh?.(), alertsCrud.refresh?.(),
-    whatsappLogsCrud.refresh?.(),
-  ]));
+  const refreshWorkflow = useCallback(async () => {
+    if (onRefreshWorkflow) return onRefreshWorkflow();
+    return Promise.allSettled([
+      ordersCrud.refresh?.(), itemsCrud.refresh?.(), deliveriesCrud.refresh?.(), invoicesCrud.refresh?.(),
+      paymentsCrud.refresh?.(), opportunitiesCrud.refresh?.(), clientsCrud.refresh?.(), financesCrud.refresh?.(),
+      docsCrud.refresh?.(), eventsCrud.refresh?.(), tasksCrud.refresh?.(), alertsCrud.refresh?.(),
+      whatsappLogsCrud.refresh?.(),
+    ]);
+  }, [
+    onRefreshWorkflow, ordersCrud, itemsCrud, deliveriesCrud, invoicesCrud, paymentsCrud,
+    opportunitiesCrud, clientsCrud, financesCrud, docsCrud, eventsCrud, tasksCrud, alertsCrud,
+    whatsappLogsCrud,
+  ]);
 
   const workflowHandlers = useMemo(() => ({
     onCreateOrder: props.onCreate || ordersCrud.create,
@@ -297,9 +288,15 @@ export default function CommercialRecoveredModule(props) {
     onCreateClient: props.onCreateClient || clientsCrud.create,
     onCreateTask: props.onCreateTask || tasksCrud.create,
     onUpdateTask: props.onUpdateTask || tasksCrud.update,
-    onUpdateOrder: props.onUpdate || ordersCrud.update,
     onRefreshWorkflow: refreshWorkflow,
-  }), [props.onCreate, props.onCreateItem, props.onUpdate, props.onCreateDelivery, props.onCreateInvoice, props.onCreateDocument, props.onCreatePayment, props.onCreateBusinessEvent, props.onUpdateDelivery, props.onUpdateClient, props.onCreateClient, props.onCreateTask, props.onUpdateTask, refreshWorkflow]);
+  }), [
+    props.onCreate, props.onCreateItem, props.onUpdate, props.onCreateDelivery, props.onCreateInvoice,
+    props.onCreateDocument, props.onCreatePayment, props.onCreateBusinessEvent, props.onUpdateDelivery,
+    props.onUpdateClient, props.onCreateClient, props.onCreateTask, props.onUpdateTask, ordersCrud.create,
+    itemsCrud.create, ordersCrud.update, deliveriesCrud.create, invoicesCrud.create, docsCrud.create,
+    paymentsCrud.create, eventsCrud.create, deliveriesCrud.update, clientsCrud.update, clientsCrud.create,
+    tasksCrud.create, tasksCrud.update, refreshWorkflow,
+  ]);
 
   const data = useMemo(() => {
     const enrichOpts = { deliveries: deliveriesAll, invoices: invoicesAll };
@@ -463,10 +460,12 @@ export default function CommercialRecoveredModule(props) {
       }, props.periodScope),
     };
   }, [
-    orders, ordersAll, payments, paymentsAll, deliveriesAll, invoicesAll, clients, opportunities,
+    orders, ordersAll, paymentsAll, deliveriesAll, invoicesAll, clients, opportunities,
     orderItemRows, transactionRows, documentsRows, stockRows, animauxRows, lotsRows, culturesRows,
     alertRows, whatsappLogRows, taskRows, sellableStocks, workflowHandlers, props.periodScope, props.farmScope,
-    props.accessibleFarms, props.activeFarm,
+    props.accessibleFarms, props.activeFarm, props.periodFiltered, props.alimentationLogs, props.productionLogs,
+    props.vaccins, props.sante, props.businessEvents, props.businessPlans, alimentationCrud, productionCrud,
+    santeCrud, eventsCrud, businessPlansCrud, pf,
   ]);
 
   const openNewSale = (draft = null) => {
@@ -481,7 +480,7 @@ export default function CommercialRecoveredModule(props) {
     onCreateBusinessEvent: workflowHandlers.onCreateBusinessEvent,
     existingTasks: taskRows,
     existingAlerts: alertRows,
-  }), [props.onNavigate, props.onCreateAlert, workflowHandlers, taskRows, alertRows]);
+  }), [props.onNavigate, props.onCreateAlert, alertsCrud.create, workflowHandlers, taskRows, alertRows]);
 
   const applyFinding = async (finding) => {
     setBusyId(finding.id);
@@ -609,8 +608,8 @@ export default function CommercialRecoveredModule(props) {
       {tab === 'Ventes & commandes commercial' ? (
         <div className="space-y-4">
           <VentesV5 {...salesProps} user={props.user} />
-          <details className="border-t border-[#eadcc2] pt-4">
-            <summary className="cursor-pointer text-sm font-black text-[#2f2415]">Opportunités disponibles</summary>
+          <details className="border-t border-line pt-4">
+            <summary className="cursor-pointer text-sm font-semibold text-earth">Opportunités disponibles</summary>
             <div className="mt-4">{opportunitiesPanel}</div>
           </details>
         </div>
@@ -697,8 +696,8 @@ export default function CommercialRecoveredModule(props) {
             onApplyFinding={applyFinding}
             busyId={busyId}
           />
-          <details className="rounded-2xl border border-[#eadcc2] bg-[#fffdf8] p-4">
-            <summary className="cursor-pointer font-black text-sm text-[#2f2415]">Devis & réconciliation (avancé)</summary>
+          <details className="rounded-2xl border border-line bg-card p-4">
+            <summary className="cursor-pointer font-semibold text-sm text-earth">Devis & réconciliation (avancé)</summary>
             <div className="mt-3 space-y-4">
               <CommercialQuotesPanel
                 orders={data.ordersAll}
@@ -735,8 +734,8 @@ export default function CommercialRecoveredModule(props) {
             chartOptions={data.chartOptions}
           />
           <MarginGlossaryPanel />
-          <details className="rounded-2xl border border-[#eadcc2] bg-[#fffdf8] p-4">
-            <summary className="cursor-pointer font-black text-sm text-[#2f2415]">Annexe & graphiques</summary>
+          <details className="rounded-2xl border border-line bg-card p-4">
+            <summary className="cursor-pointer font-semibold text-sm text-earth">Annexe & graphiques</summary>
             <div className="mt-3 space-y-4">
               <CommercialAnnexeTab
                 documents={documentsRows}
