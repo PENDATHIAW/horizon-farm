@@ -1,7 +1,7 @@
 import { toNumber } from './format.js';
 import { paidForOrder, remainingForOrder } from './salesStatuses.js';
 
-const arr = (value) => (Array.isArray(value) ? value : []);
+
 
 export const saleTotal = (order = {}) => toNumber(order.montant_total ?? order.total ?? order.amount ?? order.total_amount ?? (toNumber(order.quantity ?? order.quantite) * toNumber(order.unit_price ?? order.prix_unitaire)));
 export const paymentOrderId = (payment = {}) => String(payment.order_id || payment.sale_id || payment.source_record_id || payment.related_id || payment.commande_id || '');

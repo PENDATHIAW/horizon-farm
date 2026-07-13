@@ -59,7 +59,7 @@ export function buildDashboardActionSuggestions() {
 }
 
 /** @deprecated Utiliser buildDashboardPilotageSuggestions */
-export function dashboardActionToHeyHorizonQuery(action = {}) {
+export function dashboardActionToHeyHorizonQuery() {
   return null;
 }
 

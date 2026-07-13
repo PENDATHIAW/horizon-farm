@@ -31,10 +31,10 @@ import {
 const arr = (value) => Array.isArray(value) ? value : [];
 const amount = (row = {}) => toNumber(row.montant ?? row.amount ?? row.total ?? row.montant_total ?? 0);
 const hasAmount = (row = {}) => Math.abs(amount(row)) > 0;
-const status = (row = {}) => String(row.statut ?? row.status ?? 'paye').toLowerCase();
+
 const isIn = (row = {}) => String(row.type || '').toLowerCase() === 'entree';
 const today = () => new Date().toISOString().slice(0, 10);
-const lower = (value) => String(value || '').trim().toLowerCase();
+
 
 const activityLabels = {
   animaux: 'Animaux',

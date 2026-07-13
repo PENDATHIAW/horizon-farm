@@ -1,13 +1,12 @@
-import { Link2, Package, Plus, Receipt, Truck, Wrench } from 'lucide-react';
+import {  Package, Plus, Receipt, Truck, Wrench } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import toast from 'react-hot-toast';
 import Btn from '../../components/Btn';
-import { fmtCurrency } from '../../utils/format';
+
 import { makeId } from '../../utils/ids';
 import { buildCommercialSaleGapRows } from '../../utils/commercialSaleIntegrity';
 import { applySourceImpactFromSale } from '../../utils/saleSideEffects';
 
-const arr = (value) => Array.isArray(value) ? value : [];
 const today = () => new Date().toISOString().slice(0, 10);
 
 export default function CommercialSaleRepairPanel({
@@ -77,7 +76,7 @@ export default function CommercialSaleRepairPanel({
         await onUpdateLot?.(row.lotId, { statut: 'vendu', status: 'vendu', sale_order_id: row.orderId });
         toast.success('Lot mis à jour');
       } else if (row.kind === 'stockable_without_stock_exit' && row.order) {
-        const stock = arr(stocks).find((s) => String(s.id) === String(row.stockId));
+
         await applySourceImpactFromSale({
           handlers: {
             onUpdateStock: async (id, patch) => {

@@ -1,4 +1,4 @@
-import { AlertTriangle, BellRing, CheckCircle2, ClipboardList, Link2, Timer } from 'lucide-react';
+import {  BellRing, CheckCircle2, ClipboardList, Link2, Timer } from 'lucide-react';
 import { analyzeTaskAlertIntegrity } from '../services/taskAlertIntegrityService';
 
 const MODULE_LABELS = { animaux: 'Animaux', avicole: 'Avicole', cultures: 'Cultures', stock: 'Stock', finances: 'Finances', clients: 'Clients', fournisseurs: 'Fournisseurs', smartfarm: 'Smart Farm', equipements: 'Équipements', sante: 'Santé', ventes: 'Ventes', documents: 'Documents', taches: 'Tâches', alertes: 'Alertes', alertes_center: 'Alertes', business_events: 'Historique métier', audit_logs: 'Journal activité', autre: 'Autre' };

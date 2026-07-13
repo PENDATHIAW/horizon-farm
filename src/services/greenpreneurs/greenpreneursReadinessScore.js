@@ -72,7 +72,7 @@ function calculateInnovationScore(dataMap) {
   const docs = arr(dataMap.documents);
   const alerts = arr(dataMap.alertes_center);
   const smartEvents = arr(dataMap.smartfarm_events);
-  const sensors = arr(dataMap.sensor_devices).length + arr(dataMap.camera_devices).length;
+  const sensors = arr(dataMap.sensor_devices).length;
 
   if (events.length >= 5 || docs.length >= 3) {
     score += 6;

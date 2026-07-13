@@ -5,7 +5,7 @@ import {
   buildProductionAnswer,
   detectProductionQuestion,
 } from '../services/productionStrategicAnswers.js';
-import { fmtNumber } from '../utils/format.js';
+
 
 const ICONS = {
   new_chair_band: Drumstick,

@@ -7,6 +7,13 @@ const clean = (value) => String(value || '').trim();
 const terminalStatuses = ['epuise', 'épuisé', 'bloque', 'bloqué', 'perime', 'périmé', 'retourne', 'retourné', 'a_retourner', 'non_conforme'];
 const sellableCategories = ['recolte', 'produit_fini', 'produits_recoltes', 'vente'];
 
+function saleKindOfStock(row = {}) {
+  const text = clean(`${row.produit || ''} ${row.nom || ''} ${row.categorie || ''} ${row.activite_liee || ''} ${row.source_module || ''}`).toLowerCase();
+  if (/oeuf|œuf|tablette|plateau/.test(text)) return 'oeufs_tablettes';
+  if (/recolte|récolte|culture|maraich|maraîch/.test(text)) return 'culture';
+  return 'stock';
+}
+
 export function productNameOf(row = {}) {
   return row.produit || row.nom || row.name || row.id || 'Produit';
 }
@@ -73,7 +80,7 @@ export function buildSellableStockSaleOptions(stocks = [], { meatChecker = null 
         price: unitPriceOf(row) || unitCostOf(row),
         name: productNameOf(row),
         unit: unitOf(row),
-        sale_kind: 'stock',
+        sale_kind: saleKindOfStock(row),
         sourceRow: row,
       };
     })

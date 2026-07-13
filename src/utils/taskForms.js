@@ -88,7 +88,7 @@ export function taskFields(context = {}) {
   ];
 }
 
-export function taskInitialValues(rows = []) {
+export function taskInitialValues() {
   return { status: 'a_faire', priority: 'normale', due_date: today(), due_time: '08:00', frequency: 'ponctuelle', title_template: '' };
 }
 

@@ -103,6 +103,7 @@ function initialForm(props, prefill, options) {
     product_name: selected?.name || draft.product_name || '',
     quantity: draft.quantity || 1,
     unit: selected?.unit || draft.unit || 'unité',
+    sale_kind: selected?.sale_kind || draft.sale_kind || '',
     unit_price: draft.unit_price || selected?.price || 0,
     payment_status: draft.payment_status || 'paye',
     paid_amount: draft.paid_amount || '',
@@ -137,6 +138,7 @@ export default function DailySaleModal({ props, onClose, onDone, prefill = null 
       product_name: option?.name || '',
       quantity: option?.source_type === 'animal' ? 1 : current.quantity || 1,
       unit: option?.unit || 'unité',
+      sale_kind: option?.sale_kind || '',
       unit_price: option?.price || 0,
     }));
   };

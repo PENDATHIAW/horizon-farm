@@ -3,13 +3,13 @@
  * QUAND VENDRE, QUAND LANCER, audit stock, BFR, ITH, calendrier religieux, effet ciseau.
  */
 
-import { buildMarketEvents, estimateLeadTimes } from './growthDecisionEngine.js';
-import { calculateAnimalCost, feedCostFromLog } from '../utils/costEngine.js';
+import { buildMarketEvents } from './growthDecisionEngine.js';
+import { calculateAnimalCost } from '../utils/costEngine.js';
 import { avicoleActiveCount, avicoleDeadCount, avicoleInitialCount } from '../utils/avicoleMetrics.js';
-import { inferWorkshopFromLot, resolveBreedCode, theoreticalStandardAtAge } from './objectifsDecision/breedStockReferential.js';
+import { inferWorkshopFromLot } from './objectifsDecision/breedStockReferential.js';
 import { buildLotPivotContext } from './objectifsDecision/datePivotEngine.js';
 import { buildSanitaryVacuumAlerts } from './objectifsDecision/objectifsDecisionEngine.js';
-import { receivableFromOrders } from '../modules/commercial/commercialMetrics.js';
+
 
 const arr = (v) => (Array.isArray(v) ? v : []);
 const num = (v = 0) => Number(v || 0) || 0;
@@ -286,11 +286,11 @@ export function evaluateSellNowDecisions(dataMap = {}, options = {}) {
 /** 2. ALGORITHME QUAND LANCER — calendrier religieux, climat, ITH. */
 export function evaluateLaunchTimingDecisions(dataMap = {}, options = {}) {
   const ps = pilotageSettings(dataMap);
-  const lots = arr(dataMap.avicole || dataMap.lots);
-  const animaux = arr(dataMap.animaux);
+
+
   const meteo = options.meteo || dataMap.meteo || {};
   const refDate = options.referenceDate ? new Date(options.referenceDate) : new Date();
-  const today = iso(refDate);
+
 
   const events = buildMarketEvents(refDate, dataMap);
   const alerts = [];
@@ -464,7 +464,7 @@ export function validateCycleBfrCoverage(dataMap = {}, options = {}) {
   const lots = arr(dataMap.avicole || dataMap.lots);
   const stocks = arr(dataMap.stock || dataMap.stocks);
   const salesOrders = arr(dataMap.sales_orders || dataMap.salesOrdersAll || dataMap.salesOrders);
-  const payments = arr(dataMap.payments || dataMap.paymentsAll || dataMap.payments);
+
   const transactions = arr(dataMap.finances || dataMap.transactions);
   const clients = arr(dataMap.clients);
 
@@ -663,7 +663,7 @@ export function buildScissorsEffectAlert(dataMap = {}) {
 /** Arbitrage transformation œuf vs poussin (si incubateur). */
 export function buildTransformationArbitrage(dataMap = {}) {
   const marketPrices = arr(dataMap.market_prices || dataMap.marketPrices);
-  const productionLogs = arr(dataMap.production_oeufs_logs || dataMap.productionLogs);
+
   const settings = dataMap.growth_settings || {};
 
   const eggTrayPrice = num(

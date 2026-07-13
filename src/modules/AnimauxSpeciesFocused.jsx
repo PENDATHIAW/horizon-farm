@@ -1,4 +1,4 @@
-import { AlertTriangle, CheckCircle, Download, Edit, Eye, LineChart, Lock, Plus, QrCode, RefreshCw, Trash2 } from 'lucide-react';
+import { AlertTriangle, CheckCircle, Download, Edit, Eye, Lock, Plus, QrCode, RefreshCw, Trash2 } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import toast from 'react-hot-toast';
 import Btn from '../components/Btn';
@@ -31,7 +31,7 @@ const COST_UNIFIED_LABEL = PRODUCTION_FINANCE_LABELS.costTotal;
 
 const arr = (v) => Array.isArray(v) ? v : [];
 const today = () => new Date().toISOString().slice(0, 10);
-const addDays = (date, days) => { const d = new Date(date || today()); d.setDate(d.getDate() + days); return d.toISOString().slice(0, 10); };
+
 const clean = (v) => String(v || '').trim().toLowerCase();
 const amount = (r = {}) => toNumber(r.montant ?? r.amount ?? r.total ?? r.montant_total ?? r.total_amount ?? r.cout ?? r.coût ?? r.cost ?? r.cout_total ?? r.total_cost ?? 0);
 const orderAmount = (r = {}) => toNumber(r.montant_total ?? r.total ?? r.amount ?? r.total_amount ?? r.ca ?? r.ca_total ?? 0);
@@ -42,8 +42,8 @@ const healthOf = (r = {}) => r.health_status || r.sante || r.status_sante || 'sa
 const physicalIdOf = (r = {}) => r.boucle_numero || r.qr_code || r.tag || r.id;
 const weightOf = (r = {}) => toNumber(r.poids_actuel ?? r.poids ?? r.weight ?? r.current_weight ?? r.last_weight);
 const entryWeightOf = (r = {}) => toNumber(r.poids_entree ?? r.weight_entry ?? r.poids_initial ?? r.initial_weight);
-const targetWeightOf = (r = {}) => toNumber(r.poids_cible ?? r.poids_objectif ?? r.target_weight ?? r.objectif_poids);
-const purchaseCost = (r = {}) => toNumber(r.purchase_cost ?? r.cout_achat ?? r.prix_achat ?? r.cost_purchase);
+
+
 const salePrice = (r = {}) => toNumber(r.sale_price ?? r.prix_vente_reel ?? r.prix_vente ?? r.prix_vente_estime);
 const speciesPlural = (s = 'Bovin') => `${s}s`;
 const fallbackText = (value, fallback = 'Non renseigné') => {
@@ -277,7 +277,7 @@ function AnimalDetailModal({ open, onClose, animal, alimentationLogs = [], vacci
   const sales = linkedSales(animal, salesOrders, payments);
   const salePricing = recommendAnimalSalePrice({ animal, alimentationLogs, vaccins: linkedHealth, marketPrices });
   const proposed = buildAnimalProposedSaleDisplay(salePricing, costs);
-  const saleLabel = costs.salesCount > 0 ? 'Vente liée' : costs.sale > 0 ? 'Vente estimée' : 'Vente';
+
   const identityRows = [
     ['Identifiant / boucle', physicalIdOf(animal)],
     ['Nom / repère', animal.name || animal.nom],
@@ -353,7 +353,7 @@ function AnimalDetailModal({ open, onClose, animal, alimentationLogs = [], vacci
     ) : null}
   </div></BaseModal>;
 }
-export default function AnimauxSpeciesFocused({ species = 'Bovin', rows = [], alimentationLogs = [], vaccins = [], businessEvents = [], salesOrders = [], payments = [], transactions = [], marketPrices = [], loading, onCreate, onUpdate, onDelete, onRefresh }) {
+export default function AnimauxSpeciesFocused({ species = 'Bovin', rows = [], alimentationLogs = [], vaccins = [], businessEvents = [], salesOrders = [], payments = [], transactions = [], marketPrices = [], onCreate, onUpdate, onDelete, onRefresh }) {
   const [selected, setSelected] = useState(null); const [modal, setModal] = useState(null); const [saving, setSaving] = useState(false); const [filter, setFilter] = useState('tous');
   const createFields = useMemo(() => buildCreateFields(species), [species]); const deriveCreateValues = useMemo(() => deriveCreateValuesForSpecies(species), [species]);
   const normalizedRows = useMemo(() => arr(rows).map((row) => ({ ...row, type: row.type || species, espece: row.espece || species })), [rows, species]);

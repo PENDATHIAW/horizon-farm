@@ -12,7 +12,7 @@ import {
 import { confirmSaleDelivery } from '../../utils/confirmSaleDelivery.js';
 import CommercialDeliverySyncPanel from '../CommercialDeliverySyncPanel.jsx';
 
-const arr = (value) => (Array.isArray(value) ? value : []);
+
 
 export default function CommercialDeliveriesPanel({
   deliveries = [],

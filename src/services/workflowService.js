@@ -2,7 +2,7 @@ import { toNumber } from '../utils/format';
 import { makeId } from '../utils/ids';
 import { buildSaleWorkflowHandlers, runNewSaleSideEffects } from '../utils/saleSideEffects';
 import { financeIds } from '../utils/sideEffectIds';
-import { runPurchaseSideEffects, runStockLossSideEffects } from '../utils/purchaseSideEffects';
+import { runPurchaseSideEffects } from '../utils/purchaseSideEffects';
 import { runFeedingSideEffects } from '../utils/feedingSideEffects';
 import { runHealthSideEffects, runBiosecuritySideEffects } from '../utils/healthSideEffects';
 import { runEquipmentWorkflowSideEffects } from '../utils/equipmentSideEffects';

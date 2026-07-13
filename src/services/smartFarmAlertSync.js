@@ -7,8 +7,10 @@ export async function syncSmartFarmCriticalSignals({
   sensors = [],
   tasks = [],
   alertes = [],
+  onCreateTask,
   onCreateAlert,
   onCreateBusinessEvent,
+  onRefreshTasks,
   onRefreshAlertes,
   onRefreshBusinessEvents,
 } = {}) {
@@ -28,14 +30,12 @@ export async function syncSmartFarmCriticalSignals({
     if (hasAlert) continue;
 
     await onCreateAlert(followUp.alert);
+    if (!hasTask && onCreateTask) await onCreateTask(followUp.task);
     if (onCreateBusinessEvent) await onCreateBusinessEvent(followUp.event);
     created += 1;
-    if (!hasTask) {
-      // Tâche créée uniquement si alerte créée — l'utilisateur valide via Activité
-    }
   }
 
-  await Promise.allSettled([onRefreshAlertes?.(), onRefreshBusinessEvents?.()]);
+  await Promise.allSettled([onRefreshTasks?.(), onRefreshAlertes?.(), onRefreshBusinessEvents?.()]);
   return { created };
 }
 

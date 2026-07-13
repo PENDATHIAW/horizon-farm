@@ -9,6 +9,27 @@ import {
 } from '../../src/config/moduleEntryPoints.js';
 import { NAV_MODULE_ORDER, ROUTE_TO_MODULE } from '../../src/config/modules.config.js';
 
+const EXPECTED_NAV_MODULES = [
+  'dashboard', 'assistant_erp', 'centre_decisionnel', 'agri_feeds', 'objectifs_croissance', 'financements',
+  'elevage', 'cultures', 'commercial', 'achats_stock', 'finance_pilotage', 'activite_suivi',
+  'documents_rapports', 'equipe', 'equipements', 'smartfarm', 'gestion_systeme',
+];
+
+test('la navigation expose exactement les 17 modules V1, tous chargeables', () => {
+  assert.deepEqual(NAV_MODULE_ORDER, EXPECTED_NAV_MODULES);
+  NAV_MODULE_ORDER.forEach((moduleId) => {
+    assert.equal(typeof MODULE_ENTRY_POINTS[moduleId], 'function', `route principale morte: ${moduleId}`);
+    assert.ok(entryPointSource(moduleId), `source manquante: ${moduleId}`);
+  });
+});
+
+test('chaque redirection historique aboutit à un module actif', () => {
+  Object.entries(ROUTE_TO_MODULE).forEach(([route, moduleId]) => {
+    assert.ok(NAV_MODULE_ORDER.includes(moduleId), `${route}: cible hors navigation ${moduleId}`);
+    assert.equal(typeof MODULE_ENTRY_POINTS[moduleId], 'function', `${route}: cible sans entry point`);
+  });
+});
+
 test('impact_business retiré de la navigation principale', () => {
   assert.ok(!NAV_MODULE_ORDER.includes('impact_business'));
   assert.ok(NAV_MODULE_ORDER.includes('financements'));

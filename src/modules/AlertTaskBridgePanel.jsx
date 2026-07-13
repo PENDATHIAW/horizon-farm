@@ -50,15 +50,7 @@ export default function AlertTaskBridgePanel({
     }
   };
 
-  const closeTaskFromAlert = async (alert) => {
-    try {
-      const linked = await bridgeCloseTaskFromResolvedAlert(alert, tasks, handlers);
-      if (linked) toast.success('Tâche clôturée depuis l’alerte résolue');
-      else toast('Aucune tâche ouverte liée');
-    } catch (error) {
-      toast.error(error.message || 'Clôture tâche impossible');
-    }
-  };
+
 
   const resolveAlert = async (alert) => {
     try {

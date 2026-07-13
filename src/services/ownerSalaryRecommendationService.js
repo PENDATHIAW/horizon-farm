@@ -10,7 +10,6 @@ export function recommendOwnerSalary({
   existingOwnerWithdrawals = 0,
   reserveRate = 0.35,
   salaryRate = 0.25,
-  minSalary = 0,
   maxSalary = 300000,
 } = {}) {
   const result = toNumber(operatingResult);

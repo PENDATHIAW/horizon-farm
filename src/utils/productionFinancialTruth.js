@@ -1,4 +1,4 @@
-import { fmtCurrency, fmtNumber, fmtPercent } from './format.js';
+import { fmtCurrency } from './format.js';
 
 /** Une seule vérité financière Élevage — moteur unifiedCostService (aligné Finance). */
 export const PRODUCTION_FINANCE_SOURCE = 'Coût unifié ERP (alimentation + santé + achat) — même moteur que Finance & Rentabilité.';
@@ -33,7 +33,7 @@ export function formatTechnicalMargin({ margin, reliable, missing = [] } = {}) {
 }
 
 export function buildFinancialSnapshot(kpi = {}, kind = 'lot') {
-  const cost = kpi.totalCost ?? kpi.costPerKg ?? kpi.costPerAnimal ?? kpi.costPerEgg;
+
   return {
     costLabel: PRODUCTION_FINANCE_LABELS.costTotal,
     costValue: kpi.unifiedTotal != null ? formatUnifiedCost(kpi.unifiedTotal) : '—',

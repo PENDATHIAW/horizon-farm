@@ -14,7 +14,6 @@ export default function CommercialAnnexeTab({
   orders = [],
   invoices = [],
   deliveries = [],
-  clients = [],
   onNavigate,
 }) {
   const orderIds = new Set(arr(orders).map((o) => String(o.id)));

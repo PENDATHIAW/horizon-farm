@@ -1,7 +1,7 @@
-import { toNumber } from './format';
-import { makeId } from './ids';
+import { toNumber } from './format.js';
+import { makeId } from './ids.js';
 
-const clean = (value = '') => String(value || '').trim();
+
 const today = () => new Date().toISOString().slice(0, 10);
 
 export const supplierName = (supplier = {}) => supplier.nom || supplier.name || supplier.raison_sociale || supplier.id || 'Fournisseur';
@@ -89,10 +89,23 @@ export function buildSupplierReceptionWorkflow({ supplier = {}, stock = {}, qty 
   };
 }
 
-export function buildSupplierPaymentWorkflow({ supplier = {}, debtAmount = 0, date = today(), openDebtTransactions = [] } = {}) {
+export function buildSupplierPaymentWorkflow({
+  supplier = {},
+  debtAmount = 0,
+  totalDebt = debtAmount,
+  date = today(),
+  paymentMethod = '',
+  proofUrl = '',
+  sourceTransactionId = '',
+  openDebtTransactions = [],
+} = {}) {
   const amount = toNumber(debtAmount);
   const transactionId = makeId('TRX');
   const documentId = makeId('DOC');
+  const sourceDebt = openDebtTransactions.find((tx) => String(tx.id) === String(sourceTransactionId)) || openDebtTransactions[0] || {};
+  const sourceRemaining = toNumber(sourceDebt.reste_a_payer ?? sourceDebt.amount ?? sourceDebt.montant);
+  const debtAfterPayment = Math.max(0, sourceRemaining - amount);
+  const supplierDebtAfterPayment = Math.max(0, toNumber(totalDebt) - amount);
   return {
     amount,
     paymentTransaction: {
@@ -109,6 +122,11 @@ export function buildSupplierPaymentWorkflow({ supplier = {}, debtAmount = 0, da
       status: 'paye',
       cash_effect: true,
       payment_for: 'supplier_debt',
+      payment_method: paymentMethod,
+      moyen_paiement: paymentMethod,
+      settled_transaction_id: sourceDebt.id || '',
+      purchase_or_stock_id: sourceDebt.stock_id || sourceDebt.purchase_id || sourceDebt.related_id || '',
+      stock_id: sourceDebt.stock_id || '',
       source_module: 'fournisseurs',
       source_record_id: supplier.id,
     },
@@ -121,26 +139,28 @@ export function buildSupplierPaymentWorkflow({ supplier = {}, debtAmount = 0, da
       entity_id: supplier.id,
       related_id: supplier.id,
       transaction_id: transactionId,
-      statut: 'manquant',
-      status: 'manquant',
-      verification_status: 'preuve_manquante',
+      statut: proofUrl ? 'fourni' : 'manquant',
+      status: proofUrl ? 'fourni' : 'manquant',
+      verification_status: proofUrl ? 'a_verifier' : 'preuve_manquante',
+      file_url: proofUrl,
       notes: 'Ajouter reçu, capture mobile money ou facture acquittée.',
     },
-    debtTransactionPatches: openDebtTransactions.map((tx) => ({
-      id: tx.id,
+    debtTransactionPatches: sourceDebt.id ? [{
+      id: sourceDebt.id,
       patch: {
-        statut: 'solde',
-        status: 'solde',
-        reste_a_payer: 0,
-        settled_at: date,
+        statut: debtAfterPayment > 0 ? 'partiel' : 'solde',
+        status: debtAfterPayment > 0 ? 'partiel' : 'solde',
+        reste_a_payer: debtAfterPayment,
+        settled_at: debtAfterPayment > 0 ? null : date,
         settlement_transaction_id: transactionId,
         cash_effect: false,
       },
-    })),
-    supplierPatch: { dettes: 0, dette: 0, reste_a_payer: 0, dernier_paiement: date, last_payment_id: transactionId },
+    }] : [],
+    supplierPatch: { dettes: supplierDebtAfterPayment, dette: supplierDebtAfterPayment, reste_a_payer: supplierDebtAfterPayment, dernier_paiement: date, last_payment_id: transactionId },
     event: {
       id: makeId('EVT'),
-      event_type: 'paiement_fournisseur',
+      event_type: 'supplier_payment',
+      legacy_event_type: 'paiement_fournisseur',
       module_source: 'fournisseurs',
       entity_type: 'fournisseur',
       entity_id: supplier.id,
@@ -151,6 +171,9 @@ export function buildSupplierPaymentWorkflow({ supplier = {}, debtAmount = 0, da
       severity: 'info',
       linked_transaction_id: transactionId,
       linked_document_id: documentId,
+      source_transaction_id: sourceDebt.id || '',
+      purchase_or_stock_id: sourceDebt.stock_id || sourceDebt.purchase_id || sourceDebt.related_id || '',
+      payment_method: paymentMethod,
     },
   };
 }

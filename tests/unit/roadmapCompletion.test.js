@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { buildIssueGroups, summarizeIssueGroups } from '../../src/services/issueGroupingService.js';
-import { buildEquipmentSmartFarmSummary, orphanSmartFarmDevices } from '../../src/services/equipmentSmartFarmBridge.js';
+import { buildSmartFarmDeviceFollowUp } from '../../src/utils/smartFarmWorkflows.js';
 import { auditRhPayrollFinanceGaps } from '../../src/services/rhPayrollFinanceSyncService.js';
 
 test('buildIssueGroups regroupe alerte et tâche par issue_key', () => {
@@ -15,14 +15,13 @@ test('buildIssueGroups regroupe alerte et tâche par issue_key', () => {
   assert.equal(summarizeIssueGroups(groups).open, 1);
 });
 
-test('buildEquipmentSmartFarmSummary lie capteur par equipment_id', () => {
-  const summary = buildEquipmentSmartFarmSummary(
-    [{ id: 'EQ-1', name: 'Pompe', zone: 'serre' }],
-    [{ id: 'S1', equipment_id: 'EQ-1', name: 'Humidité' }],
-    [],
-  );
-  assert.equal(summary[0].totalDevices, 1);
-  assert.equal(orphanSmartFarmDevices([{ id: 'EQ-1' }], [{ id: 'S2' }], []).length, 1);
+test('buildSmartFarmDeviceFollowUp prépare le suivi d’un capteur critique', () => {
+  const followUp = buildSmartFarmDeviceFollowUp({
+    device: { id: 'S1', name: 'Humidité', status: 'offline', zone: 'serre' },
+  });
+  assert.equal(followUp.alert.entity_id, 'S1');
+  assert.equal(followUp.task.source_record_id, 'S1');
+  assert.equal(followUp.event.event_type, 'smartfarm_signal_critique');
 });
 
 test('auditRhPayrollFinanceGaps détecte salaire sans finance', () => {

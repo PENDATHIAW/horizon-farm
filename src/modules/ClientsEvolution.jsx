@@ -35,7 +35,7 @@ function buildRows({ salesOrders = [], payments = [] }) {
 
 export default function ClientsEvolution({ salesOrders = [], payments = [] }) {
   const data = buildRows({ salesOrders, payments });
-  const ca = data.reduce((sum, row) => sum + row.ca, 0);
+
   const encaisse = data.reduce((sum, row) => sum + row.encaisse, 0);
   const creances = data.reduce((sum, row) => sum + row.creances, 0);
 

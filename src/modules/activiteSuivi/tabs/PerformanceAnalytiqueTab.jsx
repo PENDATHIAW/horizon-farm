@@ -17,7 +17,7 @@ function AlertesVolumePanel({ alertes = [] }) {
     moyenne: open.filter((r) => severityOf(r).includes('moy')).length,
     faible: open.filter((r) => !severityOf(r).includes('crit') && !severityOf(r).includes('urg') && !severityOf(r).includes('moy')).length,
   };
-  const total = open.length || 1;
+
 
   return (
     <ActiviteSection title="Volume alertes ouvertes" subtitle="Répartition par gravité — complète la vue tâches ci-dessous.">

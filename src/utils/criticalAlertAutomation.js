@@ -1,6 +1,6 @@
 import { buildTaskFromAlert, hasOpenTaskForAlert } from './taskWorkflows.js';
 
-const arr = (value) => (Array.isArray(value) ? value : []);
+
 const lower = (value = '') => String(value || '').trim().toLowerCase();
 const today = () => new Date().toISOString().slice(0, 10);
 

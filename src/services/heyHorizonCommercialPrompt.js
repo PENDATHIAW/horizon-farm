@@ -44,7 +44,6 @@ export function buildCommercialAnswerPayload({
   situation = '',
   cause = '',
   action = '',
-  sources = [],
   rows = [],
   route = 'commercial',
   tab = 'Pilotage',

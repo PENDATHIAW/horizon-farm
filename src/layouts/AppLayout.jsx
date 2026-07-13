@@ -125,7 +125,6 @@ export default function AppLayout({
   online = true,
   meteo,
   weather,
-  weatherLoading,
   weatherSource,
   notifs = 0,
   user,

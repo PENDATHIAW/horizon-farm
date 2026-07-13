@@ -4,9 +4,9 @@ import { safeLocalStorageGet, safeLocalStorageSetJson } from '../utils/safeLocal
 const ENTRIES_KEY = 'hf_accounting_entries';
 const LINES_KEY = 'hf_accounting_entry_lines';
 
-const arr = (value) => (Array.isArray(value) ? value : []);
+
 const clean = (value) => String(value || '').trim();
-const lower = (value) => clean(value).toLowerCase();
+
 const amountOf = (row = {}) => Number(row.montant ?? row.amount ?? 0);
 
 export function getLocalAccountingStore() {

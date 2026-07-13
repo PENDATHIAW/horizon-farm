@@ -3,7 +3,6 @@ import { useMemo } from 'react';
 import toast from 'react-hot-toast';
 import {
   BP_LINE_STATUS_OPTIONS,
-  bpCostAmount,
   bpCostLabel,
   BP_LINE_STATUS,
   bpCostPlannedAmount,
@@ -272,7 +271,7 @@ export function BpMonthlyCostsPanel({
 }) {
   const rows = arr(costs);
   const monthlyTotal = rows.reduce((s, r) => s + n(r.montant_mensuel ?? r.amount ?? r.montant), 0);
-  const annualTotal = rows.reduce((s, r) => s + n(r.montant_annuel ?? r.annual ?? (n(r.montant_mensuel ?? r.amount) * 12)), 0);
+
 
   const updateCostStatus = async (cost, status) => {
     if (!isBpCostEditable(cost)) return toast.error('Resynchronisez le BP pour modifier cette charge.');

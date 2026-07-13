@@ -1,7 +1,7 @@
 import { AlertTriangle, Link2 } from 'lucide-react';
 import { buildDocumentsGapRows } from '../../utils/documentsIntegrity.js';
 
-const arr = (value) => (Array.isArray(value) ? value : []);
+
 
 export default function DocumentsGapRepairPanel({
   documents = [],

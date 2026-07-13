@@ -1,16 +1,16 @@
 import { AlertTriangle, CheckCircle2, FileText, Receipt, ShieldCheck } from 'lucide-react';
-import { useMemo, useState } from 'react';
+import { useMemo } from 'react';
 import toast from 'react-hot-toast';
 import { documentLinkedToTransaction, transactionHasProof } from '../utils/accountingProof';
 import { fmtCurrency, toNumber } from '../utils/format';
-import { generateSequentialId } from '../utils/ids';
+
 import { runDocumentLinkSideEffects } from '../utils/documentWorkflows';
 import { documentIds } from '../utils/sideEffectIds';
 import useCrudModule from '../hooks/useCrudModule';
 import useWorkflowSubmit from '../hooks/useWorkflowSubmit';
 import DocumentControlPanel from './DocumentControlPanel.jsx';
 import Documents from './Documents.jsx';
-import { createImpactJournal, finalizeImpactJournal, IMPACT_KEYS, instrumentHandlers, markImpactCreated, markImpactNa, OPERATION_EXPECTATIONS, OPERATION_TYPES } from '../utils/workflowImpactJournal';
+import { createImpactJournal, finalizeImpactJournal, IMPACT_KEYS, instrumentHandlers, markImpactNa, OPERATION_EXPECTATIONS, OPERATION_TYPES } from '../utils/workflowImpactJournal';
 import { showWorkflowImpactToast } from '../utils/workflowImpactToast';
 
 const arr = (value) => Array.isArray(value) ? value : [];

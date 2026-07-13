@@ -4,7 +4,7 @@ import { navigateVisionRisk } from './visionNavigation.js';
 import { runPriorityAlertAction, runPriorityTaskAction } from './visionPriorityActions.js';
 import { filterByExcludedTitles } from '../centre/centreContentUtils.js';
 import StrategicDecisionCard from '../centre/StrategicDecisionCard.jsx';
-import { Btn, DataRow, DataTable, Empty, Pill, Section, TabIntro, VisionKpi, riskLevelLabel } from './visionUtils';
+import { Btn, DataRow, DataTable, Pill, Section, TabIntro, VisionKpi, riskLevelLabel } from './visionUtils';
 
 const arr = (v) => (Array.isArray(v) ? v : []);
 

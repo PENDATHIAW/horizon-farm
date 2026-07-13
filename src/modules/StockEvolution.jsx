@@ -7,7 +7,7 @@ const arr = (value) => Array.isArray(value) ? value : [];
 const lower = (value) => String(value || '').trim().toLowerCase();
 const qty = (row = {}) => toNumber(row.quantite ?? row.quantity ?? row.stock);
 const seuil = (row = {}) => toNumber(row.seuil ?? row.threshold ?? row.seuil_alerte);
-const maxStock = (row = {}) => toNumber(row.stock_max ?? row.quantite_max ?? row.max_stock);
+
 const unitPrice = (row = {}) => toNumber(row.prixUnit ?? row.prixunit ?? row.prix_unitaire ?? row.unit_price ?? row.price ?? row.cout_unitaire);
 const valueOf = (row = {}) => qty(row) * unitPrice(row);
 const categoryOf = (row = {}) => row.categorie || row.category || 'Autre';

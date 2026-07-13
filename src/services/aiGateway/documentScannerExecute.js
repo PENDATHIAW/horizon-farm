@@ -25,7 +25,7 @@ import {
   buildPurchasePayloadFromScan,
 } from './documentScannerDrafts.js';
 
-const clean = (value) => String(value || '').trim();
+
 const today = () => new Date().toISOString().slice(0, 10);
 
 async function ensureProofDocument(proofMeta = {}, handlers = {}) {

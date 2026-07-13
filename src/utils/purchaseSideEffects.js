@@ -1,9 +1,9 @@
-import { syncFinanceSideEffects } from '../services/erpInterconnectionEngine';
+import { syncFinanceSideEffects } from '../services/erpInterconnectionEngine.js';
 import { computeWeightedAverageCost } from './stockValuation.js';
-import { buildStockCriticalFollowUp, hasOpenStockReorderTask, stockProductName, stockQuantity } from './stockWorkflows';
-import { alertIds, documentIds, financeIds } from './sideEffectIds';
-import { attachIdempotency, buildIdempotencyKey, WORKFLOW_TYPES } from './workflowDedupe';
-import { toNumber } from './format';
+import { buildStockCriticalFollowUp, hasOpenStockReorderTask, stockProductName, stockQuantity } from './stockWorkflows.js';
+import { alertIds, documentIds, financeIds } from './sideEffectIds.js';
+import { attachIdempotency, buildIdempotencyKey, WORKFLOW_TYPES } from './workflowDedupe.js';
+import { toNumber } from './format.js';
 
 const arr = (value) => (Array.isArray(value) ? value : []);
 const clean = (value) => String(value || '').trim();

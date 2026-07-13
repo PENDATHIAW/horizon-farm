@@ -28,7 +28,7 @@ const amount = (row = {}) => n(row.montant_total ?? row.total ?? row.amount ?? r
 const isExpense = (row = {}) => low(row.type || row.categorie || '').includes('sortie') || low(row.type || row.categorie || '').includes('charge') || low(row.type || row.categorie || '').includes('depense');
 const isRevenue = (row = {}) => low(row.type || row.categorie || '').includes('entree') || low(row.type || row.categorie || '').includes('recette') || low(row.type || row.categorie || '').includes('vente');
 const FEED_PATTERNS = ['aliment', 'provende', 'feed', 'mais', 'son'];
-const CHICK_PATTERNS = ['poussin', 'poulet', 'chair', 'pondeuse', 'chick'];
+
 
 function toneFromDeviationPct(devPct) {
   if (devPct >= -1.9) return 'good';
@@ -236,7 +236,7 @@ function monthKey(date = new Date()) {
   return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
 }
 
-function buildBreakEven({ transactions = [], salesOrders = [], stocks = [], marketPrices = [] }) {
+function buildBreakEven({ transactions = [], salesOrders = [], marketPrices = [] }) {
   const now = new Date();
   const day = now.getDate();
   const useCurrentMonth = day >= 28;

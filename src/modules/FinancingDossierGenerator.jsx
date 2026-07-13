@@ -53,7 +53,7 @@ function buildDraft(summary) {
       : gp.circular.orgaloopHybrid
         ? ` Effluents : priorité fertilisation cultures Horizon Farm, surplus via ${orgaloop.platformName || 'Orgaloop'}.`
         : '';
-    return `\n\nScore Greenpreneurs DER/FJ : ${gp.readiness.total}/100 (${gp.readiness.statusLabel}).${orgaloopLine} Impact environnemental : ${gp.circular.engraisSavingsFcfa.toLocaleString('fr-FR')} FCFA d'économies engrais estimées, ${gp.circular.parcellesFertilisees} parcelle(s) fertilisée(s), ${gp.circular.fluxCount} flux circulaires suivis. Feuille de route : ${gp.valorisation.roadmapNote}`;
+    return `\n\nScore Greenpreneurs DER/FJ : ${gp.readiness.total}/100 (${gp.readiness.statusLabel}).${orgaloopLine} Impact environnemental : ${gp.circular.engraisSavingsFcfa.toLocaleString('fr-FR')} FCFA d'économies engrais estimées, ${gp.circular.parcellesFertilisees} parcelle(s) fertilisée(s), ${gp.circular.fluxCount} flux circulaires suivis.`;
   })() : '';
   const monthlyRepayment = Math.round(summary.investment / 36);
   return {
@@ -125,7 +125,7 @@ function exportPdf(summary, draft, options = {}) {
       ? ` Stratégie hybride : fertilisation cultures prioritaire. Surplus ${orgaloop.platformName || 'Orgaloop'} : ${Math.round(orgaloop.soldKg || 0)} kg, ${money(orgaloop.revenueFcfa || 0)} CA, ${orgaloop.salesCount || 0} vente(s). Parcelles fertilisées : ${gp.circular.parcellesFertilisees}. Utilisé cultures : ${Math.round(gp.circular.usedOnCulturesKg || 0)} kg.${gp.circular.effluentSurplusKg > 0 ? ` Surplus effluent restant : ${Math.round(gp.circular.effluentSurplusKg)} kg.` : ''}`
       : '';
     if (y > 210) { doc.addPage(); y = 24; }
-    y = section(doc, 'Annexe — Greenpreneurs DER/FJ', `Score ${gp.readiness.total}/100 — ${gp.readiness.statusLabel}.${orgaloopAnnex} Économies engrais : ${money(gp.circular.engraisSavingsFcfa)}. Parcelles fertilisées : ${gp.circular.parcellesFertilisees}. Tallow & Go : ${gp.valorisation.phase2_tallow_go.score}/100 (${gp.valorisation.phase2_tallow_go.statusLabel}). BOVINIA : ${gp.valorisation.phase3_bovinia.score}/100 (${gp.valorisation.phase3_bovinia.statusLabel}). ${gp.valorisation.roadmapNote}`, y);
+    y = section(doc, 'Annexe — Greenpreneurs DER/FJ', `Score ${gp.readiness.total}/100 — ${gp.readiness.statusLabel}.${orgaloopAnnex} Économies engrais : ${money(gp.circular.engraisSavingsFcfa)}. Parcelles fertilisées : ${gp.circular.parcellesFertilisees}. Flux circulaires suivis : ${gp.circular.fluxCount}.`, y);
   }
   const pages = doc.internal.getNumberOfPages();
   for (let i = 1; i <= pages; i += 1) { doc.setPage(i); doc.setFontSize(8); doc.setTextColor(125, 106, 74); doc.text(`Horizon Farm · dossier financement · ${i}/${pages}`, 105, 288, { align: 'center' }); }

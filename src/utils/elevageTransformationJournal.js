@@ -44,7 +44,6 @@ export function buildElevageTransformationRows({
   lots = [],
   salesOrders = [],
   businessEvents = [],
-  payments = [],
 } = {}) {
   const rows = [];
   const saleEntityIds = new Set();

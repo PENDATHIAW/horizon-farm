@@ -5,7 +5,7 @@
  */
 
 import { fmtCurrency } from '../utils/format.js';
-import { buildAutoCommercialOpportunities } from '../utils/commercialAutoOpportunities.js';
+
 import { summarizeSalesMargins } from '../utils/salesMarginEngine.js';
 import { enrichCommercialOrders } from '../modules/commercial/commercialMetrics.js';
 import { buildDirectorSnapshot, propsFromDataMap } from './assistantDirectorSnapshot.js';

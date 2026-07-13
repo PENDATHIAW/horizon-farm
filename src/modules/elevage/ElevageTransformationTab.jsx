@@ -1,4 +1,4 @@
-import { AlertTriangle, Beef, ShoppingCart } from 'lucide-react';
+import {  Beef, ShoppingCart } from 'lucide-react';
 import { useState } from 'react';
 import { fmtNumber } from '../../utils/format';
 import ElevageTransformationJournal from '../../components/ElevageTransformationJournal.jsx';
@@ -24,9 +24,7 @@ function ActionBtn({ icon: Icon, label, onClick, primary }) {
  */
 export default function ElevageTransformationTab({
   data,
-  setTab,
   onNavigate,
-  onOpenWorkflow,
   onPrepareTransformation,
   transformationFormProps,
   animalBridgeProps,

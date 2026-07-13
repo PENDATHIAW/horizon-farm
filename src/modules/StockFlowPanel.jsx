@@ -119,7 +119,7 @@ async function createSupplierDebt(row, amount, props) {
 }
 
 async function receiveCritical(row, props, quantityFromCaller = null, receiptModeFromCaller = null) {
-  const metrics = stockMetrics(row);
+
   const qty = quantityFromCaller;
   if (!qty) return;
   const amount = qty * unitPrice(row);

@@ -17,26 +17,11 @@ import {
 
 const lower = (value) => String(value || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
 const today = () => new Date().toISOString().slice(0, 10);
-const stockKg = (row = {}) => lower(row.unite).includes('sac') ? toNumber(row.quantite) * toNumber(row.poids_sac_kg || row.sac_kg || 50) : toNumber(row.quantite);
+
 const productLabel = (row = {}) => row.produit || row.name || row.nom || row.id || 'Produit stock';
-const nextStockQtyAfterKg = (row = {}, kg = 0) => {
-  if (lower(row.unite).includes('sac')) {
-    const sacKg = toNumber(row.poids_sac_kg || row.sac_kg || 50) || 50;
-    return Math.max(0, toNumber(row.quantite) - (toNumber(kg) / sacKg));
-  }
-  return Math.max(0, toNumber(row.quantite) - toNumber(kg));
-};
-const targetLabel = (target = {}) => target.name || target.nom || target.tag || target.id;
-const activityForFeeding = (targetType = '', target = {}) => {
-  if (targetType === 'animal') {
-    const text = lower(`${target.type || ''} ${target.espece || ''} ${target.name || ''}`);
-    if (text.includes('ovin')) return 'ovins';
-    if (text.includes('caprin') || text.includes('chevre') || text.includes('chèvre')) return 'caprins';
-    return 'bovins';
-  }
-  const text = lower(`${target.type || ''} ${target.type_lot || ''} ${target.name || ''}`);
-  return text.includes('pondeuse') || text.includes('ponte') || text.includes('oeuf') ? 'avicole_pondeuses' : 'avicole_chair';
-};
+
+
+
 const inferMovementType = (draft = {}) => {
   const text = lower(`${draft.raw_input || ''} ${draft.intent || ''}`);
   if (text.includes('perte') || text.includes('perdu') || text.includes('casse') || text.includes('abime')) return 'perte';
@@ -53,10 +38,7 @@ const movementTitle = (type = '') => type === 'perte' ? 'Perte stock' : type ===
 function ModuleSection({ icon: Icon, title, subtitle, children }) {
   return <section className="rounded-3xl border border-[#d6c3a0] bg-white p-5 shadow-sm space-y-4"><div><p className="flex items-center gap-2 text-lg font-black text-[#2f2415]"><Icon size={20} /> {title}</p>{subtitle ? <p className="mt-1 text-sm text-[#8a7456]">{subtitle}</p> : null}</div>{children}</section>;
 }
-function CollapsibleSection({ icon: Icon, title, subtitle, defaultOpen = false, children }) {
-  const [open, setOpen] = useState(defaultOpen);
-  return <section className="rounded-3xl border border-[#d6c3a0] bg-white shadow-sm overflow-hidden"><button type="button" onClick={() => setOpen((value) => !value)} className="flex min-h-[64px] w-full items-center justify-between gap-3 px-5 py-4 text-left hover:bg-[#fffdf8]"><span><span className="flex items-center gap-2 text-lg font-black text-[#2f2415]"><Icon size={20} /> {title}</span>{subtitle ? <span className="mt-1 block text-sm text-[#8a7456]">{subtitle}</span> : null}</span><ChevronDown size={20} className={`shrink-0 text-[#8a7456] transition-transform ${open ? 'rotate-180' : ''}`} /></button>{open ? <div className="border-t border-[#eadcc2] p-5">{children}</div> : null}</section>;
-}
+
 
 function HeyHorizonStockCard({
   draft,

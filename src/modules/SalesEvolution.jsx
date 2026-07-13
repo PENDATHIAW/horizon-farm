@@ -9,7 +9,7 @@ import { summarizeSalesMargins } from '../utils/salesMarginEngine';
 const arr = (value) => Array.isArray(value) ? value : [];
 const lower = (value) => String(value || '').trim().toLowerCase();
 const amount = (row = {}) => toNumber(row.montant_total ?? row.total ?? row.amount ?? row.total_amount ?? row.montant ?? 0);
-const paymentDate = (row = {}) => row.date_paiement || row.payment_date || row.date || row.created_at || row.updated_at;
+
 const paymentOrderId = (row = {}) => String(row.order_id || row.sale_id || row.commande_id || row.related_id || row.source_record_id || '').trim();
 const isCancelledPayment = (row = {}) => ['annule', 'annulé', 'annulee', 'cancelled', 'supprime', 'supprimé', 'deleted'].includes(lower(row.statut || row.status));
 const hasMissingCost = (row = {}) => Boolean(row.cout_a_completer || row.margin_reliable === false || (amount(row) > 0 && toNumber(row.cout_revient ?? row.cout_direct) <= 0));

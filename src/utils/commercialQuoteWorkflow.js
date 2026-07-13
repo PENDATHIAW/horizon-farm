@@ -4,10 +4,8 @@
  */
 
 import { makeId } from './ids.js';
-import { toNumber } from './format.js';
 import {
   buildCommercialSaleRecords,
-  computeSaleAmounts,
   normalizeSaleLines,
   prepareCommercialSaleCommit,
   validateCommercialSaleForm,
@@ -18,7 +16,7 @@ import { stampFarmIdOnCommercialRecords } from './commercialFarmScope.js';
 const arr = (value) => (Array.isArray(value) ? value : []);
 const clean = (value) => String(value || '').trim();
 const lower = (value) => clean(value).toLowerCase();
-const num = (value) => toNumber(value);
+
 const today = () => new Date().toISOString().slice(0, 10);
 const now = () => new Date().toISOString();
 

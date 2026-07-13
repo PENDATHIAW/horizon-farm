@@ -28,10 +28,8 @@ export const monthlyWeights = monthlyRevenueTargets.map((value) => value / Math.
 export const activityAnnualTargets = Object.fromEntries(HORIZON_FARM_OFFICIAL_BP.revenue.byActivity.map((row) => [row.activity, row.annual]));
 export const defaultAnnualMix = Object.fromEntries(Object.entries(activityAnnualTargets).map(([key, value]) => [key, value / Math.max(1, annualRevenueTarget)]));
 
-function dateOnly(date) { const d = safeDate(date); return new Date(d.getFullYear(), d.getMonth(), d.getDate()); }
-function iso(date) { return safeDate(date).toISOString().slice(0, 10); }
 function addDays(date, days) { const next = safeDate(date); next.setDate(next.getDate() + Number(days || 0)); return next; }
-function daysBetween(a, b) { return Math.ceil((dateOnly(b).getTime() - dateOnly(a).getTime()) / 86400000); }
+
 function makeDate(year, month, day) { return new Date(year, month - 1, day); }
 
 function classifyAnimalSpeciesFromText(raw = '') {
@@ -75,15 +73,13 @@ function filterSalesForPeriod(sales = [], payments = [], { monthKey = '', monthK
   return arr(sales).filter((sale) => saleInMonth(sale, payments, monthKey, []));
 }
 
-function buildFinanceRevenueOrders(dataMap = {}, currentMonth = '') {
-  return arr(dataMap.finances || dataMap.transactions).filter((row) => monthOf(row) === currentMonth).filter((row) => normalize(row.type).includes('entree')).map((row) => ({ ...row, montant_total: amount(row), product_name: row.libelle || row.description || row.categorie, source_type: row.source_type || row.module_lie || row.activite, source_id: row.source_id || row.related_id }));
-}
+
 function mergeRevenueRows(sales = [], financeRevenue = []) {
   const seen = new Set(sales.map((row) => String(row.id || row.related_id || row.source_record_id || '')));
   return [...sales, ...financeRevenue.filter((row) => !seen.has(String(row.related_id || row.source_record_id || row.id || '')))];
 }
 
-export function buildCommercialCalendar(date = new Date(), activityYear = null) {
+export function buildCommercialCalendar(_date = new Date(), activityYear = null) {
   return safeRun(() => {
     const ctx = activityYear || resolveActivityYearContext(buildActivityYearInputFromDataMap({}));
     const rows = ctx.year1MonthKeys.map((monthCode, index) => {

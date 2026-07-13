@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import React from 'react';
 import { renderToString } from 'react-dom/server';
-import Equipements from '../../src/modules/Equipements.jsx';
+import EquipementsV3 from '../../src/modules/EquipementsV3.jsx';
 import VentesV4 from '../../src/modules/VentesV4.jsx';
 
 const baseProps = {
@@ -15,15 +15,14 @@ const baseProps = {
   tasks: [],
   alertes: [],
   sensors: [],
-  cameras: [],
   onNavigate: () => {},
   onRefresh: () => {},
   onUpdate: async () => {},
 };
 
-test('Equipements renders without missing SmartFarm bridge', () => {
-  const html = renderToString(React.createElement(Equipements, baseProps));
-  assert.ok(html.includes('Parc matériel') || html.length > 50);
+test('EquipementsV3 renders through the canonical operational module', () => {
+  const html = renderToString(React.createElement(EquipementsV3, baseProps));
+  assert.ok(html.includes('Équipements') || html.length > 50);
 });
 
 test('VentesV4 renders without missing repair panel', () => {

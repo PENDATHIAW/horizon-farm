@@ -9,7 +9,7 @@ import {
 import { buildProductionCoherenceAlerts } from '../utils/productionStockCatalog';
 
 const arr = (value) => (Array.isArray(value) ? value : []);
-const clean = (value = '') => String(value || '').trim();
+
 const qty = (row = {}) => toNumber(row.quantite ?? row.quantity ?? row.stock);
 const seuil = (row = {}) => toNumber(row.seuil ?? row.threshold ?? row.min_quantity);
 const unitPrice = (row = {}) => toNumber(row.prixunit ?? row.prixUnit ?? row.prix_unitaire ?? row.unit_price);

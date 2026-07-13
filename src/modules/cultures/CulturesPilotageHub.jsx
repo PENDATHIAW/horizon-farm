@@ -27,7 +27,6 @@ export default function CulturesPilotageHub({
   salesOrders = [],
   businessEvents = [],
   transactions = [],
-  opportunities = [],
   meteo,
   dataMap = {},
   onNavigate,

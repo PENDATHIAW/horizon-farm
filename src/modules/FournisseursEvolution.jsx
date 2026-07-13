@@ -20,7 +20,7 @@ const isSupplierExpense = (row = {}) => {
   return text.includes('sortie') || text.includes('fournisseur') || text.includes('achat');
 };
 
-function buildRows({ suppliers = [], stocks = [], finances = [] }) {
+function buildRows({  stocks = [], finances = [] }) {
   return lastMonths(6).map((month) => {
     const stockRows = arr(stocks).filter((row) => monthKey(row.date || row.created_at || row.updated_at) === month && supplierId(row));
     const financeRows = arr(finances).filter((row) => monthKey(row.date || row.created_at || row.updated_at) === month && isSupplierExpense(row));

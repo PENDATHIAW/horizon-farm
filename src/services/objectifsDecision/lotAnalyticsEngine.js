@@ -1,7 +1,7 @@
 import { calculateAnimalCost, calculateAvicoleLotCost, feedCostFromLog } from '../../utils/costEngine.js';
-import { avicoleActiveCount, avicoleDeadCount } from '../../utils/avicoleMetrics.js';
+import {  avicoleDeadCount } from '../../utils/avicoleMetrics.js';
 import { buildLotPivotContext } from './datePivotEngine.js';
-import { getBreedStock, inferWorkshopFromLot } from './breedStockReferential.js';
+import {  inferWorkshopFromLot } from './breedStockReferential.js';
 import { buildSanitaryVacuumAlerts } from './objectifsDecisionEngine.js';
 import { checkThermalStress, calculateBiomassValue } from './predictiveAnalysisEngine.js';
 import { buildCrossAnalyticsPlan } from './crossAnalyticsEngine.js';
@@ -45,7 +45,7 @@ export function buildRentabilityAnalysis(dataMap = {}, options = {}) {
   const alimentationLogs = arr(dataMap.alimentation_logs || dataMap.alimentationLogs);
   const productionLogs = arr(dataMap.production_oeufs_logs || dataMap.productionLogs);
   const sante = arr(dataMap.sante || dataMap.vaccins);
-  const salesOrders = arr(dataMap.sales_orders || dataMap.salesOrders);
+
   const eggPrice = num(options.eggPrice ?? dataMap.growth_settings?.egg_unit_price ?? 25);
 
   const rows = lots.map((lot) => {
@@ -218,7 +218,7 @@ export function buildTechnicalEfficiencyAnalysis(dataMap = {}, options = {}) {
 export function buildFluxEquilibresAnalysis(dataMap = {}) {
   const lots = arr(dataMap.avicole || dataMap.lots);
   const stocks = arr(dataMap.stock || dataMap.stocks);
-  const alimentationLogs = arr(dataMap.alimentation_logs || dataMap.alimentationLogs);
+
   const animaux = arr(dataMap.animaux);
 
   const feedStock = stocks

@@ -3,7 +3,7 @@ import { MODULE_REGISTRY } from '../config/modules.config.js';
 import { runErpHealthEngine } from './erpHealthEngine.js';
 
 const arr = (v) => (Array.isArray(v) ? v : []);
-const n = (v = 0) => Number(v || 0);
+
 
 const MODULE_DATA_KEYS = {
   dashboard: ['sales_orders', 'payments', 'finances', 'animaux', 'avicole', 'stock', 'taches', 'alertes_center'],

@@ -10,7 +10,7 @@ const today = () => new Date().toISOString().slice(0, 10);
 const now = () => new Date().toISOString();
 const cultureName = (row = {}) => row.nom || row.type || row.id || 'Culture';
 const parcelName = (row = {}) => row.parcelle_code || row.parcelle_nom || row.parcelle || 'Parcelle non renseignée';
-const campaignName = (row = {}) => row.campagne || row.saison || row.date_debut_campagne || 'Campagne non renseignée';
+
 const healthScore = (row = {}) => toNumber(row.score_sante ?? row.health_score ?? calculateCultureMetrics(row).healthScore ?? 100);
 const expectedHarvest = (row = {}) => toNumber(row.quantite_prevue ?? row.production_prevue ?? row.expected_yield);
 const harvestedQty = (row = {}) => toNumber(row.quantite_recoltee ?? row.harvested_qty);

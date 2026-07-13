@@ -296,7 +296,7 @@ export function isSpeechSynthesisSupported() {
 }
 
 /** Score dynamique — En progression / Stable / À surveiller / En recul. */
-export function buildExploitationDynamics(summary = {}, comparisons = [], props = {}) {
+export function buildExploitationDynamics(summary = {}, comparisons = []) {
   const week = comparisons.find((row) => row.key === 'week') || null;
   const month = comparisons.find((row) => row.key === 'month') || null;
   const source = month?.ready ? month : week?.ready ? week : null;
@@ -412,7 +412,6 @@ export function buildPresentationModeData(options = {}) {
     dynamics = {},
     farmScope = {},
     activeFarm = null,
-    accessibleFarms = [],
     allFarmsContext = null,
     demoMode = false,
     locationCard = null,
@@ -446,7 +445,7 @@ export function buildPresentationModeData(options = {}) {
   };
 }
 
-export function buildSingleFarmLocationCard(farm = {}, summary = {}, weather = {}, adaptedAlerts = []) {
+export function buildSingleFarmLocationCard(farm = {}, summary = {}, _weather = {}, adaptedAlerts = []) {
   if (!farm?.id) return null;
   return {
     id: farm.id,

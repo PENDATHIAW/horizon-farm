@@ -1,4 +1,4 @@
-import { AlertTriangle, Award, DollarSign, MapPin, MessageCircle, Plus, RefreshCw, Star, Truck, Upload, Download, Edit, Eye, CheckCircle, ShieldAlert } from 'lucide-react';
+import { AlertTriangle, Award, DollarSign, MapPin, MessageCircle, Plus, RefreshCw, Star, Truck, Upload, Download, Edit, Eye, CheckCircle, ShieldAlert, X } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import toast from 'react-hot-toast';
 import Btn from '../components/Btn';
@@ -13,7 +13,7 @@ import { MODULE_FORM_FIELDS } from '../utils/constants';
 import CreateModal from '../modals/CreateModal';
 import EditModal from '../modals/EditModal';
 import DeleteModal from '../modals/DeleteModal';
-import DetailsModal from '../modals/DetailsModal';
+import '../modals/DetailsModal';
 import FournisseurFicheModal from '../components/FournisseurFicheModal.jsx';
 import { calculateSupplierMetrics } from '../utils/businessCalculations';
 import { calculateSupplierSettlement } from '../utils/supplierSettlement';
@@ -24,7 +24,7 @@ import { buildSupplierDecisionProfile, buildSupplierDecisionSummary } from '../s
 import FournisseursStockBridge from './FournisseursStockBridge.jsx';
 import FournisseursEvolution from './FournisseursEvolution.jsx';
 
-const arr = (value) => Array.isArray(value) ? value : [];
+
 const today = () => new Date().toISOString().slice(0, 10);
 const now = () => new Date().toISOString();
 const supplierName = (supplier = {}) => supplier.nom || supplier.name || supplier.id || 'Fournisseur';
@@ -82,6 +82,44 @@ function SupplierDecisionPanel({ summary }) {
           </div>
         ))}
       </div>
+    </div>
+  );
+}
+
+function SupplierPaymentModal({ supplier, debtRows = [], totalDebt = 0, loading = false, onClose, onSubmit }) {
+  const firstDebt = debtRows[0] || {};
+  const firstRemaining = Number(firstDebt.reste_a_payer ?? firstDebt.amount ?? firstDebt.montant ?? totalDebt) || 0;
+  const [form, setForm] = useState({
+    source_transaction_id: firstDebt.id || '',
+    amount: firstRemaining,
+    date: today(),
+    payment_method: 'mobile_money',
+    proof_url: '',
+  });
+  const set = (key, value) => setForm((current) => ({ ...current, [key]: value }));
+  const chooseDebt = (id) => {
+    const debt = debtRows.find((row) => String(row.id) === String(id)) || {};
+    const remaining = Number(debt.reste_a_payer ?? debt.amount ?? debt.montant) || 0;
+    setForm((current) => ({ ...current, source_transaction_id: id, amount: remaining }));
+  };
+  const submit = (event) => {
+    event.preventDefault();
+    onSubmit?.({ ...form, amount: Number(form.amount || 0) });
+  };
+
+  return (
+    <div className="fixed inset-0 z-[90] flex items-center justify-center bg-black/40 p-3">
+      <form onSubmit={submit} className="w-full max-w-lg overflow-hidden rounded-2xl border border-[#d6c3a0] bg-white shadow-2xl">
+        <div className="flex items-start justify-between border-b border-[#eadcc2] p-5"><div><p className="text-xs font-black uppercase text-[#8a7456]">Paiement fournisseur</p><h2 className="text-xl font-black text-[#2f2415]">{supplierName(supplier)}</h2><p className="mt-1 text-sm text-[#8a7456]">Dette totale: {fmtCurrency(totalDebt)}</p></div><button type="button" onClick={onClose} aria-label="Fermer"><X size={18} /></button></div>
+        <div className="grid gap-3 p-5 sm:grid-cols-2">
+          <label className="text-sm font-bold text-[#6f6048] sm:col-span-2">Dette source<select required value={form.source_transaction_id} onChange={(event) => chooseDebt(event.target.value)} className="mt-1 w-full rounded-lg border border-[#d6c3a0] bg-white px-3 py-2 font-normal"><option value="">Choisir</option>{debtRows.map((debt) => <option key={debt.id} value={debt.id}>{debt.libelle || debt.id} · {fmtCurrency(debt.reste_a_payer ?? debt.amount ?? debt.montant)}</option>)}</select></label>
+          <label className="text-sm font-bold text-[#6f6048]">Montant<input required type="number" min="1" value={form.amount} onChange={(event) => set('amount', event.target.value)} className="mt-1 w-full rounded-lg border border-[#d6c3a0] px-3 py-2 font-normal" /></label>
+          <label className="text-sm font-bold text-[#6f6048]">Date<input required type="date" value={form.date} onChange={(event) => set('date', event.target.value)} className="mt-1 w-full rounded-lg border border-[#d6c3a0] px-3 py-2 font-normal" /></label>
+          <label className="text-sm font-bold text-[#6f6048]">Mode de paiement<select required value={form.payment_method} onChange={(event) => set('payment_method', event.target.value)} className="mt-1 w-full rounded-lg border border-[#d6c3a0] bg-white px-3 py-2 font-normal"><option value="mobile_money">Mobile Money</option><option value="virement">Virement</option><option value="especes">Espèces</option><option value="cheque">Chèque</option></select></label>
+          <label className="text-sm font-bold text-[#6f6048]">Lien du justificatif<input required type="url" value={form.proof_url} onChange={(event) => set('proof_url', event.target.value)} placeholder="https://..." className="mt-1 w-full rounded-lg border border-[#d6c3a0] px-3 py-2 font-normal" /></label>
+        </div>
+        <div className="flex justify-end gap-2 border-t border-[#eadcc2] p-4"><button type="button" onClick={onClose} className="rounded-lg border border-[#d6c3a0] px-4 py-2 text-sm font-bold">Annuler</button><button type="submit" disabled={loading} className="rounded-lg bg-[#2f2415] px-4 py-2 text-sm font-black text-white disabled:opacity-50">{loading ? 'Enregistrement...' : 'Enregistrer le paiement'}</button></div>
+      </form>
     </div>
   );
 }
@@ -189,22 +227,26 @@ export default function Fournisseurs({ rows = [], stocks = [], tasks = [], finan
     }
   };
 
-  const paySupplierDebt = async (supplier) => {
+  const paySupplierDebt = async (supplier, payment) => {
     const summary = summaryFor(supplier);
     if (summary.dettes <= 0) {
       toast.success('Aucune dette fournisseur', { duration: 4000 });
       return;
     }
-    const label = `${supplierName(supplier)} · ${fmtCurrency(summary.dettes)}`;
-    if (typeof window !== 'undefined' && !window.confirm(`Enregistrer le paiement fournisseur pour ${label} ?`)) return;
+    const label = `${supplierName(supplier)} · ${fmtCurrency(payment.amount)}`;
+    const openDebtTransactions = summary.finances.filter(isOpenSupplierDebt);
     try {
       setSaving(true);
       await runSupplierPaymentSideEffects({
         supplier,
         debtAmount: summary.dettes,
-        openDebtTransactions: summary.finances.filter(isOpenSupplierDebt),
-        date: today(),
-        paymentRef: today(),
+        paymentAmount: payment.amount,
+        openDebtTransactions,
+        sourceTransactionId: payment.source_transaction_id,
+        paymentMethod: payment.payment_method,
+        proofUrl: payment.proof_url,
+        date: payment.date,
+        paymentRef: `${payment.date}-${payment.source_transaction_id}`,
         transactions: financeRows,
         tasks: taskRows,
         alertes: alertRows,
@@ -227,6 +269,8 @@ export default function Fournisseurs({ rows = [], stocks = [], tasks = [], finan
         (onRefreshAlertes || alertesCrud.refresh)?.(),
       ]);
       toast.success(`Paiement enregistré — ${label}`, { duration: 5000 });
+      setModal(null);
+      setSelected(null);
     } catch (error) {
       toast.error(error.message || 'Paiement fournisseur impossible — vérifiez Finance & dettes ouvertes', { duration: 6000 });
     } finally {
@@ -307,12 +351,13 @@ export default function Fournisseurs({ rows = [], stocks = [], tasks = [], finan
             <div className="grid grid-cols-2 gap-3 mb-4"><CardMetric label="Livraisons" value={`${summary.livraisons} commandes`} /><CardMetric label="Dettes" value={summary.dettes > 0 ? fmtCurrency(summary.dettes) : 'Aucune'} alert={summary.dettes > 0} /><CardMetric label="Risque" value={`${profile.riskScore}%`} alert={profile.riskScore >= 60} /><CardMetric label="Dépendance" value={`${profile.dependencyScore}%`} alert={profile.dependencyScore >= 70} /><CardMetric label="Achats stock" value={fmtCurrency(summary.achatsStock)} /><CardMetric label="Documents" value={summary.docs.length} /></div>
             <div className="rounded-xl bg-[#fffdf8] border border-[#eadcc2] p-3 mb-4"><p className="text-xs font-black text-[#2f2415]">Action recommandée</p><p className="text-xs text-[#7d6a4a] mt-1">{profile.action}</p></div>
             <div className="mb-4"><p className="text-xs text-[#8a7456] mb-2">Évaluation</p><div className="grid grid-cols-5 gap-1">{Object.entries(evaluation).map(([crit, score]) => <div key={crit} className="text-center"><div className="text-xs text-[#8a7456] mb-1">{crit}</div><div className="h-1.5 bg-[#fffdf8] rounded-full overflow-hidden"><div className="h-full bg-emerald-500 rounded-full" style={{ width: `${Math.min(100, Math.max(0, score))}%` }} /></div></div>)}</div></div>
-            <div className="flex gap-2 flex-wrap"><Btn variant="outline" small icon={Upload} onClick={() => prepareOrder(supplier)}>Commander</Btn><Btn variant={hasPhone(supplier) ? 'whatsapp' : 'outline'} small icon={MessageCircle} onClick={() => openWhatsApp(supplier)}>{hasPhone(supplier) ? 'WhatsApp' : 'Numéro manquant'}</Btn>{summary.dettes > 0 ? <Btn variant="amber" small icon={DollarSign} onClick={() => paySupplierDebt(supplier)}>Payer</Btn> : <Btn variant="outline" small icon={CheckCircle} onClick={() => toast.success('Aucune dette')}>Soldé</Btn>}<ActionIconButton icon={Eye} title="Voir" color="sky" onClick={() => { setSelected(supplier); setModal('details'); }} /><ActionIconButton icon={Edit} title="Modifier" color="amber" onClick={() => { setSelected(supplier); setModal('edit'); }} /><ActionIconButton icon={AlertTriangle} title="Supprimer" color="red" onClick={() => { setSelected(supplier); setModal('delete'); }} /></div>
+            <div className="flex gap-2 flex-wrap"><Btn variant="outline" small icon={Upload} onClick={() => prepareOrder(supplier)}>Commander</Btn><Btn variant={hasPhone(supplier) ? 'whatsapp' : 'outline'} small icon={MessageCircle} onClick={() => openWhatsApp(supplier)}>{hasPhone(supplier) ? 'WhatsApp' : 'Numéro manquant'}</Btn>{summary.dettes > 0 ? <Btn variant="amber" small icon={DollarSign} onClick={() => { setSelected(supplier); setModal('payment'); }}>Payer</Btn> : <Btn variant="outline" small icon={CheckCircle} onClick={() => toast.success('Aucune dette')}>Soldé</Btn>}<ActionIconButton icon={Eye} title="Voir" color="sky" onClick={() => { setSelected(supplier); setModal('details'); }} /><ActionIconButton icon={Edit} title="Modifier" color="amber" onClick={() => { setSelected(supplier); setModal('edit'); }} /><ActionIconButton icon={AlertTriangle} title="Supprimer" color="red" onClick={() => { setSelected(supplier); setModal('delete'); }} /></div>
           </div>;
         })}
       </div>
 
       <FournisseurFicheModal open={modal === 'details'} onClose={() => setModal(null)} supplier={selected} metrics={selected ? metricsFor(selected) : {}} summary={selected ? summaryFor(selected) : {}} profile={selected ? profileFor(selected) : {}} />
+      {modal === 'payment' && selected ? <SupplierPaymentModal supplier={selected} debtRows={summaryFor(selected).finances.filter(isOpenSupplierDebt)} totalDebt={summaryFor(selected).dettes} loading={saving} onClose={() => setModal(null)} onSubmit={(payment) => paySupplierDebt(selected, payment)} /> : null}
       <CreateModal open={modal === 'create'} onClose={() => setModal(null)} onSubmit={submitCreate} fields={MODULE_FORM_FIELDS.fournisseurs} initialValues={supplierInitialValues(rows)} autoId={() => generateSequentialId('fournisseurs', rows)} uploadFolder="fournisseurs" loading={saving} title="Ajouter fournisseur" submitLabel="Ajouter" />
       <EditModal open={modal === 'edit'} onClose={() => setModal(null)} onSubmit={submitEdit} fields={MODULE_FORM_FIELDS.fournisseurs} initialValues={selected || {}} loading={saving} title="Modifier fournisseur" submitLabel="Enregistrer" />
       <DeleteModal open={modal === 'delete'} onClose={() => setModal(null)} onConfirm={submitDelete} itemLabel={selected ? `${selected.nom}` : ''} loading={saving} />

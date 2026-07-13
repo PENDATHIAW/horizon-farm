@@ -3,7 +3,7 @@ import { makeId } from '../utils/ids';
 import { toNumber } from '../utils/format';
 import { transactionHasProof } from '../utils/accountingProof';
 import { buildHealthMissingProofDocument } from '../utils/healthWorkflows';
-import { buildStructuredFarmImpact } from '../services/erpInterconnectionRules';
+
 import SanteV7 from './SanteV7.jsx';
 
 const norm = (value = '') => String(value || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim();

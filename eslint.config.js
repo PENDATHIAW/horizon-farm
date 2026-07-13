@@ -24,7 +24,7 @@ export default defineConfig([
     rules: {
       // The current repository still contains legacy lint debt outside the PR scope.
       // Keep these signals visible in CI without blocking build/test validation.
-      'no-unused-vars': 'warn',
+      'no-unused-vars': ['warn', { argsIgnorePattern: '^_', caughtErrorsIgnorePattern: '^_' }],
       'no-useless-assignment': 'warn',
       'no-undef': 'warn',
       'no-dupe-keys': 'warn',

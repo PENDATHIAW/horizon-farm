@@ -32,7 +32,7 @@ import {
 
 const arr = (v) => (Array.isArray(v) ? v : []);
 const n = (v) => Number(v || 0);
-const amount = (r = {}) => n(r.montant ?? r.amount ?? r.total ?? r.montant_total);
+
 const low = (v) => String(v || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
 const today = () => new Date().toISOString().slice(0, 10);
 
@@ -95,7 +95,7 @@ function financePropsFromDataMap(dataMap = {}) {
   };
 }
 
-function buildContext(props = {}, dataMap = {}) {
+function buildContext(props = {}) {
   const options = {
     accessibleFarms: props.accessibleFarms,
     farmScope: props.farmScope,

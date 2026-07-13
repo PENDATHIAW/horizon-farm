@@ -6,7 +6,7 @@
 const DAY = 86400000;
 const dateDaysAgo = (days) => new Date(Date.now() - days * DAY).toISOString().slice(0, 10);
 const dateDaysFromNow = (days) => new Date(Date.now() + days * DAY).toISOString().slice(0, 10);
-const isoNow = () => new Date().toISOString();
+
 const id = (prefix, n) => `${prefix}-${String(n).padStart(3, '0')}`;
 const money = (value) => Math.round(Number(value || 0));
 const SOURCE = 'simulation_bp_horizon_farm';

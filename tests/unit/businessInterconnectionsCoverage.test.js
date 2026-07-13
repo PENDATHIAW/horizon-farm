@@ -10,6 +10,7 @@ import {
 } from '../../src/config/businessInterconnections.config.js';
 
 const PROMPT_EVENT_ALIASES = {
+  client_payment: 'customer_payment',
   supplier_debt_payment: 'supplier_payment',
   operational_task: 'task_lifecycle',
   supporting_document: 'support_document',
@@ -18,9 +19,39 @@ const PROMPT_EVENT_ALIASES = {
   smart_farm_signal: 'smartfarm_signal',
 };
 
+const EXPECTED_EVENT_IDS = [
+  'feed_reception',
+  'feed_distribution',
+  'broiler_lot_start',
+  'mortality_record',
+  'health_treatment',
+  'biosecurity_cleaning',
+  'egg_production',
+  'egg_sale',
+  'broiler_sale',
+  'bovine_weighing',
+  'bovine_sale',
+  'crop_campaign_start',
+  'irrigation_event',
+  'organic_transfer',
+  'crop_harvest',
+  'crop_sale',
+  'customer_payment',
+  'supplier_payment',
+  'equipment_purchase',
+  'equipment_maintenance',
+  'task_lifecycle',
+  'support_document',
+  'monthly_financier_report',
+  'funding_usage',
+  'growth_objective',
+  'smartfarm_signal',
+];
+
 test('business interconnections — exactly 26 canonical workflows without duplicates', () => {
   assert.equal(BUSINESS_EVENT_WORKFLOWS.length, 26);
   assert.equal(new Set(BUSINESS_EVENT_IDS).size, BUSINESS_EVENT_IDS.length);
+  assert.deepEqual(BUSINESS_EVENT_IDS, EXPECTED_EVENT_IDS);
 });
 
 test('business interconnections — each workflow declares form, impact, alert, reporting and refresh scope', () => {
@@ -43,6 +74,8 @@ test('business interconnections — each workflow declares form, impact, alert, 
     workflow.sourceTables.forEach((table) => {
       assert.ok(refreshCluster.includes(table), `${workflow.id}: refresh source table ${table}`);
     });
+    assert.equal(workflow.impactedModules.includes('centre_ia'), false, `${workflow.id}: legacy decision-centre route`);
+    assert.equal(workflow.sourceTables.includes('camera_devices'), false, `${workflow.id}: cameras are outside the V1 scope`);
   });
 });
 

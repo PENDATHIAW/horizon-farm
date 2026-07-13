@@ -1,4 +1,4 @@
-import React from 'react';
+import 'react';
 import { HORIZON_DESIGN as D } from './horizonDesignTokens.js';
 import { HORIZON_OFFICIAL_LOGO } from './horizonBrandAssets.js';
 

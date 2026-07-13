@@ -1,8 +1,8 @@
 import { toNumber } from './format';
 import { avicoleActiveCount, avicoleDeadCount } from './avicoleMetrics';
-import { getFarmCostSettings } from '../services/farmCostSettings.js';
 
-const farmSettings = () => getFarmCostSettings();
+
+
 
 const arr = (value) => Array.isArray(value) ? value : [];
 const lower = (value) => String(value || '').trim().toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');

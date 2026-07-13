@@ -5,7 +5,7 @@ import {
   linkedPaymentsForOrders,
   saleAmount,
 } from '../../modules/commercial/commercialMetrics.js';
-import { paidForOrder, remainingForOrder } from '../../utils/salesStatuses.js';
+import {  remainingForOrder } from '../../utils/salesStatuses.js';
 
 const arr = (v) => (Array.isArray(v) ? v : []);
 

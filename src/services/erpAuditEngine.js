@@ -1,7 +1,7 @@
 import { computeErpAuditFindings } from './erpRules/index.js';
 import { evaluateModuleDataCoverage } from './moduleDataCoverageAudit.js';
 import { issueKeyFromFinding, buildIssueKey } from './issueKey.js';
-import { linkedPaymentsForOrders, saleAmount } from '../modules/commercial/commercialMetrics.js';
+import { linkedPaymentsForOrders } from '../modules/commercial/commercialMetrics.js';
 import { remainingForOrder } from '../utils/salesStatuses.js';
 
 const arr = (v) => (Array.isArray(v) ? v : []);

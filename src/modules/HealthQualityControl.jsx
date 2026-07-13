@@ -105,7 +105,7 @@ export default function HealthQualityControl({ rows = [], stocks = [], transacti
         autoLinkedExpenses.current.add(String(item.row.id));
         try {
           await createHealthExpense(item);
-        } catch (error) {
+        } catch {
           autoLinkedExpenses.current.delete(String(item.row.id));
         }
       }

@@ -167,7 +167,7 @@ export function parseVetPrescription(text = {}, context = {}) {
   };
 }
 
-export function parsePaymentReceipt(text = {}, context = {}) {
+export function parsePaymentReceipt(text = {}) {
   const raw = typeof text === 'string' ? text : text.text || '';
   const amounts = extractAmounts(raw);
   const amount = amounts.length ? amounts[amounts.length - 1] : null;

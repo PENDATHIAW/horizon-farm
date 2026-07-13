@@ -63,7 +63,7 @@ export function buildAssistantClarifyResponse(query = '', dataMap = {}) {
 
   const guided = GUIDED_CHOICES.find((row) => row.test(text));
   if (guided) {
-    const hint = DOMAIN_HINTS[guided.domain] || DOMAIN_HINTS.pilotage;
+
     return {
       answer: {
         title: 'Précision',

@@ -4,7 +4,7 @@
 
 import { buildClientSegmentation, buildClientSegment } from './clientSegmentationEngine.js';
 import { buildClientSalesSummary } from '../utils/clientWorkflows.js';
-import { saleAmount, linkedPaymentsForOrders } from '../modules/commercial/commercialMetrics.js';
+import {  linkedPaymentsForOrders } from '../modules/commercial/commercialMetrics.js';
 import { isQuoteOrder } from '../utils/commercialQuoteWorkflow.js';
 
 const arr = (v) => (Array.isArray(v) ? v : []);
@@ -63,7 +63,7 @@ export function buildCommercialClientSegmentationIA({
   payments = [],
 } = {}) {
   const segmentation = buildClientSegmentation(clients, { sales_orders: orders, payments });
-  const sales = arr(orders).filter((o) => !isQuoteOrder(o));
+
 
   const best = arr(segmentation)
     .filter((s) => /VIP|Gros|Bon payeur/.test(s.segment))

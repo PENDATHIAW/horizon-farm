@@ -225,7 +225,7 @@ function resolveToolIntent(toolId, query = '', forcedIntent = null) {
 /**
  * Route une question vers un outil métier.
  */
-export function routeFarmTool(question = '', dataMap = {}) {
+export function routeFarmTool(question = '') {
   const q = normalizeAgriculturalText(question);
   if (!q) return null;
 

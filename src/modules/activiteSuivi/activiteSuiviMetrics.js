@@ -47,7 +47,7 @@ export function buildActiviteSummaryTodos({ priorityQueue = [], coherenceRows = 
   return todos;
 }
 
-export function coherenceRowTab(row = {}) {
+export function coherenceRowTab() {
   return 'À traiter maintenant';
 }
 

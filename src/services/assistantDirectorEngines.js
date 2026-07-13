@@ -18,7 +18,7 @@ import {
 } from './assistantFarmAdvisor.js';
 import { resolveCanonicalGoalProgress } from './assistantGoalProgress.js';
 
-const n = (v) => Number(v || 0);
+
 
 export const DIRECTOR_INTENTS = Object.freeze({
   COMMENT_VA_LA_FERME: 'comment_va_la_ferme',

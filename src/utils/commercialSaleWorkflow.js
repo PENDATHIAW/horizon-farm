@@ -77,6 +77,16 @@ export function deliveryStatusFromMode(mode = '') {
   return 'recupere';
 }
 
+export function resolveCommercialBusinessEventType(line = {}) {
+  const sourceType = lower(line.source_type);
+  const text = lower(`${line.sale_kind || ''} ${line.product_name || ''} ${line.unit || ''}`);
+  if (/oeuf|œuf|tablette|plateau/.test(text)) return 'egg_sale';
+  if (sourceType === SALE_PRODUCT_TYPES.LOT) return 'broiler_sale';
+  if (sourceType === SALE_PRODUCT_TYPES.ANIMAL) return 'bovine_sale';
+  if (sourceType === SALE_PRODUCT_TYPES.CULTURE || /culture|recolte|récolte|maraich|maraîch/.test(text)) return 'crop_sale';
+  return 'commercial_sale';
+}
+
 export function orderStatusFromFulfillment(mode = '') {
   const m = lower(mode);
   if (m === 'a_livrer') return 'en_preparation';
@@ -199,6 +209,7 @@ export function buildCommercialSaleRecords({
     ? (paymentId || dailyEntryRecordId('PAY', { ...identity, eventKey: `${resolvedEventKey}:payment` }))
     : '';
   const sourceModule = resolveSourceModule(primary.source_type);
+  const businessEventType = resolveCommercialBusinessEventType(primary);
 
   const order = attachDailyEntryMeta({
     id,
@@ -375,7 +386,8 @@ export function buildCommercialSaleRecords({
 
   const businessEvent = attachDailyEntryMeta({
     id: dailyEntryRecordId('EVT-Q', identity),
-    event_type: 'vente_commercial_workflow',
+    event_type: businessEventType,
+    legacy_event_type: 'vente_commercial_workflow',
     module_source: 'ventes',
     entity_type: 'commande',
     entity_id: id,

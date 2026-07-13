@@ -2,7 +2,7 @@ import { Bell, Database, Eye, FileText, History, Layers, LogOut, RefreshCw, Sett
 import { useEffect, useMemo, useState } from 'react';
 import toast from 'react-hot-toast';
 import { applyUiSettingsToDocument, DEFAULT_UI_SETTINGS, isDemoModeEnabled, readUiSettings, setDemoMode, UI_SETTINGS_KEY, writeUiSettings } from '../utils/uiPreferences';
-import { JUSTIFIED_EXCEPTION_STORAGE_KEY, LEGACY_IGNORED_INTERCONNECTION_KEY } from '../utils/justifiedExceptionRules.js';
+
 import useAutomationSettings from '../hooks/useAutomationSettings.js';
 
 function removeMatchingLocalStorage(prefixes = []) {
@@ -19,7 +19,7 @@ function Toggle({ checked, onChange }) { return <button type="button" onClick={(
 function Select({ value, onChange, options }) { return <select value={value} onChange={(event) => onChange(event.target.value)} className="rounded-xl border border-[#d6c3a0] bg-white px-2 py-1.5 text-xs font-bold text-[#2f2415] outline-none">{options.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}</select>; }
 function Segmented({ value, onChange, options }) { return <div className="inline-flex rounded-xl border border-[#d6c3a0] bg-white p-0.5">{options.map((option) => <button key={option.value} type="button" onClick={() => onChange(option.value)} className={`rounded-lg px-2.5 py-1 text-xs font-black transition ${value === option.value ? 'bg-[#2f2415] text-white' : 'text-[#8a7456] hover:bg-[#fffdf8]'}`}>{option.label}</button>)}</div>; }
 
-export default function SettingsPanel({ open, onClose, user, displayUser, online, meteo = {}, weatherSource, sidebarOpen, setSidebarOpen, setActive, onSignOut }) {
+export default function SettingsPanel({ open, onClose, user, displayUser, online, meteo = {}, sidebarOpen, setSidebarOpen, setActive, onSignOut }) {
   const [settings, setSettings] = useState(readUiSettings);
   const [demoEnabled, setDemoEnabled] = useState(() => isDemoModeEnabled());
   const { settings: automationSettings, toggle: toggleAutomation, loading: automationLoading } = useAutomationSettings();

@@ -54,7 +54,7 @@ import { buildCommercialModuleProjections } from '../utils/moduleProjections.js'
 import VentesV5 from './VentesV5.jsx';
 import ClientsReadable from './ClientsReadable';
 
-const arr = (v) => (Array.isArray(v) ? v : []);
+
 
 function CommercialComplaintsPanel({ events = [], tasks = [] }) {
   const complaints = events.filter((event) => /reclamation|réclamation/.test(String(event.event_type || event.type || '').toLowerCase()));

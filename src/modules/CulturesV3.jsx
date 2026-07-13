@@ -1,4 +1,4 @@
-import { AlertTriangle, Calendar, CheckCircle2, Download, Edit, Eye, Leaf, Plus, RefreshCw, Sprout, Trash2, TrendingUp } from 'lucide-react';
+import { AlertTriangle, Calendar, Download, Edit, Eye, Leaf, Plus, RefreshCw, Sprout, Trash2, TrendingUp } from 'lucide-react';
 import { useMemo, useState, useEffect } from 'react';
 import toast from 'react-hot-toast';
 import ActionIconButton from '../components/ActionIconButton';
@@ -104,7 +104,7 @@ function aggregate(rows, keyFn) {
 }
 function supportRows(rows, type) { return rows.filter((row) => recordType(row) === type); }
 
-function OperationalSummary({ analytics = {}, realRows = [] }) {
+function OperationalSummary({  realRows = [] }) {
   const risky = realRows.filter((row) => healthOf(row) < 80 || row.statut === 'perdu' || buildCultureDecisionProfile(row).priority === 'haute').slice(0, 4);
   const ready = realRows.filter((row) => toNumber(row.quantite_disponible ?? row.quantite_recoltee) > 0).slice(0, 4);
   const harvestSoon = realRows.filter((row) => row.date_recolte_prevue && (new Date(row.date_recolte_prevue) - new Date()) / 86400000 <= 14 && (new Date(row.date_recolte_prevue) - new Date()) / 86400000 >= 0).slice(0, 4);
@@ -212,7 +212,7 @@ export default function CulturesV3({
   const submitEdit = async (payload) => {
     if (!selected) return;
     if (['vendue', 'vendu', 'perdu', 'sinistre'].includes(String(selected.statut || selected.status || '').toLowerCase())) return toast.error('Fiche culture verrouillée');
-    const { quantite_recoltee, quantite_disponible, production_reelle, ...safePayload } = payload;
+    const {  ...safePayload } = payload;
     try { setSaving(true); await onUpdate?.(selected.id, applyCultureDecisionDefaults(safePayload, selected)); toast.success('Fiche modifiée · décision recalculée'); setModal(null); } catch (error) { toast.error(error.message || 'Modification impossible'); } finally { setSaving(false); }
   };
   const submitDelete = async () => {

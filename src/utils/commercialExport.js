@@ -20,7 +20,6 @@ export function buildCommercialInvestorReport({
   clients = [],
   deliveries = [],
   invoices = [],
-  opportunities = [],
   relanceRows = [],
   periodLabel = '',
 } = {}) {

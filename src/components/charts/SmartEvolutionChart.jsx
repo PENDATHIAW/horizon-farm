@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { ChartPeriodContext, useChartPeriodContext } from './chartPeriodContext';
+import {  useChartPeriodContext } from './chartPeriodContext';
 import ReactECharts from 'echarts-for-react';
 import { exportModuleReportPdf } from '../../utils/moduleReportExports';
 import ChartExplainPanel from './ChartExplainPanel.jsx';

@@ -4,7 +4,7 @@
  */
 
 import { listSellableStocks, quantityOf, unitPriceOf, productNameOf, dlcOf } from './sellableStock.js';
-import { fmtCurrency } from './format.js';
+
 import { toNumber } from './format.js';
 
 const arr = (v) => (Array.isArray(v) ? v : []);
@@ -61,7 +61,6 @@ function baseOpportunity({
   recommendation,
   source_type,
   source_id,
-  perishable,
   auto_generated = true,
 }) {
   return {
@@ -90,7 +89,6 @@ export function buildAutoCommercialOpportunities({
   cultures = [],
   lots = [],
   animaux = [],
-  salesOrders = [],
   limit = 24,
 } = {}) {
   const opportunities = [];

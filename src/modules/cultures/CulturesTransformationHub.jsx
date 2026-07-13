@@ -1,7 +1,7 @@
 import CulturesTransformationPanel from './CulturesTransformationPanel.jsx';
 
 /** Transformation cultures — workflow officiel (sortie MP + entrée PF + Finance). */
-export default function CulturesTransformationHub({ rows, stocks, context, handlers, onSuccess, onNavigate }) {
+export default function CulturesTransformationHub({  stocks, context, handlers, onSuccess, onNavigate }) {
   return (
     <div className="space-y-5">
       <section className="rounded-3xl border border-[#d6c3a0] bg-white p-4 text-sm text-[#8a7456]">

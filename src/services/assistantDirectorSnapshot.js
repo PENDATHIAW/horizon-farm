@@ -8,7 +8,7 @@ import { buildConsolidatedCommercialKpis } from '../utils/commercialKpiConsolida
 import { buildObjectifsCroissanceData } from './objectifsGrowthEngine.js';
 import { computeFarmHeadcount, computeCultureSummary, computeStockSummary } from '../modules/dashboard/dashboardMetrics.js';
 import { buildCarnetDomainCards } from '../modules/dashboard/carnetHorizon.js';
-import { receivableFromOrders, enrichCommercialOrders } from '../modules/commercial/commercialMetrics.js';
+import {  enrichCommercialOrders } from '../modules/commercial/commercialMetrics.js';
 import { remainingForOrder } from '../utils/salesStatuses.js';
 import { buildCommercialRelanceRows } from '../utils/commercialRelances.js';
 import { buildTemporalComparisons, buildExploitationDynamics } from '../modules/dashboard/dashboardV3.js';

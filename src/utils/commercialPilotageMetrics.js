@@ -5,7 +5,7 @@
 
 import { summarizeSalesMargins } from './salesMarginEngine.js';
 import { buildConsolidatedCommercialKpis } from './commercialKpiConsolidated.js';
-import { saleAmount, linkedPaymentsForOrders } from '../modules/commercial/commercialMetrics.js';
+import { saleAmount } from '../modules/commercial/commercialMetrics.js';
 import { buildClientSegment } from '../services/clientSegmentationEngine.js';
 import { computePurchaseFrequency } from '../services/clientSegmentationEngine.js';
 import { isQuoteOrder } from './commercialQuoteWorkflow.js';

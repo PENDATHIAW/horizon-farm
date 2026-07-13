@@ -32,7 +32,6 @@ import {
   buildOpportunitesAnswer,
   buildMoneyLeaksAnswer,
 } from './assistantFarmAdvisor.js';
-import { resolveCanonicalGoalProgress } from './assistantGoalProgress.js';
 import { hasExploitableFarmData } from './assistantDirectorSnapshot.js';
 import { UNIVERSAL_INTENT_FAMILIES } from './assistantUniversalIntents.js';
 import { buildWeatherAnswer } from './assistantWeatherAnswer.js';
@@ -171,7 +170,7 @@ function buildAgriculturalAnswerCore(intent = '', dataMap = {}, options = {}) {
   if (!intent) return null;
 
   const snap = loadCanonicalSnapshot(dataMap);
-  const { finance, commercialKpis, growth, headcount, cultureSummary, stockSummary, carnetCards, props } = snap;
+  const { finance, commercialKpis, headcount, cultureSummary, stockSummary, carnetCards, props } = snap;
 
   const fmt = (v) => Number(v || 0).toLocaleString('fr-FR');
   const treasury = n(finance.cashNet);
@@ -179,10 +178,10 @@ function buildAgriculturalAnswerCore(intent = '', dataMap = {}, options = {}) {
   const payables = n(finance.payablesTotal ?? finance.dettesFournisseurs);
   const margin = n(finance.margeReelle);
   const ca = n(commercialKpis.ca ?? finance.caConsolide);
-  const goalProgress = resolveCanonicalGoalProgress(dataMap);
-  const monthTarget = goalProgress.monthTarget;
-  const monthRealized = goalProgress.monthRealized;
-  const monthPct = goalProgress.monthPct;
+
+
+
+
 
   const elevageAlerts = arr(carnetCards).find((c) => /elevage|élevage/i.test(c.domain || c.title || ''));
   const cultureAlerts = arr(carnetCards).find((c) => /culture/i.test(c.domain || c.title || ''));

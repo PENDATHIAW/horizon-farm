@@ -285,7 +285,7 @@ export function buildActivityKpiCards(farm = {}, summary = {}, dataProps = {}) {
   }));
 }
 
-export function buildAdaptedAlertsPanel(farm = null, scope = {}, dataProps = {}, comparison = null) {
+export function buildAdaptedAlertsPanel(farm = null, scope = {}, _dataProps = {}, comparison = null) {
   if (scope?.mode === 'all' && comparison) {
     return [
       comparison.riskiestFarm ? `Ferme la plus à risque : ${comparison.riskiestFarm.name}` : null,

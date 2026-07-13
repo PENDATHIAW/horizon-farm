@@ -2,11 +2,11 @@
  * Commercial V3 — segmentation clients (grossistes, restaurants, etc.).
  */
 
-import { saleAmount, linkedPaymentsForOrders, receivableFromOrders } from '../modules/commercial/commercialMetrics.js';
+import { saleAmount, receivableFromOrders } from '../modules/commercial/commercialMetrics.js';
 import { rowFarmId } from './farmScope.js';
 
 const arr = (value) => (Array.isArray(value) ? value : []);
-const num = (value) => Number(value || 0);
+
 const clean = (value) => String(value || '').trim();
 const lower = (value) => clean(value).toLowerCase();
 
@@ -42,7 +42,7 @@ export function buildClientSegmentStats({
   payments = [],
   relanceRows = [],
 } = {}) {
-  const linked = linkedPaymentsForOrders(orders, payments);
+
   const stats = {};
 
   CLIENT_SEGMENTS.forEach((seg) => {

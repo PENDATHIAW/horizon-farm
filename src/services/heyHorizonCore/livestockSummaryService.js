@@ -1,4 +1,4 @@
-import { arr, low, metaBase, money, pickRows, textOrMissing } from './coreUtils.js';
+import {  low, metaBase, money, pickRows, textOrMissing } from './coreUtils.js';
 
 const CLOSED_ANIMAL_WORDS = ['vendu', 'mort', 'vole', 'volé', 'perdu', 'abattu', 'cloture', 'clôture', 'sorti'];
 

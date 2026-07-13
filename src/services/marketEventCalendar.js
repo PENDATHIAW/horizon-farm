@@ -143,7 +143,7 @@ export function festivalLabelList(events = []) {
 const PAST_FESTIVAL_PATTERNS = [/tabaski/i, /korite/i, /korité/i, /ramadan/i];
 
 /** Retire les mentions de fêtes passées dans un texte statique (calendrier mensuel). */
-export function contextualizeSeasonalText(text = '', upcomingEvents = [], refDate = new Date()) {
+export function contextualizeSeasonalText(text = '', upcomingEvents = []) {
   const upcoming = new Set(upcomingEvents.map((event) => norm(event.label)));
   const upcomingKeys = new Set(upcomingEvents.map((event) => event.key).filter(Boolean));
 
@@ -176,11 +176,7 @@ export function matchFestivalKey(label = '') {
 /** Dates calculées pour affichage UI (sans surcharge pilotage). */
 export function getAutoFestivalSchedule(referenceDate = new Date(), dataMap = {}) {
   const ref = safeDate(referenceDate);
-  const pilotageKeys = new Set(
-    FESTIVAL_DEFINITIONS
-      .filter((row) => dataMap.growth_settings?.festival_dates?.[row.key])
-      .map((row) => row.key),
-  );
+
 
   const computed = computeSenegalMarketFestivals(ref);
   const upcoming = getUpcomingMarketEvents(ref, dataMap, { horizonDays: 400 });

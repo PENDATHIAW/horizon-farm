@@ -73,7 +73,7 @@ export function containsForbiddenDirectHandlers(payload = {}) {
 export function assessDraftSafety(draft = {}) {
   const confidence = clampConfidence(draft.confidence);
   const missing = arr(draft.missing_fields);
-  const warnings = arr(draft.warnings);
+
   const reasons = [];
 
   if (containsForbiddenDirectHandlers(draft.draft || draft)) {

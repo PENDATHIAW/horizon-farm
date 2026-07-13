@@ -2,7 +2,7 @@ import { useMemo } from 'react';
 import ReactECharts from 'echarts-for-react';
 import SmartEvolutionChart from '../../components/charts/SmartEvolutionChart.jsx';
 import { theoreticalStandardAtAge } from '../../services/objectifsDecision/breedStockReferential.js';
-import { fmtCurrency, fmtNumber } from '../../utils/format';
+import { fmtCurrency } from '../../utils/format';
 
 function ChartCard({ title, subtitle, children, tall = false }) {
   return (

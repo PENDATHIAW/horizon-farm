@@ -86,7 +86,6 @@ export default function CommercialOpportunitiesPanel({
   stocks = [],
   salesOrders = [],
   lots = [],
-  cultures = [],
   animaux = [],
   setTab,
   onWhatsAppLog,

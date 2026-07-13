@@ -2,7 +2,6 @@ import { DERFJ_GREENPRENEURS_PROFILE, ORGALOOP_EFFLUENT_CHANNEL } from '../../co
 import { computeEffluentSurplusKg } from './orgaloopEffluentChannel.js';
 import { buildGreenpreneursReadinessScore } from './greenpreneursReadinessScore.js';
 import { computeCircularEconomyMetrics } from './circularEconomyMetrics.js';
-import { computeValorisationReadiness } from './valorisationReadinessEngine.js';
 
 const arr = (value) => (Array.isArray(value) ? value : []);
 
@@ -30,7 +29,6 @@ export function normalizeGreenpreneursDataMap(raw = {}) {
     business_events: arr(raw.business_events || raw.businessEvents),
     businessEvents: arr(raw.businessEvents || raw.business_events),
     sensor_devices: arr(raw.sensor_devices),
-    camera_devices: arr(raw.camera_devices),
     smartfarm_events: arr(raw.smartfarm_events || raw.smartFarmEvents),
     investissements: arr(raw.investissements),
     business_plans: arr(raw.business_plans || raw.businessPlans),
@@ -47,7 +45,7 @@ export function normalizeGreenpreneursDataMap(raw = {}) {
   };
 }
 
-/** Alertes utiles pour le Centre décisionnel (économie circulaire + valorisation). */
+/** Alertes utiles pour le Centre décisionnel et l'économie circulaire. */
 export function buildGreenpreneursCentreAlerts(metrics = {}) {
   const alerts = [];
   const circular = metrics.circular || {};
@@ -136,7 +134,7 @@ export function buildGreenpreneursCentreAlerts(metrics = {}) {
 }
 
 /**
- * Point d'entrée principal — calcule score DER/FJ, circularité et valorisation.
+ * Point d'entrée principal pour le score DER/FJ et la circularité.
  * @param {object} rawData — props ERP brutes ou dataMap
  * @param {{ simulatedMode?: boolean }} options
  */
@@ -144,14 +142,12 @@ export function computeGreenpreneursMetrics(rawData = {}, options = {}) {
   const dataMap = normalizeGreenpreneursDataMap(rawData);
   const readiness = buildGreenpreneursReadinessScore(dataMap, options);
   const circular = computeCircularEconomyMetrics(dataMap, options);
-  const valorisation = computeValorisationReadiness(dataMap, options);
-  const centreAlerts = buildGreenpreneursCentreAlerts({ circular, valorisation, readiness });
+  const centreAlerts = buildGreenpreneursCentreAlerts({ circular, readiness });
 
   return {
     profile: DERFJ_GREENPRENEURS_PROFILE,
     readiness,
     circular,
-    valorisation,
     centreAlerts,
     dataMap,
   };

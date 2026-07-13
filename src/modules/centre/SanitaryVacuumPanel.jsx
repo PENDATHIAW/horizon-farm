@@ -1,5 +1,5 @@
 import { AlertTriangle, CheckCircle2, Info } from 'lucide-react';
-import Btn from '../../components/Btn';
+import '../../components/Btn';
 import StrategicQuickActions from './StrategicQuickActions.jsx';
 
 /**

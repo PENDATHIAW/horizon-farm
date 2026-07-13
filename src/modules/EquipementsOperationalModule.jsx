@@ -46,13 +46,16 @@ export default function EquipementsOperationalModule(props) {
 
   const createAcquisition = async (payload) => {
     const supplier = rows(props.fournisseurs || props.suppliers).find((row) => String(row.id) === String(payload.fournisseur_id)) || {};
-    const workflow = buildEquipmentPurchaseWorkflow({ payload, supplier, date: payload.date_achat });
-    if (!workflow.financeTransaction || !workflow.document?.file_url) throw new Error('Dépense et preuve obligatoires pour une acquisition.');
+    const fundingSource = rows(props.bpFundingSources || props.fundingSources).find((row) => String(row.id) === String(payload.funding_source_id)) || { id: payload.funding_source_id };
+    const workflow = buildEquipmentPurchaseWorkflow({ payload, supplier, fundingSource, date: payload.date_achat });
+    if (!supplier.id || !fundingSource.id || !workflow.financeTransaction || !workflow.document?.file_url) throw new Error('Fournisseur, financement, dépense et preuve sont obligatoires pour une acquisition.');
     await props.onCreate?.(workflow.equipment);
     await props.onCreateFinanceTransaction?.(workflow.financeTransaction);
     await props.onCreateDocument?.(workflow.document);
+    await props.onCreateTask?.(workflow.maintenanceTask);
+    if (workflow.alert) await props.onCreateAlert?.(workflow.alert);
     await props.onCreateBusinessEvent?.(workflow.event);
-    await Promise.allSettled([props.onRefresh?.(), props.onRefreshFinances?.(), props.onRefreshDocuments?.(), props.onRefreshBusinessEvents?.()]);
+    await Promise.allSettled([props.onRefresh?.(), props.onRefreshFinances?.(), props.onRefreshDocuments?.(), props.onRefreshTasks?.(), props.onRefreshAlertes?.(), props.onRefreshBusinessEvents?.()]);
   };
 
   const quickActionProps = {
@@ -61,6 +64,7 @@ export default function EquipementsOperationalModule(props) {
     alertes: rows(props.alertes),
     transactions,
     documents,
+    businessEvents: rows(props.businessEvents),
     onUpdate: props.onUpdate,
     onRefresh: props.onRefresh,
     onCreateTask: props.onCreateTask,
@@ -78,7 +82,7 @@ export default function EquipementsOperationalModule(props) {
   };
 
   const content = tab === 'EquipmentAcquisitionsView' ? (
-    <div className="space-y-5"><EquipementAcquisitionForm suppliers={rows(props.fournisseurs || props.suppliers)} onSubmit={createAcquisition} /><Panel title="Acquisitions enregistrées" subtitle="Chaque ligne conserve le lien vers sa dépense et sa preuve."><EquipmentRows items={equipment.filter((item) => item.purchase_date || item.date_achat)} transactions={transactions} showCost /></Panel></div>
+    <div className="space-y-5"><EquipementAcquisitionForm suppliers={rows(props.fournisseurs || props.suppliers)} fundingSources={rows(props.bpFundingSources || props.fundingSources)} onSubmit={createAcquisition} /><Panel title="Acquisitions enregistrées" subtitle="Chaque ligne conserve le lien vers sa dépense et sa preuve."><EquipmentRows items={equipment.filter((item) => item.purchase_date || item.date_achat)} transactions={transactions} showCost /></Panel></div>
   ) : tab === 'EquipmentBreakdownsView' ? (
     <div className="space-y-5"><EquipementsQuickActionsBridge {...quickActionProps} allowedActions={['panne']} /><Panel title="Équipements indisponibles" subtitle="Une panne critique ouvre une alerte, une tâche de maintenance et rend l’équipement indisponible."><EquipmentRows items={equipment.filter((item) => ['panne', 'hors_service'].includes(statusOf(item)))} /></Panel></div>
   ) : tab === 'EquipmentRepairsView' ? (

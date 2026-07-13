@@ -378,7 +378,7 @@ function buildMaraichage({ lots, animaux, marketPrices }) {
   };
 }
 
-function buildGraphiquesData({ lots, animaux, alimentationLogs, productionLogs, stocks, flux, marketPrices }) {
+function buildGraphiquesData({ lots, animaux, alimentationLogs, productionLogs, flux, marketPrices }) {
   const pondeuses = filterLotsByActivity(lots, 'Pondeuse');
   const pondeuseIds = new Set(pondeuses.map((l) => String(l.id)));
   const dailyMap = new Map();
@@ -450,11 +450,7 @@ function daysBetweenDates(start, end) {
   return Math.max(0, Math.round((b - a) / 86400000));
 }
 
-function monthKeyFromDate(value) {
-  const d = new Date(value || 0);
-  if (Number.isNaN(d.getTime())) return '';
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
-}
+
 
 function feedProductKey(log = {}) {
   return low(log.produit || log.product_name || log.nom || log.categorie || log.category || 'aliment');

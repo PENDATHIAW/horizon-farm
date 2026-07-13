@@ -3,9 +3,9 @@ import { useState } from 'react';
 import toast from 'react-hot-toast';
 
 const today = () => new Date().toISOString().slice(0, 10);
-const initial = () => ({ name: '', type: 'machine', purchase_cost: '', date_achat: today(), fournisseur_id: '', justificatif_url: '' });
+const initial = () => ({ name: '', type: 'machine', purchase_cost: '', date_achat: today(), fournisseur_id: '', funding_source_id: 'autofinancement', justificatif_url: '' });
 
-export default function EquipementAcquisitionForm({ suppliers = [], onSubmit }) {
+export default function EquipementAcquisitionForm({ suppliers = [], fundingSources = [], onSubmit }) {
   const [form, setForm] = useState(initial);
   const [saving, setSaving] = useState(false);
   const set = (key, value) => setForm((previous) => ({ ...previous, [key]: value }));
@@ -13,6 +13,8 @@ export default function EquipementAcquisitionForm({ suppliers = [], onSubmit }) 
   const submit = async (event) => {
     event.preventDefault();
     if (Number(form.purchase_cost || 0) <= 0) return toast.error('Montant d’acquisition obligatoire');
+    if (!String(form.fournisseur_id || '').trim()) return toast.error('Fournisseur obligatoire');
+    if (!String(form.funding_source_id || '').trim()) return toast.error('Source de financement obligatoire');
     if (!String(form.justificatif_url || '').trim()) return toast.error('Preuve documentaire obligatoire');
     setSaving(true);
     try {
@@ -34,7 +36,8 @@ export default function EquipementAcquisitionForm({ suppliers = [], onSubmit }) 
         <label className="text-sm font-bold text-[#6f6048]">Type<select value={form.type} onChange={(event) => set('type', event.target.value)} className="mt-1 w-full rounded-lg border border-[#d6c3a0] bg-white px-3 py-2 font-normal"><option value="machine">Machine</option><option value="incubateur">Incubateur</option><option value="pompe">Pompe</option><option value="groupe_electrogene">Groupe électrogène</option><option value="vehicule">Véhicule</option><option value="outil">Outil</option><option value="autre">Autre</option></select></label>
         <label className="text-sm font-bold text-[#6f6048]">Montant<input required min="1" type="number" value={form.purchase_cost} onChange={(event) => set('purchase_cost', event.target.value)} className="mt-1 w-full rounded-lg border border-[#d6c3a0] px-3 py-2 font-normal" /></label>
         <label className="text-sm font-bold text-[#6f6048]">Date<input required type="date" value={form.date_achat} onChange={(event) => set('date_achat', event.target.value)} className="mt-1 w-full rounded-lg border border-[#d6c3a0] px-3 py-2 font-normal" /></label>
-        <label className="text-sm font-bold text-[#6f6048]">Fournisseur<select value={form.fournisseur_id} onChange={(event) => set('fournisseur_id', event.target.value)} className="mt-1 w-full rounded-lg border border-[#d6c3a0] bg-white px-3 py-2 font-normal"><option value="">Non renseigné</option>{suppliers.map((supplier) => <option key={supplier.id} value={supplier.id}>{supplier.nom || supplier.name || supplier.id}</option>)}</select></label>
+        <label className="text-sm font-bold text-[#6f6048]">Fournisseur<select required value={form.fournisseur_id} onChange={(event) => set('fournisseur_id', event.target.value)} className="mt-1 w-full rounded-lg border border-[#d6c3a0] bg-white px-3 py-2 font-normal"><option value="">Choisir</option>{suppliers.map((supplier) => <option key={supplier.id} value={supplier.id}>{supplier.nom || supplier.name || supplier.id}</option>)}</select></label>
+        <label className="text-sm font-bold text-[#6f6048]">Source de financement<select required value={form.funding_source_id} onChange={(event) => set('funding_source_id', event.target.value)} className="mt-1 w-full rounded-lg border border-[#d6c3a0] bg-white px-3 py-2 font-normal"><option value="autofinancement">Autofinancement</option>{fundingSources.map((source) => <option key={source.id} value={source.id}>{source.nom || source.name || source.libelle || source.id}</option>)}</select></label>
         <label className="text-sm font-bold text-[#6f6048]">Lien de la preuve<input required type="url" value={form.justificatif_url} onChange={(event) => set('justificatif_url', event.target.value)} placeholder="https://..." className="mt-1 w-full rounded-lg border border-[#d6c3a0] px-3 py-2 font-normal" /></label>
       </div>
       <div className="mt-4 flex justify-end"><button type="submit" disabled={saving} className="inline-flex items-center gap-2 rounded-lg bg-[#22c55e] px-4 py-2 font-black text-[#052e16] disabled:opacity-50"><Plus size={16} />{saving ? 'Enregistrement...' : 'Enregistrer l’acquisition'}</button></div>

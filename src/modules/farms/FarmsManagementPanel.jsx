@@ -67,7 +67,6 @@ export default function FarmsManagementPanel({
   onFarmsChanged,
   initialAction = null,
   farmComparisonData = null,
-  onManageFarms,
   onNavigate,
 }) {
   const [farms, setFarms] = useState([]);

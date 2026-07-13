@@ -25,7 +25,7 @@ export function buildEntityLinkedFieldOptions(context = {}) {
     }));
 }
 
-export function resolveEntityLinkedFields(form = {}, context = {}) {
+export function resolveEntityLinkedFields(form = {}) {
   const source = ENTITY_MODULE_SOURCES.find((item) => item.value === form.module_lie);
   if (!source) return form;
   const entityId = form.entity_id || form[source.entityKey] || '';

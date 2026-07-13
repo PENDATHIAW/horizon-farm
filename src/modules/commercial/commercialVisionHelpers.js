@@ -1,7 +1,7 @@
 import { runErpHealthEngine } from '../../services/erpHealthEngine.js';
 import { enrichCommercialOrders } from './commercialMetrics.js';
 
-const arr = (v) => (Array.isArray(v) ? v : []);
+
 
 export function buildCommercialHealthSnapshot({
   salesOrders = [],

@@ -3,7 +3,11 @@ import { useMemo, useState } from 'react';
 import toast from 'react-hot-toast';
 import { fmtCurrency, toNumber } from '../utils/format';
 import { makeId } from '../utils/ids';
-import { runEquipmentBreakdownSideEffects, runEquipmentRepairSideEffects } from '../utils/equipmentSideEffects';
+import {
+  runEquipmentBreakdownSideEffects,
+  runEquipmentMaintenanceSideEffects,
+  runEquipmentRepairSideEffects,
+} from '../utils/equipmentSideEffects.js';
 import { financeIds } from '../utils/sideEffectIds';
 import { syncFinanceSideEffects } from '../services/erpInterconnectionEngine';
 import useWorkflowSubmit from '../hooks/useWorkflowSubmit';
@@ -22,19 +26,19 @@ function Modal({ title, action, rows, form, setForm, onClose, onSubmit, saving }
     <div className="fixed inset-0 z-[80] bg-black/40 p-4 flex items-center justify-center">
       <div className="w-full max-w-xl rounded-2xl bg-[#fffdf8] border border-[#d6c3a0] shadow-2xl overflow-hidden">
         <div className="p-5 border-b border-[#eadcc2] flex items-start justify-between gap-3"><div><p className="text-xs uppercase tracking-widest text-[#8a7456]">Équipements</p><h3 className="text-xl font-black text-[#2f2415]">{title}</h3>{equipment ? <p className="text-sm text-[#8a7456] mt-1">{equipmentName(equipment)} · {equipment.status || equipment.statut || 'statut non renseigné'}</p> : null}</div><button type="button" onClick={onClose} className="text-[#8a7456]"><X size={18} /></button></div>
-        <div className="p-5 grid grid-cols-1 md:grid-cols-2 gap-3"><label className="space-y-1 md:col-span-2"><span className="text-xs text-[#8a7456]">Équipement</span><select className="w-full rounded-lg border border-[#d6c3a0] bg-white px-3 py-2 text-sm" value={form.equipment_id || ''} onChange={(e) => set('equipment_id', e.target.value)}><option value="">Choisir un équipement</option>{rows.map((row) => <option key={row.id} value={row.id}>{equipmentName(row)} · {row.type || 'type non renseigné'}</option>)}</select></label>{action !== 'panne' ? <label className="space-y-1"><span className="text-xs text-[#8a7456]">Date</span><input type="date" className="w-full rounded-lg border border-[#d6c3a0] bg-white px-3 py-2 text-sm" value={form.date || today()} onChange={(e) => set('date', e.target.value)} /></label> : null}{action === 'panne' ? <label className="space-y-1"><span className="text-xs text-[#8a7456]">Priorité</span><select className="w-full rounded-lg border border-[#d6c3a0] bg-white px-3 py-2 text-sm" value={form.priority || 'critique'} onChange={(e) => set('priority', e.target.value)}><option value="critique">Critique</option><option value="haute">Haute</option><option value="moyenne">Moyenne</option></select></label> : null}{['maintenance', 'fuel', 'repair'].includes(action) ? <label className="space-y-1"><span className="text-xs text-[#8a7456]">{action === 'repair' ? 'Coût lu dans Finance' : 'Montant'}</span><input type="number" className="w-full rounded-lg border border-[#d6c3a0] bg-white px-3 py-2 text-sm" value={form.amount || ''} onChange={(e) => set('amount', e.target.value)} /></label> : null}{action === 'repair' ? <label className="space-y-1"><span className="text-xs text-[#8a7456]">Responsable</span><input required className="w-full rounded-lg border border-[#d6c3a0] bg-white px-3 py-2 text-sm" value={form.responsible || ''} onChange={(e) => set('responsible', e.target.value)} /></label> : null}{action === 'fuel' ? <label className="space-y-1"><span className="text-xs text-[#8a7456]">Quantité carburant</span><input type="number" className="w-full rounded-lg border border-[#d6c3a0] bg-white px-3 py-2 text-sm" value={form.quantity || ''} onChange={(e) => set('quantity', e.target.value)} /></label> : null}<label className="space-y-1 md:col-span-2"><span className="text-xs text-[#8a7456]">{action === 'repair' ? 'Résultat de la réparation' : 'Notes'}</span><textarea rows={3} className="w-full rounded-lg border border-[#d6c3a0] bg-white px-3 py-2 text-sm" value={action === 'repair' ? form.result || '' : form.notes || ''} onChange={(e) => set(action === 'repair' ? 'result' : 'notes', e.target.value)} /></label>{action === 'repair' ? <label className="flex items-center gap-2 md:col-span-2 text-sm font-bold text-[#2f2415]"><input type="checkbox" checked={Boolean(form.validated)} onChange={(e) => set('validated', e.target.checked)} /> Je valide la remise en service après contrôle</label> : null}</div>
+        <div className="p-5 grid grid-cols-1 md:grid-cols-2 gap-3"><label className="space-y-1 md:col-span-2"><span className="text-xs text-[#8a7456]">Équipement</span><select className="w-full rounded-lg border border-[#d6c3a0] bg-white px-3 py-2 text-sm" value={form.equipment_id || ''} onChange={(e) => set('equipment_id', e.target.value)}><option value="">Choisir un équipement</option>{rows.map((row) => <option key={row.id} value={row.id}>{equipmentName(row)} · {row.type || 'type non renseigné'}</option>)}</select></label>{action !== 'panne' ? <label className="space-y-1"><span className="text-xs text-[#8a7456]">Date</span><input required type="date" className="w-full rounded-lg border border-[#d6c3a0] bg-white px-3 py-2 text-sm" value={form.date || today()} onChange={(e) => set('date', e.target.value)} /></label> : null}{action === 'panne' ? <label className="space-y-1"><span className="text-xs text-[#8a7456]">Priorité</span><select className="w-full rounded-lg border border-[#d6c3a0] bg-white px-3 py-2 text-sm" value={form.priority || 'critique'} onChange={(e) => set('priority', e.target.value)}><option value="critique">Critique</option><option value="haute">Haute</option><option value="moyenne">Moyenne</option></select></label> : null}{action === 'maintenance' ? <label className="space-y-1"><span className="text-xs text-[#8a7456]">Type de maintenance</span><select required className="w-full rounded-lg border border-[#d6c3a0] bg-white px-3 py-2 text-sm" value={form.maintenance_type || 'preventive'} onChange={(e) => set('maintenance_type', e.target.value)}><option value="preventive">Préventive</option><option value="corrective">Corrective</option><option value="inspection">Inspection</option></select></label> : null}{['maintenance', 'fuel', 'repair'].includes(action) ? <label className="space-y-1"><span className="text-xs text-[#8a7456]">{action === 'repair' ? 'Coût lu dans Finance' : 'Montant'}</span><input type="number" min="0" className="w-full rounded-lg border border-[#d6c3a0] bg-white px-3 py-2 text-sm" value={form.amount || ''} onChange={(e) => set('amount', e.target.value)} /></label> : null}{['maintenance', 'repair'].includes(action) ? <label className="space-y-1"><span className="text-xs text-[#8a7456]">Responsable</span><input required className="w-full rounded-lg border border-[#d6c3a0] bg-white px-3 py-2 text-sm" value={form.responsible || ''} onChange={(e) => set('responsible', e.target.value)} /></label> : null}{action === 'maintenance' ? <label className="space-y-1"><span className="text-xs text-[#8a7456]">Prochaine maintenance</span><input type="date" className="w-full rounded-lg border border-[#d6c3a0] bg-white px-3 py-2 text-sm" value={form.next_maintenance_date || ''} onChange={(e) => set('next_maintenance_date', e.target.value)} /></label> : null}{action === 'fuel' ? <label className="space-y-1"><span className="text-xs text-[#8a7456]">Quantité carburant</span><input type="number" className="w-full rounded-lg border border-[#d6c3a0] bg-white px-3 py-2 text-sm" value={form.quantity || ''} onChange={(e) => set('quantity', e.target.value)} /></label> : null}<label className="space-y-1 md:col-span-2"><span className="text-xs text-[#8a7456]">{action === 'repair' ? 'Résultat de la réparation' : 'Notes'}</span><textarea rows={3} className="w-full rounded-lg border border-[#d6c3a0] bg-white px-3 py-2 text-sm" value={action === 'repair' ? form.result || '' : form.notes || ''} onChange={(e) => set(action === 'repair' ? 'result' : 'notes', e.target.value)} /></label>{action === 'repair' ? <label className="flex items-center gap-2 md:col-span-2 text-sm font-bold text-[#2f2415]"><input type="checkbox" checked={Boolean(form.validated)} onChange={(e) => set('validated', e.target.checked)} /> Je valide la remise en service après contrôle</label> : null}</div>
         <div className="p-4 border-t border-[#eadcc2] flex justify-end gap-2"><button type="button" className="px-4 py-2 rounded-xl border border-[#d6c3a0]" onClick={onClose}>Annuler</button><button type="button" disabled={saving} className="px-4 py-2 rounded-xl bg-[#c9a96a] text-white font-bold disabled:opacity-60" onClick={onSubmit}>{saving ? 'Enregistrement...' : 'Enregistrer'}</button></div>
       </div>
     </div>
   );
 }
 
-export default function EquipementsQuickActionsBridge({ rows = [], tasks = [], alertes = [], transactions = [], documents = [], allowedActions = ['panne', 'maintenance', 'repair', 'fuel'], onUpdate, onRefresh, onCreateTask, onUpdateTask, onRefreshTasks, onCreateAlert, onUpdateAlert, onRefreshAlertes, onCreateFinanceTransaction, onRefreshFinances, onCreateDocument, onRefreshDocuments, onCreateBusinessEvent, onRefreshBusinessEvents }) {
+export default function EquipementsQuickActionsBridge({ rows = [], tasks = [], alertes = [], transactions = [], documents = [], businessEvents = [], allowedActions = ['panne', 'maintenance', 'repair', 'fuel'], onUpdate, onRefresh, onCreateTask, onUpdateTask, onRefreshTasks, onCreateAlert, onUpdateAlert, onRefreshAlertes, onCreateFinanceTransaction, onRefreshFinances, onCreateDocument, onRefreshDocuments, onCreateBusinessEvent, onRefreshBusinessEvents }) {
   const [action, setAction] = useState('');
   const [form, setForm] = useState({});
   const { submit: workflowSubmit, busy: workflowBusy } = useWorkflowSubmit();
   const usableRows = useMemo(() => arr(rows).filter((row) => row?.id && (activeStatuses.has(clean(row.status || row.statut)) || !row.status)), [rows]);
-  const open = (kind) => { setAction(kind); setForm({ equipment_id: usableRows[0]?.id || '', date: today(), priority: kind === 'panne' ? 'critique' : 'haute' }); };
+  const open = (kind) => { setAction(kind); setForm({ equipment_id: usableRows[0]?.id || '', date: today(), priority: kind === 'panne' ? 'critique' : 'haute', maintenance_type: 'preventive' }); };
   const close = () => { setAction(''); setForm({}); };
   const selected = usableRows.find((row) => row.id === form.equipment_id);
 
@@ -55,14 +59,27 @@ export default function EquipementsQuickActionsBridge({ rows = [], tasks = [], a
         toast.success('Panne déclarée');
       }
       if (action === 'maintenance') {
-        const trxId = amount > 0 ? financeIds.equipment(selected.id, 'maint') : '';
-        await onUpdate?.(selected.id, { status: 'maintenance', statut: 'maintenance', maintenance_due: form.date || today(), maintenance_cost: amount, cout_maintenance: amount, maintenance_status: 'a_preparer', last_maintenance_transaction_id: trxId, notes: form.notes || selected.notes || '', side_effects_managed: true });
-        if (amount > 0) {
-          const financeRow = { id: trxId, type: 'sortie', libelle: `Maintenance ${equipmentName(selected)}`, montant: amount, date: form.date || today(), categorie: 'Maintenance équipements', module_lie: 'equipements', related_id: selected.id, source_module: 'equipements', source_record_id: selected.id, statut: 'paye', side_effects_managed: true, created_from: 'equipment_side_effects' };
-          await onCreateFinanceTransaction?.(financeRow);
-          await syncFinanceSideEffects(financeRow, { handlers: { onCreateFinanceTransaction } });
-        }
-        await onCreateBusinessEvent?.({ id: makeId('EVT'), event_type: 'maintenance_equipement_programmee', module_source: 'equipements', entity_type: 'equipement', entity_id: selected.id, title: `Maintenance ${equipmentName(selected)}`, description: amount > 0 ? fmtCurrency(amount) : form.notes || '', event_date: form.date || today(), severity: 'warning', linked_transaction_id: trxId, saisies_evitees: amount > 0 ? 2 : 1, side_effects_managed: true });
+        await runEquipmentMaintenanceSideEffects({
+          equipment: selected,
+          date: form.date || today(),
+          maintenanceType: form.maintenance_type || 'preventive',
+          responsible: form.responsible || '',
+          cost: amount,
+          notes: form.notes || '',
+          nextMaintenanceDate: form.next_maintenance_date || '',
+          tasks,
+          transactions,
+          handlers: {
+            onUpdateEquipment: onUpdate,
+            onCreateTask,
+            onUpdateTask,
+            onCreateFinanceTransaction,
+            onCreateDocument,
+            onCreateBusinessEvent,
+            existingDocuments: documents,
+            existingBusinessEvents: businessEvents,
+          },
+        });
         toast.success(amount > 0 ? 'Maintenance enregistrée en Finance' : 'Maintenance programmée');
       }
       if (action === 'fuel') {

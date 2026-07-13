@@ -15,7 +15,7 @@ import { makeInterconnectionEvent } from '../utils/moduleInterconnections.js';
 
 const arr = (value) => (Array.isArray(value) ? value : []);
 const clean = (value) => String(value || '').trim();
-const lower = (value) => clean(value).toLowerCase();
+
 const today = () => new Date().toISOString().slice(0, 10);
 
 export async function closeOpportunityForOrder(order = {}, opportunities = [], handlers = {}) {
@@ -111,11 +111,7 @@ export async function runErpInterconnectionRepair({
   opportunities = [],
   sante = [],
   stocks = [],
-  fournisseurs = [],
   alimentationLogs = [],
-  equipements = [],
-  cultures = [],
-  tasks = [],
   alertes = [],
   handlers = {},
 } = {}) {

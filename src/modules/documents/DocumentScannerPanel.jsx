@@ -106,11 +106,7 @@ export default function DocumentScannerPanel({
 
   const mergeDraftForExecute = () => {
     if (!draft) return null;
-    const payloadKey = draft.draft?.scanner_doc_type === SCANNER_DOC_TYPES.PAYMENT_RECEIPT
-      ? 'payment'
-      : draft.draft?.scanner_doc_type === SCANNER_DOC_TYPES.VET_PRESCRIPTION
-        ? 'health'
-        : 'purchase';
+
     return {
       ...draft,
       draft: {

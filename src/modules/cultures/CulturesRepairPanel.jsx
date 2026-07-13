@@ -6,7 +6,7 @@ import { applyStockMovement } from '../../utils/stockWorkflows.js';
 import { makeId } from '../../utils/ids.js';
 import { buildCultureIssueKey, CULTURE_DOMAINS } from '../../utils/culturesWorkflow.js';
 
-const arr = (v) => (Array.isArray(v) ? v : []);
+
 
 export default function CulturesRepairPanel({
   cultures = [],

@@ -21,7 +21,7 @@ export function initialCountOf(target = {}, mode = 'avicole') {
   return toNumber(target.initial_count ?? target.effectif_initial ?? target.nombre_initial ?? target.quantity_initial ?? target.count_initial ?? activeCountOf(target, mode));
 }
 
-function targetMatches(row = {}, target = {}, mode = 'avicole') {
+function targetMatches(row = {}, target = {}) {
   const id = clean(target.id);
   const code = clean(physicalIdOf(target));
   if (!id && !code) return false;
@@ -63,7 +63,7 @@ function normalizeBusinessEvent(row = {}, mode = 'avicole') {
   return { id: row.id, date: dateOf(row), type, label: row.title || row.event_type || type, delta, amount: amountOf(row), source: 'événements', status: row.status || row.statut || 'validé' };
 }
 
-export function buildLifecycleHistory({ mode = 'avicole', target = {}, salesOrders = [], deliveries = [], businessEvents = [], alimentationLogs = [], healthLogs = [], productionLogs = [] } = {}) {
+export function buildLifecycleHistory({ mode = 'avicole', target = {}, salesOrders = [], deliveries = [], businessEvents = [] } = {}) {
   const initial = initialCountOf(target, mode);
   const active = activeCountOf(target, mode);
   const events = [];

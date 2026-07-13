@@ -1,4 +1,4 @@
-import { Bot, Ear, Mic, RefreshCw, Send, Sun, Volume2, VolumeX, X } from 'lucide-react';
+import {  Ear, Mic, RefreshCw, Send, Sun, Volume2, VolumeX, X } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import toast from 'react-hot-toast';
 import HeyHorizonDraftSummary from './HeyHorizonDraftSummary';

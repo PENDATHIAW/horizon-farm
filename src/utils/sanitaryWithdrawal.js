@@ -4,7 +4,7 @@
 
 const arr = (value) => (Array.isArray(value) ? value : []);
 const clean = (value) => String(value || '').trim();
-const lower = (value) => clean(value).toLowerCase();
+
 
 export const SANITARY_ACTIONS = {
   SALE: 'sale',

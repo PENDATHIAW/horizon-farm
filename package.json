@@ -7,9 +7,9 @@
     "dev": "vite",
     "build": "vite build",
     "lint": "eslint .",
+    "audit:reachability": "node scripts/audit-source-reachability.mjs",
     "preview": "vite preview",
     "pitch:generate": "node scripts/generate-pitch-assets.mjs",
-    "dossier:generate": "node scripts/generate-horizon-farm-dossier.mjs",
     "guide:generate": "node scripts/generate-guide-pdf.mjs",
     "test:e2e": "playwright test",
     "test:e2e:workflows": "PLAYWRIGHT_SKIP_WEBSERVER=1 playwright test tests/e2e/simulated-business-workflows.spec.js",
@@ -47,6 +47,7 @@
     "test:unit:idempotency": "node --test tests/unit/workflowIdempotency.test.js",
     "test:unit:daily-entries": "npx vite-node tests/unit/dailyQuickEntryContract.test.js",
     "test:unit:module-smoke": "npx vite-node tests/unit/moduleImportSmoke.test.js",
+    "test:unit:business-events": "npx vite-node tests/unit/businessEventOperationalGaps.vite.js && node --test tests/unit/businessInterconnectionsCoverage.test.js tests/unit/businessEventImplementationAudit.test.js",
     "test:unit:render-smoke": "npx vite-node tests/unit/moduleRenderSmoke.test.js && npx vite-node tests/unit/moduleMissingImports.test.js && npx vite-node tests/unit/investorRoomPanels.test.js && npx vite-node tests/unit/appModuleProps.test.js && node --test tests/unit/farmAdaptationNull.test.js",
     "test:unit:commercial-simulated": "npx vite-node tests/unit/commercialSimulatedMode.test.js",
     "test:unit:commercial-subscriptions": "npx vite-node tests/unit/commercialSubscriptionsPanel.test.js",
@@ -83,6 +84,7 @@
     "xlsx": "^0.18.5"
   },
   "devDependencies": {
+    "@babel/parser": "^7.29.3",
     "@eslint/js": "^10.0.1",
     "@playwright/test": "^1.59.1",
     "@tailwindcss/vite": "^4.2.4",

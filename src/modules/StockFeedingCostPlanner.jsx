@@ -8,9 +8,8 @@ const arr = (value) => Array.isArray(value) ? value : [];
 const lower = (value) => String(value || '').toLowerCase();
 const categoryOf = (row = {}) => lower(row.categorie || row.category || '');
 const isFood = (row = {}) => categoryOf(row).includes('aliment');
-const stockQty = (row = {}) => toNumber(row.quantite);
 const unitPrice = (row = {}) => toNumber(row.prixUnit ?? row.prixunit ?? row.prix_unitaire ?? row.unit_price);
-const stockKg = (row = {}) => lower(row.unite).includes('sac') ? stockQty(row) * toNumber(row.poids_sac_kg || row.sac_kg || 50) : stockQty(row);
+
 const nowDate = () => new Date().toISOString().slice(0, 10);
 const targetName = (row = {}) => row.name || row.nom || row.tag || row.id || 'Cible';
 const logTargetId = (row = {}) => String(row.cible_id || row.lot_id || row.animal_id || row.related_id || row.entity_id || '');

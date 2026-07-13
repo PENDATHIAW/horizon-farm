@@ -56,8 +56,10 @@ export function useSmartFarmTelemetry(props = {}) {
           sensors,
           tasks,
           alertes,
+          onCreateTask: h.onCreateTask,
           onCreateAlert: h.onCreateAlert,
           onCreateBusinessEvent: h.onCreateBusinessEvent,
+          onRefreshTasks: h.onRefreshTasks,
           onRefreshAlertes: h.onRefreshAlertes,
           onRefreshBusinessEvents: h.onRefreshBusinessEvents,
         });

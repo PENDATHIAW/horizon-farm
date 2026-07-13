@@ -1,6 +1,6 @@
 const lower = (v) => String(v || '').toLowerCase();
 const arr = (v) => (Array.isArray(v) ? v : []);
-const today = () => new Date().toISOString().slice(0, 10);
+
 
 const isHealthLate = (row = {}) =>
   ['retard', 'en_retard', 'a_faire_retard', 'overdue', 'a_faire'].includes(lower(row.statut || row.status || row.etat));

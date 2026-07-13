@@ -23,7 +23,6 @@ const labelOf = (row = {}) => row?.name || row?.nom || row?.boucle_numero || row
 export default function ReproductionWorkflowForm({
   draft,
   animaux = [],
-  documents = [],
   onUpdateAnimal,
   onCreateAnimal,
   onCreateBusinessEvent,

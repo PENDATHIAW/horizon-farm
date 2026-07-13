@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react';
 import { Beef, Edit, Plus, RefreshCw, Save, Trash2, X } from 'lucide-react';
 import toast from 'react-hot-toast';
 import useCrudModule from '../hooks/useCrudModule';
-import { fmtCurrency, fmtNumber, toNumber } from '../utils/format';
+import { fmtCurrency, toNumber } from '../utils/format';
 import { makeId } from '../utils/ids';
 import { calculateUnifiedAnimalCost } from '../services/unifiedCostService.js';
 

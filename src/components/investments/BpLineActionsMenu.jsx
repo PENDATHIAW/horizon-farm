@@ -119,7 +119,6 @@ export function useBpLineActionHandlers({
   onComplete,
   onEdit,
   onStatusChange,
-  onNavigate,
   onLinkRepair,
   onAutoLinkRepair,
   onJoinProof,

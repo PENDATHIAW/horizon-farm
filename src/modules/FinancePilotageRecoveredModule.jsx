@@ -1,4 +1,4 @@
-import { BarChart3, PiggyBank, Wallet } from 'lucide-react';
+import { BarChart3 } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import toast from 'react-hot-toast';
 import ModuleGraphiquesTab from '../components/module/ModuleGraphiquesTab.jsx';
@@ -67,13 +67,13 @@ const arr = (v) => Array.isArray(v) ? v : [];
 const n = (v = 0) => Number(v || 0);
 const low = (v) => String(v || '').toLowerCase();
 const amount = (r = {}) => n(r.montant ?? r.amount ?? r.total ?? r.valeur ?? r.value);
-const isIncome = (r = {}) => ['entree', 'entrée', 'income', 'recette', 'vente'].includes(low(r.type || r.nature || r.sens || r.transaction_type));
-const isExpense = (r = {}) => ['sortie', 'expense', 'depense', 'dépense', 'achat', 'charge'].includes(low(r.type || r.nature || r.sens || r.transaction_type));
+
+
 const isUnpaid = (r = {}) => ['impaye', 'impayé', 'partiel', 'a_payer', 'à payer', 'due', 'unpaid'].includes(low(r.statut || r.status || r.payment_status));
 const isReceivable = (r = {}) => isUnpaid(r) && (['vente', 'client', 'recette'].some((x) => low(`${r.type || ''} ${r.categorie || ''} ${r.libelle || ''}`).includes(x)) || r.client_id);
 const isSalesLikeReceivable = (r = {}) => ['vente', 'ventes', 'client', 'clients'].some((key) => low(`${r.categorie || ''} ${r.module_lie || ''} ${r.source_module || ''} ${r.libelle || ''}`).includes(key)) || r.client_id || r.order_id || r.sale_id;
 const isPayable = (r = {}) => isUnpaid(r) && (['achat', 'fournisseur', 'depense', 'dépense', 'charge'].some((x) => low(`${r.type || ''} ${r.categorie || ''} ${r.libelle || ''}`).includes(x)) || r.fournisseur_id);
-const remainingOf = (order = {}, payments = []) => Math.max(0, n(order.montant_total ?? order.total ?? order.amount) - n(order.montant_paye ?? order.paid_amount) - payments.filter((p) => String(p.order_id || p.sale_id) === String(order.id)).reduce((s, p) => s + n(p.montant ?? p.amount), 0));
+
 
 function Stat({ label, value, tone = 'neutral' }) {
   const cls = tone === 'good' ? 'text-emerald-600' : tone === 'warn' ? 'text-amber-600' : tone === 'bad' ? 'text-red-600' : 'text-[#2f2415]';
@@ -98,9 +98,7 @@ function FinanceInnerTabs({ tabs = [], active, onChange }) {
 }
 const hasProof = (r = {}) => Boolean(r.document_id || r.proof_url || r.justificatif_id || r.file_url || r.url);
 
-function Section({ icon: Icon, title, children }) {
-  return <section className="rounded-3xl border border-[#d6c3a0] bg-white p-5 shadow-sm"><h2 className="mb-4 flex items-center gap-2 text-lg font-black text-[#2f2415]"><Icon size={20} /> {title}</h2>{children}</section>;
-}
+
 function Tabs({ active, onChange }) {
   return <ModuleTabsBar moduleId="finance_pilotage" active={active} onChange={onChange} />;
 }

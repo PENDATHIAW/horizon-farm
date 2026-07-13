@@ -9,7 +9,7 @@ import {
   buildCycleAlertsForPanel,
   buildCycleV1Kpis,
 } from '../../utils/cycleMetrics.js';
-import { buildCycleOverview, daysUntil, mortalityRate } from './cycleSummary.js';
+import {  daysUntil, mortalityRate } from './cycleSummary.js';
 import { ELEVAGE_ACTION_GRID, ELEVAGE_STAT_GRID, ElevageActionCard, ElevageSection, ElevageStatCard } from './elevageUi.jsx';
 import { isAllFarmsScope } from '../../utils/farmScope.js';
 
@@ -181,8 +181,6 @@ export default function ElevageCyclesPanel({
   const {
     activeAnimals,
     activeLots,
-    layers,
-    broilers,
     priorityRows,
     mortalityAlerts,
     warningCount,
