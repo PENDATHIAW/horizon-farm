@@ -97,3 +97,46 @@ publications partagées, publiées et immuables.
 
 ### Retraits au nom de la pertinence
 **Aucun** dans ce lot.
+
+---
+
+## Lot E (suite) · Charte de langage generalisee a tout src/ — FAIT
+
+Poursuite du lot E apres la reprise en solo (Codex a l'arret). Trois avancees,
+chacune verifiee (lint, build, suite unitaire 239/239) et verrouillee par un
+cliquet.
+
+### E.1 · Fiche lot avicole migree
+- Nouveau dictionnaire `src/i18n/fr/avicoleLot.js` ; `AvicoleLotDetailsModal.jsx`
+  entierement bascule sur `t()` (entete, onglets, situation, ponte, poids,
+  decision, finances, avertissements, toasts).
+- Corrections charte au passage : « Action IA » devient « Action recommandee » ;
+  tirets longs de repli corriges dans la fiche et dans `SalePricingSummaryCard`,
+  `salePricingEngine`, `salePricePresentation`.
+- Chemin ajoute au cliquet `CHEMINS_MIGRES` + garde-fou de rendu
+  `tests/unit/avicoleLotDetailsRender.test.js`.
+
+### E.2 · Mot « IA » supprime de tout l'ecran
+- Le terme « IA » etait present dans 26 fichiers (libelles, titres, toasts) des
+  modules Vision, Commercial, Cultures, Avicole, Documents et de plusieurs
+  services. Remplacement par les termes approuves (Analyse, Suggestions,
+  Recommandations, Action recommandee, Traitement).
+- Valeurs d'affichage (`status`, `domain`, `value`) verifiees sans comparaison
+  logique sur « IA » avant remplacement.
+- Cliquet global `tests/unit/motIaAbsent.test.js` : verrouille tout `src/`.
+
+### E.3 · Tiret long supprime de tout l'ecran
+- Le tiret long etait present dans 339 fichiers. Codemod mecanique remplacant
+  « — » par « - » (1687 occurrences).
+- Exclusions justifiees : `src/i18n/charte.js` (definit le caractere detecte) ;
+  `services/investorForums/mergeInvestorForumProfile.js` (delimiteur de parsing
+  sur texte colle, jamais affiche).
+- Correctif cible : classe de caracteres `[^,\n—-]` de `invoiceOcrParser`
+  ramenee a `[^,\n-]` pour eviter une plage involontaire ; deux assertions de
+  tests realignees sur le nouveau caractere de repli.
+- Cliquet global `tests/unit/tiretLongAbsent.test.js` : verrouille tout `src/`.
+
+### Retraits au nom de la pertinence
+**Aucun.** Ces trois avancees ne retirent aucune fonctionnalite ; elles
+alignent le langage affiche sur la charte et le verrouillent contre toute
+regression.
