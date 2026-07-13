@@ -10,8 +10,9 @@ import moduleTabs from './moduleTabs.js';
 import shared from './shared.js';
 import composants from './composants.js';
 import reglages from './reglages.js';
+import coutsFerme from './coutsFerme.js';
 
-const dictionnaire = { commun, dailyEntries, navigation, moduleTabs, shared, composants, reglages };
+const dictionnaire = { commun, dailyEntries, navigation, moduleTabs, shared, composants, reglages, coutsFerme };
 
 export default dictionnaire;
 
