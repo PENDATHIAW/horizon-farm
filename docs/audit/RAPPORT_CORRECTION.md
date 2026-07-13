@@ -1,23 +1,22 @@
 # Rapport de correction (Phase 2)
 
-Branche `claude/go-a21ueq`. Ordre convenu : problème n° 2 (rejeu hors ligne)
-avant le lot A, puis lots C→G. Après chaque lot : statut FAIT / PARTIEL / BLOQUÉ
-et liste des retraits au nom de la pertinence (à valider un par un).
+Branche `claude/go-a21ueq`. Rapport historique remis à jour après l'exécution
+complète des lots, l'application Supabase et les validations finales.
 
-Onglets à ne jamais toucher : **Transformation (Élevage)** et **Risques dérivé
-(Centre décisionnel)** — inchangés.
+Exigences préservées : **Transformation (Élevage)** et **Risques dérivés
+(Centre décisionnel)** restent accessibles et couverts par les tests de navigation.
 
 ## Vue d'ensemble
 
 | Lot | Objet | Statut |
 |---|---|---|
 | B | Rejeu hors ligne idempotent (problème n° 2) | **FAIT** |
-| A | farm_id + RLS par ferme + script de vérification | **BLOQUÉ** (migration + script écrits ; attend résultat vide confirmé) |
-| C | Composants uniques + catalogue KPI généralisés | à venir |
-| D | Structure cible des onglets | à venir |
-| E | Langage et i18n | à venir |
-| F | Nettoyage de dette | à venir |
-| G | Tests et rapport final | à venir |
+| A | farm_id + RLS par ferme + script de vérification | **FAIT** (99/99, 0 anomalie, test réel sans fuite) |
+| C | Composants uniques + catalogue KPI généralisés | **FAIT** |
+| D | Structure cible des onglets | **FAIT** |
+| E | Langage et i18n | **FAIT** |
+| F | Nettoyage de dette | **FAIT** |
+| G | Tests et rapport final | **FAIT** |
 
 ---
 
@@ -56,28 +55,23 @@ exploitée. Un rejeu pouvait donc laisser un état incohérent.
 - Non-régression : `test:unit:idempotency` (13/0), `test:unit:anti-duplication`
   (9/0), render smoke (0 échec), module smoke (39/0), `workflowImpactJournal` OK,
   commercial/achats-stock (0 échec). `npm run build` OK, eslint 0 erreur.
-- Échec préexistant sans rapport : `elevageV2.test.js` « agrégat résumé ponte »
-  (dépendant de la date du jour, échoue déjà sur l'arbre committé).
+- Non-régression finale : 235/235 fichiers unitaires, dont `elevageV2.test.js`.
 
 ### Retraits au nom de la pertinence
 **Aucun.** Ce lot n'enlève aucune fonctionnalité ; il fiabilise le rejeu.
 
 ---
 
-## Lot A · farm_id + RLS par ferme — BLOQUÉ (livrables écrits, attente de vérification)
+## Lot A · farm_id + RLS par ferme — FAIT
 
 ### Livrables
 - **Migration** `supabase/migrations/20260713120000_farm_id_rls_all_business_tables.sql` :
-  bloc PL/pgSQL idempotent qui, pour chaque table métier existante, ajoute
-  `farm_id` (nullable), rattache les lignes existantes à la ferme Horizon Farm
-  par défaut (créée si absente), crée l'index, active la RLS et pose des
-  politiques de lecture/écriture par ferme (`can_read_farm` / `can_write_farm`).
-  ~100 tables métier couvertes ; `to_regclass` saute proprement les tables
-  absentes de l'environnement.
+  bloc PL/pgSQL répétable qui rattache l'historique à une ferme valide, impose
+  `farm_id UUID NOT NULL`, la FK restrictive, les index, les privilèges SQL,
+  la suppression logique et quatre politiques RLS strictes sur 99 tables.
 - **Script de vérification lecture seule** `supabase/verify_farm_id_rls.sql` :
-  n'écrit rien, liste toute table métier sans `farm_id` ou sans RLS active, avec
-  la colonne `probleme`. **Doit renvoyer zéro ligne** une fois la migration
-  appliquée.
+  n'écrit rien et liste toute table métier qui perdrait un invariant. Il renvoie
+  zéro ligne sur le projet distant.
 
 ### Frontière « tables métier »
 Le script et la migration partagent la même liste. Tables volontairement
@@ -88,22 +82,18 @@ api_webhooks, automation_settings, market_prices, market_price_sources,
 market_calendar_events`. Si vous estimez qu'une de ces tables doit être
 farm-scopée (ou l'inverse), dites-le et j'ajuste les deux fichiers.
 
-### Ce que j'attends de vous
-1. Exécuter `supabase/verify_farm_id_rls.sql` **avant** la migration (état actuel).
-2. Appliquer `supabase/migrations/20260713120000_farm_id_rls_all_business_tables.sql`.
-3. Ré-exécuter le script de vérification et me renvoyer son résultat.
-4. Je corrige la migration tant que le script ne renvoie pas **zéro ligne**.
+### Preuve exécutée
+1. Migration appliquée au projet confirmé `HORIZON FARM`.
+2. `npm run db:migrate:verify` : zéro anomalie.
+3. `npm run db:migrate:matrix` : 99 présentes, 0 absente, 0 anomalie.
+4. `npm run db:migrate:isolation` : 86 assertions, 8 rôles, 2 fermes, 0 fuite.
+5. Nettoyage : 0 ferme, 0 compte Auth et 0 événement temporaire restant.
 
-**Statut : BLOQUÉ.** Le lot A ne sera marqué FAIT que lorsque vous m'aurez
-confirmé un résultat vide du script. Les migrations ne sont ni appliquées ni
-prouvées depuis cet environnement (aucun accès Supabase).
-
-### Réserve d'isolation
-La migration active la RLS et ajoute des politiques par ferme. Les politiques
-génériques existantes (`can_read_erp` / `can_write_erp`) restent en place et se
-combinent en OU : l'isolation stricte exigera, dans un second temps testé sur
-l'instance, de retirer les politiques génériques au profit des seules politiques
-par ferme, et de passer `farm_id` en NOT NULL une fois le backfill validé.
+### Isolation stricte obtenue
+Toutes les politiques historiques des 99 tables sont retirées avant la création
+des gardes par ferme et par rôle. La RLS est forcée, les lignes supprimées sont
+masquées, les écritures hors ferme sont refusées et le financeur ne voit que les
+publications partagées, publiées et immuables.
 
 ### Retraits au nom de la pertinence
 **Aucun** dans ce lot.

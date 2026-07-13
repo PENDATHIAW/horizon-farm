@@ -51,7 +51,7 @@ La liste exacte des onglets est dans `docs/RAPPORT_CONFORMITE.md`.
 - Huit rôles officiels et alias des anciens rôles.
 - 60/60 tables physiques requises par les services CRUD présentes.
 - 71/71 tables directement appelées par le code présentes.
-- 96 tables métier existantes conformes à la portée ferme.
+- 99/99 tables métier présentes et conformes à la portée ferme.
 - 3 tables d'analyse historiques absentes et non appelées.
 - 0 anomalie après `npm run db:migrate:verify`.
 - 86 assertions comportementales sur 8 rôles et 2 fermes, 0 fuite et nettoyage complet.

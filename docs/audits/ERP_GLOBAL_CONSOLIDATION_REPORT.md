@@ -130,8 +130,8 @@ Projet confirmé : `HORIZON FARM`, actif et sain.
 - 12 migrations enregistrées ;
 - 60/60 tables CRUD présentes ;
 - 71/71 tables appelées par les sources présentes ;
-- 96 tables métier existantes auditées ;
-- 3 tables historiques absentes et non appelées ;
+- 99/99 tables métier présentes et auditées ;
+- 0 table absente ;
 - 0 anomalie distante.
 - 86 assertions comportementales, 8 rôles, 2 fermes, 0 fuite, nettoyage complet.
 
@@ -173,7 +173,7 @@ Preuve table par table : `docs/audits/SUPABASE_RLS_MATRIX.md`.
 | `npm run audit:reachability` | 0 orphelin, 0 import non résolu |
 | `npm audit --audit-level=moderate` | 0 vulnérabilité |
 | `npm run db:migrate:verify` | 0 anomalie |
-| `npm run db:migrate:matrix` | 96 conformes, 3 absences attendues |
+| `npm run db:migrate:matrix` | 99/99 conformes, 0 absence, 0 anomalie |
 | `npm run db:migrate:isolation` | 86 assertions, 8 rôles, 2 fermes, 0 fuite |
 | Audit navigateur | 15 modules, 82 onglets, 0 page d'erreur |
 | `git diff --check` | réussi |

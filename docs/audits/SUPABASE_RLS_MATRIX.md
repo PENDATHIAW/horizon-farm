@@ -3,8 +3,9 @@
 Audit distant du 2026-07-13 sur le projet `HORIZON FARM` (`xmqfvmswrjhteaijnaxb`).
 Commande reproductible : `npm run db:migrate:matrix`. Le contrôle échoue si une table existante perd un des critères.
 
-Résultat : **96 tables métier existantes conformes, 3 tables historiques absentes et non appelées par les sources, 0 anomalie**.
+Résultat : **99 tables métier existantes conformes, 0 table absente, 0 anomalie**.
 Les politiques de suppression autorisent la mutation selon le rôle ; la suppression applicative écrit `is_deleted`, `deleted_at` et `deleted_by`, et la politique de lecture masque les lignes supprimées.
+Les privilèges `SELECT`, `INSERT`, `UPDATE` et `DELETE` du rôle `authenticated` sont également contrôlés sur chaque table avant application des politiques RLS.
 Le contrôle comportemental complète la matrice : 86 assertions, 8 rôles, 2 fermes, 0 fuite et nettoyage complet.
 
 | Table | farm_id | Index | FK | RLS | Lecture | Insertion | Modification | Suppression logique | Statut |
@@ -15,10 +16,10 @@ Le contrôle comportemental complète la matrice : 86 assertions, 8 rôles, 2 fe
 | `accounting_documents` | UUID NOT NULL | Oui | Oui | Forcée | Oui | Oui | Oui | Oui, 3 colonnes et politique | FAIT |
 | `accounting_entries` | UUID NOT NULL | Oui | Oui | Forcée | Oui | Oui | Oui | Oui, 3 colonnes et politique | FAIT |
 | `accounting_entry_lines` | UUID NOT NULL | Oui | Oui | Forcée | Oui | Oui | Oui | Oui, 3 colonnes et politique | FAIT |
-| `ai_decisions` | N/A | N/A | N/A | N/A | N/A | N/A | N/A | N/A | FAIT, absence confirmée et aucun appel source |
-| `ai_intake_events` | N/A | N/A | N/A | N/A | N/A | N/A | N/A | N/A | FAIT, absence confirmée et aucun appel source |
+| `ai_decisions` | UUID NOT NULL | Oui | Oui | Forcée | Oui | Oui | Oui | Oui, 3 colonnes et politique | FAIT |
+| `ai_intake_events` | UUID NOT NULL | Oui | Oui | Forcée | Oui | Oui | Oui | Oui, 3 colonnes et politique | FAIT |
 | `ai_recommendations` | UUID NOT NULL | Oui | Oui | Forcée | Oui | Oui | Oui | Oui, 3 colonnes et politique | FAIT |
-| `ai_scores` | N/A | N/A | N/A | N/A | N/A | N/A | N/A | N/A | FAIT, absence confirmée et aucun appel source |
+| `ai_scores` | UUID NOT NULL | Oui | Oui | Forcée | Oui | Oui | Oui | Oui, 3 colonnes et politique | FAIT |
 | `alert_events` | UUID NOT NULL | Oui | Oui | Forcée | Oui | Oui | Oui | Oui, 3 colonnes et politique | FAIT |
 | `alert_rules` | UUID NOT NULL | Oui | Oui | Forcée | Oui | Oui | Oui | Oui, 3 colonnes et politique | FAIT |
 | `alertes_center` | UUID NOT NULL | Oui | Oui | Forcée | Oui | Oui | Oui | Oui, 3 colonnes et politique | FAIT |

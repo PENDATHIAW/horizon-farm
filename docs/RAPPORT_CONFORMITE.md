@@ -18,7 +18,7 @@
 | 6. Nettoyages de pertinence | FAIT | retraits vérifiés, aucun reliquat historique exécutable |
 | 7. Tests et rapport | FAIT | 235/235 fichiers unitaires, lint, build et audits verts |
 | Refonte visuelle | FAIT | 18 couleurs, 7 sections, 7 saisies, 16 modules avec indicateurs |
-| Supabase production | FAIT | 96 tables existantes conformes, 3 absences attendues, 0 anomalie |
+| Supabase production | FAIT | 99 tables conformes, 0 absence, 0 anomalie |
 
 ## 1. Dictionnaire et langage
 
@@ -53,14 +53,14 @@ Statut : FAIT.
 - Historique : 12 migrations enregistrées.
 - Tables CRUD : 60 attendues, 60 présentes.
 - Tables appelées directement par les sources : 71 attendues, 71 présentes.
-- Tables métier existantes auditées : 96.
+- Tables métier existantes auditées : 99 sur 99.
 - Chaque table existante a `farm_id UUID NOT NULL`, une FK vers `farms`, un index, la RLS
   forcée, des politiques séparées de lecture, insertion, modification et suppression.
 - Chaque table existante a `is_deleted`, `deleted_at`, `deleted_by`. Les lignes supprimées
   sont masquées par la politique de lecture.
 - Test comportemental distant : 86 assertions, 8 rôles, 2 fermes, 0 fuite, nettoyage complet.
-- `ai_decisions`, `ai_intake_events` et `ai_scores` ne sont pas déployées et ne sont appelées
-  par aucune source exécutable.
+- `ai_decisions`, `ai_intake_events` et `ai_scores` sont déployées avec la même portée ferme,
+  les mêmes privilèges contrôlés et les mêmes politiques strictes que les 96 autres tables.
 - Détail reproductible : `docs/audits/SUPABASE_RLS_MATRIX.md`.
 
 ## 3. Modules et onglets
@@ -201,7 +201,7 @@ Statut : FAIT.
 | Atteignabilité source | 1021 sources, 957 atteignables, 64 supports, 0 orpheline |
 | Imports | 0 non résolu |
 | Dépendances | 0 vulnérabilité |
-| Supabase | 96 conformes, 3 absences attendues, 0 anomalie |
+| Supabase | 99/99 conformes, 0 absence, 0 anomalie |
 | Isolation Supabase réelle | 86 assertions, 8 rôles, 2 fermes, 0 fuite |
 | Navigateur | 15 modules et 82 onglets, aucune page d'erreur |
 
