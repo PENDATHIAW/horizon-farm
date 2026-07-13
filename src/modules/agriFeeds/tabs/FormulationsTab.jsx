@@ -164,47 +164,47 @@ export default function FormulationsTab({
 
   return (
     <div className="space-y-4">
-      <section className="rounded-3xl border border-[#d6c3a0] bg-white p-5 space-y-2">
-        <p className="text-lg font-black text-[#2f2415]">Formulations</p>
-        <p className="text-sm text-[#8a7456] leading-relaxed max-w-3xl">
+      <section className="rounded-3xl border border-line bg-white p-6 space-y-2">
+        <p className="text-lg font-semibold text-earth">Formulations</p>
+        <p className="text-sm text-slate leading-relaxed max-w-3xl">
           Créez des formules, calculez le coût théorique, suivez le cycle de vie.
           La commercialisation reste bloquée sans test, coût réel et confirmation.
         </p>
         {message ? (
-          <p className="text-sm rounded-xl border border-[#eadcc2] bg-[#fffdf8] px-3 py-2">{message}</p>
+          <p className="text-sm rounded-xl border border-line bg-card px-3 py-2">{message}</p>
         ) : null}
       </section>
 
       <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
-        <form onSubmit={saveFormula} className="rounded-3xl border border-[#d6c3a0] bg-white p-5 space-y-3">
-          <p className="font-black text-[#2f2415]">Nouvelle formule</p>
+        <form onSubmit={saveFormula} className="rounded-3xl border border-line bg-white p-6 space-y-3">
+          <p className="font-semibold text-earth">Nouvelle formule</p>
           <label className="block space-y-1">
-            <span className="text-xs font-bold text-[#8a7456]">Nom</span>
+            <span className="text-xs font-semibold text-slate">Nom</span>
             <input
               value={form.name}
               onChange={(e) => setForm((p) => ({ ...p, name: e.target.value }))}
-              className="w-full min-h-[44px] rounded-xl border border-[#d6c3a0] px-3 text-sm"
+              className="w-full min-h-[44px] rounded-xl border border-line px-3 text-sm"
               placeholder="Ex. Chair croissance HF"
               required
             />
           </label>
           <div className="grid grid-cols-2 gap-3">
             <label className="block space-y-1">
-              <span className="text-xs font-bold text-[#8a7456]">Espèce</span>
+              <span className="text-xs font-semibold text-slate">Espèce</span>
               <select
                 value={form.target_species}
                 onChange={(e) => setForm((p) => ({ ...p, target_species: e.target.value }))}
-                className="w-full min-h-[44px] rounded-xl border border-[#d6c3a0] px-3 text-sm"
+                className="w-full min-h-[44px] rounded-xl border border-line px-3 text-sm"
               >
                 {TARGET_SPECIES.map((s) => <option key={s.value} value={s.value}>{s.label}</option>)}
               </select>
             </label>
             <label className="block space-y-1">
-              <span className="text-xs font-bold text-[#8a7456]">Stade</span>
+              <span className="text-xs font-semibold text-slate">Stade</span>
               <select
                 value={form.target_stage}
                 onChange={(e) => setForm((p) => ({ ...p, target_stage: e.target.value }))}
-                className="w-full min-h-[44px] rounded-xl border border-[#d6c3a0] px-3 text-sm"
+                className="w-full min-h-[44px] rounded-xl border border-line px-3 text-sm"
               >
                 {TARGET_STAGES.map((s) => <option key={s.value} value={s.value}>{s.label}</option>)}
               </select>
@@ -212,7 +212,7 @@ export default function FormulationsTab({
           </div>
 
           <div className="space-y-2">
-            <p className="text-xs font-black uppercase text-[#8a7456]">Ingrédients (% pour 100 kg)</p>
+            <p className="text-xs font-semibold uppercase text-slate">Ingrédients (% pour 100 kg)</p>
             {lines.map((line, idx) => {
               const unitCost = line.raw_material_id
                 ? resolveLatestUnitCost(line.raw_material_id, dataMap)
@@ -221,11 +221,11 @@ export default function FormulationsTab({
               return (
                 <div key={idx} className="grid grid-cols-12 gap-2 items-end">
                   <label className="col-span-6 space-y-1">
-                    <span className="text-[10px] font-bold text-[#8a7456]">Matière</span>
+                    <span className="text-meta font-semibold text-slate">Matière</span>
                     <select
                       value={line.raw_material_id}
                       onChange={(e) => updateLine(idx, { raw_material_id: e.target.value })}
-                      className="w-full min-h-[40px] rounded-xl border border-[#d6c3a0] px-2 text-sm"
+                      className="w-full min-h-[40px] rounded-xl border border-line px-2 text-sm"
                     >
                       <option value="">—</option>
                       {materials.map((m) => (
@@ -234,53 +234,53 @@ export default function FormulationsTab({
                     </select>
                   </label>
                   <label className="col-span-3 space-y-1">
-                    <span className="text-[10px] font-bold text-[#8a7456]">%</span>
+                    <span className="text-meta font-semibold text-slate">%</span>
                     <input
                       type="number"
                       value={line.percentage}
                       onChange={(e) => updateLine(idx, { percentage: e.target.value })}
-                      className="w-full min-h-[40px] rounded-xl border border-[#d6c3a0] px-2 text-sm"
+                      className="w-full min-h-[40px] rounded-xl border border-line px-2 text-sm"
                     />
                   </label>
-                  <div className="col-span-2 text-[11px] text-[#8a7456] pb-2">
+                  <div className="col-span-2 text-meta text-slate pb-2">
                     {unitCost > 0 ? fmtCurrency(contrib) : '—'}
                   </div>
-                  <button type="button" onClick={() => removeLine(idx)} className="col-span-1 text-xs text-rose-700 pb-2">×</button>
+                  <button type="button" onClick={() => removeLine(idx)} className="col-span-1 text-xs text-urgent pb-2">×</button>
                 </div>
               );
             })}
-            <button type="button" onClick={addLine} className="text-sm font-bold text-[#2f2415]">+ Ingrédient</button>
+            <button type="button" onClick={addLine} className="text-sm font-semibold text-earth">+ Ingrédient</button>
           </div>
 
-          <div className="rounded-xl border border-[#eadcc2] bg-[#fffdf8] p-3 text-sm space-y-1">
+          <div className="rounded-xl border border-line bg-card p-3 text-sm space-y-1">
             <p><b>Somme %</b> : {costPreview.total_percentage.toFixed(1)}</p>
             <p><b>Coût / 100 kg</b> : {fmtCurrency(costPreview.cost_for_100kg)}</p>
-            <p className="font-black"><b>Coût théorique / kg</b> : {fmtCurrency(costPreview.theoretical_cost_per_kg)}</p>
+            <p className="font-semibold"><b>Coût théorique / kg</b> : {fmtCurrency(costPreview.theoretical_cost_per_kg)}</p>
             {costPreview.alerts.map((a) => (
-              <p key={a.message} className="text-xs text-amber-900">Point d’attention — {a.message}</p>
+              <p key={a.message} className="text-xs text-horizon-dark">Point d’attention — {a.message}</p>
             ))}
           </div>
 
           <button
             type="submit"
             disabled={busy || materials.length === 0}
-            className="rounded-xl bg-[#22c55e] px-4 py-2 text-sm font-black text-[#052e16] disabled:opacity-60"
+            className="rounded-xl bg-leaf px-4 py-2 text-sm font-semibold text-earth disabled:opacity-60"
           >
             Créer la formule
           </button>
           {materials.length === 0 ? (
-            <p className="text-xs text-amber-900">Créez d’abord une matière première dans l’onglet Matières.</p>
+            <p className="text-xs text-horizon-dark">Créez d’abord une matière première dans l’onglet Matières.</p>
           ) : null}
         </form>
 
-        <section className="rounded-3xl border border-[#d6c3a0] bg-white p-5 space-y-3">
-          <p className="font-black text-[#2f2415]">Cycle de vie</p>
+        <section className="rounded-3xl border border-line bg-white p-6 space-y-3">
+          <p className="font-semibold text-earth">Cycle de vie</p>
           <label className="block space-y-1">
-            <span className="text-xs font-bold text-[#8a7456]">Formule</span>
+            <span className="text-xs font-semibold text-slate">Formule</span>
             <select
               value={selectedFormulaId}
               onChange={(e) => setSelectedFormulaId(e.target.value)}
-              className="w-full min-h-[44px] rounded-xl border border-[#d6c3a0] px-3 text-sm"
+              className="w-full min-h-[44px] rounded-xl border border-line px-3 text-sm"
             >
               <option value="">Sélectionner…</option>
               {formulas.map((f) => (
@@ -297,43 +297,43 @@ export default function FormulationsTab({
                 Statut actuel : <b>{formulaStatusLabel(selectedFormula.status)}</b>
               </p>
               {selectedVersions[0] ? (
-                <p className="text-sm text-[#8a7456]">
+                <p className="text-sm text-slate">
                   Version active : {selectedVersions[0].version_code} · {fmtCurrency(selectedVersions[0].theoretical_cost_per_kg)}/kg
                 </p>
               ) : null}
 
               {gate ? (
-                <div className="rounded-xl border border-[#eadcc2] bg-[#fffdf8] p-3 text-xs space-y-1">
-                  <p className="font-black text-[#2f2415]">Conditions commercialisable</p>
+                <div className="rounded-xl border border-line bg-card p-3 text-xs space-y-1">
+                  <p className="font-semibold text-earth">Conditions commercialisable</p>
                   {gate.checks.map((c) => (
                     <p key={c.id}>{c.ok ? '✓' : '○'} {c.label}</p>
                   ))}
-                  <p className="mt-2 text-[#2f2415]">{gate.message}</p>
+                  <p className="mt-2 text-earth">{gate.message}</p>
                 </div>
               ) : null}
 
               <div className="flex flex-wrap gap-2">
-                <button type="button" disabled={busy} onClick={() => changeStatus('internal_testing')} className="rounded-xl border border-[#d6c3a0] px-3 py-2 text-xs font-black">En test interne</button>
-                <button type="button" disabled={busy} onClick={() => changeStatus('to_improve')} className="rounded-xl border border-[#d6c3a0] px-3 py-2 text-xs font-black">À améliorer</button>
-                <button type="button" disabled={busy} onClick={() => changeStatus('internally_validated')} className="rounded-xl border border-[#d6c3a0] px-3 py-2 text-xs font-black">Validée interne</button>
-                <button type="button" disabled={busy} onClick={() => changeStatus('commercializable')} className="rounded-xl bg-[#22c55e] px-3 py-2 text-xs font-black text-[#052e16]">Commercialisable</button>
-                <button type="button" disabled={busy} onClick={duplicateActiveVersion} className="rounded-xl border border-[#d6c3a0] px-3 py-2 text-xs font-black">
+                <button type="button" disabled={busy} onClick={() => changeStatus('internal_testing')} className="rounded-xl border border-line px-3 py-2 text-xs font-semibold">En test interne</button>
+                <button type="button" disabled={busy} onClick={() => changeStatus('to_improve')} className="rounded-xl border border-line px-3 py-2 text-xs font-semibold">À améliorer</button>
+                <button type="button" disabled={busy} onClick={() => changeStatus('internally_validated')} className="rounded-xl border border-line px-3 py-2 text-xs font-semibold">Validée interne</button>
+                <button type="button" disabled={busy} onClick={() => changeStatus('commercializable')} className="rounded-xl bg-leaf px-3 py-2 text-xs font-semibold text-earth">Commercialisable</button>
+                <button type="button" disabled={busy} onClick={duplicateActiveVersion} className="rounded-xl border border-line px-3 py-2 text-xs font-semibold">
                   Dupliquer version
                 </button>
               </div>
             </>
           ) : (
-            <p className="text-sm text-[#8a7456]">Sélectionnez une formule pour gérer son statut.</p>
+            <p className="text-sm text-slate">Sélectionnez une formule pour gérer son statut.</p>
           )}
         </section>
       </div>
 
-      <section className="rounded-3xl border border-[#d6c3a0] bg-white overflow-x-auto">
-        <div className="p-4 border-b border-[#eadcc2]">
-          <p className="font-black">Formules ({formulas.length})</p>
+      <section className="rounded-3xl border border-line bg-white overflow-x-auto">
+        <div className="p-4 border-b border-line">
+          <p className="font-semibold">Formules ({formulas.length})</p>
         </div>
         <table className="min-w-full text-sm">
-          <thead className="bg-[#fffdf8] text-[10px] uppercase font-black text-[#8a7456]">
+          <thead className="bg-card text-meta uppercase font-semibold text-slate">
             <tr>
               <th className="px-3 py-2 text-left">Code</th>
               <th className="px-3 py-2 text-left">Nom</th>
@@ -344,13 +344,13 @@ export default function FormulationsTab({
           </thead>
           <tbody>
             {formulas.length === 0 ? (
-              <tr><td colSpan={5} className="px-3 py-4 text-[#8a7456]">Aucune formule.</td></tr>
+              <tr><td colSpan={5} className="px-3 py-4 text-slate">Aucune formule.</td></tr>
             ) : formulas.map((f) => {
               const v = versions
                 .filter((x) => String(x.formula_id) === String(f.id))
                 .sort((a, b) => toNumber(b.version_number) - toNumber(a.version_number))[0];
               return (
-                <tr key={f.id} className="border-t border-[#eadcc2]">
+                <tr key={f.id} className="border-t border-line">
                   <td className="px-3 py-2 font-semibold">{f.formula_code}</td>
                   <td className="px-3 py-2">{f.name}</td>
                   <td className="px-3 py-2">{TARGET_SPECIES.find((s) => s.value === f.target_species)?.label || f.target_species}</td>

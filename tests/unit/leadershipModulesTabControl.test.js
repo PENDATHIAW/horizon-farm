@@ -92,8 +92,8 @@ test('Centre IA — onglet contrôlé Urgences', async () => {
 });
 
 test('alias legacy — Résumé et Avicole', () => {
-  assert.equal(resolveElevageTab('Résumé'), 'Lots & bandes');
-  assert.equal(resolveElevageTab('Avicole'), 'Lots & bandes');
-  assert.equal(resolveObjectifsTab('Graphiques'), 'Suivi du Business Plan');
+  assert.equal(resolveElevageTab('Résumé'), 'Vue élevage');
+  assert.equal(resolveElevageTab('Avicole'), 'Production élevage');
+  assert.equal(resolveObjectifsTab('Graphiques'), 'Historique objectifs');
   assert.equal(resolveCentreTab('Priorités'), 'À traiter');
 });

@@ -35,6 +35,13 @@ import {
 import { resolveElevageThresholds, mortalityAlertSeverity } from './elevageThresholds.js';
 import { computeOfficialLayingRate } from './elevageLayingRate.js';
 import { resolveElevageLogFarmId, stampElevageLogFarmId } from './elevageFarmScope.js';
+import {
+  attachDailyEntryMeta,
+  DAILY_ENTRY_TYPES,
+  dailyEntryRecordId,
+  findDailyEntryReplay,
+  resolveDailyEntryIdentity,
+} from './dailyQuickEntryContract.js';
 
 export { computeOfficialLayingRate, computeLotOfficialLayingRate, formatOfficialLayingRate, aggregateSummaryLayingRate, LAYING_RATE_NOT_CALCULABLE } from './elevageLayingRate.js';
 export { resolveElevageThresholds, ELEVAGE_THRESHOLDS_DEFAULTS, mortalityAlertSeverity } from './elevageThresholds.js';
@@ -444,8 +451,6 @@ export async function commitElevageFeeding({ form = {}, context = {}, handlers =
   const err = validateElevageFeedingForm(form);
   if (err) throw new Error(err);
 
-  const logId = clean(form.id) || makeId('ALIM');
-  const issueKey = buildElevageIssueKey(ELEVAGE_DOMAINS.FEEDING, logId);
   const stock = arr(context.stocks).find((row) => clean(row.id) === clean(form.stock_id));
   const qty = num(form.quantite);
   if (stock && qty > stockQuantity(stock)) {
@@ -454,7 +459,19 @@ export async function commitElevageFeeding({ form = {}, context = {}, handlers =
 
   const amount = num(form.montant_total) || (stock ? qty * stockUnitPrice(stock) : 0);
   const farmId = resolveElevageLogFarmId({ form, context });
-  const log = stampElevageLogFarmId({
+  const identity = resolveDailyEntryIdentity(DAILY_ENTRY_TYPES.FEEDING, form, {
+    farmId,
+    recordId: feedingTargetId(form),
+  });
+  const replay = findDailyEntryReplay([
+    ...arr(context.alimentationLogs),
+    ...arr(context.businessEvents),
+  ], identity.eventKey);
+  if (replay) return { ok: true, replayed: true, eventKey: identity.eventKey, qty, amount };
+
+  const logId = clean(form.id) || dailyEntryRecordId('ALIM', identity);
+  const issueKey = identity.eventKey;
+  const log = stampElevageLogFarmId(attachDailyEntryMeta({
     ...form,
     id: logId,
     date: form.date || today(),
@@ -464,7 +481,7 @@ export async function commitElevageFeeding({ form = {}, context = {}, handlers =
     issue_key: issueKey,
     side_effects_managed: true,
     created_from: 'elevage_workflow',
-  }, farmId);
+  }, identity, form.recorded_by || context.userId), farmId);
 
   const preview = prepareFeedingWorkflow(log, { transactions: context.transactions, events: context.businessEvents });
   preview.records.alimentation = log;
@@ -477,6 +494,7 @@ export async function commitElevageFeeding({ form = {}, context = {}, handlers =
     };
   }
 
+  let newStockQty = stock ? stockQuantity(stock) : null;
   await commitFeedingWorkflow(preview, {
     context,
     ...handlers,
@@ -488,27 +506,41 @@ export async function commitElevageFeeding({ form = {}, context = {}, handlers =
           const movement = applyStockMovement(stock, { type: 'sortie', qty, motif: log.notes || 'Alimentation élevage', date: log.date });
           await handlers.onUpdateStock?.(stock.id, movement.stock);
           if (handlers.onCreateBusinessEvent && movement.event) {
-            await handlers.onCreateBusinessEvent({ ...movement.event, issue_key: issueKey });
+            const stockEventIdentity = { ...identity, eventKey: `${identity.eventKey}:stock` };
+            await handlers.onCreateBusinessEvent(attachDailyEntryMeta({
+              ...movement.event,
+              id: dailyEntryRecordId('EVT-Q', stockEventIdentity),
+              issue_key: stockEventIdentity.eventKey,
+              module_source: 'elevage',
+            }, stockEventIdentity, form.recorded_by || context.userId));
           }
           const nextQty = stockQuantity(movement.stock);
           if (isStockCritical(movement.stock, nextQty)) {
             const followUp = buildStockCriticalFollowUp(movement.stock, nextQty);
             if (followUp?.alert && !arr(context.alertes).some((a) => openStatus(a) && clean(a.alert_dedupe_key) === followUp.key)) {
               if (!hasOpenStockReorderTask(movement.stock, context.tasks)) {
-                await handlers.onCreateAlert?.({ ...followUp.alert, issue_key: buildElevageIssueKey('stock', stock.id, 'bas') });
-                await handlers.onCreateTask?.(followUp.task);
+                const alertKey = `${identity.eventKey}:stock-low-alert`;
+                const taskKey = `${identity.eventKey}:stock-low-task`;
+                await handlers.onCreateAlert?.({ ...followUp.alert, id: dailyEntryRecordId('ALT-Q', { ...identity, eventKey: alertKey }), issue_key: alertKey, alert_dedupe_key: alertKey });
+                await handlers.onCreateTask?.({ ...followUp.task, id: dailyEntryRecordId('TSK-Q', { ...identity, eventKey: taskKey }), issue_key: taskKey, task_dedupe_key: taskKey });
               }
             }
           }
+          newStockQty = nextQty;
         }
       : handlers.onUpdateStockMovement,
     onCreateBusinessEvent: async (evt) => {
-      await handlers.onCreateBusinessEvent?.({
+      const childEventKey = evt?.event_type === 'alimentation'
+        ? identity.eventKey
+        : `${identity.eventKey}:${clean(evt?.event_type || 'event')}`;
+      const childIdentity = { ...identity, eventKey: childEventKey };
+      await handlers.onCreateBusinessEvent?.(attachDailyEntryMeta({
         ...evt,
+        id: dailyEntryRecordId('EVT-Q', childIdentity),
         module_source: 'elevage',
         issue_key: issueKey,
         event_type: evt?.event_type || 'alimentation',
-      });
+      }, childIdentity, form.recorded_by || context.userId));
     },
   });
 
@@ -521,7 +553,7 @@ export async function commitElevageFeeding({ form = {}, context = {}, handlers =
     if (animal) await handlers.onUpdateAnimal(animal.id, accumulateAnimalFeedCost(animal, amount));
   }
 
-  return { ok: true, logId, issueKey, amount };
+  return { ok: true, logId, issueKey, eventKey: identity.eventKey, amount, qty, unit: stock?.unite || form.unite || 'kg', newStockQty };
 }
 
 /**
@@ -638,8 +670,18 @@ export async function commitElevageMortality({ form = {}, context = {}, handlers
   const date = form.date || today();
   const lotId = clean(form.lot_id);
   const animalId = clean(form.animal_id);
-  const eventId = makeId('EVT');
-  const issueKey = buildElevageIssueKey(ELEVAGE_DOMAINS.MORTALITY, lotId || animalId, date);
+  const farmId = resolveElevageLogFarmId({ form, context });
+  const identity = resolveDailyEntryIdentity(DAILY_ENTRY_TYPES.MORTALITY, form, {
+    farmId,
+    recordId: lotId || animalId,
+  });
+  const replay = findDailyEntryReplay([
+    ...arr(context.mortalityRecords),
+    ...arr(context.businessEvents),
+  ], identity.eventKey);
+  if (replay) return { ok: true, replayed: true, eventKey: identity.eventKey, qty };
+
+  const issueKey = identity.eventKey;
 
   let lotAfter = null;
   if (lotId && handlers.onUpdateLot) {
@@ -671,11 +713,11 @@ export async function commitElevageMortality({ form = {}, context = {}, handlers
     const alert = buildMortalityAlert({ lot: lotAfter, rate });
     if (alert && handlers.onCreateAlert) {
       const exists = arr(context.alertes).some((a) => openStatus(a) && clean(a.alert_dedupe_key) === alert.alert_dedupe_key);
-      if (!exists) await handlers.onCreateAlert(alert);
+      if (!exists) await handlers.onCreateAlert({ ...alert, id: dailyEntryRecordId('ALT-Q', { ...identity, eventKey: `${identity.eventKey}:mortality-alert` }) });
     }
     if (economicLoss > 0 && handlers.onCreateFinanceTransaction) {
       const financeRow = {
-        id: `TRX-MORT-${lotId}-${date}`,
+        id: dailyEntryRecordId('TRX-MORT', { ...identity, eventKey: `${identity.eventKey}:loss` }),
         type: 'sortie',
         libelle: `Perte mortalité ${lot.name || lotId}`,
         montant: economicLoss,
@@ -687,6 +729,12 @@ export async function commitElevageMortality({ form = {}, context = {}, handlers
         source_module: 'elevage',
         source_record_id: lotId,
         issue_key: issueKey,
+        event_key: `${identity.eventKey}:loss`,
+        farm_id: farmId || lot.farm_id || null,
+        cash_effect: false,
+        source_type: 'perte_technique',
+        recorded_by: form.recorded_by || context.userId || 'system',
+        idempotency_key: `${identity.eventKey}:loss`,
         side_effects_managed: true,
       };
       const exists = arr(context.transactions).some((t) => clean(t.id) === financeRow.id);
@@ -713,7 +761,7 @@ export async function commitElevageMortality({ form = {}, context = {}, handlers
       const exists = arr(context.alertes).some((a) => openStatus(a) && clean(a.alert_dedupe_key) === alertKey);
       if (!exists) {
         await handlers.onCreateAlert({
-          id: makeId('ALT'),
+          id: dailyEntryRecordId('ALT-Q', { ...identity, eventKey: `${identity.eventKey}:animal-alert` }),
           title: `Mortalité animal — ${animal.nom || animal.name || animalId}`,
           message: form.notes || form.motif || 'Animal déclaré mort.',
           module_source: 'elevage',
@@ -729,7 +777,7 @@ export async function commitElevageMortality({ form = {}, context = {}, handlers
     }
     if (economicLoss > 0 && handlers.onCreateFinanceTransaction) {
       const financeRow = {
-        id: `TRX-MORT-ANI-${animalId}-${date}`,
+        id: dailyEntryRecordId('TRX-MORT-ANI', { ...identity, eventKey: `${identity.eventKey}:loss` }),
         type: 'sortie',
         libelle: `Perte mortalité ${animal.nom || animal.name || animalId}`,
         montant: economicLoss,
@@ -741,7 +789,12 @@ export async function commitElevageMortality({ form = {}, context = {}, handlers
         source_module: 'elevage',
         source_record_id: animalId,
         issue_key: issueKey,
-        farm_id: animal.farm_id || form.farm_id || null,
+        event_key: `${identity.eventKey}:loss`,
+        farm_id: farmId || animal.farm_id || null,
+        cash_effect: false,
+        source_type: 'perte_technique',
+        recorded_by: form.recorded_by || context.userId || 'system',
+        idempotency_key: `${identity.eventKey}:loss`,
         side_effects_managed: true,
       };
       const exists = arr(context.transactions).some((t) => clean(t.id) === financeRow.id);
@@ -756,8 +809,8 @@ export async function commitElevageMortality({ form = {}, context = {}, handlers
     if (!num(form.valeur_perte) && purchaseCost <= 0) financialGap = ANIMAL_LOSS_NOT_CALCULABLE;
   }
 
-  await handlers.onCreateBusinessEvent?.({
-    id: eventId,
+  await handlers.onCreateBusinessEvent?.(attachDailyEntryMeta({
+    id: identity.eventId,
     event_type: 'mortalite',
     module_source: 'elevage',
     entity_type: lotId ? 'lot_avicole' : 'animal',
@@ -769,9 +822,17 @@ export async function commitElevageMortality({ form = {}, context = {}, handlers
     quantity: qty,
     issue_key: issueKey,
     side_effects_managed: true,
-  });
+  }, identity, form.recorded_by || context.userId));
 
-  return { ok: true, issueKey, qty, lotAfter, financialGap };
+  return {
+    ok: true,
+    issueKey,
+    eventKey: identity.eventKey,
+    qty,
+    lotAfter,
+    activeCount: lotAfter ? avicoleActiveCount(lotAfter) : (animalId ? 0 : null),
+    financialGap,
+  };
 }
 
 /**
@@ -781,16 +842,30 @@ export async function commitElevageEggProduction({ form = {}, context = {}, hand
   const err = validateElevageEggForm(form);
   if (err) throw new Error(err);
 
-  const logId = clean(form.id) || makeId('PROD');
-  const issueKey = buildElevageIssueKey(ELEVAGE_DOMAINS.EGGS, logId);
   const eggs = num(form.oeufs_produits);
   const broken = num(form.oeufs_casses);
   const sellable = Math.max(0, eggs - broken);
   const tablet = tabletsFromEggs(sellable);
   const farmId = resolveElevageLogFarmId({ form, context });
-  const thresholds = resolveElevageThresholds(context.farmSettings);
+  const identity = resolveDailyEntryIdentity(DAILY_ENTRY_TYPES.EGGS, form, {
+    farmId,
+    recordId: form.lot_id,
+  });
+  const replay = findDailyEntryReplay([
+    ...arr(context.productionLogs),
+    ...arr(context.businessEvents),
+  ], identity.eventKey);
+  if (replay) return { ok: true, replayed: true, eventKey: identity.eventKey, sellable, tablet };
 
-  const log = stampElevageLogFarmId({
+  const logId = clean(form.id) || dailyEntryRecordId('PROD', identity);
+  const issueKey = identity.eventKey;
+  const thresholds = resolveElevageThresholds(context.farmSettings);
+  const laying = computeOfficialLayingRate({
+    eggsProduced: eggs,
+    activeLayers: avicoleActiveCount(arr(context.lots).find((l) => clean(l.id) === clean(form.lot_id)) || {}),
+  });
+
+  const log = stampElevageLogFarmId(attachDailyEntryMeta({
     ...form,
     id: logId,
     date: form.date || today(),
@@ -804,14 +879,8 @@ export async function commitElevageEggProduction({ form = {}, context = {}, hand
     source_module: 'elevage',
     issue_key: issueKey,
     side_effects_managed: true,
-    ...(() => {
-      const laying = computeOfficialLayingRate({
-        eggsProduced: eggs,
-        activeLayers: avicoleActiveCount(arr(context.lots).find((l) => clean(l.id) === clean(form.lot_id)) || {}),
-      });
-      return laying.calculable ? { taux_ponte: laying.rate, taux_ponte_calcule: laying.rate } : {};
-    })(),
-  }, farmId);
+    ...(laying.calculable ? { taux_ponte: laying.rate, taux_ponte_calcule: laying.rate } : {}),
+  }, identity, form.recorded_by || context.userId), farmId);
 
   const packagingStockId = clean(form.packaging_stock_id);
   const packagingQty = num(form.packaging_qty) > 0 ? num(form.packaging_qty) : (tablet.tablettes > 0 ? tablet.tablettes : 0);
@@ -821,6 +890,7 @@ export async function commitElevageEggProduction({ form = {}, context = {}, hand
   await handlers.onCreateProduction?.(log);
 
   let stockGap = null;
+  let newStockQty = null;
   const eggStock = findEggStockRow(context.stocks);
   if (eggStock && sellable > 0 && handlers.onUpdateStock) {
     const beforeQty = num(eggStock.quantite ?? eggStock.quantity);
@@ -831,6 +901,7 @@ export async function commitElevageEggProduction({ form = {}, context = {}, hand
       date: log.date,
     });
     const afterQty = num(movement.stock?.quantite ?? movement.stock?.quantity ?? (beforeQty + sellable));
+    newStockQty = afterQty;
     await handlers.onUpdateStock(eggStock.id, { ...movement.stock, disponible_commercial: true });
     if (handlers.onCreateStockMovement) {
       const payload = buildEggProductionStockMovementPayload({
@@ -863,13 +934,15 @@ export async function commitElevageEggProduction({ form = {}, context = {}, hand
       }
     }
     if (handlers.onCreateBusinessEvent && movement.event) {
-      await handlers.onCreateBusinessEvent({
+      const stockEventIdentity = { ...identity, eventKey: `${identity.eventKey}:stock` };
+      await handlers.onCreateBusinessEvent(attachDailyEntryMeta({
         ...movement.event,
+        id: dailyEntryRecordId('EVT-Q', stockEventIdentity),
         event_type: 'entree_stock_oeufs',
-        issue_key: issueKey,
+        issue_key: stockEventIdentity.eventKey,
         module_source: 'elevage',
         farm_id: farmId,
-      });
+      }, stockEventIdentity, form.recorded_by || context.userId));
     }
   } else if (sellable > 0 && !eggStock) {
     stockGap = EGG_STOCK_GAP_MESSAGE;
@@ -926,8 +999,8 @@ export async function commitElevageEggProduction({ form = {}, context = {}, hand
   }
 
   const brokenRate = eggs > 0 ? (broken / eggs) * 100 : 0;
-  await handlers.onCreateBusinessEvent?.({
-    id: makeId('EVT'),
+  await handlers.onCreateBusinessEvent?.(attachDailyEntryMeta({
+    id: identity.eventId,
     event_type: 'production_oeufs',
     module_source: 'elevage',
     entity_type: 'lot_avicole',
@@ -939,9 +1012,20 @@ export async function commitElevageEggProduction({ form = {}, context = {}, hand
     issue_key: issueKey,
     farm_id: farmId,
     side_effects_managed: true,
-  });
+  }, identity, form.recorded_by || context.userId));
 
-  return { ok: true, logId, issueKey, sellable, tablet, packagingGap, stockGap };
+  return {
+    ok: true,
+    logId,
+    issueKey,
+    eventKey: identity.eventKey,
+    sellable,
+    tablet,
+    layingRate: laying.calculable ? laying.rate : null,
+    newStockQty,
+    packagingGap,
+    stockGap,
+  };
 }
 
 /**
@@ -1034,14 +1118,24 @@ export async function commitElevageWeighing({ form = {}, context = {}, handlers 
   const date = form.date || today();
   const weight = num(form.poids ?? form.weight);
   const unit = clean(form.unite || form.unit) || 'kg';
-  const recordId = clean(form.id) || makeId('PES');
   const lotId = clean(form.lot_id);
   const animalId = clean(form.animal_id);
-  const issueKey = buildElevageIssueKey(ELEVAGE_DOMAINS.WEIGHING, lotId || animalId, date);
   const farmId = resolveElevageLogFarmId({ form, context });
+  const identity = resolveDailyEntryIdentity(DAILY_ENTRY_TYPES.WEIGHING, form, {
+    farmId,
+    recordId: lotId || animalId,
+  });
+  const replay = findDailyEntryReplay([
+    ...arr(context.weightRecords),
+    ...arr(context.businessEvents),
+  ], identity.eventKey);
+  if (replay) return { ok: true, replayed: true, eventKey: identity.eventKey, weight, unit };
+
+  const recordId = clean(form.id) || dailyEntryRecordId('PES', identity);
+  const issueKey = identity.eventKey;
   const comment = form.notes || form.commentaire || '';
 
-  const record = stampElevageLogFarmId({
+  const record = stampElevageLogFarmId(attachDailyEntryMeta({
     id: recordId,
     date,
     poids: weight,
@@ -1054,7 +1148,7 @@ export async function commitElevageWeighing({ form = {}, context = {}, handlers 
     source_module: 'elevage',
     issue_key: issueKey,
     side_effects_managed: true,
-  }, farmId);
+  }, identity, form.recorded_by || context.userId), farmId);
 
   if (handlers.onCreateWeightRecord) {
     await handlers.onCreateWeightRecord(record);
@@ -1167,7 +1261,7 @@ export async function commitElevageWeighing({ form = {}, context = {}, handlers 
   const followUpTargetId = lotId || animalId;
   if (followUpTargetId && metrics.performanceLow && handlers.onCreateTask) {
     await handlers.onCreateTask({
-      id: makeId('TSK'),
+      id: dailyEntryRecordId('TSK-Q', { ...identity, eventKey: `${identity.eventKey}:gmq-task` }),
       title: `Performance poids faible · ${followUpTargetId}`,
       module_lie: lotId ? 'avicole' : 'animaux',
       source_module: 'elevage',
@@ -1184,7 +1278,7 @@ export async function commitElevageWeighing({ form = {}, context = {}, handlers 
 
   if (followUpTargetId && metrics.staleBeforeWeighing && handlers.onCreateAlert) {
     await handlers.onCreateAlert({
-      id: makeId('ALT'),
+      id: dailyEntryRecordId('ALT-Q', { ...identity, eventKey: `${identity.eventKey}:stale-alert` }),
       title: `Pesée trop ancienne · ${followUpTargetId}`,
       message: `${metrics.daysSincePrevious} jours depuis la précédente pesée. Suivi croissance à sécuriser.`,
       module_source: 'elevage',
@@ -1198,7 +1292,7 @@ export async function commitElevageWeighing({ form = {}, context = {}, handlers 
 
   if (followUpTargetId && metrics.performanceLow && handlers.onCreateAlert) {
     await handlers.onCreateAlert({
-      id: makeId('ALT'),
+      id: dailyEntryRecordId('ALT-Q', { ...identity, eventKey: `${identity.eventKey}:gmq-alert` }),
       title: `Gain insuffisant · ${followUpTargetId}`,
       message: `GMQ ${metrics.gmq} kg/j sous objectif ${metrics.targetGmq} kg/j. Ration, santé et coût alimentaire à contrôler.`,
       module_source: 'elevage',
@@ -1210,8 +1304,8 @@ export async function commitElevageWeighing({ form = {}, context = {}, handlers 
     });
   }
 
-  await handlers.onCreateBusinessEvent?.({
-    id: makeId('EVT'),
+  await handlers.onCreateBusinessEvent?.(attachDailyEntryMeta({
+    id: identity.eventId,
     event_type: animalId ? 'bovine_weighing' : 'pesee_elevage',
     type_evenement: animalId ? 'bovine_weighing' : 'pesee_elevage',
     module_source: 'elevage',
@@ -1230,12 +1324,13 @@ export async function commitElevageWeighing({ form = {}, context = {}, handlers 
     issue_key: issueKey,
     farm_id: farmId,
     side_effects_managed: true,
-  });
+  }, identity, form.recorded_by || context.userId));
 
   return {
     ok: true,
     recordId,
     issueKey,
+    eventKey: identity.eventKey,
     weight,
     unit,
     targetWeight,

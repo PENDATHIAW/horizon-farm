@@ -99,6 +99,6 @@ export function mergeSaleReadiness(existing = {}, payload = {}, extra = {}) {
   return merged;
 }
 
-export function shouldSyncSaleOpportunity(before = {}, after = {}) {
+export function shouldSyncSaleOpportunity(_before = {}, after = {}) {
   return isSaleReady(after) && !explicitlyUnconfirmed(after);
 }

@@ -1,33 +1,28 @@
-import AlertTaskBridgePanel from '../../AlertTaskBridgePanel.jsx';
-import AlertesCenterV3 from '../../AlertesCenterV3.jsx';
-import TachesV3 from '../../TachesV3.jsx';
+import ListeTaches from '../../../components/shared/ListeTaches.jsx';
+import { emitHorizonForm } from '../../../services/formModalManager.js';
 import ActiviteWorkflowBridge from '../ActiviteWorkflowBridge.jsx';
+
+const OPEN_STATUSES = ['a_faire', 'en_cours', 'todo', 'pending', 'in_progress'];
 
 export default function ATraiterMaintenantTab({
   shared,
-  bridgeProps,
   workflowBridgeProps,
   onRefresh,
 }) {
   return (
-    <div className="space-y-5">
-      <AlertTaskBridgePanel {...bridgeProps} />
+    <div className="space-y-6">
       <ActiviteWorkflowBridge
         {...workflowBridgeProps}
         onLinked={onRefresh}
       />
-      <AlertesCenterV3
-        {...shared}
-        rows={shared.alertes}
-        onCreate={shared.onCreateAlert}
-        onUpdate={shared.onUpdateAlert}
-        onRefresh={shared.onRefreshAlertes}
-        onCreateTask={shared.onCreateTask}
-        onUpdateTask={shared.onUpdateTask}
-        onRefreshTasks={shared.onRefreshTasks}
+      <ListeTaches
         tasks={shared.tasks}
+        farmId={shared.activeFarm?.id || shared.farm?.id}
+        statuses={OPEN_STATUSES}
+        period={shared.periodScope}
+        onNavigate={shared.onNavigate}
+        onCreate={() => emitHorizonForm('taches', 'task_creation', 'Nouvelle tâche', { due_date: new Date().toISOString().slice(0, 10) })}
       />
-      <TachesV3 {...shared} />
     </div>
   );
 }

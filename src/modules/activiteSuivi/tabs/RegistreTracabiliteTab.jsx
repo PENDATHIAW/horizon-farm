@@ -1,14 +1,13 @@
-import TracabiliteV2 from '../../TracabiliteV2.jsx';
+import JournalEvenements from '../../../components/shared/JournalEvenements.jsx';
 
-export default function RegistreTracabiliteTab({ shared, traceRows, traceCrud, props }) {
+export default function RegistreTracabiliteTab({ shared, props }) {
   return (
-    <TracabiliteV2
-      {...shared}
-      rows={traceRows}
-      onCreate={props.onCreateTrace || traceCrud.create}
-      onUpdate={props.onUpdateTrace || traceCrud.update}
-      onDelete={props.onDeleteTrace || traceCrud.remove}
-      onRefresh={props.onRefreshTrace || traceCrud.refresh}
+    <JournalEvenements
+      events={shared.businessEvents}
+      farmId={shared.activeFarm?.id || shared.farm?.id}
+      period={props.periodScope}
+      limit={150}
+      onNavigate={shared.onNavigate}
     />
   );
 }

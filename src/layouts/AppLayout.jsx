@@ -2,25 +2,33 @@ import {
   AlertTriangle,
   Bell,
   Bot,
+  CalendarDays,
+  ChartNoAxesCombined,
   CheckCircle,
+  ChevronDown,
+  CircleDollarSign,
   LogOut,
   MapPin,
   Menu,
   Search,
   Settings,
-  UserCog,
+  ShoppingCart,
+  Sprout,
+  UsersRound,
   Wifi,
   WifiOff,
   X,
+  Zap,
 } from 'lucide-react';
-import { readOfflineQueue } from '../services/offlineQueueService';
-import { t } from '../i18n/fr/index.js';
 import { useEffect, useMemo, useState } from 'react';
 import BrandLogo from '../components/BrandLogo';
 import GlobalFarmControl from '../components/GlobalFarmControl';
 import GlobalPeriodControl from '../components/GlobalPeriodControl';
+import GlobalQuickEntryMenu from '../components/GlobalQuickEntryMenu.jsx';
 import SettingsPanel from '../components/SettingsPanel';
 import VoiceSearch from '../components/VoiceSearch';
+import { t } from '../i18n/fr/index.js';
+import { readOfflineQueue } from '../services/offlineQueueService';
 import { searchERP } from '../services/globalSearchService';
 import { applyUiSettingsToDocument, isDemoModeEnabled, readUiSettings } from '../utils/uiPreferences';
 
@@ -31,11 +39,7 @@ const isMobileViewport = () => typeof window !== 'undefined' && window.matchMedi
 const safeRows = (value) => (Array.isArray(value) ? value : []);
 const safeWeather = (value = {}) => ({
   temp: value?.temp ?? '-',
-  apparentTemp: value?.apparentTemp ?? value?.temp ?? '-',
   condition: value?.condition || 'météo',
-  humidite: value?.humidite ?? '-',
-  humidity: value?.humidity ?? value?.humidite ?? '-',
-  wind: value?.wind ?? value?.vent ?? '-',
   riskLevel: value?.riskLevel || 'stable',
   impact: value?.impact || '',
   ...value,
@@ -44,67 +48,48 @@ const formatDateTime = () => new Intl.DateTimeFormat('fr-FR', {
   weekday: 'long', day: '2-digit', month: 'long', hour: '2-digit', minute: '2-digit',
 }).format(new Date());
 
-const NAV_GROUPS = [
-  { key: 'pilotage', label: 'Pilotage', ids: ['dashboard', 'assistant_erp', 'centre_ia', 'agri_feeds', 'objectifs_croissance', 'financements'] },
-  { key: 'production', label: 'Production', ids: ['elevage', 'cultures'] },
-  { key: 'commerce', label: 'Commerce', ids: ['commercial', 'achats_stock'] },
-  { key: 'finance', label: 'Finance', ids: ['finance_pilotage'] },
-  { key: 'suivi', label: 'Suivi', ids: ['activite_suivi', 'documents_rapports'] },
-  { key: 'ressources', label: 'Ressources', ids: ['rh', 'equipements'] },
-  { key: 'iot', label: 'Terrain & IoT', ids: ['smartfarm'] },
-  { key: 'administration', label: 'Administration', ids: ['sync', 'sync_activity', 'audit_logs', 'gestion_systeme'] },
-];
+const NAV_GROUPS = Object.freeze([
+  { key: 'today', label: "Aujourd'hui", icon: CalendarDays, ids: ['dashboard', 'assistant_erp'] },
+  { key: 'production', label: 'Production', icon: Sprout, ids: ['elevage', 'cultures', 'agri_feeds', 'smartfarm'] },
+  { key: 'commerce', label: 'Commerce', icon: ShoppingCart, ids: ['commercial', 'achats_stock'] },
+  { key: 'money', label: 'Argent', icon: CircleDollarSign, ids: ['finance_pilotage', 'financements'] },
+  { key: 'steering', label: 'Pilotage', icon: ChartNoAxesCombined, ids: ['centre_decisionnel', 'objectifs_croissance'] },
+  { key: 'organization', label: 'Organisation', icon: UsersRound, ids: ['activite_suivi', 'documents_rapports', 'equipe', 'equipements'] },
+  { key: 'settings', label: 'Réglages', icon: Settings, ids: ['gestion_systeme'] },
+]);
 
-function collapseNavItems(navItems = []) {
-  const opsIds = new Set(['rh', 'equipements']);
-  const opsItems = navItems.filter((item) => opsIds.has(item.id));
-  const collapsed = navItems.filter((item) => item.id !== 'equipements');
-  return collapsed.map((item) => {
-    if (item.id === 'centre_ia') return { ...item, label: 'Centre décisionnel' };
-    if (item.id === 'rh') return { ...item, label: 'Opérations & Ressources', icon: UserCog, hasAlert: opsItems.some((entry) => entry.hasAlert) };
-    if (item.id === 'smartfarm') return { ...item, label: 'Smart Farm' };
-    return item;
-  });
-}
-
-function getNavGroupKey(item = {}) {
-  const text = normalize(`${item.id || ''} ${item.label || ''}`);
-  const explicit = NAV_GROUPS.find((group) => group.ids.some((id) => text.includes(normalize(id))));
-  return explicit?.key || 'autres';
-}
+const LEGACY_GROUP = Object.freeze({ centre_ia: 'steering', rh: 'organization', sync: 'settings', sync_activity: 'settings', audit_logs: 'settings' });
 
 function buildNavGroups(navItems = []) {
-  const map = new Map([
-    ...NAV_GROUPS.map((group) => [group.key, { ...group, items: [] }]),
-    ['autres', { key: 'autres', label: 'Autres', ids: [], items: [] }],
-  ]);
-  navItems.forEach((item) => (map.get(getNavGroupKey(item)) || map.get('autres')).items.push(item));
-  return [...map.values()].filter((group) => group.items.length);
+  const groups = new Map(NAV_GROUPS.map((group) => [group.key, { ...group, items: [] }]));
+  navItems.forEach((item) => {
+    const group = NAV_GROUPS.find((entry) => entry.ids.includes(item.id));
+    const key = group?.key || LEGACY_GROUP[item.id] || 'settings';
+    groups.get(key)?.items.push(item);
+  });
+  return [...groups.values()].filter((group) => group.items.length);
 }
 
 function buildAlerts(dataMap = {}, online = true, meteo = {}) {
   const stock = safeRows(dataMap.stock)
     .filter((item) => Number(item.quantite || 0) <= Number(item.seuil || 0))
-    .map((item) => ({ id: `stock-${item.id}`, type: 'Stock critique', text: `${item.produit || item.name || item.nom || 'Produit'}: ${item.quantite}/${item.seuil}`, moduleKey: 'achats_stock', severity: 'danger' }));
+    .map((item) => ({ id: `stock-${item.id}`, type: 'Stock critique', text: `${item.produit || item.name || item.nom || 'Produit'} : ${item.quantite}/${item.seuil}`, moduleKey: 'achats_stock', severity: 'danger' }));
   const sante = safeRows(dataMap.sante)
     .filter((item) => item.statut === 'retard' || isRisky(item.status || item.statut))
     .map((item) => ({ id: `sante-${item.id}`, type: 'Santé à traiter', text: item.nom || item.title || 'Suivi santé', moduleKey: 'elevage', severity: 'danger' }));
-  const animaux = safeRows(dataMap.animaux)
-    .filter((item) => item.health_status === 'malade' || isRisky(item.health_status || item.status || item.statut))
-    .map((item) => ({ id: `animal-${item.id}`, type: 'Animal à surveiller', text: `${item.name || item.nom || item.id}`, moduleKey: 'elevage', severity: 'danger' }));
   const finances = safeRows(dataMap.finances)
     .filter((item) => ['impaye', 'partiel'].includes(item.statut) || isRisky(item.statut))
-    .map((item) => ({ id: `finance-${item.id}`, type: 'Finance à vérifier', text: `${item.libelle || item.title || 'Transaction'}: ${item.montant || 0} FCFA`, moduleKey: 'finance_pilotage', severity: 'amber' }));
-  const meteoAlert = meteo?.riskLevel && meteo.riskLevel !== 'stable'
-    ? [{ id: 'meteo-risk', type: 'Météo / terrain', text: meteo.impact || 'Vérifier abreuvement, ventilation et parcelles.', moduleKey: 'dashboard', severity: 'amber' }]
+    .map((item) => ({ id: `finance-${item.id}`, type: 'Finance à vérifier', text: `${item.libelle || item.title || 'Transaction'} : ${item.montant || 0} FCFA`, moduleKey: 'finance_pilotage', severity: 'warning' }));
+  const weather = meteo?.riskLevel && meteo.riskLevel !== 'stable'
+    ? [{ id: 'meteo-risk', type: 'Météo et terrain', text: meteo.impact || 'Vérifier les conditions du terrain.', moduleKey: 'dashboard', severity: 'warning' }]
     : [];
-  const offline = online ? [] : [{ id: 'offline', type: 'Connexion', text: 'Mode hors ligne actif', moduleKey: 'sync_activity', severity: 'amber' }];
-  return [...offline, ...meteoAlert, ...sante, ...stock, ...animaux, ...finances].slice(0, 18);
+  const offline = online ? [] : [{ id: 'offline', type: 'Connexion', text: 'Mode hors ligne actif', moduleKey: 'gestion_systeme', severity: 'warning' }];
+  return [...offline, ...weather, ...sante, ...stock, ...finances].slice(0, 18);
 }
 
 function HeaderPill({ icon: Icon, children }) {
   return (
-    <span className="inline-flex items-center gap-1.5 rounded-full border border-[#d1e5d1] bg-[#f8fcf8] px-3 py-1.5 text-xs font-bold text-[#052e16]">
+    <span className="inline-flex items-center gap-2 rounded-full border border-line bg-card px-3 py-2 text-meta font-semibold text-earth">
       <Icon size={13} aria-hidden="true" />{children}
     </span>
   );
@@ -116,66 +101,47 @@ function NavIcon({ icon: Icon, size = 19 }) {
 }
 
 export default function AppLayout({
-  navItems = [],
-  active = 'dashboard',
-  setActive,
-  onNavigate,
-  sidebarOpen = true,
-  setSidebarOpen,
-  online = true,
-  meteo,
-  weather,
-  weatherLoading,
-  weatherSource,
-  notifs = 0,
-  user,
-  onSignOut,
-  signOut,
-  dataMap = {},
-  onOpenAssistant,
-  periodScope,
-  onPeriodScopeChange,
-  farmScope,
-  accessibleFarms = [],
-  onFarmScopeChange,
-  activeFarm,
-  onManageFarms,
-  children,
+  navItems = [], active = 'dashboard', setActive, onNavigate, sidebarOpen = true, setSidebarOpen,
+  online = true, meteo, weather, weatherSource, notifs = 0, user, onSignOut, signOut,
+  dataMap = {}, onOpenAssistant, periodScope, onPeriodScopeChange, farmScope,
+  accessibleFarms = [], onFarmScopeChange, activeFarm, onManageFarms, children,
 }) {
   const navigateTo = setActive || onNavigate || (() => {});
   const signOutAction = onSignOut || signOut || (() => {});
   const currentWeather = safeWeather(meteo || weather);
   const displayUser = user?.user_metadata?.login || user?.email?.split('@')[0] || 'Administrateur';
-  const farmLocation = activeFarm?.name || activeFarm?.location || currentWeather.location || currentWeather.localisation || currentWeather.city || currentWeather.place || currentWeather.nom_ferme || 'Horizon Farm';
+  const farmLocation = activeFarm?.name || activeFarm?.location || currentWeather.location || 'Horizon Farm';
   const currentDateTime = useMemo(() => formatDateTime(), []);
+  const groupedNavItems = useMemo(() => buildNavGroups(navItems), [navItems]);
+  const activeGroup = groupedNavItems.find((group) => group.items.some((item) => item.id === active));
+  const mobileGroups = groupedNavItems.filter((group) => ['today', 'production', 'commerce', 'money'].includes(group.key));
+  const activeLabel = navItems.find((item) => item.id === active)?.label || 'Horizon Farm';
+  const [openSections, setOpenSections] = useState(() => ({ today: true }));
   const [globalSearch, setGlobalSearch] = useState('');
   const [pendingSyncCount, setPendingSyncCount] = useState(() => readOfflineQueue().length);
-  useEffect(() => {
-    const majFileAttente = () => setPendingSyncCount(readOfflineQueue().length);
-    window.addEventListener('online', majFileAttente);
-    window.addEventListener('offline', majFileAttente);
-    window.addEventListener('storage', majFileAttente);
-    const timer = window.setInterval(majFileAttente, 20000);
-    return () => {
-      window.removeEventListener('online', majFileAttente);
-      window.removeEventListener('offline', majFileAttente);
-      window.removeEventListener('storage', majFileAttente);
-      window.clearInterval(timer);
-    };
-  }, []);
   const [mobileSearchOpen, setMobileSearchOpen] = useState(false);
   const [notificationsOpen, setNotificationsOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [quickEntryOpen, setQuickEntryOpen] = useState(false);
   const [actionIntent, setActionIntent] = useState(null);
   const [uiSettings, setUiSettings] = useState(readUiSettings);
   const [simulatedDataMode, setSimulatedDataMode] = useState(() => isDemoModeEnabled());
-  const displayNavItems = useMemo(() => collapseNavItems(navItems), [navItems]);
   const results = useMemo(() => searchERP(dataMap || {}, globalSearch).slice(0, mobileSearchOpen ? 10 : 6), [dataMap, globalSearch, mobileSearchOpen]);
   const alerts = useMemo(() => buildAlerts(dataMap, online, currentWeather), [dataMap, online, currentWeather]);
-  const activeLabel = displayNavItems.find((item) => item.id === active)?.label || 'Horizon Farm';
-  const groupedNavItems = useMemo(() => buildNavGroups(displayNavItems), [displayNavItems]);
-  const mobileNavItems = displayNavItems.filter((item) => ['dashboard', 'elevage', 'commercial', 'finance_pilotage'].includes(item.id)).slice(0, 4);
-  const isAssistantImmersive = active === 'assistant_erp';
+
+  useEffect(() => {
+    const updateQueue = () => setPendingSyncCount(readOfflineQueue().length);
+    window.addEventListener('online', updateQueue);
+    window.addEventListener('offline', updateQueue);
+    window.addEventListener('storage', updateQueue);
+    const timer = window.setInterval(updateQueue, 20000);
+    return () => {
+      window.removeEventListener('online', updateQueue);
+      window.removeEventListener('offline', updateQueue);
+      window.removeEventListener('storage', updateQueue);
+      window.clearInterval(timer);
+    };
+  }, []);
 
   useEffect(() => {
     applyUiSettingsToDocument(uiSettings);
@@ -197,12 +163,16 @@ export default function AppLayout({
     return () => window.removeEventListener('horizon-ui-intent', handler);
   }, []);
 
-  const navigate = (moduleKey) => {
-    navigateTo(moduleKey);
-    if (isMobileViewport()) setSidebarOpen?.(false);
+  const closePanels = () => {
     setNotificationsOpen(false);
     setSettingsOpen(false);
     setMobileSearchOpen(false);
+  };
+
+  const navigate = (moduleKey, options) => {
+    navigateTo(moduleKey, options);
+    if (isMobileViewport()) setSidebarOpen?.(false);
+    closePanels();
   };
 
   const renderNavItem = (item) => {
@@ -214,141 +184,167 @@ export default function AppLayout({
         onClick={() => navigate(item.id)}
         title={!sidebarOpen ? item.label : undefined}
         aria-label={item.label}
-        className={`w-full flex items-center gap-3 px-3 py-3 md:py-2.5 rounded-xl transition-all group relative ${isActive ? 'bg-[#22c55e] text-[#052e16]' : 'text-[#6b8a6b] hover:bg-[#dcfce7] hover:text-[#052e16]'}`}
+        aria-current={isActive ? 'page' : undefined}
+        className={`relative flex min-h-11 w-full items-center gap-3 rounded-control border-l-4 px-3 py-2 text-left transition ${isActive ? 'border-horizon bg-positive-bg text-earth' : 'border-transparent text-line hover:bg-leaf hover:text-pure'}`}
       >
         <NavIcon icon={item.icon} />
-        {sidebarOpen ? <span className="text-sm font-medium truncate">{item.label}</span> : null}
-        {item.hasAlert ? <span className={`w-2 h-2 rounded-full bg-red-500 shrink-0 ${sidebarOpen ? 'ml-auto' : 'absolute top-1 right-1'}`} /> : null}
+        {sidebarOpen ? <span className="truncate text-sm font-medium">{item.label}</span> : null}
+        {item.hasAlert ? <span className={`h-2 w-2 shrink-0 rounded-full bg-urgent ${sidebarOpen ? 'ml-auto' : 'absolute right-1 top-1'}`} aria-label="Alerte" /> : null}
       </button>
     );
   };
 
   return (
-    <div className="h-screen bg-[#f6faf6] text-[#052e16] overflow-hidden" style={{ fontFamily: "'DM Sans', 'Segoe UI', sans-serif" }}>
-      {sidebarOpen ? <button type="button" aria-label="Fermer le menu" onClick={() => setSidebarOpen?.(false)} className="fixed inset-0 z-30 bg-black/30 md:hidden" /> : null}
+    <div className="h-screen overflow-hidden bg-mist text-ink">
+      {sidebarOpen ? <button type="button" aria-label="Fermer le menu" onClick={() => setSidebarOpen?.(false)} className="fixed inset-y-0 left-80 right-0 z-30 bg-earth/30 md:hidden" /> : null}
       <div className="flex h-full overflow-hidden">
-        <aside className={`${sidebarOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'} ${sidebarOpen ? 'md:w-64' : 'md:w-16'} fixed md:relative inset-y-0 left-0 z-40 w-[82vw] max-w-80 shrink-0 bg-[#ffffff] border-r border-[#dcfce7] flex flex-col transition-all duration-300 overflow-hidden shadow-2xl md:shadow-none`}>
-          <div className="flex items-center gap-3 px-3 py-4 border-b border-[#dcfce7]">
-            <BrandLogo variant={sidebarOpen ? 'sidebar' : 'compact'} showText={sidebarOpen} />
-            <button type="button" aria-label={sidebarOpen ? 'Réduire le menu' : 'Ouvrir le menu'} onClick={() => setSidebarOpen?.(!sidebarOpen)} className="ml-auto min-h-[44px] min-w-[44px] inline-flex items-center justify-center rounded-xl text-[#6b8a6b] hover:text-[#052e16] hover:bg-[#dcfce7] transition-colors focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[#22c55e]/30">
-              {sidebarOpen ? <X size={16} /> : <Menu size={16} />}
+        <aside className={`${sidebarOpen ? 'translate-x-0 md:w-64' : '-translate-x-full md:w-16 md:translate-x-0'} fixed inset-y-0 left-0 z-40 flex w-80 max-w-full shrink-0 flex-col overflow-hidden border-r border-leaf bg-earth shadow-float transition-all duration-200 md:relative md:shadow-none`}>
+          <div className="flex items-center gap-3 border-b border-leaf px-3 py-3">
+            <BrandLogo variant={sidebarOpen ? 'sidebar' : 'compact'} showText={sidebarOpen} inverse />
+            <button type="button" aria-label={sidebarOpen ? 'Réduire le menu' : 'Ouvrir le menu'} onClick={() => setSidebarOpen?.(!sidebarOpen)} className="ml-auto grid h-11 w-11 place-items-center rounded-control text-line hover:bg-leaf hover:text-pure">
+              {sidebarOpen ? <X size={17} /> : <Menu size={17} />}
             </button>
           </div>
-          <nav className="flex-1 py-4 overflow-y-auto space-y-4 px-2" aria-label="Navigation principale">
-            {groupedNavItems.map((group) => (
-              <div key={group.key} className="space-y-1">
-                {sidebarOpen ? <p className="px-3 pt-1 pb-1 text-[10px] font-black uppercase tracking-[0.2em] text-[#6b8a6b]">{group.label}</p> : <div className="mx-2 my-2 border-t border-[#e8f3e8]" />}
-                {group.items.map(renderNavItem)}
-              </div>
-            ))}
+          <nav className="flex-1 space-y-3 overflow-y-auto px-2 py-3" aria-label="Navigation principale">
+            {groupedNavItems.map((group) => {
+              const GroupIcon = group.icon;
+              const isGroupActive = group.key === activeGroup?.key;
+              const expanded = group.key === activeGroup?.key || openSections[group.key] === true;
+              return (
+                <div key={group.key} className="space-y-1">
+                  {sidebarOpen ? (
+                    <button
+                      type="button"
+                      onClick={() => setOpenSections((current) => ({ ...current, [group.key]: !expanded }))}
+                      className={`flex min-h-9 w-full items-center gap-2 rounded-control px-3 py-2 text-left text-meta font-semibold uppercase ${isGroupActive ? 'text-horizon' : 'text-line hover:bg-leaf hover:text-pure'}`}
+                      aria-expanded={expanded}
+                    >
+                      <GroupIcon size={15} aria-hidden="true" />
+                      <span className="flex-1">{group.label}</span>
+                      <ChevronDown size={14} className={expanded ? 'rotate-180' : ''} aria-hidden="true" />
+                    </button>
+                  ) : <div className="mx-2 border-t border-leaf" />}
+                  {(!sidebarOpen || expanded) ? <div className="space-y-1">{group.items.map(renderNavItem)}</div> : null}
+                </div>
+              );
+            })}
           </nav>
-          <div className="p-3 border-t border-[#dcfce7] space-y-2">
-            <div className={`flex items-center gap-2 px-3 py-2 rounded-lg ${online ? 'bg-emerald-500/10' : 'bg-red-500/10'}`}>
-              {online ? <Wifi size={14} className="text-emerald-500 shrink-0" /> : <WifiOff size={14} className="text-red-500 shrink-0" />}
-              {sidebarOpen ? <span className={`text-xs font-medium ${online ? 'text-emerald-600' : 'text-red-500'}`}>{online ? 'Connecté' : 'Hors ligne'}</span> : null}
+          <div className="space-y-2 border-t border-leaf p-3">
+            <div className={`flex items-center gap-2 rounded-control px-3 py-2 ${online ? 'bg-positive-bg text-positive' : 'bg-urgent-bg text-urgent'}`}>
+              {online ? <Wifi size={14} className="shrink-0" /> : <WifiOff size={14} className="shrink-0" />}
+              {sidebarOpen ? <span className="text-xs font-medium">{online ? 'Connecté' : 'Hors ligne'}</span> : null}
             </div>
             {sidebarOpen ? (
-              <button type="button" onClick={signOutAction} className="w-full flex items-center gap-2 px-3 py-2 rounded-lg bg-[#dcfce7] cursor-pointer hover:bg-[#d1e5d1] transition-colors text-left">
-                <div className="w-6 h-6 rounded-full bg-emerald-500/30 flex items-center justify-center text-emerald-600 font-bold text-xs">{displayUser.slice(0, 1).toUpperCase()}</div>
-                <div className="flex-1 min-w-0"><div className="text-xs text-[#052e16] font-semibold truncate">{displayUser}</div></div>
-                <LogOut size={12} className="text-[#6b8a6b]" />
+              <button type="button" onClick={signOutAction} className="flex w-full items-center gap-2 rounded-control bg-leaf px-3 py-2 text-left text-pure hover:bg-positive">
+                <div className="grid h-7 w-7 place-items-center rounded-full bg-positive-bg text-xs font-semibold text-earth">{displayUser.slice(0, 1).toUpperCase()}</div>
+                <span className="min-w-0 flex-1 truncate text-xs font-semibold">{displayUser}</span>
+                <LogOut size={14} />
               </button>
             ) : null}
           </div>
         </aside>
-        <main className={`flex-1 flex flex-col overflow-hidden min-w-0 ${isAssistantImmersive ? 'bg-[#F4F8F6]' : ''}`}>
-          {!isAssistantImmersive ? (
-            <header className="min-h-[72px] bg-[#ffffff] border-b border-[#dcfce7] flex items-center px-3 md:px-6 gap-2 md:gap-3 shrink-0 relative">
-              <button type="button" aria-label="Ouvrir le menu" onClick={() => setSidebarOpen?.(true)} className="md:hidden min-h-[44px] min-w-[44px] inline-flex items-center justify-center rounded-lg hover:bg-[#dcfce7] text-[#6b8a6b]"><Menu size={20} /></button>
-              <div className="min-w-0 flex-1">
-                <p className="truncate text-sm font-black text-[#052e16] sm:text-base">Bonjour {displayUser}</p>
-                <p className="truncate text-[11px] font-medium capitalize text-[#6b8a6b] sm:text-xs">{currentDateTime}</p>
-              </div>
-              <span className={`hidden sm:inline-flex rounded-full border px-2 py-0.5 text-[10px] font-black uppercase tracking-wide ${simulatedDataMode ? 'border-violet-200 bg-violet-50 text-violet-800' : 'border-sky-200 bg-sky-50 text-sky-800'}`}>{simulatedDataMode ? 'Données simulées' : 'Données réelles'}</span>
-              <div className="hidden xl:flex items-center gap-2">
-                <HeaderPill icon={MapPin}>{farmLocation}</HeaderPill>
-                <HeaderPill icon={online ? Wifi : WifiOff}>{online ? 'En ligne' : 'Hors ligne'}</HeaderPill>
-                {pendingSyncCount > 0 ? <HeaderPill icon={WifiOff}>{t('commun.etats.enAttenteEnvoi', { n: pendingSyncCount })}</HeaderPill> : null}
-              </div>
-              <div className="hidden lg:block relative w-full max-w-sm">
-                <VoiceSearch value={globalSearch} onChange={setGlobalSearch} placeholder="Recherche" />
-                {results.length > 0 ? (
-                  <div className="absolute top-12 left-0 right-0 z-40 bg-white border border-[#d1e5d1] rounded-xl shadow-2xl overflow-hidden">
-                    {results.map((result) => (
-                      <button key={`${result.moduleKey}-${result.id}`} type="button" onClick={() => { navigate(result.moduleKey); setGlobalSearch(''); }} className="w-full text-left px-3 py-2 hover:bg-[#dcfce7]">
-                        <div className="text-xs font-black text-[#052e16]">{result.title}</div>
-                        <div className="text-[11px] text-[#6b8a6b]">{result.moduleKey} · {result.subtitle}</div>
-                      </button>
-                    ))}
-                  </div>
-                ) : null}
-              </div>
-              <div className="flex items-center gap-1 md:gap-2">
-                <button type="button" aria-label="Rechercher dans l’ERP" onClick={() => { setMobileSearchOpen(true); setNotificationsOpen(false); setSettingsOpen(false); }} className="lg:hidden min-h-[44px] min-w-[44px] inline-flex items-center justify-center rounded-lg hover:bg-[#dcfce7] text-[#6b8a6b]"><Search size={18} /></button>
-                <button type="button" aria-label="Ouvrir les notifications" onClick={() => { setNotificationsOpen((value) => !value); setSettingsOpen(false); setMobileSearchOpen(false); }} className="relative min-h-[44px] min-w-[44px] inline-flex items-center justify-center rounded-lg hover:bg-[#dcfce7] text-[#6b8a6b]">
-                  <Bell size={18} />{notifs > 0 ? <span className="absolute -top-0.5 -right-0.5 min-w-4 h-4 px-1 bg-red-500 rounded-full text-[9px] font-bold flex items-center justify-center text-white">{notifs > 99 ? '99+' : notifs}</span> : null}
-                </button>
-                <button type="button" aria-label="Ouvrir Hey Horizon" title="Hey Horizon" onClick={onOpenAssistant} className="min-h-[44px] min-w-[44px] inline-flex items-center justify-center rounded-lg hover:bg-[#dcfce7] text-emerald-600 hover:text-emerald-700"><Bot size={18} /></button>
-                <button type="button" aria-label="Ouvrir les paramètres" onClick={() => { setSettingsOpen((value) => !value); setNotificationsOpen(false); setMobileSearchOpen(false); }} className="min-h-[44px] min-w-[44px] inline-flex items-center justify-center rounded-lg hover:bg-[#dcfce7] text-[#6b8a6b]"><Settings size={18} /></button>
-              </div>
-              {mobileSearchOpen ? (
-                <div className="fixed inset-0 z-50 bg-black/30 lg:hidden">
-                  <div className="absolute inset-x-3 top-3 rounded-3xl border border-[#d1e5d1] bg-white p-4 shadow-2xl">
-                    <div className="flex items-center justify-between gap-3 mb-3"><p className="text-sm font-black text-[#052e16]">Recherche</p><button type="button" onClick={() => setMobileSearchOpen(false)} className="min-h-[44px] min-w-[44px] inline-flex items-center justify-center rounded-xl text-[#6b8a6b] hover:bg-[#dcfce7]"><X size={18} /></button></div>
-                    <VoiceSearch value={globalSearch} onChange={setGlobalSearch} placeholder="Rechercher dans Horizon Farm" />
-                  </div>
+
+        <main className="flex min-w-0 flex-1 flex-col overflow-hidden bg-mist">
+          <header className="relative flex min-h-18 shrink-0 items-center gap-2 border-b border-line bg-pure px-3 md:gap-3 md:px-6">
+            <button type="button" aria-label="Ouvrir le menu" onClick={() => setSidebarOpen?.(true)} className="grid h-11 w-11 place-items-center rounded-control text-slate hover:bg-mist hover:text-earth md:hidden"><Menu size={20} /></button>
+            <div className="min-w-0 flex-1">
+              <p className="truncate text-sm font-semibold text-earth sm:text-base">Bonjour {displayUser}</p>
+              <p className="truncate text-meta font-medium capitalize text-slate">{currentDateTime}</p>
+            </div>
+            <span className={`hidden rounded-full border px-2 py-1 text-meta font-semibold uppercase sm:inline-flex ${simulatedDataMode ? 'border-vigilance bg-vigilance-bg text-horizon-dark' : 'border-positive bg-positive-bg text-positive'}`}>{simulatedDataMode ? 'Données simulées' : 'Données réelles'}</span>
+            <div className="hidden items-center gap-2 xl:flex">
+              <HeaderPill icon={MapPin}>{farmLocation}</HeaderPill>
+              <HeaderPill icon={online ? Wifi : WifiOff}>{online ? 'En ligne' : 'Hors ligne'}</HeaderPill>
+              {pendingSyncCount > 0 ? <HeaderPill icon={WifiOff}>{t('commun.etats.enAttenteEnvoi', { n: pendingSyncCount })}</HeaderPill> : null}
+            </div>
+            <div className="relative hidden w-full max-w-sm lg:block">
+              <VoiceSearch value={globalSearch} onChange={setGlobalSearch} placeholder="Recherche" />
+              {results.length > 0 ? (
+                <div className="absolute left-0 right-0 top-12 z-40 overflow-hidden rounded-card border border-line bg-card shadow-float">
+                  {results.map((result) => (
+                    <button key={`${result.moduleKey}-${result.id}`} type="button" onClick={() => { navigate(result.moduleKey); setGlobalSearch(''); }} className="w-full px-3 py-2 text-left hover:bg-mist">
+                      <div className="text-xs font-semibold text-ink">{result.title}</div>
+                      <div className="text-meta text-slate">{result.subtitle}</div>
+                    </button>
+                  ))}
                 </div>
               ) : null}
-              {notificationsOpen ? (
-                <div className="absolute right-2 md:right-16 top-[72px] z-50 w-[min(94vw,420px)] bg-white border border-[#d1e5d1] rounded-2xl shadow-2xl p-4">
-                  <div className="flex items-center justify-between mb-3"><div><p className="text-sm font-bold text-[#052e16]">Notifications</p><p className="text-xs text-[#6b8a6b]">{alerts.length} alerte(s)</p></div><button type="button" onClick={() => setNotificationsOpen(false)} className="text-[#6b8a6b] hover:text-[#052e16]"><X size={16} /></button></div>
-                  <div className="space-y-2 max-h-[60vh] overflow-y-auto">
-                    {alerts.length > 0 ? alerts.map((alert) => (
-                      <button key={alert.id} type="button" onClick={() => navigate(alert.moduleKey)} className={`w-full text-left rounded-xl border p-3 transition-all ${alert.severity === 'danger' ? 'bg-red-500/10 border-red-500/20' : 'bg-amber-500/10 border-amber-500/20'}`}>
-                        <div className="flex gap-2"><AlertTriangle size={15} className={alert.severity === 'danger' ? 'text-red-500 shrink-0 mt-0.5' : 'text-amber-500 shrink-0 mt-0.5'} /><div><p className="text-xs font-bold text-[#052e16]">{alert.type}</p><p className="text-xs text-[#6b8a6b] mt-0.5">{alert.text}</p></div></div>
-                      </button>
-                    )) : (
-                      <div className="rounded-xl bg-emerald-500/10 border border-emerald-500/20 p-3 flex gap-2"><CheckCircle size={16} className="text-emerald-500 shrink-0 mt-0.5" /><div><p className="text-xs font-bold text-[#052e16]">Aucune alerte</p><p className="text-xs text-[#6b8a6b]">Tout est à jour.</p></div></div>
-                    )}
-                  </div>
+            </div>
+            <button type="button" onClick={() => setQuickEntryOpen(true)} className="hidden min-h-11 items-center gap-2 rounded-control bg-horizon px-4 py-2 text-sm font-semibold text-earth shadow-card hover:bg-horizon-dark hover:text-pure md:inline-flex">
+              <Zap size={17} aria-hidden="true" /> Saisie rapide
+            </button>
+            <div className="flex items-center gap-1">
+              <button type="button" aria-label="Rechercher dans l’ERP" onClick={() => { setMobileSearchOpen(true); setNotificationsOpen(false); setSettingsOpen(false); }} className="grid h-11 w-11 place-items-center rounded-control text-slate hover:bg-mist hover:text-earth lg:hidden"><Search size={18} /></button>
+              <button type="button" aria-label="Ouvrir les notifications" onClick={() => { setNotificationsOpen((value) => !value); setSettingsOpen(false); setMobileSearchOpen(false); }} className="relative grid h-11 w-11 place-items-center rounded-control text-slate hover:bg-mist hover:text-earth">
+                <Bell size={18} />{notifs > 0 ? <span className="absolute right-0 top-0 grid h-4 min-w-4 place-items-center rounded-full bg-urgent px-1 text-meta font-semibold text-pure">{notifs > 99 ? '99+' : notifs}</span> : null}
+              </button>
+              <button type="button" aria-label="Ouvrir Hey Horizon" title="Hey Horizon" onClick={onOpenAssistant} className="grid h-11 w-11 place-items-center rounded-control text-leaf hover:bg-positive-bg"><Bot size={18} /></button>
+              <button type="button" aria-label="Ouvrir les paramètres" onClick={() => { setSettingsOpen((value) => !value); setNotificationsOpen(false); setMobileSearchOpen(false); }} className="grid h-11 w-11 place-items-center rounded-control text-slate hover:bg-mist hover:text-earth"><Settings size={18} /></button>
+            </div>
+
+            {mobileSearchOpen ? (
+              <div className="fixed inset-0 z-50 bg-earth/30 lg:hidden">
+                <div className="absolute inset-x-3 top-3 rounded-card border border-line bg-card p-4 shadow-float">
+                  <div className="mb-3 flex items-center justify-between gap-3"><p className="text-sm font-semibold text-earth">Recherche</p><button type="button" onClick={() => setMobileSearchOpen(false)} className="grid h-11 w-11 place-items-center rounded-control text-slate hover:bg-mist"><X size={18} /></button></div>
+                  <VoiceSearch value={globalSearch} onChange={setGlobalSearch} placeholder="Rechercher dans Horizon Farm" />
                 </div>
-              ) : null}
-              <SettingsPanel open={settingsOpen} onClose={() => setSettingsOpen(false)} user={user} displayUser={displayUser} online={online} meteo={currentWeather} weatherSource={weatherSource} sidebarOpen={sidebarOpen} setSidebarOpen={setSidebarOpen} setActive={navigateTo} onSignOut={signOutAction} />
-            </header>
-          ) : null}
-          {!isAssistantImmersive ? <GlobalFarmControl farmScope={farmScope} accessibleFarms={accessibleFarms} onChange={onFarmScopeChange} user={user} activeFarm={activeFarm} onManageFarms={onManageFarms} /> : null}
-          {!isAssistantImmersive ? <GlobalPeriodControl periodScope={periodScope} onChange={onPeriodScopeChange} /> : null}
-          <div className={`flex-1 min-h-0 ${isAssistantImmersive ? 'overflow-hidden p-0 pb-0' : 'overflow-y-auto p-3 sm:p-4 md:p-6 pb-24 md:pb-6'}`}>{children}</div>
+              </div>
+            ) : null}
+            {notificationsOpen ? (
+              <div className="absolute right-2 top-18 z-50 w-[min(94vw,420px)] rounded-card border border-line bg-card p-4 shadow-float md:right-16">
+                <div className="mb-3 flex items-center justify-between"><div><p className="text-sm font-semibold text-earth">Notifications</p><p className="text-meta text-slate">{alerts.length} alerte(s)</p></div><button type="button" onClick={() => setNotificationsOpen(false)} className="grid h-9 w-9 place-items-center rounded-control text-slate hover:bg-mist"><X size={16} /></button></div>
+                <div className="max-h-[60vh] space-y-2 overflow-y-auto">
+                  {alerts.length > 0 ? alerts.map((alert) => (
+                    <button key={alert.id} type="button" onClick={() => navigate(alert.moduleKey)} className={`w-full rounded-control border p-3 text-left ${alert.severity === 'danger' ? 'border-urgent bg-urgent-bg' : 'border-vigilance bg-vigilance-bg'}`}>
+                      <div className="flex gap-2"><AlertTriangle size={15} className={alert.severity === 'danger' ? 'mt-1 shrink-0 text-urgent' : 'mt-1 shrink-0 text-horizon-dark'} /><div><p className="text-xs font-semibold text-ink">{alert.type}</p><p className="mt-1 text-xs text-slate">{alert.text}</p></div></div>
+                    </button>
+                  )) : (
+                    <div className="flex gap-2 rounded-control border border-positive bg-positive-bg p-3"><CheckCircle size={16} className="mt-1 shrink-0 text-positive" /><div><p className="text-xs font-semibold text-ink">Aucune alerte</p><p className="text-xs text-slate">Tout est à jour.</p></div></div>
+                  )}
+                </div>
+              </div>
+            ) : null}
+            <SettingsPanel open={settingsOpen} onClose={() => setSettingsOpen(false)} user={user} displayUser={displayUser} online={online} meteo={currentWeather} weatherSource={weatherSource} sidebarOpen={sidebarOpen} setSidebarOpen={setSidebarOpen} setActive={navigateTo} onSignOut={signOutAction} />
+          </header>
+          <GlobalFarmControl farmScope={farmScope} accessibleFarms={accessibleFarms} onChange={onFarmScopeChange} user={user} activeFarm={activeFarm} onManageFarms={onManageFarms} />
+          <GlobalPeriodControl periodScope={periodScope} onChange={onPeriodScopeChange} />
+          <div className="hf-mobile-main min-h-0 flex-1 overflow-y-auto p-3 sm:p-4 md:p-6">{children}</div>
         </main>
       </div>
+
       {actionIntent ? (
-        <div className="fixed inset-0 z-[70] flex items-end justify-center bg-black/30 p-3 sm:items-center">
-          <div className="w-full max-w-lg rounded-3xl border border-[#d6c3a0] bg-white p-5 shadow-2xl">
+        <div className="fixed inset-0 z-[70] flex items-end justify-center bg-earth/30 p-3 sm:items-center">
+          <div className="w-full max-w-lg rounded-card border border-line bg-card p-6 shadow-float">
             <div className="flex items-start justify-between gap-3">
-              <div><p className="text-xs uppercase tracking-[0.2em] text-[#9a6b12] font-black">Action ERP</p><h2 className="mt-1 text-xl font-black text-[#2f2415]">{actionIntent.action || 'Action à préparer'}</h2><p className="mt-2 text-sm text-[#8a7456]">Cette action doit ouvrir un vrai formulaire métier. Elle est signalée ici pour éviter les boutons silencieux pendant la consolidation. Le prochain correctif doit la brancher directement ou retirer le bouton.</p></div>
-              <button type="button" onClick={() => setActionIntent(null)} className="rounded-xl p-2 text-[#8a7456] hover:bg-[#fffdf8]"><X size={18} /></button>
+              <div><p className="text-meta font-semibold uppercase text-horizon-dark">Action indisponible</p><h2 className="mt-1 text-lg font-semibold text-ink">{actionIntent.action || 'Cette action'}</h2><p className="mt-2 text-sm text-slate">Cette action n’est pas disponible dans ce contexte. Reviens au module concerné pour choisir une fiche active.</p></div>
+              <button type="button" onClick={() => setActionIntent(null)} className="grid h-11 w-11 place-items-center rounded-control text-slate hover:bg-mist"><X size={18} /></button>
             </div>
-            <div className="mt-4 rounded-2xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800">Module concerné : <b>{actionIntent.module || activeLabel}</b></div>
-            <button type="button" onClick={() => setActionIntent(null)} className="mt-4 w-full rounded-2xl bg-[#22c55e] px-4 py-3 text-sm font-black text-[#052e16]">Compris</button>
+            <div className="mt-4 rounded-control border border-vigilance bg-vigilance-bg p-3 text-sm text-horizon-dark">Module : <b>{actionIntent.module || activeLabel}</b></div>
+            <button type="button" onClick={() => setActionIntent(null)} className="mt-4 w-full rounded-control bg-earth px-4 py-3 text-sm font-semibold text-pure">Revenir au module</button>
           </div>
         </div>
       ) : null}
-      {!isAssistantImmersive ? (
-        <nav className="md:hidden fixed bottom-0 left-0 right-0 z-30 bg-[#ffffff]/95 backdrop-blur border-t border-[#dcfce7] px-2 pt-2 pb-[calc(env(safe-area-inset-bottom)+0.5rem)] shadow-2xl">
-          <div className="grid grid-cols-5 gap-1">
-            {mobileNavItems.map((item) => {
-              const isActive = active === item.id;
-              return (
-                <button key={item.id} type="button" onClick={() => navigate(item.id)} className={`min-w-0 rounded-xl px-1 py-2 flex flex-col items-center gap-1 ${isActive ? 'bg-[#22c55e] text-[#052e16]' : 'text-[#6b8a6b]'}`}>
-                  <NavIcon icon={item.icon} size={18} />
-                  <span className="text-[10px] font-semibold truncate w-full text-center">{item.label.replace('Finance & Pilotage', 'Finance')}</span>
-                </button>
-              );
-            })}
-            <button type="button" onClick={onOpenAssistant} aria-label="Ouvrir Hey Horizon" title="Hey Horizon" className="min-w-0 rounded-xl px-1 py-2 flex flex-col items-center gap-1 text-emerald-600 bg-emerald-500/10"><Bot size={18} /><span className="text-[10px] font-semibold truncate w-full text-center">Hey Horizon</span></button>
-          </div>
-        </nav>
-      ) : null}
+
+      <nav className="fixed bottom-0 left-0 right-0 z-30 border-t border-line bg-card px-2 pb-[calc(env(safe-area-inset-bottom)+0.5rem)] pt-2 shadow-float md:hidden" aria-label="Navigation mobile">
+        <div className="grid grid-cols-5 gap-1">
+          {mobileGroups.slice(0, 2).map((group) => {
+            const Icon = group.icon;
+            const isActive = group.key === activeGroup?.key;
+            return <button key={group.key} type="button" onClick={() => navigate(group.items[0]?.id)} className={`flex min-w-0 flex-col items-center gap-1 rounded-control px-1 py-2 ${isActive ? 'bg-positive-bg text-earth' : 'text-slate'}`}><Icon size={18} /><span className="w-full truncate text-center text-meta font-medium">{group.label}</span></button>;
+          })}
+          <button type="button" onClick={() => setQuickEntryOpen(true)} aria-label="Ouvrir les saisies rapides" className="-mt-6 flex min-w-0 flex-col items-center gap-1 text-earth">
+            <span className="grid h-14 w-14 place-items-center rounded-full bg-horizon shadow-float"><Zap size={23} aria-hidden="true" /></span>
+            <span className="text-meta font-semibold">Saisir</span>
+          </button>
+          {mobileGroups.slice(2, 4).map((group) => {
+            const Icon = group.icon;
+            const isActive = group.key === activeGroup?.key;
+            return <button key={group.key} type="button" onClick={() => navigate(group.items[0]?.id)} className={`flex min-w-0 flex-col items-center gap-1 rounded-control px-1 py-2 ${isActive ? 'bg-positive-bg text-earth' : 'text-slate'}`}><Icon size={18} /><span className="w-full truncate text-center text-meta font-medium">{group.label}</span></button>;
+          })}
+        </div>
+      </nav>
+
+      <GlobalQuickEntryMenu open={quickEntryOpen} onClose={() => setQuickEntryOpen(false)} onNavigate={navigate} />
     </div>
   );
 }

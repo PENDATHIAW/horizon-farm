@@ -33,7 +33,7 @@ function supplierSummary(supplier, docs = [], finances = [], stocks = []) {
 }
 
 function Mini({ icon: Icon, label, value, danger = false }) {
-  return <div className={`rounded-xl border px-3 py-2 ${danger ? 'border-amber-200 bg-amber-50' : 'border-[#eadcc2] bg-white'}`}><Icon size={14} className={danger ? 'text-amber-700' : 'text-[#9a6b12]'} /><b className="block text-[#2f2415] break-words">{value}</b><span className="text-xs text-[#8a7456]">{label}</span></div>;
+  return <div className={`rounded-xl border px-3 py-2 ${danger ? 'border-vigilance bg-vigilance-bg' : 'border-line bg-white'}`}><Icon size={14} className={danger ? 'text-horizon-dark' : 'text-horizon-dark'} /><b className="block text-earth break-words">{value}</b><span className="text-xs text-slate">{label}</span></div>;
 }
 
 export default function TradeDocumentsHealth({ mode = 'clients', rows = [], salesOrders = [], payments = [], finances = [], transactions = [], stocks = [], documents, onNavigate }) {
@@ -50,12 +50,12 @@ export default function TradeDocumentsHealth({ mode = 'clients', rows = [], sale
   const title = mode === 'fournisseurs' ? 'Suivi fournisseurs & preuves/factures' : 'Suivi clients & preuves/factures';
   const OwnerIcon = mode === 'fournisseurs' ? Truck : Users;
 
-  return <section className="rounded-3xl border border-[#d6c3a0] bg-white p-5 shadow-sm space-y-4">
+  return <section className="rounded-3xl border border-line bg-white p-6 shadow-card space-y-4">
     <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-3">
       <div>
-        <p className="text-xs uppercase tracking-widest text-[#8a7456] font-black flex items-center gap-2"><FileText size={15} /> {title}</p>
-        <h3 className="text-xl font-black text-[#2f2415] mt-1">Argent à suivre et pièces à compléter</h3>
-        <p className="text-sm text-[#8a7456] mt-1">Vue courte pour repérer les soldes ouverts et les preuves/factures manquantes avant les tableaux détaillés.</p>
+        <p className="text-xs uppercase tracking-normal text-slate font-semibold flex items-center gap-2"><FileText size={15} /> {title}</p>
+        <h3 className="text-xl font-semibold text-earth mt-1">Argent à suivre et pièces à compléter</h3>
+        <p className="text-sm text-slate mt-1">Vue courte pour repérer les soldes ouverts et les preuves/factures manquantes avant les tableaux détaillés.</p>
       </div>
       <div className="grid grid-cols-2 md:grid-cols-4 gap-2 text-sm min-w-[320px]">
         <Mini icon={OwnerIcon} label="Tiers" value={rows.length} />
@@ -66,18 +66,18 @@ export default function TradeDocumentsHealth({ mode = 'clients', rows = [], sale
     </div>
 
     <div className="grid grid-cols-1 xl:grid-cols-2 gap-3">
-      <div className="rounded-2xl border border-[#eadcc2] bg-[#fffdf8] p-4">
-        <p className="font-black text-[#2f2415]">{mode === 'fournisseurs' ? 'Paiements fournisseurs à suivre' : 'Créances clients à relancer'}</p>
+      <div className="rounded-2xl border border-line bg-card p-4">
+        <p className="font-semibold text-earth">{mode === 'fournisseurs' ? 'Paiements fournisseurs à suivre' : 'Créances clients à relancer'}</p>
         <div className="mt-3 space-y-2 text-sm">
-          {withBalance.slice(0, 4).map((item) => <div key={item.owner.id || ownerName(item.owner)} className="rounded-xl bg-white border border-[#eadcc2] px-3 py-2"><b className="text-[#2f2415]">{ownerName(item.owner)}</b><p className="text-xs text-[#8a7456]">{fmtCurrency(item.balance)} · {item.action}</p></div>)}
-          {!withBalance.length ? <div className="rounded-xl bg-white border border-[#eadcc2] px-3 py-2 text-[#8a7456]">Aucun solde ouvert prioritaire.</div> : null}
+          {withBalance.slice(0, 4).map((item) => <div key={item.owner.id || ownerName(item.owner)} className="rounded-xl bg-white border border-line px-3 py-2"><b className="text-earth">{ownerName(item.owner)}</b><p className="text-xs text-slate">{fmtCurrency(item.balance)} · {item.action}</p></div>)}
+          {!withBalance.length ? <div className="rounded-xl bg-white border border-line px-3 py-2 text-slate">Aucun solde ouvert prioritaire.</div> : null}
         </div>
       </div>
-      <div className="rounded-2xl border border-[#eadcc2] bg-[#fffdf8] p-4">
-        <p className="font-black text-[#2f2415]">Preuves / factures à compléter</p>
+      <div className="rounded-2xl border border-line bg-card p-4">
+        <p className="font-semibold text-earth">Preuves / factures à compléter</p>
         <div className="mt-3 space-y-2 text-sm">
-          {withMissingProof.slice(0, 4).map((item) => <div key={item.owner.id || ownerName(item.owner)} className="rounded-xl bg-white border border-[#eadcc2] px-3 py-2"><b className="text-[#2f2415]">{ownerName(item.owner)}</b><p className="text-xs text-[#8a7456]">{item.proofMissing} pièce(s) manquante(s)</p></div>)}
-          {!withMissingProof.length ? <div className="rounded-xl bg-white border border-[#eadcc2] px-3 py-2 text-[#8a7456]">Aucune preuve/facture manquante détectée pour ces tiers.</div> : null}
+          {withMissingProof.slice(0, 4).map((item) => <div key={item.owner.id || ownerName(item.owner)} className="rounded-xl bg-white border border-line px-3 py-2"><b className="text-earth">{ownerName(item.owner)}</b><p className="text-xs text-slate">{item.proofMissing} pièce(s) manquante(s)</p></div>)}
+          {!withMissingProof.length ? <div className="rounded-xl bg-white border border-line px-3 py-2 text-slate">Aucune preuve/facture manquante détectée pour ces tiers.</div> : null}
         </div>
       </div>
     </div>

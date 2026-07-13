@@ -1,10 +1,10 @@
 export default function ActionIconButton({ icon: Icon, onClick, title, ariaLabel, color = 'emerald', disabled = false }) {
   const tones = {
-    emerald: 'hover:text-emerald-600 focus-visible:ring-emerald-500/25',
-    amber: 'hover:text-amber-600 focus-visible:ring-amber-500/25',
-    red: 'hover:text-red-600 focus-visible:ring-red-500/25',
-    whatsapp: 'hover:text-[#168a3d] focus-visible:ring-[#25D366]/25',
-    sky: 'hover:text-sky-600 focus-visible:ring-sky-500/25',
+    emerald: 'hover:text-positive focus-visible:ring-positive',
+    amber: 'hover:text-horizon-dark focus-visible:ring-vigilance',
+    red: 'hover:text-urgent focus-visible:ring-urgent',
+    whatsapp: 'hover:text-leaf focus-visible:ring-positive/25',
+    sky: 'hover:text-neutral focus-visible:ring-line',
   };
   const label = ariaLabel || title || 'Action';
 
@@ -15,7 +15,7 @@ export default function ActionIconButton({ icon: Icon, onClick, title, ariaLabel
       aria-label={label}
       onClick={onClick}
       disabled={disabled}
-      className={`inline-flex min-h-[44px] min-w-[44px] items-center justify-center rounded-xl border border-transparent text-[#8a7456] transition-all duration-200 hover:bg-[#fff8e8] hover:border-[#d6c3a0] disabled:opacity-50 disabled:cursor-not-allowed focus-visible:outline-none focus-visible:ring-4 ${tones[color] || tones.emerald}`}
+      className={`inline-flex min-h-[44px] min-w-[44px] items-center justify-center rounded-xl border border-transparent text-slate transition-all duration-200 hover:bg-vigilance-bg hover:border-line disabled:opacity-50 disabled:cursor-not-allowed focus-visible:outline-none focus-visible:ring-4 ${tones[color] || tones.emerald}`}
     >
       {Icon ? <Icon size={17} aria-hidden="true" /> : null}
     </button>

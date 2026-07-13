@@ -4,7 +4,6 @@
 
 import { toNumber } from './format.js';
 import {
-  equipmentActionKey,
   findOpenEquipmentAlert,
   findOpenEquipmentTask,
 } from './equipmentWorkflows.js';

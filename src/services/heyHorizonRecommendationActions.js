@@ -122,7 +122,7 @@ export async function createSupplierFollowUpTask({ supplierName, amount, supplie
 
 /** Crée une tâche de relance client depuis une réponse stratégique créances. */
 export async function createClientFollowUpTask({ clientName, amount, orderId, handlers = {} }) {
-  const { onCreateTask, onCreateBusinessEvent, existingTasks = [], onNavigate } = handlers;
+  const { onCreateTask, existingTasks = [], onNavigate } = handlers;
   if (typeof onCreateTask !== 'function') {
     onNavigate?.('commercial');
     return { ok: false };

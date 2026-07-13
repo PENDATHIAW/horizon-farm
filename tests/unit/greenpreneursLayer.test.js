@@ -3,7 +3,6 @@ import assert from 'node:assert/strict';
 import { DERFJ_GREENPRENEURS_PROFILE } from '../../src/config/derfjGreenpreneurs.config.js';
 import { buildGreenpreneursReadinessScore } from '../../src/services/greenpreneurs/greenpreneursReadinessScore.js';
 import { computeCircularEconomyMetrics } from '../../src/services/greenpreneurs/circularEconomyMetrics.js';
-import { computeValorisationReadiness } from '../../src/services/greenpreneurs/valorisationReadinessEngine.js';
 import {
   computeGreenpreneursMetrics,
   normalizeGreenpreneursDataMap,
@@ -65,36 +64,11 @@ test('circular economy — données réelles via business_events', () => {
   assert.ok(circular.parcellesFertilisees >= 1);
 });
 
-test('valorisation readiness — statuts sans date fixe', () => {
-  const readiness = computeValorisationReadiness({});
-  assert.ok(readiness.phase2_tallow_go.score >= 0);
-  assert.ok(readiness.phase3_bovinia.score >= 0);
-  assert.ok(['non_pret', 'a_preparer', 'pilote_possible', 'lancement_recommande'].includes(readiness.phase2_tallow_go.status));
-  assert.match(readiness.roadmapNote, /date arbitraire/i);
-  assert.match(readiness.phase2_tallow_go.bestMoment, /lorsque|Tallow/i);
-});
-
-test('valorisation — flux bovin améliore le score Tallow & Go', () => {
-  const low = computeValorisationReadiness({}).phase2_tallow_go.score;
-  const high = computeValorisationReadiness({
-    animaux: [
-      { espece: 'bovin', statut: 'vendu', date_sortie: new Date().toISOString() },
-      { espece: 'bovin', statut: 'abattu', date_sortie: new Date().toISOString() },
-      { espece: 'bovin', statut: 'sorti', date_sortie: new Date().toISOString() },
-    ],
-    payments: [{ montant: 100000 }],
-    finances: [{ montant: -20000, type: 'depense' }],
-    business_events: [{ event_type: 'suif_collecte', quantity: 40 }],
-    stocks: [{ categorie: 'suif', quantite: 20 }],
-  }).phase2_tallow_go.score;
-  assert.ok(high >= low);
-});
-
-test('computeGreenpreneursMetrics — agrège readiness, circular, valorisation', () => {
+test('computeGreenpreneursMetrics — agrège readiness et circularité', () => {
   const metrics = computeGreenpreneursMetrics({ documents: [{ title: 'BP' }] });
   assert.ok(metrics.readiness);
   assert.ok(metrics.circular);
-  assert.ok(metrics.valorisation);
+  assert.equal('valorisation' in metrics, false);
   assert.ok(Array.isArray(metrics.centreAlerts));
 });
 
@@ -121,7 +95,6 @@ test('centre alerts — fumier non valorisé (sans Orgaloop)', () => {
       engraisSavingsFcfa: 10000,
       hasRealData: true,
     },
-    valorisation: { phase2_tallow_go: { status: 'a_preparer', nextActions: ['Préparer conformité'], bestMoment: 'Après stabilisation' } },
   });
   assert.ok(alerts.some((a) => a.id === 'gp-fumier-non-valorise'));
 });

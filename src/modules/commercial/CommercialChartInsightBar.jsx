@@ -11,9 +11,9 @@ export default function CommercialChartInsightBar({ chartDataset = {}, filterIds
   return (
     <div className="space-y-2">
       {insights.map((insight) => (
-        <div key={insight.id} className="rounded-xl border border-[#eadcc2] bg-[#fffdf8] px-3 py-2 text-xs text-[#2f2415]">
-          <p className="font-black text-[11px] uppercase tracking-wide text-[#9a6b12]">{insight.chart}</p>
-          <pre className="mt-1 whitespace-pre-wrap font-sans text-[#8a7456] leading-relaxed">
+        <div key={insight.id} className="rounded-xl border border-line bg-card px-3 py-2 text-xs text-earth">
+          <p className="font-semibold text-meta uppercase tracking-normal text-horizon-dark">{insight.chart}</p>
+          <pre className="mt-1 whitespace-pre-wrap font-sans text-slate leading-relaxed">
             {formatChartInsightForDirector(insight)}
           </pre>
         </div>

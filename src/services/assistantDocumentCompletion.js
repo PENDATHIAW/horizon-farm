@@ -4,8 +4,8 @@
  */
 
 import { parseInvoiceOcrText } from './ocrIntelligent/invoiceOcrParser.js';
-import { classifyScannerDocumentType, listMissingScannerFields } from './aiGateway/documentScannerParser.js';
-import { SCANNER_DOC_TYPES } from './aiGateway/documentScannerTypes.js';
+
+
 import { updateHorizonDraft } from './aiIntentEngine.js';
 
 const arr = (v) => (Array.isArray(v) ? v : []);
@@ -55,10 +55,7 @@ export function buildDraftFieldChecklist(draft = {}) {
   const fields = draft.draft_fields || {};
   const missing = new Set(arr(draft.missing_fields));
   const keys = Object.keys(FIELD_LABELS);
-  const present = keys.filter((key) => {
-    const val = fields[key];
-    return val != null && val !== '' && val !== 'unknown';
-  });
+
   const allKeys = [...new Set([...keys, ...Object.keys(fields)])].filter((k) => FIELD_LABELS[k]);
   return allKeys.map((key) => ({
     key,
@@ -198,7 +195,7 @@ function buildPurchaseDraftFields(parsed = {}, dataMap = {}) {
 
 function buildSaleDraftFields(parsed = {}, text = '') {
   const eggMatch = text.match(/(\d+)\s*(?:oeufs?|œufs?)/i);
-  const client = findClient(parsed.client_name, {});
+
   return {
     product_name: /oeuf|œuf/i.test(text) ? 'oeufs' : clean(parsed.produit),
     quantity: eggMatch ? n(eggMatch[1]) : parsed.quantite,
@@ -271,7 +268,6 @@ export function buildConversationalCompletionMessage({
   productMatch = null,
   supplierSuggestions = [],
   productAttachOptions = [],
-  confidence = 0,
   mode = 'conversation',
 } = {}) {
   const lines = [];
@@ -387,7 +383,7 @@ export function analyzeDocumentForCompletion(text = '', dataMap = {}, options = 
   let intent = 'purchase_stock';
   let primary_module = 'stock';
   let form_type = 'stock_purchase';
-  let fields = {};
+  let fields;
 
   if (docKind === 'sale_invoice') {
     intent = 'sale_record';

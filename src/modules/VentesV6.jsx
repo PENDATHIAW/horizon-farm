@@ -7,8 +7,8 @@ import VentesV4 from './VentesV4.jsx';
 import { linkedPaymentsForOrders, saleAmount } from './commercial/commercialMetrics.js';
 
 export default function VentesV6(props) {
-  const payments = props.paymentsList || props.payments || [];
-  const orders = props.rows || [];
+  const payments = useMemo(() => props.paymentsList || props.payments || [], [props.paymentsList, props.payments]);
+  const orders = useMemo(() => props.rows || [], [props.rows]);
 
   const normalizedRows = useMemo(() => {
     const linked = linkedPaymentsForOrders(orders, payments);

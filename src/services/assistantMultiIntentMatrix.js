@@ -6,7 +6,6 @@ import {
   classifyAllUniversalIntents,
   classifyUniversalIntent,
   isQuestionIntent,
-  normalizeAgriculturalText,
 } from './assistantUniversalIntents.js';
 
 /** Séparateurs de sous-questions naturelles. */

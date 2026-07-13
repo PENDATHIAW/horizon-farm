@@ -218,7 +218,7 @@ export function runForecastEngine(dataMap = {}, parsedScenario = {}) {
   const availableTreasury = Math.max(0, finance.grossMargin + finance.receivable);
   const currentResult = finance.treasuryResult;
 
-  let simulation = {};
+  let simulation;
   switch (parsedScenario.scenarioType) {
     case FORECAST_SCENARIO_TYPES.CATTLE_PURCHASE:
       simulation = simulateCattle(parsedScenario, pricing, quantity);

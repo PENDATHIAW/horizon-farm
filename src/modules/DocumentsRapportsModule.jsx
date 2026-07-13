@@ -1,15 +1,17 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useState } from 'react';
 import toast from 'react-hot-toast';
 import ModuleTabsBar from '../components/module/ModuleTabsBar.jsx';
-import { applyOneClickRecommendation, createMissingProofTask } from '../services/heyHorizonRecommendationActions.js';
+import { createMissingProofTask } from '../services/heyHorizonRecommendationActions.js';
 import { fmtCurrency } from '../utils/format';
 import PeriodScopeBadge from '../components/PeriodScopeBadge.jsx';
 import { resolveDocumentsTab, resolveDocumentsNavigation } from '../utils/commercialNavigation.js';
 import { useDocumentsRapports } from './documents/hooks/useDocumentsRapports.js';
-import CentreControleTab from './documents/tabs/CentreControleTab.jsx';
 import GestionnaireOcrTab from './documents/tabs/GestionnaireOcrTab.jsx';
 import RapprochementPreuvesTab from './documents/tabs/RapprochementPreuvesTab.jsx';
 import RapportsExportsTab from './documents/tabs/RapportsExportsTab.jsx';
+import ReportLifecyclePanel from './documents/tabs/ReportLifecyclePanel.jsx';
+import PublicationsTab from './documents/tabs/PublicationsTab.jsx';
+import ArchivesTab from './documents/tabs/ArchivesTab.jsx';
 import { Button } from './documents/documentsModuleUi.jsx';
 
 function Tabs({ active, onChange }) {
@@ -18,18 +20,20 @@ function Tabs({ active, onChange }) {
 
 export default function DocumentsRapportsModule(props) {
   const controlled = Boolean(props.onTabChange);
-  const bootstrapNav = resolveDocumentsNavigation(props.initialTab || 'Centre de contrôle');
-  const [internalTab, setInternalTab] = useState(() => bootstrapNav.tab || resolveDocumentsTab(props.initialTab || 'Centre de contrôle'));
+  const onTabChange = props.onTabChange;
+  const initialTab = props.initialTab;
+  const bootstrapNav = resolveDocumentsNavigation(props.initialTab || 'Bibliothèque');
+  const [internalTab, setInternalTab] = useState(() => bootstrapNav.tab || resolveDocumentsTab(props.initialTab || 'Bibliothèque'));
   const tab = controlled
-    ? resolveDocumentsTab(props.initialTab || 'Centre de contrôle')
+    ? resolveDocumentsTab(props.initialTab || 'Bibliothèque')
     : internalTab;
   const [busyId, setBusyId] = useState(null);
 
   const applyDocumentsNavigation = useCallback((nav) => {
-    const resolvedTab = nav.tab || resolveDocumentsTab(props.initialTab || 'Centre de contrôle');
-    if (controlled) props.onTabChange?.(resolvedTab);
+    const resolvedTab = nav.tab || resolveDocumentsTab(initialTab || 'Bibliothèque');
+    if (controlled) onTabChange?.(resolvedTab);
     else setInternalTab(resolvedTab);
-  }, [controlled, props.onTabChange, props.initialTab]);
+  }, [controlled, onTabChange, initialTab]);
 
   const navigateDocuments = useCallback((target = '') => {
     applyDocumentsNavigation(resolveDocumentsNavigation(target));
@@ -39,17 +43,11 @@ export default function DocumentsRapportsModule(props) {
     const raw = String(value || '').trim();
     const nav = resolveDocumentsNavigation(value);
     if (controlled) {
-      props.onTabChange?.(raw || nav.tab);
+      onTabChange?.(raw || nav.tab);
       return;
     }
     setInternalTab(nav.tab);
-  }, [controlled, props.onTabChange]);
-
-  useEffect(() => {
-    if (!props.initialTab) return;
-    const nav = resolveDocumentsNavigation(props.initialTab);
-    if (!controlled) setInternalTab(nav.tab);
-  }, [controlled, props.initialTab]);
+  }, [controlled, onTabChange]);
 
   const {
     data,
@@ -59,22 +57,6 @@ export default function DocumentsRapportsModule(props) {
     scannerContext,
     refresh,
   } = useDocumentsRapports(props);
-
-  const applyFinding = async (finding) => {
-    setBusyId(finding.id);
-    try {
-      const result = await applyOneClickRecommendation(finding, actionHandlers);
-      if (result.createdTasks || result.createdAlerts) toast.success('Action suggérée créée');
-      else {
-        toast.success('Module ouvert');
-        navigateDocuments('Rapprochement & preuves');
-      }
-    } catch (e) {
-      toast.error(e.message || 'Erreur');
-    } finally {
-      setBusyId(null);
-    }
-  };
 
   const attachProof = async (item) => {
     setBusyId(item.id);
@@ -109,18 +91,17 @@ export default function DocumentsRapportsModule(props) {
     smartfarm_events: props.smartfarmEvents || [],
   };
 
-  const content = tab === 'Centre de contrôle' ? (
-    <CentreControleTab
-      data={data}
-      navigateDocuments={navigateDocuments}
-      onApply={applyFinding}
-      onAttachProof={attachProof}
-      busyId={busyId}
-      onNavigate={props.onNavigate}
-      actionHandlers={actionHandlers}
-      greenpreneursExtras={greenpreneursExtras}
-    />
-  ) : tab === 'Gestionnaire & OCR' ? (
+  const reportDataMap = {
+    sales_orders: data.salesOrders,
+    payments: data.payments,
+    finances: data.transactions,
+    stock: data.stocks,
+    taches: props.existingTasks || [],
+    alertes_center: props.existingAlerts || [],
+    documents: data.documents,
+  };
+
+  const content = tab === 'DocumentsLibraryView' ? (
     <GestionnaireOcrTab
       data={data}
       scannerContext={scannerContext}
@@ -129,7 +110,7 @@ export default function DocumentsRapportsModule(props) {
       onNavigate={props.onNavigate}
       onSuccess={onScannerSuccess}
     />
-  ) : tab === 'Rapprochement & preuves' ? (
+  ) : tab === 'DocumentsEvidenceView' ? (
     <RapprochementPreuvesTab
       props={props}
       data={data}
@@ -139,42 +120,56 @@ export default function DocumentsRapportsModule(props) {
       onLinked={() => refresh()}
       navigateDocuments={navigateDocuments}
     />
-  ) : tab === 'Rapports & exports' ? (
-    <RapportsExportsTab
-      data={data}
-      periodFiltered={periodFiltered}
-      onNavigate={props.onNavigate}
-      greenpreneursExtras={greenpreneursExtras}
-    />
+  ) : tab === 'ReportsLifecycleView' ? (
+    <div className="space-y-6">
+      <ReportLifecyclePanel
+        reports={data.reports}
+        dataMap={reportDataMap}
+        user={props.user}
+        onCreateReport={props.onCreateReport}
+        onUpdateReport={props.onUpdateReport}
+        onCreateBusinessEvent={props.onCreateBusinessEvent}
+        onRefreshReports={props.onRefreshReports}
+      />
+      <RapportsExportsTab
+        data={data}
+        periodFiltered={periodFiltered}
+        onNavigate={props.onNavigate}
+        greenpreneursExtras={greenpreneursExtras}
+      />
+    </div>
+  ) : tab === 'ReportsPublicationsView' ? (
+    <PublicationsTab reports={data.reports} />
+  ) : tab === 'ReportsArchivesView' ? (
+    <ArchivesTab reports={data.reports} />
   ) : (
-    <CentreControleTab
+    <GestionnaireOcrTab
       data={data}
-      navigateDocuments={navigateDocuments}
-      onApply={applyFinding}
-      onAttachProof={attachProof}
-      busyId={busyId}
+      scannerContext={scannerContext}
+      scannerHandlers={scannerHandlers}
+      dataMap={props.dataMap}
       onNavigate={props.onNavigate}
-      actionHandlers={actionHandlers}
+      onSuccess={onScannerSuccess}
     />
   );
 
   return (
     <div className="space-y-6">
-      <div className="rounded-3xl border border-[#d6c3a0] bg-white p-5 shadow-sm">
+      <div className="rounded-3xl border border-line bg-white p-6 shadow-card">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
           <div>
-            <p className="text-xs uppercase tracking-[0.25em] text-[#9a6b12] font-black">Dossiers</p>
-            <h1 className="mt-1 text-2xl font-black text-[#2f2415]">Documents & Rapports</h1>
-            <p className="mt-1 text-sm text-[#8a7456]">Centre de contrôle, OCR, rapprochement et exports — conformité finance.</p>
+            <p className="text-xs uppercase tracking-normal text-horizon-dark font-semibold">Dossiers</p>
+            <h1 className="mt-1 text-2xl font-semibold text-earth">Documents & Rapports</h1>
+            <p className="mt-1 text-sm text-slate">Bibliothèque unique, preuves, rapports versionnés et publications.</p>
             {props.periodLabel ? <div className="mt-2"><PeriodScopeBadge label={props.periodLabel} /></div> : null}
           </div>
           <div className="flex flex-wrap items-center gap-2">
-            <div className="rounded-2xl border border-[#eadcc2] bg-[#fffdf8] px-4 py-3 text-sm">
-              <span className="text-[#8a7456]">Santé </span>
-              <b className={data.healthScore >= 75 ? 'text-emerald-700' : 'text-amber-700'}>{data.healthScore}/100</b>
+            <div className="rounded-2xl border border-line bg-card px-4 py-3 text-sm">
+              <span className="text-slate">Santé </span>
+              <b className={data.healthScore >= 75 ? 'text-positive' : 'text-horizon-dark'}>{data.healthScore}/100</b>
             </div>
-            <Button onClick={() => navigateDocuments('Gestionnaire & OCR')}>Bibliothèque</Button>
-            <Button onClick={() => navigateDocuments('Rapports & exports')}>Exports</Button>
+            <Button onClick={() => navigateDocuments('Bibliothèque')}>Bibliothèque</Button>
+            <Button onClick={() => navigateDocuments('Rapports')}>Rapports</Button>
           </div>
         </div>
       </div>

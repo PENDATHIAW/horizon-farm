@@ -4,9 +4,9 @@ import { computeCircularEconomyMetrics } from '../../services/greenpreneurs/circ
 import { fmtCurrency, fmtNumber } from '../../utils/format.js';
 
 function SourceBadge({ label }) {
-  const tone = label === 'ERP réel' ? 'bg-emerald-700 text-white' : 'bg-amber-600 text-white';
+  const tone = label === 'ERP réel' ? 'bg-positive text-white' : 'bg-vigilance text-white';
   return (
-    <span className={`inline-flex rounded-full px-2 py-0.5 text-[10px] font-black uppercase ${tone}`}>
+    <span className={`inline-flex rounded-full px-2 py-1 text-meta font-semibold uppercase ${tone}`}>
       {label}
     </span>
   );
@@ -14,10 +14,10 @@ function SourceBadge({ label }) {
 
 function KpiTile({ label, value, hint }) {
   return (
-    <div className="rounded-xl border border-emerald-200 bg-white p-3">
-      <p className="text-[10px] text-[#8a7456]">{label}</p>
-      <p className="text-lg font-black text-[#2f2415] mt-1">{value}</p>
-      {hint ? <p className="text-[10px] text-[#8a7456] mt-1">{hint}</p> : null}
+    <div className="rounded-xl border border-positive bg-white p-3">
+      <p className="text-meta text-slate">{label}</p>
+      <p className="text-lg font-semibold text-earth mt-1">{value}</p>
+      {hint ? <p className="text-meta text-slate mt-1">{hint}</p> : null}
     </div>
   );
 }
@@ -35,8 +35,8 @@ export default function CircularEconomyKpiPanel({
 
   if (compact) {
     return (
-      <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-900 space-y-2">
-        <p className="font-black flex items-center gap-2"><Recycle size={16} /> Économie circulaire</p>
+      <div className="rounded-2xl border border-positive bg-positive-bg p-4 text-sm text-positive space-y-2">
+        <p className="font-semibold flex items-center gap-2"><Recycle size={16} /> Économie circulaire</p>
         <p>Économies engrais : <b>{fmtCurrency(circular.engraisSavingsFcfa)}</b> · Parcelles fertilisées : <b>{circular.parcellesFertilisees}</b></p>
         <SourceBadge label={circular.sourceLabel} />
       </div>
@@ -44,13 +44,13 @@ export default function CircularEconomyKpiPanel({
   }
 
   return (
-    <section className="rounded-3xl border border-emerald-200 bg-white p-5 shadow-sm space-y-4">
+    <section className="rounded-3xl border border-positive bg-white p-6 shadow-card space-y-4">
       <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <p className="text-lg font-black text-[#2f2415] flex items-center gap-2">
-            <Recycle size={20} className="text-emerald-700" /> Boucle circulaire élevage ↔ cultures
+          <p className="text-lg font-semibold text-earth flex items-center gap-2">
+            <Recycle size={20} className="text-positive" /> Boucle circulaire élevage ↔ cultures
           </p>
-          <p className="text-sm text-[#8a7456] mt-1">
+          <p className="text-sm text-slate mt-1">
             {circular.orgaloopHybrid
               ? 'Fertilisation cultures prioritaire — surplus vendu sur Orgaloop.'
               : `Fientes, litières et fumiers valorisés — ${circular.orgaloopPrimary ? `vente ${circular.orgaloop?.platformName || 'Orgaloop'}` : 'boucle élevage ↔ cultures'}.`}
@@ -87,31 +87,29 @@ export default function CircularEconomyKpiPanel({
       </div>
 
       {circular.orgaloopHybrid || circular.orgaloopPrimary ? (
-        <p className="text-xs text-emerald-800 rounded-xl border border-emerald-200 bg-emerald-50 p-3">
+        <p className="text-xs text-positive rounded-xl border border-positive bg-positive-bg p-3">
           <b>Stratégie {circular.orgaloop?.platformName} :</b> {circular.orgaloop?.strategyLabel} — {circular.orgaloop?.advice}
         </p>
       ) : null}
 
       <div className="grid grid-cols-2 gap-3">
-        <KpiTile label="Suif (coproduit)" value={`${fmtNumber(circular.coproduits.suifKg)} kg`} hint="Phase 2 Tallow & Go" />
-        <KpiTile label="Os (coproduit)" value={`${fmtNumber(circular.coproduits.osKg)} kg`} hint="Phase 3 BOVINIA" />
       </div>
 
       {showPlannedVsRealized ? (
-        <div className="rounded-2xl border border-[#eadcc2] bg-[#fffdf8] p-3 text-sm">
-          <p className="font-black text-[#2f2415]">Impact circulaire prévu vs réalisé</p>
-          <p className="text-xs text-[#8a7456] mt-2">
+        <div className="rounded-2xl border border-line bg-card p-3 text-sm">
+          <p className="font-semibold text-earth">Impact circulaire prévu vs réalisé</p>
+          <p className="text-xs text-slate mt-2">
             Prévu BP : {fmtCurrency(circular.plannedVsRealized.plannedSavingsFcfa)} ·
             Réalisé : {fmtCurrency(circular.plannedVsRealized.realizedSavingsFcfa)}
           </p>
-          <p className="text-xs text-[#8a7456]">
+          <p className="text-xs text-slate">
             Parcelles : {circular.plannedVsRealized.realizedFertilizedParcels} réalisées / {circular.plannedVsRealized.plannedFertilizedParcels} prévues
           </p>
         </div>
       ) : null}
 
       {!circular.hasRealData ? (
-        <p className="text-xs text-amber-800 rounded-xl border border-amber-200 bg-amber-50 p-3">
+        <p className="text-xs text-horizon-dark rounded-xl border border-vigilance bg-vigilance-bg p-3">
           Estimation basée sur les cibles DER/FJ ({circular.targets.layers} pondeuses, {circular.targets.broilersEvery15Days} chair/15j, {circular.targets.bovinsPerMonth} bovins/mois). Enregistrez les flux réels pour passer en <b>ERP réel</b>.
         </p>
       ) : null}

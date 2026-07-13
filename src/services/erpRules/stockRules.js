@@ -1,7 +1,7 @@
 const arr = (v) => (Array.isArray(v) ? v : []);
 const n = (v = 0) => Number(v || 0);
-const low = (v) => String(v || '').toLowerCase();
-const amount = (r = {}) => n(r.montant ?? r.amount ?? r.total ?? r.montant_total);
+
+
 const qty = (r = {}) => n(r.quantite ?? r.quantity ?? r.stock);
 const threshold = (r = {}) => n(r.seuil ?? r.threshold ?? r.stock_min);
 

@@ -221,7 +221,7 @@ export function clientsWithReceivableCount(orders = [], payments = []) {
 }
 
 const cleanStr = (value = '') => String(value || '').trim();
-const orderClientId = (row = {}) => cleanStr(row.client_id || row.customer_id || row.client);
+
 const saleDateOf = (row = {}) => cleanStr(row.date || row.date_vente || row.order_date || row.created_at).slice(0, 10);
 const clientNameOf = (client = {}) => cleanStr(client.nom || client.name || client.raison_sociale || client.id || 'Client');
 
@@ -242,7 +242,7 @@ export function buildClientLedger(clients = [], orders = [], payments = []) {
 }
 
 /** Une ligne par vente — uniquement les blocages réels (pas les ventes clôturées). */
-export function buildSummaryTodos(orders = [], payments = [], _healthFindings = []) {
+export function buildSummaryTodos(orders = [], payments = []) {
   const linked = linkedPaymentsForOrders(orders, payments);
   const items = arr(orders).map((order) => {
     const total = saleAmount(order);

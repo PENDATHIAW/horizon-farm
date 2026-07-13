@@ -62,7 +62,9 @@ function RootRouter() {
   return <ChatPage />;
 }
 
-createRoot(document.getElementById('root')).render(
+const root = createRoot(document.getElementById('root'));
+
+root.render(
   <StrictMode>
     <AuthProvider>
       <AppProvider>
@@ -73,15 +75,18 @@ createRoot(document.getElementById('root')).render(
           toastOptions={{
             duration: 3500,
             style: {
-              background: '#fffdf8',
-              color: '#2f2415',
-              border: '1px solid #d6c3a0',
+              background: 'var(--hf-card)',
+              color: 'var(--hf-ink)',
+              border: '1px solid var(--hf-line)',
+              borderRadius: 'var(--hf-radius-card)',
+              boxShadow: 'var(--hf-shadow-float)',
               maxWidth: 'min(92vw, 420px)',
-              fontSize: '14px',
+              fontFamily: 'var(--hf-font-sans)',
+              fontSize: 'var(--hf-text-body)',
               lineHeight: '1.45',
             },
             success: {
-              iconTheme: { primary: '#b38b43', secondary: '#fffdf8' },
+              iconTheme: { primary: 'var(--hf-positive)', secondary: 'var(--hf-positive-bg)' },
             },
           }}
         />
@@ -89,3 +94,7 @@ createRoot(document.getElementById('root')).render(
     </AuthProvider>
   </StrictMode>
 );
+
+if (import.meta.hot) {
+  import.meta.hot.dispose(() => root.unmount());
+}

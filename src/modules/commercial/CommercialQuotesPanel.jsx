@@ -114,20 +114,20 @@ export default function CommercialQuotesPanel({
   };
 
   return (
-    <section className="rounded-2xl border border-[#d6c3a0] bg-white p-4 space-y-3">
+    <section className="rounded-2xl border border-line bg-white p-4 space-y-3">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <div>
-          <p className="text-xs uppercase tracking-widest text-[#8a7456] font-black flex items-center gap-2"><FileText size={14} /> Devis commerciaux</p>
-          <p className="text-sm text-[#8a7456]">Devis → commande → facture · sans impact stock au stade devis</p>
+          <p className="text-xs uppercase tracking-normal text-slate font-semibold flex items-center gap-2"><FileText size={14} /> Devis commerciaux</p>
+          <p className="text-sm text-slate">Devis → commande → facture · sans impact stock au stade devis</p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
           {clients.length ? (
-            <label className="flex items-center gap-2 text-xs font-bold text-[#8a7456]">
+            <label className="flex items-center gap-2 text-xs font-semibold text-slate">
               Client
               <select
                 value={quoteClientId || clients[0]?.id || ''}
                 onChange={(event) => setQuoteClientId(event.target.value)}
-                className="rounded-lg border border-[#d6c3a0] bg-white px-2 py-1 text-sm font-black text-[#2f2415]"
+                className="rounded-lg border border-line bg-white px-2 py-1 text-sm font-semibold text-earth"
               >
                 {clients.map((client) => (
                   <option key={client.id} value={client.id}>{client.nom || client.name || client.id}</option>
@@ -135,34 +135,34 @@ export default function CommercialQuotesPanel({
               </select>
             </label>
           ) : null}
-          <button type="button" onClick={createDraftQuote} className="rounded-xl bg-[#2f2415] px-3 py-2 text-xs font-black text-white">Nouveau devis</button>
+          <button type="button" onClick={createDraftQuote} className="rounded-xl bg-earth px-3 py-2 text-xs font-semibold text-white">Nouveau devis</button>
         </div>
       </div>
 
       {!quotes.length ? (
-        <p className="text-sm text-[#8a7456] rounded-xl border border-[#eadcc2] bg-[#fffdf8] px-3 py-4">Aucun devis — créez un brouillon pour préparer une offre client.</p>
+        <p className="text-sm text-slate rounded-xl border border-line bg-card px-3 py-4">Aucun devis — créez un brouillon pour préparer une offre client.</p>
       ) : (
         <div className="space-y-2">
           {quotes.slice(0, 8).map((quote) => {
             const status = quoteStatusOf(quote);
             return (
-              <div key={quote.id} className="rounded-xl border border-[#eadcc2] bg-[#fffdf8] p-3 flex flex-col md:flex-row md:items-center justify-between gap-2">
+              <div key={quote.id} className="rounded-xl border border-line bg-card p-3 flex flex-col md:flex-row md:items-center justify-between gap-2">
                 <div>
-                  <p className="font-black text-[#2f2415]">{quote.id} · {quote.client_label || quote.client_id}</p>
-                  <p className="text-xs text-[#8a7456]">{quote.product_name} · {fmtCurrency(quote.montant_total)} · {QUOTE_STATUS_LABELS[status] || status}</p>
+                  <p className="font-semibold text-earth">{quote.id} · {quote.client_label || quote.client_id}</p>
+                  <p className="text-xs text-slate">{quote.product_name} · {fmtCurrency(quote.montant_total)} · {QUOTE_STATUS_LABELS[status] || status}</p>
                 </div>
                 <div className="flex flex-wrap gap-1">
                   {status === QUOTE_STATUSES.DRAFT ? (
-                    <button type="button" onClick={() => markSent(quote)} className="rounded-lg border border-sky-200 bg-sky-50 px-2 py-1 text-[11px] font-black text-sky-800"><Send size={12} className="inline" /> Envoyer</button>
+                    <button type="button" onClick={() => markSent(quote)} className="rounded-lg border border-line bg-neutral-bg px-2 py-1 text-meta font-semibold text-neutral"><Send size={12} className="inline" /> Envoyer</button>
                   ) : null}
                   {['envoye', 'accepte', 'brouillon'].includes(status) ? (
-                    <button type="button" onClick={() => convert(quote)} className="rounded-lg border border-emerald-200 bg-emerald-50 px-2 py-1 text-[11px] font-black text-emerald-800"><ArrowRightCircle size={12} className="inline" /> Convertir</button>
+                    <button type="button" onClick={() => convert(quote)} className="rounded-lg border border-positive bg-positive-bg px-2 py-1 text-meta font-semibold text-positive"><ArrowRightCircle size={12} className="inline" /> Convertir</button>
                   ) : null}
                   {status === QUOTE_STATUSES.CONVERTED ? (
-                    <span className="text-[11px] font-black text-emerald-700 flex items-center gap-1"><CheckCircle2 size={12} /> Converti</span>
+                    <span className="text-meta font-semibold text-positive flex items-center gap-1"><CheckCircle2 size={12} /> Converti</span>
                   ) : null}
                   {status === QUOTE_STATUSES.REFUSED ? (
-                    <span className="text-[11px] font-black text-red-700 flex items-center gap-1"><XCircle size={12} /> Refusé</span>
+                    <span className="text-meta font-semibold text-urgent flex items-center gap-1"><XCircle size={12} /> Refusé</span>
                   ) : null}
                 </div>
               </div>

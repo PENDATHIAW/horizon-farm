@@ -18,7 +18,7 @@ import {
 } from './assistantFarmAdvisor.js';
 import { resolveCanonicalGoalProgress } from './assistantGoalProgress.js';
 
-const n = (v) => Number(v || 0);
+
 
 export const DIRECTOR_INTENTS = Object.freeze({
   COMMENT_VA_LA_FERME: 'comment_va_la_ferme',
@@ -131,8 +131,8 @@ export function buildObjectifStatusAnswer(dataMap = {}, query = '') {
   const focusAdvance = /en avance|en retard|avance ou en retard|avance|retard/.test(q);
 
   let situation;
-  let cause = '';
-  let action = '';
+  let cause;
+  let action;
 
   if (focusAnnual && annualTarget > 0) {
     situation = `Votre objectif annuel est atteint à ${annualPct} % (${fmtCurrency(annualRealized)} sur ${fmtCurrency(annualTarget)}).`;

@@ -8,7 +8,7 @@ export default function ProductionUpdateBanner() {
 
   useEffect(() => {
     if (isStaleAppBundle()) {
-      setVisible(true);
+      queueMicrotask(() => setVisible(true));
       return;
     }
 
@@ -33,25 +33,25 @@ export default function ProductionUpdateBanner() {
   const reload = () => purgeStalePwaCache({ reload: true });
 
   return (
-    <div className="fixed inset-x-0 top-0 z-[100] border-b border-amber-300 bg-amber-50 px-4 py-3 shadow-lg">
+    <div className="fixed inset-x-0 top-0 z-[100] border-b border-vigilance bg-vigilance-bg px-4 py-3 shadow-float">
       <div className="mx-auto flex max-w-5xl flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <p className="text-sm font-black text-amber-950">Mise à jour Horizon Farm disponible</p>
-          <p className="text-xs text-amber-900">
+          <p className="text-sm font-semibold text-horizon-dark">Mise à jour Horizon Farm disponible</p>
+          <p className="text-xs text-horizon-dark">
             Cette version est ancienne ou mélange d&apos;anciens fichiers JS (modules qui plantent). Rechargez pour obtenir la version à jour.
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
           <a
             href={LIVE_APP_URL}
-            className="rounded-xl bg-[#2f2415] px-4 py-2 text-xs font-black text-white"
+            className="rounded-xl bg-earth px-4 py-2 text-xs font-semibold text-white"
           >
             Ouvrir la version à jour
           </a>
-          <button type="button" onClick={reload} className="rounded-xl border border-amber-300 bg-white px-4 py-2 text-xs font-black text-amber-950">
+          <button type="button" onClick={reload} className="rounded-xl border border-vigilance bg-white px-4 py-2 text-xs font-semibold text-horizon-dark">
             Recharger
           </button>
-          <button type="button" onClick={() => setVisible(false)} className="rounded-xl px-3 py-2 text-xs font-bold text-amber-800">
+          <button type="button" onClick={() => setVisible(false)} className="rounded-xl px-3 py-2 text-xs font-semibold text-horizon-dark">
             Plus tard
           </button>
         </div>

@@ -27,7 +27,7 @@ export function extractLiveSensorReadings(sensors = [], meteo = {}) {
   };
 }
 
-export function buildSensorDashboardSummary(sensors = [], cameras = [], meteo = {}) {
+export function buildSensorDashboardSummary(sensors = [], meteo = {}) {
   const live = extractLiveSensorReadings(sensors, meteo);
   const temp = live.tempNow ?? live.tempFallback;
   const alerts = [];
@@ -39,8 +39,6 @@ export function buildSensorDashboardSummary(sensors = [], cameras = [], meteo = 
   if (live.humNow != null) lines.push({ text: `Humidité air : ${live.humNow}%${live.humLabel ? ` · ${live.humLabel}` : ''}` });
   if (live.soilNow != null) lines.push({ text: `Humidité sol : ${live.soilNow}%${live.soilLabel ? ` · ${live.soilLabel}` : ''}` });
   if (!lines.length) lines.push({ text: live.sensorCount ? `${live.sensorCount} capteur(s) enregistré(s)` : 'Aucun capteur connecté' });
-  if (cameras.length) lines.push({ text: `${cameras.length} caméra(s) surveillée(s)` });
-
   return {
     ...live,
     tempDisplay: temp,

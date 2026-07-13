@@ -3,7 +3,7 @@ import { AlertTriangle } from 'lucide-react';
 export default function FinanceAlertsPanel({ alerts = [], onNavigateTab, insufficientData = false }) {
   if (!alerts.length) {
     return (
-      <section className={`rounded-2xl border p-4 text-sm ${insufficientData ? 'border-amber-200 bg-amber-50 text-amber-900' : 'border-emerald-200 bg-emerald-50 text-emerald-800'}`}>
+      <section className={`rounded-2xl border p-4 text-sm ${insufficientData ? 'border-vigilance bg-vigilance-bg text-horizon-dark' : 'border-positive bg-positive-bg text-positive'}`}>
         {insufficientData
           ? 'En attente de données — aucune alerte financière tant qu\'aucun flux n\'est enregistré.'
           : 'Aucune alerte financière urgente — situation sous contrôle.'}
@@ -12,15 +12,15 @@ export default function FinanceAlertsPanel({ alerts = [], onNavigateTab, insuffi
   }
 
   const toneFor = (severity) => {
-    if (severity === 'bad' || severity === 'warn') return severity === 'bad' ? 'text-red-700' : 'text-amber-800';
-    return 'text-sky-800';
+    if (severity === 'bad' || severity === 'warn') return severity === 'bad' ? 'text-urgent' : 'text-horizon-dark';
+    return 'text-neutral';
   };
 
   return (
-    <section className="rounded-3xl border border-amber-200 bg-amber-50/50 p-5">
+    <section className="rounded-3xl border border-vigilance bg-vigilance-bg p-6">
       <div className="flex items-center gap-2">
-        <AlertTriangle size={18} className="text-amber-700" />
-        <h2 className="text-base font-black text-[#2f2415]">Alertes financières</h2>
+        <AlertTriangle size={18} className="text-horizon-dark" />
+        <h2 className="text-base font-semibold text-earth">Alertes financières</h2>
       </div>
       <ul className="mt-3 space-y-2">
         {alerts.map((alert) => (
@@ -28,13 +28,13 @@ export default function FinanceAlertsPanel({ alerts = [], onNavigateTab, insuffi
             <button
               type="button"
               onClick={() => onNavigateTab?.(alert.tab)}
-              className="flex w-full items-start justify-between gap-3 rounded-xl border border-amber-200 bg-white px-3 py-2 text-left hover:bg-amber-50"
+              className="flex w-full items-start justify-between gap-3 rounded-xl border border-vigilance bg-white px-3 py-2 text-left hover:bg-vigilance-bg"
             >
               <div>
-                <p className={`text-sm font-black ${toneFor(alert.severity)}`}>{alert.message}</p>
-                <p className="text-xs text-[#8a7456]">{alert.action}</p>
+                <p className={`text-sm font-semibold ${toneFor(alert.severity)}`}>{alert.message}</p>
+                <p className="text-xs text-slate">{alert.action}</p>
               </div>
-              <span className="shrink-0 text-xs font-black text-[#9a6b12]">Voir</span>
+              <span className="shrink-0 text-xs font-semibold text-horizon-dark">Voir</span>
             </button>
           </li>
         ))}

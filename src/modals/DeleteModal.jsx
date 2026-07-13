@@ -14,9 +14,9 @@ export default function DeleteModal({ open, onClose, onConfirm, title, itemLabel
         </div>
       }
     >
-      <p className="text-[#7d6a4a]">Voulez-vous vraiment supprimer cet element ?</p>
-      {itemLabel ? <p className="mt-2 text-[#2f2415] font-semibold">{itemLabel}</p> : null}
-      <p className="mt-2 text-xs text-red-400">Cette action est irreversible.</p>
+      <p className="text-slate">Voulez-vous vraiment supprimer cet element ?</p>
+      {itemLabel ? <p className="mt-2 text-earth font-semibold">{itemLabel}</p> : null}
+      <p className="mt-2 text-xs text-urgent">Cette action est irreversible.</p>
     </BaseModal>
   );
 }

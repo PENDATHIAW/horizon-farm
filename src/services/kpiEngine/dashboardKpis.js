@@ -5,11 +5,6 @@ import { computeStockKpis } from './stockKpis.js';
 import { computeLivestockKpis } from './livestockKpis.js';
 import { computeDocumentKpis } from './documentKpis.js';
 
-/**
- * KPI Accueil — agrège les moteurs officiels sans recalcul divergent.
- * @warning computeCommercialKpis est secondaire — CA module Commercial : buildConsolidatedCommercialKpis.
- * @see src/audit/canonicalExecutionRegistry.js → KPI_ENFORCEMENT_MATRIX
- */
 export function computeDashboardKpis(props = {}, periodScope = {}) {
   const summary = buildDashboardSummary(props, periodScope);
   const commercial = computeCommercialKpis(props.salesOrders, props.payments, periodScope);

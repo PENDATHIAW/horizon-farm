@@ -18,7 +18,6 @@ const isCriticalAlert = (r = {}) => ['urgence', 'critique', 'critical'].includes
 export function useActiviteSuivi(props = {}) {
   const alertsCrud = useCrudModule('alertes_center');
   const tasksCrud = useCrudModule('taches');
-  const traceCrud = useCrudModule('tracabilite');
   const eventsCrud = useCrudModule('business_events');
   const auditCrud = useCrudModule('audit_logs');
   const animalsCrud = useCrudModule('animaux');
@@ -35,9 +34,6 @@ export function useActiviteSuivi(props = {}) {
   const tasks = rowsOf(props.taches || props.tasks, tasksCrud, false);
   const eventsAll = allRows(props.businessEventsAll, eventsCrud);
   const eventsPeriod = rowsOf(props.businessEvents, eventsCrud, periodFiltered);
-  const traceRows = allRows(props.tracabiliteAll, traceCrud).length
-    ? allRows(props.tracabiliteAll, traceCrud)
-    : rowsOf(props.tracabilite, traceCrud, periodFiltered);
   const auditLogsAll = allRows(props.auditLogsAll, auditCrud).length
     ? allRows(props.auditLogsAll, auditCrud)
     : rowsOf(props.auditLogs, auditCrud, periodFiltered);
@@ -59,7 +55,6 @@ export function useActiviteSuivi(props = {}) {
       openTasks,
       lateTasks,
       events,
-      traceRows,
       auditLogs: auditLogsAll,
       healthScore: healthSnap.score,
       healthFindings: healthSnap.findings,
@@ -143,7 +138,6 @@ export function useActiviteSuivi(props = {}) {
     await Promise.allSettled([
       alertsCrud.refresh?.(),
       tasksCrud.refresh?.(),
-      traceCrud.refresh?.(),
       eventsCrud.refresh?.(),
       auditCrud.refresh?.(),
       props.onRefreshTasks?.(),
@@ -156,13 +150,12 @@ export function useActiviteSuivi(props = {}) {
     data,
     alertes,
     tasks,
-    traceRows,
     periodFiltered,
     actionHandlers,
     bridgeProps,
     shared,
     workflowBridgeProps,
     refresh,
-    crud: { alertsCrud, tasksCrud, traceCrud, eventsCrud, auditCrud },
+    crud: { alertsCrud, tasksCrud, eventsCrud, auditCrud },
   };
 }

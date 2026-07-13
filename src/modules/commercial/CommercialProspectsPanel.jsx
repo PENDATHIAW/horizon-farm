@@ -22,6 +22,30 @@ const PROSPECT_INTERESTS = [
   'Autre',
 ];
 
+function ProspectBlock({ title, rows, tone = 'neutral', onConvertQuote, onConvertClient }) {
+  if (!rows.length) return null;
+  return (
+    <section className={`rounded-card border p-4 ${tone === 'hot' ? 'border-urgent bg-urgent-bg' : 'border-line bg-white'}`}>
+      <p className="mb-2 text-sm font-semibold text-earth">{title} ({rows.length})</p>
+      <div className="space-y-2">
+        {rows.slice(0, 6).map((row) => (
+          <div key={row.id} className="flex flex-col justify-between gap-2 rounded-card border border-line bg-card p-3 md:flex-row md:items-center">
+            <div>
+              <p className="font-semibold text-earth">{row.name}</p>
+              <p className="text-xs text-slate">{row.source || 'Source ?'} · {row.interest || '—'} · prob. {row.probability || 0}% · {fmtCurrency(row.estimatedNeed)}</p>
+              <p className="text-meta text-horizon-dark">{row.nextAction || 'Prochaine action à définir'}</p>
+            </div>
+            <div className="flex flex-wrap gap-1">
+              <button type="button" onClick={() => onConvertQuote(row)} className="rounded-control border border-line bg-neutral-bg px-2 py-1 text-meta font-semibold text-neutral"><FileText size={12} className="inline" /> Devis</button>
+              <button type="button" onClick={() => onConvertClient(row)} className="rounded-control border border-positive bg-positive-bg px-2 py-1 text-meta font-semibold text-positive"><ArrowRightCircle size={12} className="inline" /> Client</button>
+            </div>
+          </div>
+        ))}
+      </div>
+    </section>
+  );
+}
+
 export default function CommercialProspectsPanel({
   clients = [],
   onCreateClient,
@@ -97,74 +121,50 @@ export default function CommercialProspectsPanel({
     }
   };
 
-  const Block = ({ title, rows, tone = 'neutral' }) => {
-    if (!rows.length) return null;
-    return (
-      <section className={`rounded-2xl border p-4 ${tone === 'hot' ? 'border-red-200 bg-red-50/30' : 'border-[#eadcc2] bg-white'}`}>
-        <p className="text-sm font-black text-[#2f2415] mb-2">{title} ({rows.length})</p>
-        <div className="space-y-2">
-          {rows.slice(0, 6).map((row) => (
-            <div key={row.id} className="rounded-xl border border-[#eadcc2] bg-[#fffdf8] p-3 flex flex-col md:flex-row md:items-center justify-between gap-2">
-              <div>
-                <p className="font-black text-[#2f2415]">{row.name}</p>
-                <p className="text-xs text-[#8a7456]">{row.source || 'Source ?'} · {row.interest || '—'} · prob. {row.probability || 0}% · {fmtCurrency(row.estimatedNeed)}</p>
-                <p className="text-[11px] text-[#9a6b12]">{row.nextAction || 'Prochaine action à définir'}</p>
-              </div>
-              <div className="flex flex-wrap gap-1">
-                <button type="button" onClick={() => convertQuote(row)} className="rounded-lg border border-sky-200 bg-sky-50 px-2 py-1 text-[11px] font-black text-sky-800"><FileText size={12} className="inline" /> Devis</button>
-                <button type="button" onClick={() => convertClient(row)} className="rounded-lg border border-emerald-200 bg-emerald-50 px-2 py-1 text-[11px] font-black text-emerald-800"><ArrowRightCircle size={12} className="inline" /> Client</button>
-              </div>
-            </div>
-          ))}
-        </div>
-      </section>
-    );
-  };
-
   return (
     <div className="space-y-4">
-      <section className="rounded-2xl border border-[#d6c3a0] bg-white p-4 flex flex-wrap items-center justify-between gap-2">
+      <section className="rounded-2xl border border-line bg-white p-4 flex flex-wrap items-center justify-between gap-2">
         <div>
-          <p className="text-xs uppercase tracking-widest text-[#8a7456] font-black">Prospects</p>
-          <p className="text-sm text-[#8a7456]">Parcours prospect → devis → client sans table lourde.</p>
+          <p className="text-xs uppercase tracking-normal text-slate font-semibold">Prospects</p>
+          <p className="text-sm text-slate">Parcours prospect → devis → client sans table lourde.</p>
         </div>
-        <button type="button" onClick={() => setProspectOpen((open) => !open)} className="rounded-xl bg-[#2f2415] px-3 py-2 text-xs font-black text-white"><UserPlus size={12} className="inline" /> Nouveau prospect</button>
+        <button type="button" onClick={() => setProspectOpen((open) => !open)} className="rounded-xl bg-earth px-3 py-2 text-xs font-semibold text-white"><UserPlus size={12} className="inline" /> Nouveau prospect</button>
       </section>
       {prospectOpen ? (
-        <section className="rounded-2xl border border-[#d6c3a0] bg-[#fffdf8] p-4 space-y-3">
-          <p className="text-sm font-black text-[#2f2415]">Nouveau prospect</p>
+        <section className="rounded-2xl border border-line bg-card p-4 space-y-3">
+          <p className="text-sm font-semibold text-earth">Nouveau prospect</p>
           <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
             <label className="block space-y-1">
-              <span className="text-xs font-bold text-[#8a7456]">Nom *</span>
-              <input type="text" value={prospectForm.name} onChange={(event) => setProspectForm((prev) => ({ ...prev, name: event.target.value }))} className="w-full rounded-xl border border-[#d6c3a0] px-3 py-2 text-sm" placeholder="Restaurant, grossiste…" />
+              <span className="text-xs font-semibold text-slate">Nom *</span>
+              <input type="text" value={prospectForm.name} onChange={(event) => setProspectForm((prev) => ({ ...prev, name: event.target.value }))} className="w-full rounded-xl border border-line px-3 py-2 text-sm" placeholder="Restaurant, grossiste…" />
             </label>
             <label className="block space-y-1">
-              <span className="text-xs font-bold text-[#8a7456]">Téléphone</span>
-              <input type="tel" value={prospectForm.phone} onChange={(event) => setProspectForm((prev) => ({ ...prev, phone: event.target.value }))} className="w-full rounded-xl border border-[#d6c3a0] px-3 py-2 text-sm" placeholder="+221…" />
+              <span className="text-xs font-semibold text-slate">Téléphone</span>
+              <input type="tel" value={prospectForm.phone} onChange={(event) => setProspectForm((prev) => ({ ...prev, phone: event.target.value }))} className="w-full rounded-xl border border-line px-3 py-2 text-sm" placeholder="+221…" />
             </label>
             <label className="block space-y-1 md:col-span-2">
-              <span className="text-xs font-bold text-[#8a7456]">Intérêt produit</span>
-              <select value={prospectForm.interest} onChange={(event) => setProspectForm((prev) => ({ ...prev, interest: event.target.value }))} className="w-full rounded-xl border border-[#d6c3a0] bg-white px-3 py-2 text-sm">
+              <span className="text-xs font-semibold text-slate">Intérêt produit</span>
+              <select value={prospectForm.interest} onChange={(event) => setProspectForm((prev) => ({ ...prev, interest: event.target.value }))} className="w-full rounded-xl border border-line bg-white px-3 py-2 text-sm">
                 {PROSPECT_INTERESTS.map((item) => (
                   <option key={item} value={item}>{item}</option>
                 ))}
               </select>
             </label>
             <label className="block space-y-1">
-              <span className="text-xs font-bold text-[#8a7456]">Besoin estimé (FCFA)</span>
-              <input type="number" min="0" value={prospectForm.estimatedNeed} onChange={(event) => setProspectForm((prev) => ({ ...prev, estimatedNeed: event.target.value }))} className="w-full rounded-xl border border-[#d6c3a0] px-3 py-2 text-sm" />
+              <span className="text-xs font-semibold text-slate">Besoin estimé (FCFA)</span>
+              <input type="number" min="0" value={prospectForm.estimatedNeed} onChange={(event) => setProspectForm((prev) => ({ ...prev, estimatedNeed: event.target.value }))} className="w-full rounded-xl border border-line px-3 py-2 text-sm" />
             </label>
           </div>
           <div className="flex justify-end gap-2">
-            <button type="button" onClick={() => setProspectOpen(false)} className="rounded-xl border border-[#d6c3a0] px-3 py-2 text-xs font-black">Annuler</button>
-            <button type="button" onClick={createProspect} className="rounded-xl bg-[#2f2415] px-3 py-2 text-xs font-black text-white">Enregistrer</button>
+            <button type="button" onClick={() => setProspectOpen(false)} className="rounded-xl border border-line px-3 py-2 text-xs font-semibold">Annuler</button>
+            <button type="button" onClick={createProspect} className="rounded-xl bg-earth px-3 py-2 text-xs font-semibold text-white">Enregistrer</button>
           </div>
         </section>
       ) : null}
-      <Block title="Prospects chauds" rows={pipeline.hot} tone="hot" />
-      <Block title="À relancer" rows={pipeline.toFollowUp} />
-      <Block title="Convertis" rows={pipeline.converted} />
-      {!pipeline.all.length ? <p className="text-sm text-center text-[#8a7456] py-6">Aucun prospect — créez-en un ou passez un client en statut prospect.</p> : null}
+      <ProspectBlock title="Prospects chauds" rows={pipeline.hot} tone="hot" onConvertQuote={convertQuote} onConvertClient={convertClient} />
+      <ProspectBlock title="À relancer" rows={pipeline.toFollowUp} onConvertQuote={convertQuote} onConvertClient={convertClient} />
+      <ProspectBlock title="Convertis" rows={pipeline.converted} onConvertQuote={convertQuote} onConvertClient={convertClient} />
+      {!pipeline.all.length ? <p className="text-sm text-center text-slate py-6">Aucun prospect — créez-en un ou passez un client en statut prospect.</p> : null}
     </div>
   );
 }

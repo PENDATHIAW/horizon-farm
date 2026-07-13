@@ -6,13 +6,14 @@ import { dirname, join } from 'node:path';
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '../..');
 
-test('Fiche animal — marge brute technique alignée liste (pas marge prix proposé)', () => {
+test('Fiche animal — marge sur prix proposé distincte de la marge brute technique', () => {
   const card = readFileSync(join(root, 'src/components/SalePricingSummaryCard.jsx'), 'utf8');
   const focused = readFileSync(join(root, 'src/modules/AnimauxSpeciesFocused.jsx'), 'utf8');
-  assert.match(card, /marginGross/);
-  assert.match(card, /PRODUCTION_FINANCE_LABELS\.marginGross/);
-  assert.match(focused, /marginGross=\{costs\.marge\}/);
-  assert.match(focused, /marginSource=\{costs\.saleSource\}/);
+  assert.match(card, /marginOnProposed/);
+  assert.match(card, /PROPOSED_PRICE_MARGIN_LABEL/);
+  assert.match(focused, /marginOnProposed=\{proposed\.marginOnProposed\}/);
+  assert.match(focused, /marginSource=\{proposed\.marginSource\}/);
+  assert.match(focused, /PRODUCTION_FINANCE_LABELS\.marginGross/);
 });
 
 test('Animaux / Avicole — sections Transformation et ramassage supprimées (hub canonique seul)', () => {

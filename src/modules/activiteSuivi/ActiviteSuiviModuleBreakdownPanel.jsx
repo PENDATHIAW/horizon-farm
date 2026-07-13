@@ -31,20 +31,20 @@ export default function ActiviteSuiviModuleBreakdownPanel({ breakdown = [], onNa
       title="Charge par module source"
       subtitle="D'où viennent les alertes et tâches ouvertes — ouvrir le module métier pour traiter la cause."
     >
-      <div className="divide-y divide-[#eadcc2]/60">
+      <div className="divide-y divide-line/60">
         {breakdown.map(([mod, count]) => (
           <div key={mod} className="flex flex-col gap-2 py-3 sm:flex-row sm:items-center sm:justify-between">
-            <span className="font-black text-[#2f2415] flex items-center gap-2">
-              <GitBranch size={14} className="text-[#9a6b12]" />
+            <span className="font-semibold text-earth flex items-center gap-2">
+              <GitBranch size={14} className="text-horizon-dark" />
               {MODULE_LABELS[mod] || mod}
             </span>
             <div className="flex items-center gap-2">
-              <span className="text-sm font-black text-amber-700">{count} ouvert(s)</span>
+              <span className="text-sm font-semibold text-horizon-dark">{count} ouvert(s)</span>
               {onNavigate && NAV_FOR[mod] ? (
                 <button
                   type="button"
                   onClick={() => onNavigate(...NAV_FOR[mod])}
-                  className="rounded-lg border border-[#d6c3a0] bg-white px-2 py-1 text-xs font-black text-[#2f2415]"
+                  className="rounded-lg border border-line bg-white px-2 py-1 text-xs font-semibold text-earth"
                 >
                   Ouvrir
                 </button>

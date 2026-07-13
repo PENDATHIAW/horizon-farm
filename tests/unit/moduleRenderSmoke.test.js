@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import React from 'react';
 import { renderToString } from 'react-dom/server';
-import DashboardV2 from '../../src/modules/DashboardV2.jsx';
+import AccueilConforme from '../../src/modules/dashboard/AccueilConforme.jsx';
 import CentreIA from '../../src/modules/CentreIA.jsx';
 import ObjectifsCroissanceV2 from '../../src/modules/ObjectifsCroissanceV2.jsx';
 
@@ -40,7 +40,7 @@ const baseProps = {
 };
 
 for (const [name, Component, extra = {}] of [
-  ['DashboardV2', DashboardV2, {}],
+  ['AccueilConforme', AccueilConforme, {}],
   ['CentreIA', CentreIA, { initialTab: 'À traiter' }],
   ['ObjectifsCroissanceV2', ObjectifsCroissanceV2, { initialTab: 'Suivi du Business Plan' }],
 ]) {

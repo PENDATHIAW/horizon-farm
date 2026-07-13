@@ -4,7 +4,6 @@
  */
 
 import {
-  AI_DRAFT_SOURCES,
   TARGET_WORKFLOWS,
   markDraftValidated,
 } from '../aiGateway/aiActionDrafts.js';
@@ -126,7 +125,7 @@ export function validateWhatsAppDraft(draft = {}, meta = {}) {
   return validated;
 }
 
-function buildSaleOrderFromDraft(draft = {}, dataMap = {}) {
+function buildSaleOrderFromDraft(draft = {}, _dataMap = {}) {
   const fields = draft.draft?.fields || draft.draft?.preview || {};
   const amount = fields.montant_total ?? fields.payment_amount ?? fields.amount ?? 0;
   return {

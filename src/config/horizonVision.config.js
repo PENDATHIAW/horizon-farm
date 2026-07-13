@@ -3,7 +3,7 @@ import {
   BUSINESS_EVENT_WORKFLOWS,
   MODULE_INTERCONNECTIONS_LIST,
 } from './businessInterconnections.config.js';
-import { MODULE_TABS_LABELS } from './moduleTabs.config.js';
+import { getModuleTabs } from './moduleTabs/index.js';
 
 /** Vision ERP Horizon Farm — source de vérité métier, chiffres, interconnexions et règles de cohérence. */
 export const HORIZON_MISSION = [
@@ -16,8 +16,30 @@ export const HORIZON_MISSION = [
   'préparer la croissance uniquement quand les données le justifient',
 ];
 
-/** Onglets par module — dérivés de la configuration unique (moduleTabs.config.js). */
-export const MODULE_TARGET_TABS = MODULE_TABS_LABELS;
+const labelsFor = (moduleId) => getModuleTabs(moduleId).map((tab) => tab.label);
+
+export const MODULE_TARGET_TABS = Object.freeze({
+  dashboard: labelsFor('dashboard'),
+  assistant_erp: labelsFor('assistant_erp'),
+  centre_decisionnel: labelsFor('centre_decisionnel'),
+  centre_ia: labelsFor('centre_decisionnel'),
+  objectifs_croissance: labelsFor('objectifs_croissance'),
+  elevage: labelsFor('elevage'),
+  cultures: labelsFor('cultures'),
+  commercial: labelsFor('commercial'),
+  achats_stock: labelsFor('achats_stock'),
+  finance_pilotage: labelsFor('finance_pilotage'),
+  activite_suivi: labelsFor('activite_suivi'),
+  documents_rapports: labelsFor('documents_rapports'),
+  equipe: labelsFor('equipe'),
+  rh: labelsFor('equipe'),
+  equipements: labelsFor('equipements'),
+  gestion_systeme: labelsFor('gestion_systeme'),
+  sync_activity: labelsFor('sync_activity'),
+  agri_feeds: labelsFor('agri_feeds'),
+  smartfarm: labelsFor('smartfarm'),
+  financements: labelsFor('financements'),
+});
 
 /** Interconnexions obligatoires. Les clés événementielles viennent de businessInterconnections.config.js. */
 export const INTERCONNECTIONS = {
@@ -90,7 +112,7 @@ export const DEV_RULES = {
 export const MODULE_AUDIT_ORDER = [
   'dashboard',
   'assistant_erp',
-  'centre_ia',
+  'centre_decisionnel',
   'objectifs_croissance',
   'elevage',
   'cultures',
@@ -101,9 +123,8 @@ export const MODULE_AUDIT_ORDER = [
   'documents_rapports',
   'financements',
   'agri_feeds',
-  'rh',
+  'equipe',
   'equipements',
   'smartfarm',
-  'sync_activity',
   'gestion_systeme',
 ];

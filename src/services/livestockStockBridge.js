@@ -174,7 +174,7 @@ export async function syncEggStockFromLogs({ stockCrud, log = {}, previousLog = 
 }
 
 /** Deduct sellable eggs from central egg stock line (optional lot-specific line) */
-export async function deductEggStockForSale({ stockCrud, lotId = '', tabletsSold = 0, date = today() }) {
+export async function deductEggStockForSale({ stockCrud, lotId = '', tabletsSold = 0 }) {
   const eggsSold = Math.max(0, toNumber(tabletsSold)) * EGGS_PER_TABLET;
   if (!eggsSold) return null;
   const rows = arr(stockCrud.rows);
@@ -210,7 +210,7 @@ export async function transferFreezeStock({
   freezeMonths = 6,
 }) {
   if (!row?.id) throw new Error('Ligne stock introuvable');
-  const date = today();
+
   const dlcDate = new Date();
   dlcDate.setMonth(dlcDate.getMonth() + toNumber(freezeMonths) || 6);
   const patch = {

@@ -10,11 +10,11 @@ const SPECIES_KEYS = ['bovin', 'ovin', 'caprin', 'chair', 'ponte'];
 
 function NumberField({ label, value, onChange, step = 'any', suffix = '' }) {
   return (
-    <label className="block rounded-xl border border-[#eadcc2] bg-white px-3 py-2">
-      <span className="text-[11px] uppercase tracking-wide text-[#8a7456]">{label}</span>
+    <label className="block rounded-xl border border-line bg-white px-3 py-2">
+      <span className="text-meta uppercase tracking-normal text-slate">{label}</span>
       <div className="mt-1 flex items-center gap-2">
-        <input type="number" step={step} value={value ?? ''} onChange={(e) => onChange(e.target.value)} className="w-full rounded-lg border border-[#eadcc2] px-2 py-1.5 text-sm font-semibold text-[#2f2415]" />
-        {suffix ? <span className="text-xs text-[#8a7456] whitespace-nowrap">{suffix}</span> : null}
+        <input type="number" step={step} value={value ?? ''} onChange={(e) => onChange(e.target.value)} className="w-full rounded-lg border border-line px-2 py-2 text-sm font-semibold text-earth" />
+        {suffix ? <span className="text-xs text-slate whitespace-nowrap">{suffix}</span> : null}
       </div>
     </label>
   );
@@ -26,7 +26,7 @@ export default function FarmCostSettingsPanel({ compact = false }) {
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
-    setDraft(settings);
+    queueMicrotask(() => setDraft(settings));
   }, [settings]);
 
   const updateRoot = (key, value) => setDraft((prev) => ({ ...prev, [key]: value }));
@@ -65,17 +65,17 @@ export default function FarmCostSettingsPanel({ compact = false }) {
   };
 
   return (
-    <div className={`space-y-4 ${compact ? '' : 'rounded-3xl border border-[#d6c3a0] bg-white p-5 shadow-sm'}`}>
+    <div className={`space-y-4 ${compact ? '' : 'rounded-3xl border border-line bg-white p-6 shadow-card'}`}>
       {!compact ? (
         <div>
-          <p className="text-xs uppercase tracking-widest text-[#8a7456] font-black flex items-center gap-2"><Calculator size={14} /> Moteur de coût unifié</p>
-          <h3 className="mt-1 text-lg font-black text-[#2f2415]">Rations et prix par défaut</h3>
-          <p className="mt-1 text-sm text-[#8a7456]">Ces réglages alimentent Animaux, Avicole, Ventes et Finance avec le même coût total partout.</p>
+          <p className="text-xs uppercase tracking-normal text-slate font-semibold flex items-center gap-2"><Calculator size={14} /> Moteur de coût unifié</p>
+          <h3 className="mt-1 text-lg font-semibold text-earth">Rations et prix par défaut</h3>
+          <p className="mt-1 text-sm text-slate">Ces réglages alimentent Animaux, Avicole, Ventes et Finance avec le même coût total partout.</p>
           <p className="mt-2 flex items-center gap-2 text-xs">
-            {synced ? <span className="inline-flex items-center gap-1 rounded-full bg-emerald-100 px-2 py-0.5 font-bold text-emerald-800"><Cloud size={12} /> Synchronisé en ligne</span> : <span className="inline-flex items-center gap-1 rounded-full bg-amber-100 px-2 py-0.5 font-bold text-amber-800"><CloudOff size={12} /> Mode local uniquement</span>}
-            {loading ? <span className="text-[#8a7456]">Chargement…</span> : null}
+            {synced ? <span className="inline-flex items-center gap-1 rounded-full bg-positive-bg px-2 py-1 font-semibold text-positive"><Cloud size={12} /> Synchronisé en ligne</span> : <span className="inline-flex items-center gap-1 rounded-full bg-vigilance-bg px-2 py-1 font-semibold text-horizon-dark"><CloudOff size={12} /> Mode local uniquement</span>}
+            {loading ? <span className="text-slate">Chargement…</span> : null}
           </p>
-          <p className="mt-2 rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs text-emerald-900">{UNIFIED_COST_FORMULA}</p>
+          <p className="mt-2 rounded-xl border border-positive bg-positive-bg px-3 py-2 text-xs text-positive">{UNIFIED_COST_FORMULA}</p>
         </div>
       ) : null}
 
@@ -88,12 +88,12 @@ export default function FarmCostSettingsPanel({ compact = false }) {
         <NumberField label="Œufs / tablette" value={draft.eggsPerTablet} onChange={(v) => updateRoot('eggsPerTablet', Number(v) || 0)} suffix="œufs" />
       </div>
 
-      <section className="rounded-2xl border border-[#eadcc2] bg-[#fffdf8] p-4">
-        <p className="text-sm font-black text-[#2f2415] mb-3">Rations journalières par espèce / type</p>
+      <section className="rounded-2xl border border-line bg-card p-4">
+        <p className="text-sm font-semibold text-earth mb-3">Rations journalières par espèce / type</p>
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
-              <tr className="text-left text-[11px] uppercase tracking-wide text-[#8a7456] border-b border-[#eadcc2]">
+              <tr className="text-left text-meta uppercase tracking-normal text-slate border-b border-line">
                 <th className="py-2 pr-3">Type</th>
                 <th className="py-2 pr-3">Kg / jour</th>
                 <th className="py-2 pr-3">Durée cycle</th>
@@ -104,11 +104,11 @@ export default function FarmCostSettingsPanel({ compact = false }) {
               {SPECIES_KEYS.map((key) => {
                 const row = draft.feedingDefaults[key] || {};
                 return (
-                  <tr key={key} className="border-b border-[#eadcc2]/60 last:border-0">
-                    <td className="py-2 pr-3 font-black capitalize text-[#2f2415]">{key}</td>
-                    <td className="py-2 pr-3"><input type="number" step="0.001" value={row.dailyKg ?? ''} onChange={(e) => updateFeeding(key, 'dailyKg', e.target.value)} className="w-24 rounded-lg border border-[#eadcc2] px-2 py-1 text-sm" /></td>
-                    <td className="py-2 pr-3"><input type="number" value={row.days ?? ''} onChange={(e) => updateFeeding(key, 'days', e.target.value)} className="w-20 rounded-lg border border-[#eadcc2] px-2 py-1 text-sm" /> <span className="text-xs text-[#8a7456]">j</span></td>
-                    <td className="py-2 text-[#7d6a4a]">{row.label || key}</td>
+                  <tr key={key} className="border-b border-line/60 last:border-0">
+                    <td className="py-2 pr-3 font-semibold capitalize text-earth">{key}</td>
+                    <td className="py-2 pr-3"><input type="number" step="0.001" value={row.dailyKg ?? ''} onChange={(e) => updateFeeding(key, 'dailyKg', e.target.value)} className="w-24 rounded-lg border border-line px-2 py-1 text-sm" /></td>
+                    <td className="py-2 pr-3"><input type="number" value={row.days ?? ''} onChange={(e) => updateFeeding(key, 'days', e.target.value)} className="w-20 rounded-lg border border-line px-2 py-1 text-sm" /> <span className="text-xs text-slate">j</span></td>
+                    <td className="py-2 text-slate">{row.label || key}</td>
                   </tr>
                 );
               })}
@@ -118,9 +118,9 @@ export default function FarmCostSettingsPanel({ compact = false }) {
       </section>
 
 
-      <section className="rounded-2xl border border-[#eadcc2] bg-[#fffdf8] p-4">
-        <p className="text-sm font-black text-[#2f2415] mb-1">Prix de vente suggérés — élevage (FCFA / kg)</p>
-        <p className="text-xs text-[#8a7456] mb-3">Proposés sur chaque fiche animal (Bovin, Ovin, Caprin) quand aucun prix/kg n’est saisi sur l’animal. Le moteur prend le max(coût + marge, poids × prix/kg Annexe, marché).</p>
+      <section className="rounded-2xl border border-line bg-card p-4">
+        <p className="text-sm font-semibold text-earth mb-1">Prix de vente suggérés — élevage (FCFA / kg)</p>
+        <p className="text-xs text-slate mb-3">Proposés sur chaque fiche animal (Bovin, Ovin, Caprin) quand aucun prix/kg n’est saisi sur l’animal. Le moteur prend le max(coût + marge, poids × prix/kg Annexe, marché).</p>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
           <NumberField label="Défaut (autres)" value={draft.animalSalePricePerKg?.default} onChange={(v) => updateAnimalSaleKg('default', v)} suffix="FCFA/kg" />
           <NumberField label="Bovin" value={draft.animalSalePricePerKg?.bovin} onChange={(v) => updateAnimalSaleKg('bovin', v)} suffix="FCFA/kg" />
@@ -129,25 +129,25 @@ export default function FarmCostSettingsPanel({ compact = false }) {
         </div>
       </section>
 
-      <section className="rounded-2xl border border-[#eadcc2] bg-[#fffdf8] p-4">
-        <p className="text-sm font-black text-[#2f2415] mb-3">Prix chair suggérés par poids (FCFA / sujet)</p>
+      <section className="rounded-2xl border border-line bg-card p-4">
+        <p className="text-sm font-semibold text-earth mb-3">Prix chair suggérés par poids (FCFA / sujet)</p>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
           <NumberField label="&lt; 1,5 kg" value={draft.broilerPriceByWeight.below1_5} onChange={(v) => updateBroilerPrice('below1_5', v)} suffix="FCFA" />
           <NumberField label="≥ 1,5 kg" value={draft.broilerPriceByWeight.at1_5} onChange={(v) => updateBroilerPrice('at1_5', v)} suffix="FCFA" />
           <NumberField label="≥ 1,7 kg" value={draft.broilerPriceByWeight.at1_7} onChange={(v) => updateBroilerPrice('at1_7', v)} suffix="FCFA" />
           <NumberField label="≥ 2,0 kg" value={draft.broilerPriceByWeight.at2_0} onChange={(v) => updateBroilerPrice('at2_0', v)} suffix="FCFA" />
         </div>
-        <p className="mt-2 text-xs text-[#8a7456]">Utilisés quand aucun prix saisi : le moteur unifié privilégie toujours coût réel + marge cible ({fmtNumber(draft.defaultTargetMarginPct)} %).</p>
+        <p className="mt-2 text-xs text-slate">Utilisés quand aucun prix saisi : le moteur unifié privilégie toujours coût réel + marge cible ({fmtNumber(draft.defaultTargetMarginPct)} %).</p>
       </section>
 
       <div className="flex flex-wrap gap-2">
         <Btn icon={Save} small onClick={save} disabled={saving || loading}>{saving ? 'Enregistrement…' : 'Enregistrer les paramètres'}</Btn>
         <Btn icon={RotateCcw} variant="outline" small onClick={reset} disabled={saving || loading}>Réinitialiser</Btn>
-        {draft.updatedAt ? <span className="self-center text-xs text-[#8a7456]">Dernière sauvegarde : {new Date(draft.updatedAt).toLocaleString('fr-FR')}</span> : null}
+        {draft.updatedAt ? <span className="self-center text-xs text-slate">Dernière sauvegarde : {new Date(draft.updatedAt).toLocaleString('fr-FR')}</span> : null}
       </div>
 
       {!compact ? (
-        <p className="text-xs text-[#8a7456]">Aperçu caisse poussins : {fmtCurrency(draft.broilerCratePrice)} / {fmtNumber(draft.broilerCrateSize)} = {fmtCurrency(draft.broilerCrateSize > 0 ? draft.broilerCratePrice / draft.broilerCrateSize : 0)} / sujet</p>
+        <p className="text-xs text-slate">Aperçu caisse poussins : {fmtCurrency(draft.broilerCratePrice)} / {fmtNumber(draft.broilerCrateSize)} = {fmtCurrency(draft.broilerCrateSize > 0 ? draft.broilerCratePrice / draft.broilerCrateSize : 0)} / sujet</p>
       ) : null}
     </div>
   );

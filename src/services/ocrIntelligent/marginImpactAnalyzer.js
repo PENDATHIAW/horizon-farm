@@ -118,15 +118,7 @@ function estimateMarginImpact({ invoice = {}, priceDelta = {}, referenceSale = n
 
   const lots = arr(dataMap.lots || dataMap.avicole);
   const broilerLot = lots.find((l) => /chair|broiler|poulet/i.test(lower(`${l.type || ''} ${l.nom || ''}`))) || lots[0];
-  const context = {
-    stocks: arr(dataMap.stock || dataMap.stocks),
-    lots,
-    animaux: arr(dataMap.animaux),
-    payments: arr(dataMap.payments),
-    alimentationLogs: arr(dataMap.alimentation_logs),
-    productionLogs: arr(dataMap.production_oeufs_logs),
-    businessEvents: arr(dataMap.business_events),
-  };
+
 
   const baselineCost = category === 'aliment' && broilerLot
     ? n(broilerLot.cout_aliment_unitaire ?? broilerLot.feed_cost_per_bird ?? currentUnit * 0.35)

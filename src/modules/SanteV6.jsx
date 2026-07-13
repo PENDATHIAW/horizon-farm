@@ -608,10 +608,10 @@ function nextDateFromPeriodicite(dateValue, periodicite, value, unit) {
 }
 function Mini({ icon: Icon, label, value }) {
   return (
-    <div className="rounded-xl bg-[#fffdf8] border border-[#eadcc2] px-3 py-2 min-w-[100px]">
-      <Icon size={14} className="text-[#9a6b12]" />
-      <b className="block text-[#2f2415]">{value}</b>
-      <span className="text-xs text-[#8a7456]">{label}</span>
+    <div className="rounded-xl bg-card border border-line px-3 py-2 min-w-[100px]">
+      <Icon size={14} className="text-horizon-dark" />
+      <b className="block text-earth">{value}</b>
+      <span className="text-xs text-slate">{label}</span>
     </div>
   );
 }
@@ -658,13 +658,13 @@ function HealthBridge(props) {
   const sickLots = arr(props.lots).filter(isSickLot).length;
   const activeWithdrawals = findActiveWithdrawals(rows);
   return (
-    <div className="rounded-2xl border border-[#d6c3a0] bg-white p-5 space-y-4">
+    <div className="rounded-2xl border border-line bg-white p-6 space-y-4">
       <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3">
         <div>
-          <p className="text-xs uppercase tracking-widest text-[#8a7456]">
+          <p className="text-xs uppercase tracking-normal text-slate">
             Santé & Biosécurité
           </p>
-          <h3 className="font-black text-[#2f2415]">Pilotage sanitaire</h3>
+          <h3 className="font-semibold text-earth">Pilotage sanitaire</h3>
         </div>
         <div className="grid grid-cols-3 lg:grid-cols-5 gap-2 text-sm">
           <Mini icon={Syringe} label="À suivre" value={alerts.length} />
@@ -679,12 +679,12 @@ function HealthBridge(props) {
         </div>
       </div>
       {activeWithdrawals.length ? (
-        <div className="rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-900">
-          <p className="font-black flex items-center gap-2">
+        <div className="rounded-xl border border-urgent bg-urgent-bg p-3 text-sm text-urgent">
+          <p className="font-semibold flex items-center gap-2">
             <AlertTriangle size={16} /> {activeWithdrawals.length} délai(x)
             sanitaire(s) actif(s) — vente / transformation bloquées
           </p>
-          <p className="mt-1 text-xs text-red-800">
+          <p className="mt-1 text-xs text-urgent">
             {activeWithdrawals
               .slice(0, 3)
               .map(
@@ -700,15 +700,15 @@ function HealthBridge(props) {
           {alerts.map((v) => (
             <div
               key={v.id}
-              className="rounded-xl border border-[#eadcc2] bg-[#fffdf8] p-3"
+              className="rounded-xl border border-line bg-card p-3"
             >
-              <p className="font-bold text-[#2f2415]">{v.nom || v.id}</p>
-              <p className="text-xs text-[#8a7456] mt-1">
+              <p className="font-semibold text-earth">{v.nom || v.id}</p>
+              <p className="text-xs text-slate mt-1">
                 {v.prevue || "—"} · {fmtCurrency(v.cout)}
               </p>
               <button
                 type="button"
-                className="mt-3 text-sm font-bold text-emerald-700"
+                className="mt-3 text-sm font-semibold text-positive"
                 onClick={() => markDone(v, props)}
               >
                 <CheckCircle2 size={14} className="inline" /> Valider fait
@@ -717,7 +717,7 @@ function HealthBridge(props) {
           ))}
         </div>
       ) : null}
-      <p className="text-xs text-[#8a7456]">
+      <p className="text-xs text-slate">
         Coût santé total renseigné: {fmtCurrency(costs)}
       </p>
     </div>
@@ -741,8 +741,8 @@ function FileInput({ label, value, onChange, hint }) {
   };
   return (
     <div className="space-y-2">
-      <span className="text-xs text-[#8a7456]">{label}</span>
-      <label className="flex cursor-pointer items-center justify-center gap-2 rounded-xl border border-dashed border-[#c9a96a] bg-[#fffdf8] px-3 py-4 text-sm font-bold text-[#7d6a4a] hover:bg-[#fff7df]">
+      <span className="text-xs text-slate">{label}</span>
+      <label className="flex cursor-pointer items-center justify-center gap-2 rounded-xl border border-dashed border-horizon bg-card px-3 py-4 text-sm font-semibold text-slate hover:bg-vigilance-bg">
         <Upload size={18} /> Prendre / importer une photo
         <input
           type="file"
@@ -753,23 +753,23 @@ function FileInput({ label, value, onChange, hint }) {
         />
       </label>
       {value?.preuve_photo_data ? (
-        <div className="flex items-center gap-3 rounded-xl border border-emerald-200 bg-emerald-50 p-2">
+        <div className="flex items-center gap-3 rounded-xl border border-positive bg-positive-bg p-2">
           <img
             src={value.preuve_photo_data}
             alt="preuve"
             className="h-14 w-14 rounded-lg object-cover"
           />
           <div className="min-w-0">
-            <p className="truncate text-sm font-bold text-emerald-800">
+            <p className="truncate text-sm font-semibold text-positive">
               {value.preuve_file_name || "Photo ajoutée"}
             </p>
-            <p className="text-xs text-emerald-700">
+            <p className="text-xs text-positive">
               Stockée avec l’intervention, sans URL manuelle.
             </p>
           </div>
         </div>
       ) : (
-        <p className="text-xs text-[#8a7456]">
+        <p className="text-xs text-slate">
           <Camera size={13} className="inline" /> {hint}
         </p>
       )}
@@ -1518,31 +1518,31 @@ function InterventionPanel(props) {
   return (
     <div
       id={HEALTH_INTERVENTION_FORM_ID}
-      className="rounded-2xl border border-[#d6c3a0] bg-white p-5 space-y-4"
+      className="rounded-2xl border border-line bg-white p-6 space-y-4"
     >
       <div>
-        <p className="text-xs uppercase tracking-widest text-[#8a7456]">
+        <p className="text-xs uppercase tracking-normal text-slate">
           Santé & Biosécurité
         </p>
-        <h3 className="font-black text-[#2f2415]">
+        <h3 className="font-semibold text-earth">
           Nouvelle intervention sanitaire
         </h3>
-        <p className="text-sm text-[#8a7456] mt-1">
+        <p className="text-sm text-slate mt-1">
           La fiche change selon le type choisi : vaccin, curatif, déparasitage,
           visite, biosécurité ou urgence.
         </p>
         {props.healthDraft ? (
-          <p className="mt-2 rounded-xl border border-sky-200 bg-sky-50 px-3 py-2 text-sm text-sky-900">
+          <p className="mt-2 rounded-xl border border-line bg-neutral-bg px-3 py-2 text-sm text-neutral">
             {HEALTH_TERRAIN_BANNER}
           </p>
         ) : null}
         {!healthStocks.length ? (
-          <p className="mt-2 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-900">
+          <p className="mt-2 rounded-xl border border-vigilance bg-vigilance-bg px-3 py-2 text-sm text-horizon-dark">
             Aucun médicament/vaccin stocké trouvé. Vous pouvez saisir
             manuellement ou{" "}
             <button
               type="button"
-              className="font-black underline"
+              className="font-semibold underline"
               onClick={() => navigateToHealthStock(props.onNavigate)}
             >
               créer l&apos;article dans Achats &amp; Stock
@@ -1551,7 +1551,7 @@ function InterventionPanel(props) {
           </p>
         ) : null}
       </div>
-      <div className="rounded-xl border border-[#eadcc2] bg-[#fffdf8] p-3 text-sm text-[#7d6a4a]">
+      <div className="rounded-xl border border-line bg-card p-3 text-sm text-slate">
         <b>Champs attendus :</b>{" "}
         {customFields.length ? customFields.join(" · ") : "saisie simple"} ·{" "}
         <b>preuve :</b> {preset.evidence || "photo"} · <b>conséquence :</b>{" "}
@@ -1582,7 +1582,7 @@ function InterventionPanel(props) {
             emptyLabel="Aucune cible précise"
           />
         ) : (
-          <div className="rounded-xl border border-[#eadcc2] bg-[#fffdf8] px-3 py-2 text-sm text-[#7d6a4a]">
+          <div className="rounded-xl border border-line bg-card px-3 py-2 text-sm text-slate">
             <b>{target.target_count || 0}</b> / {target.total_count || 0}
             <br />
             {target.target_summary}
@@ -1838,7 +1838,7 @@ function InterventionPanel(props) {
             emptyLabel="Aucun stock santé disponible"
           />
         ) : (
-          <div className="rounded-xl border border-[#eadcc2] bg-[#fffdf8] px-3 py-2 text-sm text-[#7d6a4a]">
+          <div className="rounded-xl border border-line bg-card px-3 py-2 text-sm text-slate">
             Aucune sortie stock
           </div>
         )}
@@ -1849,7 +1849,7 @@ function InterventionPanel(props) {
           onChange={(v) => update("quantite_utilisee", v)}
         />
         {stockInsufficient ? (
-          <div className="rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
+          <div className="rounded-xl border border-urgent bg-urgent-bg px-3 py-2 text-sm text-urgent">
             Stock insuffisant : {fmtNumber(availableQty)} disponible(s)
           </div>
         ) : (
@@ -1909,7 +1909,7 @@ function InterventionPanel(props) {
             onChange={(v) => update("frequence_valeur", v)}
           />
         ) : (
-          <div className="rounded-xl border border-[#eadcc2] bg-[#fffdf8] px-3 py-2 text-sm text-[#7d6a4a]">
+          <div className="rounded-xl border border-line bg-card px-3 py-2 text-sm text-slate">
             Rappel auto: {calculatedNextDate || "—"}
           </div>
         )}
@@ -1942,7 +1942,7 @@ function InterventionPanel(props) {
           ]}
         />
         {form.vet_mode === "__new__" ? (
-          <div className="md:col-span-3 grid grid-cols-1 md:grid-cols-3 gap-3 rounded-xl border border-[#eadcc2] bg-[#fffdf8] p-3">
+          <div className="md:col-span-3 grid grid-cols-1 md:grid-cols-3 gap-3 rounded-xl border border-line bg-card p-3">
             <Input
               label="Nom véto"
               value={newVet.nom}
@@ -1981,24 +1981,24 @@ function InterventionPanel(props) {
           onChange={(v) => update("notes", v)}
           className="md:col-span-2"
         />
-        <div className="md:col-span-3 rounded-xl border border-[#eadcc2] bg-[#fffdf8] p-3 space-y-2">
-          <p className="text-xs font-black text-[#8a7456]">
+        <div className="md:col-span-3 rounded-xl border border-line bg-card p-3 space-y-2">
+          <p className="text-xs font-semibold text-slate">
             Scanner ordonnance (texte)
           </p>
           <textarea
-            className="w-full rounded-lg border border-[#d6c3a0] bg-white px-3 py-2 text-sm min-h-[72px]"
+            className="w-full rounded-lg border border-line bg-white px-3 py-2 text-sm min-h-[72px]"
             placeholder="Collez le texte de l’ordonnance vétérinaire…"
             value={scanText}
             onChange={(e) => setScanText(e.target.value)}
           />
           <button
             type="button"
-            className="rounded-lg bg-[#fff7df] border border-[#c9a96a] px-3 py-2 text-sm font-black text-[#7d6a4a]"
+            className="rounded-lg bg-vigilance-bg border border-horizon px-3 py-2 text-sm font-semibold text-slate"
             onClick={applyScanDraft}
           >
             Préremplir le formulaire depuis l’ordonnance
           </button>
-          <p className="text-xs text-[#8a7456]">
+          <p className="text-xs text-slate">
             Le scan préremplit sans enregistrer — à confirmer avant enregistrement
             avec photo preuve.
           </p>
@@ -2012,7 +2012,7 @@ function InterventionPanel(props) {
           />
         </div>
       </div>
-      <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-800">
+      <div className="rounded-xl border border-positive bg-positive-bg p-3 text-sm text-positive">
         <b>Cible :</b> {target.target_summary} · {target.module_lie || "—"} ·{" "}
         {target.related_id || "—"}
       </div>
@@ -2039,20 +2039,20 @@ function InterventionsHistory({
     ),
   );
   return (
-    <div className="rounded-2xl border border-[#d6c3a0] bg-white p-5 space-y-4">
+    <div className="rounded-2xl border border-line bg-white p-6 space-y-4">
       <div>
-        <p className="text-xs uppercase tracking-widest text-[#8a7456]">
+        <p className="text-xs uppercase tracking-normal text-slate">
           Historique unifié
         </p>
-        <h3 className="font-black text-[#2f2415]">Interventions sanitaires</h3>
-        <p className="text-sm text-[#8a7456] mt-1">
+        <h3 className="font-semibold text-earth">Interventions sanitaires</h3>
+        <p className="text-sm text-slate mt-1">
           Vaccins, soins, déparasitage, visites et biosécurité sont affichés
           ensemble avec preuves photo.
         </p>
       </div>
-      <div className="overflow-x-auto rounded-2xl border border-[#eadcc2]">
+      <div className="overflow-x-auto rounded-2xl border border-line">
         <table className="min-w-full text-sm">
-          <thead className="bg-[#fffdf8] text-xs uppercase tracking-wide text-[#8a7456]">
+          <thead className="bg-card text-xs uppercase tracking-normal text-slate">
             <tr>
               <th className="px-3 py-2 text-left">Intervention</th>
               <th className="px-3 py-2 text-left">Cible</th>
@@ -2067,39 +2067,39 @@ function InterventionsHistory({
           </thead>
           <tbody>
             {sorted.slice(0, 12).map((row) => (
-              <tr key={row.id} className="border-t border-[#eadcc2]">
-                <td className="px-3 py-2 font-bold text-[#2f2415]">
+              <tr key={row.id} className="border-t border-line">
+                <td className="px-3 py-2 font-semibold text-earth">
                   {row.nom || row.type_intervention || row.id}
-                  <p className="text-xs font-normal text-[#8a7456]">
+                  <p className="text-xs font-normal text-slate">
                     {row.type_intervention ||
                       row.medicament ||
                       row.produit_utilise ||
                       "—"}
                   </p>
                 </td>
-                <td className="px-3 py-2 text-[#7d6a4a]">
+                <td className="px-3 py-2 text-slate">
                   {row.target_summary || row.animal || row.related_id || "—"}
                 </td>
-                <td className="px-3 py-2 text-[#7d6a4a]">
+                <td className="px-3 py-2 text-slate">
                   {row.effectuee || row.prevue || "—"}
                 </td>
-                <td className="px-3 py-2 text-[#7d6a4a]">
+                <td className="px-3 py-2 text-slate">
                   {row.prochaine_date_calculee || row.prochaine_action || "—"}
                 </td>
-                <td className="px-3 py-2 text-[#7d6a4a]">
+                <td className="px-3 py-2 text-slate">
                   {row.impact_business_label ||
                     impactLabel(row.impact_business_code)}
                 </td>
-                <td className="px-3 py-2 text-[#7d6a4a]">
+                <td className="px-3 py-2 text-slate">
                   {row.preuve_photo_data ? (
-                    <span className="text-emerald-700 font-bold">Photo</span>
+                    <span className="text-positive font-semibold">Photo</span>
                   ) : (
                     "—"
                   )}
                 </td>
                 <td className="px-3 py-2">
                   <span
-                    className={`rounded-full border px-2 py-0.5 text-xs font-black ${done(row) ? "border-emerald-200 bg-emerald-50 text-emerald-700" : late(row) ? "border-red-200 bg-red-50 text-red-700" : "border-amber-200 bg-amber-50 text-amber-700"}`}
+                    className={`rounded-full border px-2 py-1 text-xs font-semibold ${done(row) ? "border-positive bg-positive-bg text-positive" : late(row) ? "border-urgent bg-urgent-bg text-urgent" : "border-vigilance bg-vigilance-bg text-horizon-dark"}`}
                   >
                     {done(row)
                       ? "fait"
@@ -2108,7 +2108,7 @@ function InterventionsHistory({
                         : row.statut || "à faire"}
                   </span>
                 </td>
-                <td className="px-3 py-2 text-right font-black text-[#2f2415]">
+                <td className="px-3 py-2 text-right font-semibold text-earth">
                   {fmtCurrency(row.cout || 0)}
                 </td>
                 <td className="px-3 py-2 text-right">
@@ -2127,7 +2127,7 @@ function InterventionsHistory({
                           onRefreshDocuments,
                         })
                       }
-                      className="text-emerald-700 font-bold text-xs"
+                      className="text-positive font-semibold text-xs"
                     >
                       Valider
                     </button>
@@ -2139,7 +2139,7 @@ function InterventionsHistory({
               <tr>
                 <td
                   colSpan={9}
-                  className="px-3 py-6 text-center text-[#8a7456]"
+                  className="px-3 py-6 text-center text-slate"
                 >
                   Aucune intervention sanitaire enregistrée.
                 </td>
@@ -2161,9 +2161,9 @@ function Select({
   const safeOptions = arr(options);
   return (
     <label className="space-y-1">
-      <span className="text-xs text-[#8a7456]">{label}</span>
+      <span className="text-xs text-slate">{label}</span>
       <select
-        className="w-full bg-[#fffdf8] border border-[#d6c3a0] rounded-lg px-3 py-2 text-sm disabled:opacity-60"
+        className="w-full bg-card border border-line rounded-lg px-3 py-2 text-sm disabled:opacity-60"
         value={safeOptions.some((o) => o.value === value) ? value : ""}
         disabled={!safeOptions.length}
         onChange={(e) => onChange(e.target.value)}
@@ -2184,10 +2184,10 @@ function Select({
 function Input({ label, value, onChange, type = "text", className = "" }) {
   return (
     <label className={`space-y-1 ${className}`}>
-      <span className="text-xs text-[#8a7456]">{label}</span>
+      <span className="text-xs text-slate">{label}</span>
       <input
         type={type}
-        className="w-full bg-[#fffdf8] border border-[#d6c3a0] rounded-lg px-3 py-2 text-sm"
+        className="w-full bg-card border border-line rounded-lg px-3 py-2 text-sm"
         value={value}
         onChange={(e) => onChange(e.target.value)}
       />

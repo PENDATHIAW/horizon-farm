@@ -10,23 +10,17 @@ import {
   openPaymentCount,
   isDelivered,
   isSaleClosed,
-  linkedPaymentsForOrders,
   enrichCommercialOrders,
 } from '../modules/commercial/commercialMetrics.js';
-import { remainingForOrder } from './salesStatuses.js';
+
 import { isQuoteOrder } from './commercialQuoteWorkflow.js';
 import { rowFarmId } from './farmScope.js';
 
 const arr = (value) => (Array.isArray(value) ? value : []);
-const num = (value) => Number(value || 0);
+
 const lower = (value) => String(value || '').toLowerCase();
 
-function daysAgo(dateStr = '') {
-  if (!dateStr) return null;
-  const d = new Date(dateStr);
-  if (Number.isNaN(d.getTime())) return null;
-  return Math.floor((Date.now() - d.getTime()) / 86400000);
-}
+
 
 function activityOf(order = {}) {
   return lower(order.source_module || order.activite || order.source_type || 'autre');
@@ -44,7 +38,7 @@ export function buildConsolidatedCommercialKpis({
   const enriched = enrichCommercialOrders(orders, { deliveries, invoices });
   const sales = enriched.filter((o) => !isQuoteOrder(o));
   const quotes = enriched.filter((o) => isQuoteOrder(o));
-  const linked = linkedPaymentsForOrders(sales, payments);
+
 
   const ca = sales.reduce((sum, o) => sum + saleAmount(o), 0);
   const collected = collectedFromOrders(sales, payments);

@@ -19,37 +19,41 @@ import { resolveAnnexeLink } from '../../src/services/annexeNavigation.js';
 const root = join(dirname(fileURLToPath(import.meta.url)), '../..');
 const moduleProjectionsSource = readFileSync(join(root, 'src/utils/moduleProjections.js'), 'utf8');
 
-test('MODULE_TARGET_TABS.cultures — 3 onglets canoniques', () => {
+test('MODULE_TARGET_TABS.cultures expose les 7 onglets cibles', () => {
   assert.deepEqual(MODULE_TARGET_TABS.cultures, [
-    'Parcelles & campagnes',
+    'Parcelles',
+    'Campagnes',
+    'Irrigation',
+    'Intrants & fertilisation',
     'Récoltes',
-    'Économie circulaire',
+    'Coûts & marge',
+    'Historique',
   ]);
 });
 
 test('resolveCulturesTab — alias legacy et Récoltes & stock', () => {
-  assert.equal(resolveCulturesTab('Pilotage'), 'Parcelles & campagnes');
-  assert.equal(resolveCulturesTab('Intrants & Météo'), 'Parcelles & campagnes');
-  assert.equal(resolveCulturesTab('Transformation'), 'Récoltes');
-  assert.equal(resolveCulturesTab('Récoltes & stock'), 'Récoltes');
-  assert.equal(resolveCulturesTab('Graphiques'), 'Économie circulaire');
+  assert.equal(resolveCulturesTab('Pilotage'), 'Parcelles cultures');
+  assert.equal(resolveCulturesTab('Intrants & Météo'), 'Intrants & fertilisation cultures');
+  assert.equal(resolveCulturesTab('Transformation'), 'Récoltes cultures');
+  assert.equal(resolveCulturesTab('Récoltes & stock'), 'Récoltes cultures');
+  assert.equal(resolveCulturesTab('Graphiques'), 'Historique cultures');
 });
 
 test('resolveCulturesSectionIntent — sections repliables', () => {
   assert.deepEqual(resolveCulturesSectionIntent('Intrants & Météo'), {
-    tab: 'Parcelles & campagnes',
+    tab: 'Intrants & fertilisation cultures',
     section: 'intrants',
   });
   assert.deepEqual(resolveCulturesSectionIntent('Santé & Protection'), {
-    tab: 'Parcelles & campagnes',
+    tab: 'Intrants & fertilisation cultures',
     section: 'sante',
   });
   assert.deepEqual(resolveCulturesSectionIntent('Transformation'), {
-    tab: 'Récoltes',
+    tab: 'Récoltes cultures',
     section: 'transformation',
   });
   assert.deepEqual(resolveCulturesSectionIntent('Graphiques'), {
-    tab: 'Économie circulaire',
+    tab: 'Historique cultures',
     section: 'graphiques',
   });
 });
@@ -57,11 +61,11 @@ test('resolveCulturesSectionIntent — sections repliables', () => {
 test('navigateCulturesTab — conserve alias brut pour deep-link', () => {
   const calls = [];
   const resolved = navigateCulturesTab((module, opts) => calls.push({ module, ...opts }), 'Intrants & Météo');
-  assert.equal(resolved, 'Parcelles & campagnes');
+  assert.equal(resolved, 'Intrants & fertilisation cultures');
   assert.deepEqual(calls, [{ module: 'cultures', tab: 'Intrants & Météo' }]);
   assert.equal(
     navigateFromCulturesNav((module, opts) => calls.push({ module, ...opts }), 'Transformation'),
-    'Récoltes',
+    'Récoltes cultures',
   );
   assert.equal(calls[1].tab, 'Transformation');
 });

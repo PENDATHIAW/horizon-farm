@@ -1,5 +1,6 @@
 import toast from 'react-hot-toast';
 import { supabase } from '../lib/supabase.js';
+import { resolveFarmIdForWrite } from '../utils/farmScopePayload.js';
 import { interpretHorizonCommand, updateHorizonDraft } from './aiIntentEngine.js';
 import { detectStrategicQuery } from './heyHorizonStrategicAnswers.js';
 import { detectFinancePilotageQuery, buildFinancePilotageAnswer } from './heyHorizonFinanceAnswers.js';
@@ -259,6 +260,7 @@ export async function validateHeyHorizonDraft(draft, { refreshModule, onNavigate
       confirmed: true,
       execute: true,
       user_id: sessionData?.session?.user?.id || null,
+      farm_id: resolveFarmIdForWrite(draft?.draft_fields || draft?.fields || draft?.payload || {}),
     }),
   });
   const result = await response.json();

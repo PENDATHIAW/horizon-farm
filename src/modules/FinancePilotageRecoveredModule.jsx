@@ -1,4 +1,4 @@
-import { BarChart3, PiggyBank, Wallet } from 'lucide-react';
+import { BarChart3 } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import toast from 'react-hot-toast';
 import ModuleGraphiquesTab from '../components/module/ModuleGraphiquesTab.jsx';
@@ -67,28 +67,39 @@ const arr = (v) => Array.isArray(v) ? v : [];
 const n = (v = 0) => Number(v || 0);
 const low = (v) => String(v || '').toLowerCase();
 const amount = (r = {}) => n(r.montant ?? r.amount ?? r.total ?? r.valeur ?? r.value);
-const isIncome = (r = {}) => ['entree', 'entrée', 'income', 'recette', 'vente'].includes(low(r.type || r.nature || r.sens || r.transaction_type));
-const isExpense = (r = {}) => ['sortie', 'expense', 'depense', 'dépense', 'achat', 'charge'].includes(low(r.type || r.nature || r.sens || r.transaction_type));
+const TREASURY_SUBVIEW_ALIASES = {
+  saisie: 'Trésorerie',
+  reconciliation: 'Réconciliation',
+};
+const PILOTAGE_SUBVIEW_ALIASES = {
+  echeancier: 'Échéancier',
+  financement: 'Financement',
+  investissements: 'Investissements',
+  rentabilite: 'Rentabilité',
+  annexe: 'Annexe',
+};
+
+
 const isUnpaid = (r = {}) => ['impaye', 'impayé', 'partiel', 'a_payer', 'à payer', 'due', 'unpaid'].includes(low(r.statut || r.status || r.payment_status));
 const isReceivable = (r = {}) => isUnpaid(r) && (['vente', 'client', 'recette'].some((x) => low(`${r.type || ''} ${r.categorie || ''} ${r.libelle || ''}`).includes(x)) || r.client_id);
 const isSalesLikeReceivable = (r = {}) => ['vente', 'ventes', 'client', 'clients'].some((key) => low(`${r.categorie || ''} ${r.module_lie || ''} ${r.source_module || ''} ${r.libelle || ''}`).includes(key)) || r.client_id || r.order_id || r.sale_id;
 const isPayable = (r = {}) => isUnpaid(r) && (['achat', 'fournisseur', 'depense', 'dépense', 'charge'].some((x) => low(`${r.type || ''} ${r.categorie || ''} ${r.libelle || ''}`).includes(x)) || r.fournisseur_id);
-const remainingOf = (order = {}, payments = []) => Math.max(0, n(order.montant_total ?? order.total ?? order.amount) - n(order.montant_paye ?? order.paid_amount) - payments.filter((p) => String(p.order_id || p.sale_id) === String(order.id)).reduce((s, p) => s + n(p.montant ?? p.amount), 0));
+
 
 function Stat({ label, value, tone = 'neutral' }) {
-  const cls = tone === 'good' ? 'text-emerald-600' : tone === 'warn' ? 'text-amber-600' : tone === 'bad' ? 'text-red-600' : 'text-[#2f2415]';
-  return <div className="rounded-2xl border border-[#eadcc2] bg-[#fffdf8] p-4"><p className="text-xs text-[#8a7456]">{label}</p><p className={`mt-1 text-xl font-black ${cls}`}>{value}</p></div>;
+  const cls = tone === 'good' ? 'text-positive' : tone === 'warn' ? 'text-horizon-dark' : tone === 'bad' ? 'text-urgent' : 'text-earth';
+  return <div className="rounded-2xl border border-line bg-card p-4"><p className="text-xs text-slate">{label}</p><p className={`mt-1 text-xl font-semibold ${cls}`}>{value}</p></div>;
 }
 
 function FinanceInnerTabs({ tabs = [], active, onChange }) {
   return (
-    <div className="flex flex-wrap gap-2 rounded-2xl border border-[#eadcc2] bg-[#fffdf8] p-2">
+    <div className="flex flex-wrap gap-2 rounded-2xl border border-line bg-card p-2">
       {tabs.map(({ key, label }) => (
         <button
           key={key}
           type="button"
           onClick={() => onChange?.(key)}
-          className={`rounded-xl px-3 py-2 text-xs font-black ${active === key ? 'bg-[#2f2415] text-white' : 'text-[#2f2415] hover:bg-white'}`}
+          className={`rounded-xl px-3 py-2 text-xs font-semibold ${active === key ? 'bg-earth text-white' : 'text-earth hover:bg-white'}`}
         >
           {label}
         </button>
@@ -98,34 +109,9 @@ function FinanceInnerTabs({ tabs = [], active, onChange }) {
 }
 const hasProof = (r = {}) => Boolean(r.document_id || r.proof_url || r.justificatif_id || r.file_url || r.url);
 
-function Section({ icon: Icon, title, children }) {
-  return <section className="rounded-3xl border border-[#d6c3a0] bg-white p-5 shadow-sm"><h2 className="mb-4 flex items-center gap-2 text-lg font-black text-[#2f2415]"><Icon size={20} /> {title}</h2>{children}</section>;
-}
+
 function Tabs({ active, onChange }) {
   return <ModuleTabsBar moduleId="finance_pilotage" active={active} onChange={onChange} />;
-}
-function CreancesPanel({ data, onNavigate }) {
-  return (
-    <ModuleListHub
-      title="Créances clients"
-      intro="Ventes et encaissements restants à recouvrer."
-      stats={[
-        { label: 'Créances', value: fmtNumber(data.receivables.length), tone: data.receivables.length ? 'warn' : 'good' },
-        { label: 'Montant', value: fmtCurrency(data.receivableAmount), tone: 'warn' },
-        { label: 'Clients', value: fmtNumber(data.clients.length) },
-        { label: 'Impayés finance', value: fmtNumber(data.unpaidTx.length), tone: data.unpaidTx.length ? 'warn' : 'good' },
-      ]}
-      rows={data.receivables.map((row) => ({
-        id: row.id || row.title,
-        title: row.title,
-        detail: row.detail,
-        value: fmtCurrency(row.amount),
-        onClick: () => onNavigate?.('commercial', { tab: 'Clients & créances' }),
-      }))}
-      emptyLabel="Aucune créance ouverte."
-      onNavigate={onNavigate}
-    />
-  );
 }
 function DettesPanel({ data, onNavigate }) {
   return (
@@ -153,17 +139,17 @@ function DettesPanel({ data, onNavigate }) {
 function RentabilitePanel({ profitability = null, consolidationProps = {} }) {
   if (!profitability?.ready) {
     return (
-      <section className="rounded-3xl border border-amber-200 bg-amber-50 p-6 text-sm text-amber-900">
-        <h2 className="text-lg font-black text-[#2f2415]">Rentabilité</h2>
+      <section className="rounded-3xl border border-vigilance bg-vigilance-bg p-6 text-sm text-horizon-dark">
+        <h2 className="text-lg font-semibold text-earth">Rentabilité</h2>
         <p className="mt-2">{profitability?.message || 'Rentabilité non encore calculable : certaines données de coûts ou de ventes sont manquantes.'}</p>
       </section>
     );
   }
   const { profit, activityBreakdown, marginRate } = profitability;
   return (
-    <div className="space-y-5">
-      <section className="rounded-3xl border border-[#d6c3a0] bg-white p-5 shadow-sm">
-        <h2 className="text-lg font-black text-[#2f2415]">Rentabilité par activité</h2>
+    <div className="space-y-6">
+      <section className="rounded-3xl border border-line bg-white p-6 shadow-card">
+        <h2 className="text-lg font-semibold text-earth">Rentabilité par activité</h2>
         <div className="mt-3 grid grid-cols-2 gap-3 lg:grid-cols-4">
           <Stat label="Résultat opérationnel" value={fmtCurrency(profit.operatingResult)} tone={profit.operatingResult >= 0 ? 'good' : 'bad'} />
           <Stat label="Aviculture" value={fmtCurrency(activityBreakdown.aviculture)} />
@@ -200,7 +186,7 @@ function Summary({
   moduleProjections = null,
 }) {
   return (
-    <div className="space-y-5">
+    <div className="space-y-6">
       <FinanceDemoBanner demo={financeDemo} />
       <FinanceExecutiveSituationPanel situation={executiveSituation} onNavigateTab={navigateFinance} />
       <ModuleProjectionsStrip projections={moduleProjections} onNavigate={onNavigate} />
@@ -220,7 +206,7 @@ function Summary({
         <Stat label="Sans preuve" value={fmtNumber(data.missingProof)} tone={data.missingProof ? 'warn' : 'good'} />
         <Stat label="Signaux métier" value={data.healthInsufficient ? 'En attente' : fmtNumber(data.healthFindings.length)} tone={data.healthInsufficient ? 'neutral' : data.healthFindings.length ? 'warn' : 'good'} />
       </div>
-      <p className="text-[11px] font-semibold text-[#8a7456]">
+      <p className="text-meta font-semibold text-slate">
         KPI trésorerie & créances : cumul ferme · liste Trésorerie : période active si filtre
       </p>
       <FinanceInsightPanel
@@ -233,16 +219,16 @@ function Summary({
         busyId={busyId}
       />
       <FinanceMissingProofPanel items={data.missingProofItems} />
-      <section className="rounded-3xl border border-[#d6c3a0] bg-white p-5 shadow-sm">
-        <h2 className="flex items-center gap-2 text-lg font-black text-[#2f2415]"><BarChart3 size={20} /> Workflows financiers récupérés</h2>
-        <p className="mt-2 text-sm leading-relaxed text-[#8a7456]">Finance & Pilotage remet les anciens moteurs : saisie finance Hey Horizon, trésorerie, santé comptable, preuves, business plan, paiement d'investissement, création d'actifs, documents et événements métier.</p>
+      <section className="rounded-3xl border border-line bg-white p-6 shadow-card">
+        <h2 className="flex items-center gap-2 text-lg font-semibold text-earth"><BarChart3 size={20} /> Workflows financiers récupérés</h2>
+        <p className="mt-2 text-sm leading-relaxed text-slate">Finance & Pilotage remet les anciens moteurs : saisie finance Hey Horizon, trésorerie, santé comptable, preuves, business plan, paiement d'investissement, création d'actifs, documents et événements métier.</p>
         <div className="mt-4 grid grid-cols-1 gap-3 md:grid-cols-3 xl:grid-cols-6">
-          <button type="button" onClick={() => { emitHorizonForm('finances', 'finance_entry', 'Nouvelle écriture', { date: new Date().toISOString().slice(0, 10) }); navigateFinance('Trésorerie'); }} className="rounded-2xl border border-emerald-200 bg-emerald-50 p-4 text-left"><b className="text-[#2f2415]">+ Écriture</b><p className="mt-1 text-sm text-[#8a7456]">Recette ou dépense avec preuve.</p></button>
-          <button type="button" onClick={() => navigateFinance('Trésorerie')} className="rounded-2xl border border-[#eadcc2] bg-[#fffdf8] p-4 text-left"><b className="text-[#2f2415]">Trésorerie</b><p className="mt-1 text-sm text-[#8a7456]">Recettes, dépenses, preuves.</p></button>
-          <button type="button" onClick={() => navigateFinance('Créances')} className="rounded-2xl border border-[#eadcc2] bg-[#fffdf8] p-4 text-left"><b className="text-[#2f2415]">Créances & dettes</b><p className="mt-1 text-sm text-[#8a7456]">Restes à encaisser et à payer.</p></button>
-          <button type="button" onClick={() => navigateFinance('Échéancier')} className="rounded-2xl border border-[#eadcc2] bg-[#fffdf8] p-4 text-left"><b className="text-[#2f2415]">Échéancier</b><p className="mt-1 text-sm text-[#8a7456]">Encaissements et paiements à venir.</p></button>
-          <button type="button" onClick={() => navigateFinance('Investissements')} className="rounded-2xl border border-[#eadcc2] bg-[#fffdf8] p-4 text-left"><b className="text-[#2f2415]">Investissements</b><p className="mt-1 text-sm text-[#8a7456]">Budget et actifs.</p></button>
-          <button type="button" onClick={() => navigateFinance('Rentabilité')} className="rounded-2xl border border-[#eadcc2] bg-[#fffdf8] p-4 text-left"><b className="text-[#2f2415]">Rentabilité</b><p className="mt-1 text-sm text-[#8a7456]">Marges et alertes ERP.</p></button>
+          <button type="button" onClick={() => { emitHorizonForm('finances', 'finance_entry', 'Nouvelle écriture', { date: new Date().toISOString().slice(0, 10) }); navigateFinance('Trésorerie'); }} className="rounded-2xl border border-positive bg-positive-bg p-4 text-left"><b className="text-earth">+ Écriture</b><p className="mt-1 text-sm text-slate">Recette ou dépense avec preuve.</p></button>
+          <button type="button" onClick={() => navigateFinance('Trésorerie')} className="rounded-2xl border border-line bg-card p-4 text-left"><b className="text-earth">Trésorerie</b><p className="mt-1 text-sm text-slate">Recettes, dépenses, preuves.</p></button>
+          <button type="button" onClick={() => navigateFinance('Créances')} className="rounded-2xl border border-line bg-card p-4 text-left"><b className="text-earth">Créances & dettes</b><p className="mt-1 text-sm text-slate">Restes à encaisser et à payer.</p></button>
+          <button type="button" onClick={() => navigateFinance('Échéancier')} className="rounded-2xl border border-line bg-card p-4 text-left"><b className="text-earth">Échéancier</b><p className="mt-1 text-sm text-slate">Encaissements et paiements à venir.</p></button>
+          <button type="button" onClick={() => navigateFinance('Investissements')} className="rounded-2xl border border-line bg-card p-4 text-left"><b className="text-earth">Investissements</b><p className="mt-1 text-sm text-slate">Budget et actifs.</p></button>
+          <button type="button" onClick={() => navigateFinance('Rentabilité')} className="rounded-2xl border border-line bg-card p-4 text-left"><b className="text-earth">Rentabilité</b><p className="mt-1 text-sm text-slate">Marges et alertes ERP.</p></button>
         </div>
       </section>
     </div>
@@ -250,66 +236,57 @@ function Summary({
 }
 
 export default function FinancePilotageRecoveredModule(props) {
-  const controlled = Boolean(props.onTabChange);
-  const bootstrapNav = resolveFinanceNavigation(props.initialTab || 'Résumé');
-  const [internalTab, setInternalTab] = useState(() => bootstrapNav.tab || resolveFinanceTab(props.initialTab || 'Résumé'));
+  const { initialTab, onTabChange } = props;
+  const controlled = Boolean(onTabChange);
+  const bootstrapNav = resolveFinanceNavigation(initialTab || 'Résumé');
+  const [internalTab, setInternalTab] = useState(() => bootstrapNav.tab || resolveFinanceTab(initialTab || 'Résumé'));
   const [treasurySubview, setTreasurySubview] = useState(() => bootstrapNav.treasurySubview || 'saisie');
   const [pilotageSubview, setPilotageSubview] = useState(() => bootstrapNav.pilotageSubview || 'echeancier');
   const [busyId, setBusyId] = useState(null);
   const [simulatorParams, setSimulatorParams] = useState(() => readFinanceSimulatorParams());
 
   const tab = controlled
-    ? resolveFinanceTab(props.initialTab || 'Résumé')
+    ? resolveFinanceTab(initialTab || 'Résumé')
     : internalTab;
 
   const applyFinanceNavigation = useCallback((nav, rawTarget = '') => {
-    const resolvedTab = nav.tab || resolveFinanceTab(props.initialTab || 'Résumé');
+    const resolvedTab = nav.tab || resolveFinanceTab(initialTab || 'Résumé');
     if (controlled) {
-      props.onTabChange?.(rawTarget || resolvedTab);
+      onTabChange?.(rawTarget || resolvedTab);
     } else {
       setInternalTab(resolvedTab);
     }
     if (nav.treasurySubview) setTreasurySubview(nav.treasurySubview);
     if (nav.pilotageSubview) setPilotageSubview(nav.pilotageSubview);
-  }, [controlled, props.onTabChange, props.initialTab]);
+  }, [controlled, initialTab, onTabChange]);
 
   const navigateFinance = useCallback((target = '') => {
     applyFinanceNavigation(resolveFinanceNavigation(target), target);
   }, [applyFinanceNavigation]);
 
-  const TREASURY_SUBVIEW_ALIASES = {
-    saisie: 'Trésorerie',
-    reconciliation: 'Réconciliation',
-  };
-  const PILOTAGE_SUBVIEW_ALIASES = {
-    echeancier: 'Échéancier',
-    financement: 'Financement',
-    investissements: 'Investissements',
-    rentabilite: 'Rentabilité',
-    annexe: 'Annexe',
-  };
-
   const handleTreasurySubview = useCallback((key) => {
     setTreasurySubview(key);
-    if (controlled) props.onTabChange?.(TREASURY_SUBVIEW_ALIASES[key] || 'Trésorerie');
-  }, [controlled, props.onTabChange]);
+    if (controlled) onTabChange?.(TREASURY_SUBVIEW_ALIASES[key] || 'Trésorerie');
+  }, [controlled, onTabChange]);
 
   const handlePilotageSubview = useCallback((key) => {
     setPilotageSubview(key);
-    if (controlled) props.onTabChange?.(PILOTAGE_SUBVIEW_ALIASES[key] || 'Pilotage');
-  }, [controlled, props.onTabChange]);
+    if (controlled) onTabChange?.(PILOTAGE_SUBVIEW_ALIASES[key] || 'Pilotage');
+  }, [controlled, onTabChange]);
 
   const setTab = useCallback((value) => {
     applyFinanceNavigation(resolveFinanceNavigation(value), value);
   }, [applyFinanceNavigation]);
 
   useEffect(() => {
-    if (!props.initialTab) return;
-    const nav = resolveFinanceNavigation(props.initialTab);
-    if (!controlled) setInternalTab(nav.tab);
-    if (nav.treasurySubview) setTreasurySubview(nav.treasurySubview);
-    if (nav.pilotageSubview) setPilotageSubview(nav.pilotageSubview);
-  }, [controlled, props.initialTab]);
+    if (!initialTab) return;
+    const nav = resolveFinanceNavigation(initialTab);
+    queueMicrotask(() => {
+      if (!controlled) setInternalTab(nav.tab);
+      if (nav.treasurySubview) setTreasurySubview(nav.treasurySubview);
+      if (nav.pilotageSubview) setPilotageSubview(nav.pilotageSubview);
+    });
+  }, [controlled, initialTab]);
 
   const financesCrud = useCrudModule('finances');
   const investmentsCrud = useCrudModule('investissements');
@@ -684,28 +661,28 @@ export default function FinancePilotageRecoveredModule(props) {
   };
   return (
     <div className="space-y-6">
-      <section className="rounded-3xl border border-[#d6c3a0] bg-white p-5 shadow-sm">
+      <section className="rounded-3xl border border-line bg-white p-6 shadow-card">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
           <div>
-            <p className="text-xs uppercase tracking-[0.25em] text-[#9a6b12] font-black">Pilotage</p>
-            <h1 className="mt-1 text-2xl font-black text-[#2f2415]">Finance & Pilotage</h1>
-            <p className="mt-1 text-sm text-[#8a7456]">Trésorerie, créances, dettes — signaux métier, preuves et rentabilité.</p>
+            <p className="text-xs uppercase tracking-normal text-horizon-dark font-semibold">Pilotage</p>
+            <h1 className="mt-1 text-2xl font-semibold text-earth">Finance & Pilotage</h1>
+            <p className="mt-1 text-sm text-slate">Trésorerie, créances, dettes — signaux métier, preuves et rentabilité.</p>
             {props.periodLabel ? (
               <div className="mt-2 flex flex-wrap items-center gap-2">
                 <PeriodScopeBadge label={props.periodLabel} />
-                <span className="rounded-full border border-[#eadcc2] bg-[#fffdf8] px-2 py-0.5 text-[11px] font-bold text-[#8a7456]">
+                <span className="rounded-full border border-line bg-card px-2 py-1 text-meta font-semibold text-slate">
                   Trésorerie & créances : cumul ferme (hors filtre période)
                 </span>
               </div>
             ) : (
-              <p className="mt-2 text-xs font-bold text-[#8a7456]">Trésorerie & créances : cumul ferme</p>
+              <p className="mt-2 text-xs font-semibold text-slate">Trésorerie & créances : cumul ferme</p>
             )}
           </div>
-          <div className="rounded-2xl border border-[#eadcc2] bg-[#fffdf8] px-4 py-3 text-sm"><span className="text-[#8a7456]">Santé </span><b className={data.healthInsufficient ? 'text-[#8a7456]' : data.healthScore >= 75 ? 'text-emerald-700' : 'text-amber-700'}>{formatFinanceHealthScore({ score: data.healthScore, insufficientData: data.healthInsufficient })}</b></div>
+          <div className="rounded-2xl border border-line bg-card px-4 py-3 text-sm"><span className="text-slate">Santé </span><b className={data.healthInsufficient ? 'text-slate' : data.healthScore >= 75 ? 'text-positive' : 'text-horizon-dark'}>{formatFinanceHealthScore({ score: data.healthScore, insufficientData: data.healthInsufficient })}</b></div>
         </div>
       </section>
       <Tabs active={tab} onChange={setTab} />
-      {tab === 'Résumé' ? (
+      {tab === 'Vue finance' ? (
         <Summary
           data={data}
           navigateFinance={navigateFinance}
@@ -725,7 +702,17 @@ export default function FinancePilotageRecoveredModule(props) {
           onOpenAssistant={props.onOpenAssistant}
           moduleProjections={financeModuleProjections}
         />
-      ) : tab === 'Trésorerie' ? (
+      ) : tab === 'Transactions finance' ? (
+        <div className="space-y-4">
+          <FinancesV12 {...financeProps} />
+          <details className="border-t border-line pt-4">
+            <summary className="cursor-pointer text-sm font-semibold text-earth">Rapprochement des flux</summary>
+            <div className="mt-4">
+              <FinanceReconciliationPanel reconciliationView={reconciliationView} transactions={transactions} payments={paymentsAll.length ? paymentsAll : payments} salesOrders={salesOrdersAll.length ? salesOrdersAll : salesOrders} stocks={stocks} onCreateFinanceTransaction={props.onCreateFinanceTransaction || financesCrud.create} onRefreshFinances={props.onRefreshFinances || financesCrud.refresh} onNavigate={props.onNavigate} setTab={navigateFinance} />
+            </div>
+          </details>
+        </div>
+      ) : tab === 'Trésorerie finance' ? (
         <div className="space-y-4">
           <FinanceInnerTabs
             tabs={[
@@ -751,22 +738,17 @@ export default function FinancePilotageRecoveredModule(props) {
             <FinancesV12 {...financeProps} />
           )}
         </div>
-      ) : tab === 'Créances & dettes' ? (
+      ) : tab === 'Investissements & dettes finance' ? (
         <div className="space-y-4">
-          <details className="rounded-3xl border border-[#d6c3a0] bg-white shadow-sm" open>
-            <summary className="cursor-pointer px-5 py-4 font-black text-[#2f2415]">Créances clients</summary>
-            <div className="border-t border-[#eadcc2] p-4">
-              <CreancesPanel data={data} onNavigate={props.onNavigate} />
-            </div>
-          </details>
-          <details className="rounded-3xl border border-[#d6c3a0] bg-white shadow-sm">
-            <summary className="cursor-pointer px-5 py-4 font-black text-[#2f2415]">Dettes fournisseurs</summary>
-            <div className="border-t border-[#eadcc2] p-4">
+          <InvestissementsV9 {...investmentProps} />
+          <details className="rounded-3xl border border-line bg-white shadow-card">
+            <summary className="cursor-pointer px-6 py-4 font-semibold text-earth">Dettes fournisseurs</summary>
+            <div className="border-t border-line p-4">
               <DettesPanel data={data} onNavigate={props.onNavigate} />
             </div>
           </details>
         </div>
-      ) : tab === 'Pilotage' ? (
+      ) : tab === 'Budget & écarts finance' ? (
         <div className="space-y-4">
           <FinanceInnerTabs
             tabs={[
@@ -780,13 +762,13 @@ export default function FinancePilotageRecoveredModule(props) {
             onChange={handlePilotageSubview}
           />
           {pilotageSubview === 'echeancier' ? (
-            <div className="space-y-5">
+            <div className="space-y-6">
               <FinanceSchedulePanel schedule={schedule} showFarm={showFarmInSchedule} />
               <FinanceAgingPanel receivablesAging={receivablesAging} payablesAging={payablesAging} showFarm={showFarmInSchedule} />
               <FinanceCashFlowForecastPanel forecast={cashFlowForecast} />
             </div>
           ) : pilotageSubview === 'financement' ? (
-            <div className="space-y-5">
+            <div className="space-y-6">
               <FinanceDemoBanner demo={financeDemo} />
               <FinanceFinancingPanel
                 financing={financingView}
@@ -804,8 +786,15 @@ export default function FinancePilotageRecoveredModule(props) {
             <FinanceAnnexePanel documents={financeProps.documents} onNavigate={props.onNavigate} />
           )}
         </div>
-      ) : tab === 'Graphiques' ? (
-        <ModuleGraphiquesTab moduleId="finance_pilotage" transactions={transactions} payments={payments} salesOrders={salesOrders} investissements={investments} businessPlans={businessPlans} onNavigate={props.onNavigate} />
+      ) : tab === 'Coûts & marges finance' ? (
+        <div className="space-y-4">
+          <RentabilitePanel profitability={profitability} consolidationProps={consolidationProps} />
+          <MarginGlossaryPanel />
+          <details className="border-t border-line pt-4">
+            <summary className="cursor-pointer text-sm font-semibold text-earth">Courbes de coûts et marges</summary>
+            <div className="mt-4"><ModuleGraphiquesTab moduleId="finance_pilotage" transactions={transactions} payments={payments} salesOrders={salesOrders} investissements={investments} businessPlans={businessPlans} onNavigate={props.onNavigate} /></div>
+          </details>
+        </div>
       ) : (
         <Summary
           data={data}

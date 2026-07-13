@@ -5,16 +5,16 @@ import { buildDecisionHistory, decisionStatuses, explainDecisionNonProfitability
 import { fmtCurrency } from '../utils/format';
 
 const statusTone = {
-  recommended: 'bg-sky-50 border-sky-200 text-sky-700',
-  draft_created: 'bg-purple-50 border-purple-200 text-purple-700',
-  action_draft_opened: 'bg-indigo-50 border-indigo-200 text-indigo-700',
-  accepted: 'bg-emerald-50 border-emerald-200 text-emerald-700',
-  modified: 'bg-amber-50 border-amber-200 text-amber-700',
-  rejected: 'bg-red-50 border-red-200 text-red-700',
-  executed: 'bg-[#fffdf8] border-[#eadcc2] text-[#7d6a4a]',
-  monitoring: 'bg-amber-50 border-amber-200 text-amber-700',
-  profitable: 'bg-emerald-50 border-emerald-200 text-emerald-700',
-  not_profitable: 'bg-red-50 border-red-200 text-red-700',
+  recommended: 'bg-neutral-bg border-line text-neutral',
+  draft_created: 'bg-neutral-bg border-line text-neutral',
+  action_draft_opened: 'bg-neutral-bg border-line text-neutral',
+  accepted: 'bg-positive-bg border-positive text-positive',
+  modified: 'bg-vigilance-bg border-vigilance text-horizon-dark',
+  rejected: 'bg-urgent-bg border-urgent text-urgent',
+  executed: 'bg-card border-line text-slate',
+  monitoring: 'bg-vigilance-bg border-vigilance text-horizon-dark',
+  profitable: 'bg-positive-bg border-positive text-positive',
+  not_profitable: 'bg-urgent-bg border-urgent text-urgent',
 };
 
 const moduleLabel = {
@@ -43,15 +43,15 @@ const prettyModule = (value) => moduleLabel[String(value || '').toLowerCase()] |
 const prettyActivity = (value) => activityLabel[String(value || '').toLowerCase()] || value || 'Global';
 
 function ProfitBadge({ status }) {
-  if (status === 'profitable') return <span className="rounded-full border border-emerald-200 bg-emerald-50 px-2 py-1 text-xs font-black text-emerald-700">Rentable</span>;
-  if (status === 'not_profitable') return <span className="rounded-full border border-red-200 bg-red-50 px-2 py-1 text-xs font-black text-red-700">Non rentable</span>;
-  if (status === 'monitoring') return <span className="rounded-full border border-amber-200 bg-amber-50 px-2 py-1 text-xs font-black text-amber-700">En suivi</span>;
-  return <span className="rounded-full border border-[#eadcc2] bg-[#fffdf8] px-2 py-1 text-xs font-black text-[#8a7456]">Pas encore évaluable</span>;
+  if (status === 'profitable') return <span className="rounded-full border border-positive bg-positive-bg px-2 py-1 text-xs font-semibold text-positive">Rentable</span>;
+  if (status === 'not_profitable') return <span className="rounded-full border border-urgent bg-urgent-bg px-2 py-1 text-xs font-semibold text-urgent">Non rentable</span>;
+  if (status === 'monitoring') return <span className="rounded-full border border-vigilance bg-vigilance-bg px-2 py-1 text-xs font-semibold text-horizon-dark">En suivi</span>;
+  return <span className="rounded-full border border-line bg-card px-2 py-1 text-xs font-semibold text-slate">Pas encore évaluable</span>;
 }
 
 function Mini({ icon: Icon, label, value, tone = 'neutral' }) {
-  const cls = tone === 'good' ? 'text-emerald-600' : tone === 'bad' ? 'text-red-600' : tone === 'warn' ? 'text-amber-600' : 'text-[#2f2415]';
-  return <div className="rounded-2xl border border-[#eadcc2] bg-[#fffdf8] p-4 min-w-0"><Icon size={16} className={cls} /><p className={`mt-2 text-xl font-black ${cls} break-words`}>{value}</p><p className="text-xs text-[#8a7456]">{label}</p></div>;
+  const cls = tone === 'good' ? 'text-positive' : tone === 'bad' ? 'text-urgent' : tone === 'warn' ? 'text-horizon-dark' : 'text-earth';
+  return <div className="rounded-2xl border border-line bg-card p-4 min-w-0"><Icon size={16} className={cls} /><p className={`mt-2 text-xl font-semibold ${cls} break-words`}>{value}</p><p className="text-xs text-slate">{label}</p></div>;
 }
 
 function TraceSummary({ decision }) {
@@ -60,7 +60,7 @@ function TraceSummary({ decision }) {
   if (decision.target_date) parts.push(`Cible ${String(decision.target_date).slice(0, 10)}`);
   if (decision.deadline) parts.push(`Échéance ${String(decision.deadline).slice(0, 10)}`);
   if (decision.expected_impact) parts.push(decision.expected_impact);
-  return <div className="text-xs text-[#8a7456] mt-1 space-y-1">{parts.length ? <p className="max-w-[280px] line-clamp-2" title={parts.join(' · ')}>{parts.join(' · ')}</p> : null}</div>;
+  return <div className="text-xs text-slate mt-1 space-y-1">{parts.length ? <p className="max-w-[280px] line-clamp-2" title={parts.join(' · ')}>{parts.join(' · ')}</p> : null}</div>;
 }
 
 function justificationOf(decision) {
@@ -68,22 +68,22 @@ function justificationOf(decision) {
 }
 
 function MobileDecisionCard({ decision }) {
-  return <article className="rounded-2xl border border-[#eadcc2] bg-[#fffdf8] p-4 space-y-3">
+  return <article className="rounded-2xl border border-line bg-card p-4 space-y-3">
     <div className="flex flex-col gap-2">
       <div className="flex flex-wrap gap-2 items-center">
-        <span className={`rounded-full border px-2 py-1 text-xs font-black ${statusTone[decision.status] || statusTone.recommended}`}>{decisionStatuses[decision.status] || decision.status || 'Recommandée'}</span>
+        <span className={`rounded-full border px-2 py-1 text-xs font-semibold ${statusTone[decision.status] || statusTone.recommended}`}>{decisionStatuses[decision.status] || decision.status || 'Recommandée'}</span>
         <ProfitBadge status={decision.profitability_status} />
       </div>
-      <h4 className="font-black text-[#2f2415] leading-snug">{decision.title}</h4>
-      <p className="text-xs text-[#8a7456]">{prettyActivity(decision.activity)} · {String(decision.recommendation_date || decision.created_at || '').slice(0, 10) || 'Date non renseignée'}</p>
+      <h4 className="font-semibold text-earth leading-snug">{decision.title}</h4>
+      <p className="text-xs text-slate">{prettyActivity(decision.activity)} · {String(decision.recommendation_date || decision.created_at || '').slice(0, 10) || 'Date non renseignée'}</p>
     </div>
     <div className="grid grid-cols-2 gap-2 text-xs">
-      <div className="rounded-xl bg-white border border-[#eadcc2] p-3"><span className="text-[#8a7456]">Investi réel</span><b className="block text-[#2f2415]">{fmtCurrency(decision.actual_investment)}</b></div>
-      <div className="rounded-xl bg-white border border-[#eadcc2] p-3"><span className="text-[#8a7456]">CA réel</span><b className="block text-[#2f2415]">{fmtCurrency(decision.actual_revenue)}</b></div>
-      <div className="rounded-xl bg-white border border-[#eadcc2] p-3"><span className="text-[#8a7456]">ROI</span><b className="block text-[#2f2415]">{decision.roi_percent === null || decision.roi_percent === undefined ? '—' : `${decision.roi_percent}%`}</b></div>
-      <div className="rounded-xl bg-white border border-[#eadcc2] p-3"><span className="text-[#8a7456]">Module</span><b className="block text-[#2f2415]">{prettyModule(decision.target_module)}</b></div>
+      <div className="rounded-xl bg-white border border-line p-3"><span className="text-slate">Investi réel</span><b className="block text-earth">{fmtCurrency(decision.actual_investment)}</b></div>
+      <div className="rounded-xl bg-white border border-line p-3"><span className="text-slate">CA réel</span><b className="block text-earth">{fmtCurrency(decision.actual_revenue)}</b></div>
+      <div className="rounded-xl bg-white border border-line p-3"><span className="text-slate">ROI</span><b className="block text-earth">{decision.roi_percent === null || decision.roi_percent === undefined ? '—' : `${decision.roi_percent}%`}</b></div>
+      <div className="rounded-xl bg-white border border-line p-3"><span className="text-slate">Module</span><b className="block text-earth">{prettyModule(decision.target_module)}</b></div>
     </div>
-    <p className="text-sm text-[#7d6a4a] line-clamp-3" title={justificationOf(decision)}>{justificationOf(decision)}</p>
+    <p className="text-sm text-slate line-clamp-3" title={justificationOf(decision)}>{justificationOf(decision)}</p>
   </article>;
 }
 
@@ -95,10 +95,10 @@ export default function DecisionHistoryPanel({ dataMap = {}, onNavigate, compact
 
   if (compact) {
     return (
-      <section className="rounded-3xl border border-[#d6c3a0] bg-white p-4 shadow-sm space-y-3">
+      <section className="rounded-3xl border border-line bg-white p-4 shadow-card space-y-3">
         <div className="flex flex-wrap items-center justify-between gap-2">
-          <p className="text-xs uppercase tracking-widest text-[#9a6b12] font-black">ROI des décisions</p>
-          <button type="button" onClick={() => onNavigate?.('financements')} className="text-xs font-black text-[#9a6b12] underline">
+          <p className="text-xs uppercase tracking-normal text-horizon-dark font-semibold">ROI des décisions</p>
+          <button type="button" onClick={() => onNavigate?.('financements')} className="text-xs font-semibold text-horizon-dark underline">
             Impact ERP →
           </button>
         </div>
@@ -109,11 +109,11 @@ export default function DecisionHistoryPanel({ dataMap = {}, onNavigate, compact
           <Mini icon={BarChart2} label="CA IA" value={`${totals.contributionRate}%`} tone={totals.contributionRate > 0 ? 'good' : 'neutral'} />
         </div>
         {latest.length ? (
-          <button type="button" onClick={() => setOpen((v) => !v)} className="text-xs font-black text-[#9a6b12] underline">
+          <button type="button" onClick={() => setOpen((v) => !v)} className="text-xs font-semibold text-horizon-dark underline">
             {open ? 'Masquer le détail' : `Voir ${latest.length} dernière(s) décision(s)`}
           </button>
         ) : (
-          <p className="text-sm text-[#8a7456]">Aucune décision historisée pour l&apos;instant.</p>
+          <p className="text-sm text-slate">Aucune décision historisée pour l&apos;instant.</p>
         )}
         {open && latest.length ? (
           <div className="space-y-2">
@@ -125,12 +125,12 @@ export default function DecisionHistoryPanel({ dataMap = {}, onNavigate, compact
   }
 
   return (
-    <div className="rounded-3xl border border-[#d6c3a0] bg-white p-5 shadow-sm space-y-4">
+    <div className="rounded-3xl border border-line bg-white p-6 shadow-card space-y-4">
       <div className="flex flex-col lg:flex-row lg:items-start justify-between gap-4">
         <div>
-          <p className="text-xs uppercase tracking-widest text-[#8a7456] font-black flex items-center gap-2"><Clock3 size={15} /> Historique des décisions</p>
-          <h3 className="text-xl font-black text-[#2f2415] mt-1">Recommandations suivies jusqu’à la rentabilité réelle</h3>
-          <p className="text-sm text-[#8a7456] mt-1">Une recommandation n’est pas jugée rentable au départ. Horizon suit les actions ouvertes, l’exécution, les dépenses, le CA réel, puis le bilan.</p>
+          <p className="text-xs uppercase tracking-normal text-slate font-semibold flex items-center gap-2"><Clock3 size={15} /> Historique des décisions</p>
+          <h3 className="text-xl font-semibold text-earth mt-1">Recommandations suivies jusqu’à la rentabilité réelle</h3>
+          <p className="text-sm text-slate mt-1">Une recommandation n’est pas jugée rentable au départ. Horizon suit les actions ouvertes, l’exécution, les dépenses, le CA réel, puis le bilan.</p>
         </div>
         <Btn small onClick={() => onNavigate?.('financements')}>Voir Impact & Valeur ERP</Btn>
       </div>
@@ -145,13 +145,13 @@ export default function DecisionHistoryPanel({ dataMap = {}, onNavigate, compact
 
       <div className="lg:hidden space-y-3">
         {latest.map((decision) => <MobileDecisionCard key={decision.id || decision.recommendation_id} decision={decision} />)}
-        {!latest.length ? <div className="rounded-2xl border border-[#eadcc2] bg-[#fffdf8] p-4 text-sm text-[#8a7456]">Aucune recommandation historisée pour le moment.</div> : null}
+        {!latest.length ? <div className="rounded-2xl border border-line bg-card p-4 text-sm text-slate">Aucune recommandation historisée pour le moment.</div> : null}
       </div>
 
-      <div className="hidden lg:block overflow-x-auto rounded-2xl border border-[#eadcc2]">
+      <div className="hidden lg:block overflow-x-auto rounded-2xl border border-line">
         <table className="w-full text-sm">
           <thead>
-            <tr className="bg-[#fffdf8] text-left text-xs uppercase text-[#8a7456]">
+            <tr className="bg-card text-left text-xs uppercase text-slate">
               <th className="px-3 py-2">Recommandation</th>
               <th className="px-3 py-2">Activité</th>
               <th className="px-3 py-2">Date</th>
@@ -166,21 +166,21 @@ export default function DecisionHistoryPanel({ dataMap = {}, onNavigate, compact
           </thead>
           <tbody>
             {latest.map((decision) => (
-              <tr key={decision.id || decision.recommendation_id} className="border-t border-[#eadcc2] align-top">
-                <td className="px-3 py-3"><b className="text-[#2f2415] line-clamp-2">{decision.title}</b><TraceSummary decision={decision} /></td>
-                <td className="px-3 py-3 text-[#7d6a4a]">{prettyActivity(decision.activity)}</td>
-                <td className="px-3 py-3 text-[#7d6a4a]">{String(decision.recommendation_date || decision.created_at || '').slice(0, 10) || '—'}</td>
-                <td className="px-3 py-3"><span className={`rounded-full border px-2 py-1 text-xs font-black ${statusTone[decision.status] || statusTone.recommended}`}>{decisionStatuses[decision.status] || decision.status || 'Recommandée'}</span></td>
-                <td className="px-3 py-3 hidden xl:table-cell text-xs font-bold text-[#2f2415]">{prettyModule(decision.target_module)}<p className="text-[#8a7456] font-normal">{String(decision.deadline || '').slice(0, 10) || '—'}</p></td>
-                <td className="px-3 py-3 font-bold text-[#2f2415]">{fmtCurrency(decision.actual_investment)}</td>
-                <td className="px-3 py-3 font-bold text-[#2f2415]">{fmtCurrency(decision.actual_revenue)}</td>
-                <td className="px-3 py-3 font-bold text-[#2f2415]">{decision.roi_percent === null || decision.roi_percent === undefined ? '—' : `${decision.roi_percent}%`}</td>
+              <tr key={decision.id || decision.recommendation_id} className="border-t border-line align-top">
+                <td className="px-3 py-3"><b className="text-earth line-clamp-2">{decision.title}</b><TraceSummary decision={decision} /></td>
+                <td className="px-3 py-3 text-slate">{prettyActivity(decision.activity)}</td>
+                <td className="px-3 py-3 text-slate">{String(decision.recommendation_date || decision.created_at || '').slice(0, 10) || '—'}</td>
+                <td className="px-3 py-3"><span className={`rounded-full border px-2 py-1 text-xs font-semibold ${statusTone[decision.status] || statusTone.recommended}`}>{decisionStatuses[decision.status] || decision.status || 'Recommandée'}</span></td>
+                <td className="px-3 py-3 hidden xl:table-cell text-xs font-semibold text-earth">{prettyModule(decision.target_module)}<p className="text-slate font-normal">{String(decision.deadline || '').slice(0, 10) || '—'}</p></td>
+                <td className="px-3 py-3 font-semibold text-earth">{fmtCurrency(decision.actual_investment)}</td>
+                <td className="px-3 py-3 font-semibold text-earth">{fmtCurrency(decision.actual_revenue)}</td>
+                <td className="px-3 py-3 font-semibold text-earth">{decision.roi_percent === null || decision.roi_percent === undefined ? '—' : `${decision.roi_percent}%`}</td>
                 <td className="px-3 py-3"><ProfitBadge status={decision.profitability_status} /></td>
-                <td className="px-3 py-3 text-xs text-[#7d6a4a] max-w-[260px] line-clamp-3" title={justificationOf(decision)}>{justificationOf(decision)}</td>
+                <td className="px-3 py-3 text-xs text-slate max-w-[260px] line-clamp-3" title={justificationOf(decision)}>{justificationOf(decision)}</td>
               </tr>
             ))}
             {!latest.length ? (
-              <tr><td className="px-3 py-5 text-sm text-[#8a7456]" colSpan={10}>Aucune recommandation historisée pour le moment. Les prochaines recommandations liées à une action ouverte apparaîtront ici.</td></tr>
+              <tr><td className="px-3 py-6 text-sm text-slate" colSpan={10}>Aucune recommandation historisée pour le moment. Les prochaines recommandations liées à une action ouverte apparaîtront ici.</td></tr>
             ) : null}
           </tbody>
         </table>

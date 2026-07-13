@@ -132,7 +132,7 @@ export function buildScannerDraft({
     warnings.push(`Champs à confirmer : ${missing.join(', ')}.`);
   }
 
-  let payload = {};
+  let payload;
   if (type === SCANNER_DOC_TYPES.VET_PRESCRIPTION) {
     payload = buildHealthPayloadFromScan(fields, proofMeta);
   } else if (type === SCANNER_DOC_TYPES.PAYMENT_RECEIPT) {

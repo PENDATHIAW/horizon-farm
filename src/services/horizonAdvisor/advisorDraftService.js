@@ -13,8 +13,6 @@ import { applyOneClickRecommendation } from '../heyHorizonRecommendationActions.
 import { buildPriorityFollowUpAlert, buildPriorityFollowUpTask } from '../../utils/centreDecisionWorkflow.js';
 import { redirectToSource, shouldBlockInlineAlertCreation } from '../../utils/antiDuplicationGuard.js';
 
-const arr = (v) => (Array.isArray(v) ? v : []);
-
 function recommendationToFinding(recommendation = {}, actionType = 'task') {
   const base = recommendation.finding || {
     id: recommendation.id,

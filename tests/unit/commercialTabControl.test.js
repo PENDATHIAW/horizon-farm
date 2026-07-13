@@ -71,7 +71,7 @@ test('onglet contrôlé — Clients & créances rend le portefeuille clients', a
   assert.doesNotMatch(html, /ERREUR MODULE|is not defined/i);
 });
 
-test('resolveCommercialTab — alias Clients vers canonique', () => {
-  assert.equal(resolveCommercialTab('Clients'), 'Clients & créances');
-  assert.equal(resolveCommercialTab('Clients & créances'), 'Clients & créances');
+test('resolveCommercialTab — alias Clients vers les vues cibles', () => {
+  assert.equal(resolveCommercialTab('Clients'), 'Clients commercial');
+  assert.equal(resolveCommercialTab('Clients & créances'), 'Créances & relances commercial');
 });

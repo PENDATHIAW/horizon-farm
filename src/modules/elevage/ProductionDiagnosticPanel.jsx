@@ -1,10 +1,16 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useMemo, useState } from 'react';
 import {
   buildProductionDiagnostic,
   listProductionDiagnosticTargets,
   pickMostCriticalTarget,
 } from '../../utils/elevageProductionDiagnostic.js';
-import { PRODUCTION_FINANCE_SOURCE } from '../../utils/productionFinancialTruth.js';
+
+const MARGIN_TONE = {
+  good: 'text-positive',
+  bad: 'text-urgent',
+  warn: 'text-horizon-dark',
+  neutral: 'text-slate',
+};
 
 export default function ProductionDiagnosticPanel({
   lots = [],
@@ -17,84 +23,54 @@ export default function ProductionDiagnosticPanel({
     () => ({ lots, animaux, transformationRows, meatStockKg, marginContext: { ...marginContext, lots } }),
     [lots, animaux, transformationRows, meatStockKg, marginContext],
   );
-
   const targets = useMemo(() => listProductionDiagnosticTargets(options), [options]);
-
+  const automaticTarget = useMemo(() => pickMostCriticalTarget(options)?.target || null, [options]);
   const [selectedId, setSelectedId] = useState('');
-  const [diagnostic, setDiagnostic] = useState(null);
   const [mode, setMode] = useState('auto');
-  const autoKeyRef = useRef('');
-
-  const runAnalysis = (target, analysisMode = 'manual') => {
-    if (!target) {
-      setDiagnostic(null);
-      return;
-    }
-    setDiagnostic(buildProductionDiagnostic(target, { ...marginContext, lots }));
-    setMode(analysisMode);
-  };
-
-  useEffect(() => {
-    const autoKey = targets.map((t) => t.id).join('|');
-    if (!targets.length) {
-      setDiagnostic(null);
-      setSelectedId('');
-      autoKeyRef.current = '';
-      return;
-    }
-    if (autoKeyRef.current === autoKey && selectedId) return;
-    autoKeyRef.current = autoKey;
-    const picked = pickMostCriticalTarget(options);
-    if (picked?.target) {
-      setSelectedId(picked.target.id);
-      setDiagnostic(buildProductionDiagnostic(picked.target, { ...marginContext, lots }));
-      setMode('auto');
-    }
-  }, [options, targets, marginContext, lots, selectedId]);
+  const selectedTarget = targets.find((target) => target.id === selectedId) || automaticTarget || targets[0] || null;
+  const diagnostic = useMemo(
+    () => (selectedTarget ? buildProductionDiagnostic(selectedTarget, { ...marginContext, lots }) : null),
+    [selectedTarget, marginContext, lots],
+  );
 
   const onSelectChange = (id) => {
     setSelectedId(id);
-    const target = targets.find((t) => t.id === id);
-    runAnalysis(target, 'manual');
+    setMode('manual');
   };
 
   const onAutoClick = () => {
-    const picked = pickMostCriticalTarget(options);
-    if (picked?.target) {
-      setSelectedId(picked.target.id);
-      runAnalysis(picked.target, 'auto');
-    }
+    setSelectedId(automaticTarget?.id || '');
+    setMode('auto');
   };
 
   if (!targets.length) {
     return (
-      <section className="rounded-3xl border border-[#eadcc2] bg-[#fffdf8] p-5 text-sm text-[#8a7456]">
-        Aucune entité active pour l’analyse — ajoutez lots ou animaux.
+      <section className="rounded-card border border-line bg-card p-6 text-sm text-slate">
+        Aucune entité active à analyser. Ajoutez d'abord un lot ou un animal.
       </section>
     );
   }
 
-  const marginTone = diagnostic?.financial?.margin?.tone || 'neutral';
-  const marginCls = marginTone === 'good' ? 'text-emerald-700' : marginTone === 'bad' ? 'text-red-700' : 'text-amber-700';
+  const marginClass = MARGIN_TONE[diagnostic?.financial?.margin?.tone] || MARGIN_TONE.neutral;
 
   return (
-    <section className="rounded-3xl border border-[#d6c3a0] bg-white p-5 shadow-sm space-y-4">
+    <section className="rounded-card border border-line bg-white p-6 shadow-card space-y-4">
       <div>
-        <h2 className="text-lg font-black text-[#2f2415]">Diagnostic production</h2>
-        <p className="mt-1 text-xs text-[#8a7456]">{PRODUCTION_FINANCE_SOURCE}</p>
+        <h2 className="text-lg font-semibold text-earth">Diagnostic production</h2>
+        <p className="mt-1 text-xs text-slate">Coûts calculés à partir des achats, distributions et soins enregistrés.</p>
       </div>
 
       <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
         <label className="flex-1 space-y-1">
-          <span className="text-xs font-bold text-[#8a7456]">Sélectionner une entité</span>
+          <span className="text-xs font-semibold text-slate">Sélectionner une entité</span>
           <select
-            value={selectedId}
-            onChange={(e) => onSelectChange(e.target.value)}
-            className="w-full min-h-[48px] rounded-xl border border-[#eadcc2] bg-[#fffdf8] px-3 text-sm"
+            value={selectedTarget?.id || ''}
+            onChange={(event) => onSelectChange(event.target.value)}
+            className="min-h-[48px] w-full rounded-control border border-line bg-card px-3 text-sm text-earth outline-none focus:border-leaf focus:ring-2 focus:ring-leaf/20"
           >
-            {targets.map((t) => (
-              <option key={t.id} value={t.id}>
-                {t.category} · {t.label} {t.criticalityScore > 0 ? `⚠ ${t.criticalityScore}` : ''}
+            {targets.map((target) => (
+              <option key={target.id} value={target.id}>
+                {target.category} · {target.label}{target.criticalityScore > 0 ? ` · priorité ${target.criticalityScore}` : ''}
               </option>
             ))}
           </select>
@@ -102,7 +78,7 @@ export default function ProductionDiagnosticPanel({
         <button
           type="button"
           onClick={onAutoClick}
-          className="min-h-[48px] shrink-0 rounded-xl bg-[#2f2415] px-4 text-sm font-black text-white"
+          className="min-h-[48px] shrink-0 rounded-control bg-earth px-4 text-sm font-semibold text-white hover:bg-leaf focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-horizon"
         >
           Analyser le plus critique
         </button>
@@ -110,45 +86,46 @@ export default function ProductionDiagnosticPanel({
 
       {diagnostic ? (
         <div className="space-y-3">
-          <p className="rounded-xl border border-sky-200 bg-sky-50 px-3 py-2 text-sm font-bold text-sky-900">
+          <p className="rounded-control border border-line bg-neutral-bg px-3 py-2 text-sm font-semibold text-earth">
             {diagnostic.selectionReason}
             {mode === 'auto' ? ' · sélection automatique' : ''}
           </p>
 
-          <div className="grid grid-cols-2 gap-3 md:grid-cols-3">
-            <div className="rounded-xl border border-[#eadcc2] bg-[#fffdf8] p-3">
-              <p className="text-xs text-[#8a7456]">{diagnostic.financial.costLabel}</p>
-              <p className="mt-1 font-black text-[#2f2415]">{diagnostic.financial.costValue}</p>
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+            <div className="rounded-card border border-line bg-card p-4">
+              <p className="text-xs text-slate">{diagnostic.financial.costLabel}</p>
+              <p className="mt-1 font-semibold text-earth">{diagnostic.financial.costValue}</p>
             </div>
-            <div className="rounded-xl border border-[#eadcc2] bg-[#fffdf8] p-3">
-              <p className="text-xs text-[#8a7456]">{diagnostic.financial.revenueLabel}</p>
-              <p className="mt-1 font-black text-[#2f2415]">{diagnostic.financial.revenueValue}</p>
+            <div className="rounded-card border border-line bg-card p-4">
+              <p className="text-xs text-slate">{diagnostic.financial.revenueLabel}</p>
+              <p className="mt-1 font-semibold text-earth">{diagnostic.financial.revenueValue}</p>
             </div>
-            <div className="rounded-xl border border-[#eadcc2] bg-[#fffdf8] p-3">
-              <p className="text-xs text-[#8a7456]">{diagnostic.financial.margin.label}</p>
-              <p className={`mt-1 font-black ${marginCls}`}>{diagnostic.financial.margin.value}</p>
-              <p className="text-[10px] text-[#8a7456] mt-0.5">{diagnostic.financial.margin.note}</p>
+            <div className="rounded-card border border-line bg-card p-4">
+              <p className="text-xs text-slate">{diagnostic.financial.margin.label}</p>
+              <p className={`mt-1 font-semibold ${marginClass}`}>{diagnostic.financial.margin.value}</p>
+              <p className="mt-1 text-meta text-slate">{diagnostic.financial.margin.note}</p>
             </div>
           </div>
 
-          <dl className="space-y-3 text-sm">
-            <div className="rounded-xl border border-[#eadcc2] bg-[#fffdf8] px-3 py-2">
-              <dt className="text-xs font-black uppercase text-[#8a7456]">Constat</dt>
-              <dd className="mt-1 text-[#2f2415]">{diagnostic.constat}</dd>
+          <dl className="grid grid-cols-1 gap-3 md:grid-cols-2">
+            <div className="rounded-card border border-line bg-card p-4">
+              <dt className="text-xs font-semibold uppercase text-slate">Constat</dt>
+              <dd className="mt-1 text-sm text-earth">{diagnostic.constat}</dd>
             </div>
-            <div className="rounded-xl border border-amber-200 bg-amber-50 px-3 py-2">
-              <dt className="text-xs font-black uppercase text-amber-900">Cause probable</dt>
-              <dd className="mt-1 text-amber-950">{diagnostic.causeProbable}</dd>
+            <div className="rounded-card border border-vigilance bg-vigilance-bg p-4">
+              <dt className="text-xs font-semibold uppercase text-horizon-dark">Cause probable</dt>
+              <dd className="mt-1 text-sm text-earth">{diagnostic.causeProbable}</dd>
             </div>
-            <div className="rounded-xl border border-[#eadcc2] bg-white px-3 py-2">
-              <dt className="text-xs font-black uppercase text-[#8a7456]">Impact</dt>
-              <dd className="mt-1 text-[#2f2415]">{diagnostic.impact}</dd>
+            <div className="rounded-card border border-line bg-white p-4">
+              <dt className="text-xs font-semibold uppercase text-slate">Impact</dt>
+              <dd className="mt-1 text-sm text-earth">{diagnostic.impact}</dd>
             </div>
-            <div className="rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2">
-              <dt className="text-xs font-black uppercase text-emerald-900">Action recommandée</dt>
-              <dd className="mt-1 text-emerald-950">{diagnostic.actionRecommandee}</dd>
+            <div className="rounded-card border border-positive bg-positive-bg p-4">
+              <dt className="text-xs font-semibold uppercase text-positive">Action recommandée</dt>
+              <dd className="mt-1 text-sm text-earth">{diagnostic.actionRecommandee}</dd>
             </div>
           </dl>
+          <p className="text-meta text-slate">Source des coûts : {diagnostic.financial.source}</p>
         </div>
       ) : null}
     </section>

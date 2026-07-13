@@ -4,12 +4,11 @@ import { supabase } from '../../../lib/supabase';
 const arr = (v) => (Array.isArray(v) ? v : []);
 
 /**
- * Souscription Realtime Supabase — smartfarm_events + refresh capteurs/caméras.
+ * Souscription Realtime Supabase — événements et dispositifs terrain.
  */
 export function useSmartFarmRealtime({
   enabled = true,
   onRefreshSensors,
-  onRefreshCameras,
   onRefreshEvents,
   seedEvents = [],
 } = {}) {
@@ -28,8 +27,7 @@ export function useSmartFarmRealtime({
 
   useEffect(() => {
     seedRef.current = arr(seedEvents);
-    setLiveEvents((prev) => mergeSeed(prev));
-  }, [seedEvents, mergeSeed]);
+  }, [seedEvents]);
 
   const refreshEvents = useCallback(async () => {
     try {
@@ -42,16 +40,16 @@ export function useSmartFarmRealtime({
         setLiveEvents(mergeSeed(data));
         setLastPulse(new Date().toISOString());
       }
-      await Promise.allSettled([onRefreshEvents?.(), onRefreshSensors?.(), onRefreshCameras?.()]);
+      await Promise.allSettled([onRefreshEvents?.(), onRefreshSensors?.()]);
     } catch {
       /* fallback silencieux */
     }
-  }, [mergeSeed, onRefreshEvents, onRefreshSensors, onRefreshCameras]);
+  }, [mergeSeed, onRefreshEvents, onRefreshSensors]);
 
   useEffect(() => {
     if (!enabled) return undefined;
 
-    refreshEvents();
+    const refreshTimer = window.setTimeout(() => refreshEvents(), 0);
 
     const channel = supabase
       .channel('smartfarm-telemetry-realtime')
@@ -64,17 +62,15 @@ export function useSmartFarmRealtime({
       .on('postgres_changes', { event: '*', schema: 'public', table: 'sensor_devices' }, () => {
         onRefreshSensors?.();
       })
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'camera_devices' }, () => {
-        onRefreshCameras?.();
-      })
       .subscribe((status) => {
         setConnected(status === 'SUBSCRIBED');
       });
 
     return () => {
+      window.clearTimeout(refreshTimer);
       supabase.removeChannel(channel);
     };
-  }, [enabled, mergeSeed, onRefreshSensors, onRefreshCameras, refreshEvents]);
+  }, [enabled, mergeSeed, onRefreshSensors, refreshEvents]);
 
   return {
     liveEvents,

@@ -59,14 +59,14 @@ export default function BusinessChargeSyncPanel(props) {
   };
 
   return (
-    <section className="rounded-3xl border border-[#d6c3a0] bg-white p-5 shadow-sm space-y-4">
+    <section className="rounded-3xl border border-line bg-white p-6 shadow-card space-y-4">
       <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3">
         <div>
-          <p className="inline-flex items-center gap-2 rounded-full border border-[#eadcc2] bg-[#fffdf8] px-3 py-1 text-xs font-black text-[#8a7456]">
+          <p className="inline-flex items-center gap-2 rounded-full border border-line bg-card px-3 py-1 text-xs font-semibold text-slate">
             <Scale size={14} /> Charges métier
           </p>
-          <h3 className="mt-3 text-xl font-black text-[#2f2415]">Synchroniser coûts métier → Finances</h3>
-          <p className="mt-1 text-sm text-[#8a7456]">
+          <h3 className="mt-3 text-xl font-semibold text-earth">Synchroniser coûts métier → Finances</h3>
+          <p className="mt-1 text-sm text-slate">
             Alimentation, santé, élevage, cultures et investissements alimentent la comptabilité sans double saisie manuelle.
           </p>
         </div>
@@ -74,7 +74,7 @@ export default function BusinessChargeSyncPanel(props) {
           type="button"
           disabled={busy || !audit.gaps.length}
           onClick={sync}
-          className="rounded-xl bg-[#2f2415] px-4 py-3 text-sm font-black text-white disabled:opacity-50"
+          className="rounded-xl bg-earth px-4 py-3 text-sm font-semibold text-white disabled:opacity-50"
         >
           {busy ? <RefreshCw size={14} className="inline animate-spin" /> : <Wrench size={14} className="inline" />}
           {' '}
@@ -90,17 +90,17 @@ export default function BusinessChargeSyncPanel(props) {
       </div>
 
       {audit.gaps.length ? (
-        <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4 space-y-2">
-          <p className="font-black text-amber-900 flex items-center gap-2"><AlertTriangle size={16} /> Coûts visibles en modules mais absents des lignes finance</p>
+        <div className="rounded-2xl border border-vigilance bg-vigilance-bg p-4 space-y-2">
+          <p className="font-semibold text-horizon-dark flex items-center gap-2"><AlertTriangle size={16} /> Coûts visibles en modules mais absents des lignes finance</p>
           {audit.gaps.map((gap) => (
-            <div key={gap.key} className="flex items-center justify-between rounded-xl border border-amber-100 bg-white px-3 py-2 text-sm">
-              <span className="font-bold text-[#2f2415]">{gap.label}</span>
-              <span className="font-black text-amber-800">{fmtCurrency(gap.amount)}</span>
+            <div key={gap.key} className="flex items-center justify-between rounded-xl border border-vigilance bg-white px-3 py-2 text-sm">
+              <span className="font-semibold text-earth">{gap.label}</span>
+              <span className="font-semibold text-horizon-dark">{fmtCurrency(gap.amount)}</span>
             </div>
           ))}
         </div>
       ) : (
-        <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-3 text-sm font-bold text-emerald-800">
+        <div className="rounded-2xl border border-positive bg-positive-bg p-3 text-sm font-semibold text-positive">
           <CheckCircle2 size={14} className="inline" /> Charges métier alignées avec Finances et Comptabilité.
         </div>
       )}
@@ -109,11 +109,11 @@ export default function BusinessChargeSyncPanel(props) {
 }
 
 function Metric({ label, value, warn = false, good = false }) {
-  const cls = warn ? 'border-amber-200 bg-amber-50 text-amber-800' : good ? 'border-emerald-200 bg-emerald-50 text-emerald-800' : 'border-[#eadcc2] bg-[#fffdf8] text-[#2f2415]';
+  const cls = warn ? 'border-vigilance bg-vigilance-bg text-horizon-dark' : good ? 'border-positive bg-positive-bg text-positive' : 'border-line bg-card text-earth';
   return (
     <div className={`rounded-2xl border p-4 ${cls}`}>
-      <p className="text-xs uppercase tracking-wide opacity-80">{label}</p>
-      <p className="mt-2 text-xl font-black">{value}</p>
+      <p className="text-xs uppercase tracking-normal opacity-80">{label}</p>
+      <p className="mt-2 text-xl font-semibold">{value}</p>
     </div>
   );
 }

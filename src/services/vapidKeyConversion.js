@@ -15,8 +15,6 @@ export function vapidPublicKeyBase64ToUint8Array(base64String = '') {
   }
 
   // Browser fallback
-  // eslint-disable-next-line no-undef
   const binary = window.atob(base64);
   return Uint8Array.from([...binary].map((c) => c.charCodeAt(0)));
 }
-

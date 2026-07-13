@@ -43,7 +43,7 @@ export const TECHNICAL_STANDARDS = {
   ruminants: { dewormingMinDays: 90, dewormingMaxDays: 180, waterMinL: 40, waterMaxL: 100, hayCoverageDays: 30 },
 };
 
-export function buildAvicoleTechnicalAlerts({ lots = [], stocks = [], businessEvents = [], sensorDevices = [] } = {}) {
+export function buildAvicoleTechnicalAlerts({ lots = [], stocks = [], businessEvents = [] } = {}) {
   const alerts = [];
   const disinfectantStock = stockTotal(stocks, ['pediluve', 'desinfect', 'désinfect', 'biosécur', 'biosecur']);
   const beddingStock = stockTotal(stocks, ['copeaux', 'litiere', 'litière']);
@@ -86,7 +86,7 @@ export function buildAvicoleTechnicalAlerts({ lots = [], stocks = [], businessEv
   return alerts;
 }
 
-export function buildAnimalTechnicalAlerts({ animaux = [], stocks = [], sante = [], businessEvents = [] } = {}) {
+export function buildAnimalTechnicalAlerts({ animaux = [], stocks = [], businessEvents = [] } = {}) {
   const alerts = [];
   const forageStock = stockTotal(stocks, ['foin', 'ensilage', 'fourrage', 'paille']);
   arr(animaux).forEach((animal) => {

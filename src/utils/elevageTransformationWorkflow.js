@@ -7,7 +7,7 @@ import { toNumber } from './format.js';
 import { buildMeatStockPayload } from '../services/livestockStockBridge.js';
 import { calculateUnifiedAnimalCost, calculateUnifiedLotCost } from '../services/unifiedCostService.js';
 import { avicoleActiveCount, avicoleDeadCount } from './avicoleMetrics.js';
-import { applyStockMovement, stockQuantity } from './stockWorkflows.js';
+import { stockQuantity } from './stockWorkflows.js';
 import {
   blockSanitaryAction,
   findActiveWithdrawals,
@@ -18,7 +18,6 @@ import {
   ELEVAGE_DOMAINS,
 } from './elevageWorkflow.js';
 import { resolveElevageLogFarmId, stampElevageLogFarmId } from './elevageFarmScope.js';
-import { emitBovinCoproductSideEffects, isBovinAnimal } from '../services/greenpreneurs/bovinCoproductWorkflow.js';
 
 const arr = (value) => (Array.isArray(value) ? value : []);
 const clean = (value) => String(value || '').trim();
@@ -230,6 +229,13 @@ async function upsertMeatStock({
   const delta = num(quantityDelta);
   if (!delta || delta <= 0) return { stockId: '', created: false };
 
+  const existingTransformationStock = arr(stocks).find((row) =>
+    clean(row.linked_transformation_id) === clean(transformationId),
+  );
+  if (existingTransformationStock) {
+    return { stockId: existingTransformationStock.id, created: false, replayed: true };
+  }
+
   const existing = arr(stocks).find((row) =>
     stockKey(row.produit, row.source_record_id || row.origine_id) === stockKey(produit, sourceRecordId),
   );
@@ -287,6 +293,10 @@ export function validateOfficialTransformationForm(form = {}) {
   if (!clean(form.animal_id) && !clean(form.lot_id)) return 'Animal ou lot obligatoire.';
   if (!clean(form.transform_type)) return 'Type de transformation obligatoire.';
   if (!form.confirmed) return 'Confirmation humaine obligatoire avant validation.';
+  if (form.sanitary_override && !clean(form.sanitary_override_reason)) {
+    return 'Justification obligatoire pour une dérogation sanitaire.';
+  }
+  if (!clean(form.date)) return 'Date réelle obligatoire.';
   const profile = getTransformTypeProfile(form.transform_type);
   const qty = num(form.quantite_produit || form.poids_carcasse);
   if (profile.show.poids_carcasse && form.destination !== 'perte' && form.create_stock && qty <= 0) {
@@ -300,9 +310,6 @@ export function validateOfficialTransformationForm(form = {}) {
   }
   if (form.transform_type === 'mortalite_animal' && !clean(form.animal_id)) {
     return 'Animal obligatoire pour mortalité individuelle.';
-  }
-  if (form.sanitary_override && !clean(form.sanitary_override_reason)) {
-    return 'Justification obligatoire pour une dérogation sanitaire.';
   }
   return '';
 }
@@ -322,6 +329,8 @@ export async function commitOfficialTransformation({
   const lotId = clean(form.lot_id);
   const animal = animalId ? arr(context.animaux).find((a) => clean(a.id) === animalId) : null;
   const lot = lotId ? arr(context.lots).find((l) => clean(l.id) === lotId) : null;
+  if (animalId && !animal) throw new Error('Animal introuvable.');
+  if (lotId && !lot) throw new Error('Lot introuvable.');
 
   if (!form.sanitary_override) {
     const block = blockSanitaryAction({
@@ -333,11 +342,31 @@ export async function commitOfficialTransformation({
     if (block.blocked) throw new Error(block.message);
   }
 
-  const transformId = clean(form.id) || makeId('TRF');
+  const requestedEventKey = clean(form.event_key || form.issue_key || form.idempotency_key);
+  const transformId = clean(form.id || form.transformation_id)
+    || (requestedEventKey ? requestedEventKey.replace(/[^a-z0-9_-]+/gi, '-').slice(-72) : makeId('TRF'));
   const transformType = clean(form.transform_type) || 'abattage';
   const date = form.date || today();
-  const issueKey = buildElevageIssueKey(ELEVAGE_DOMAINS.TRANSFORM, transformId, transformType);
+  const issueKey = requestedEventKey || buildElevageIssueKey(ELEVAGE_DOMAINS.TRANSFORM, transformId, transformType);
   const farmId = resolveElevageLogFarmId({ form, context });
+  const existingEvent = arr(context.businessEvents).find((event) =>
+    [event.event_key, event.issue_key, event.idempotency_key].some((key) => clean(key) === issueKey),
+  );
+  if (existingEvent) {
+    const existingStock = arr(context.stocks).find((stock) => clean(stock.linked_transformation_id) === transformId);
+    return {
+      ok: true,
+      replayed: true,
+      transformId,
+      issueKey,
+      stockId: existingStock?.id || clean(existingEvent.stock_id),
+      stockCreated: false,
+      costing: null,
+      record: existingEvent,
+      commercialBlocked: false,
+      prixPlancher: null,
+    };
+  }
 
   const costing = computeTransformationCosting({
     form,
@@ -371,7 +400,7 @@ export async function commitOfficialTransformation({
     kind: transformType,
     animal_id: animalId,
     lot_id: lotId,
-    source_type: animalId ? 'animal' : 'lot_avicole',
+    source_entity_type: animalId ? 'animal' : 'lot_avicole',
     effectif,
     poids_vif: num(form.poids_vif),
     poids_carcasse: poidsCarcasse,
@@ -398,6 +427,8 @@ export async function commitOfficialTransformation({
     sanitary_override: Boolean(form.sanitary_override),
     sanitary_override_reason: clean(form.sanitary_override_reason),
     issue_key: issueKey,
+    event_key: issueKey,
+    idempotency_key: issueKey,
     source_module: 'elevage',
     source_type: 'transformation',
     side_effects_managed: true,
@@ -405,7 +436,7 @@ export async function commitOfficialTransformation({
   }, farmId);
 
   const eventPayload = {
-    id: makeId('EVT'),
+    id: `EVT-TRF-${transformId}`,
     event_type: `transformation_${transformType}`,
     module_source: 'elevage',
     entity_type: lotId ? 'lot_avicole' : 'animal',
@@ -420,15 +451,15 @@ export async function commitOfficialTransformation({
     cout: costing.totalCost,
     cout_revient_viande_kg: costing.costPerKg,
     issue_key: issueKey,
+    event_key: issueKey,
+    idempotency_key: issueKey,
     farm_id: farmId,
     side_effects_managed: true,
     sanitary_override: record.sanitary_override,
     sanitary_override_reason: record.sanitary_override_reason,
   };
 
-  if (handlers.onCreateBusinessEvent) await handlers.onCreateBusinessEvent(eventPayload);
-
-  if (lotId && handlers.onUpdateLot) {
+  if (lotId && handlers.onUpdateLot && clean(lot?.last_transformation_id) !== transformId) {
     if (transformType === 'mortalite_lot') {
       const qty = Math.max(1, num(form.effectif) || 1);
       const prevDead = avicoleDeadCount(lot);
@@ -448,6 +479,7 @@ export async function commitOfficialTransformation({
         statut: nextActive === 0 ? 'perdu_mortalite' : (lot.statut || 'actif'),
         valeur_perte_estimee: num(lot.valeur_perte_estimee) + economicLoss,
         perte_estimee: num(lot.valeur_perte_estimee) + economicLoss,
+        last_transformation_id: transformId,
       });
     } else {
     const nextActive = Math.max(0, avicoleActiveCount(lot) - (effectif || avicoleActiveCount(lot)));
@@ -467,11 +499,12 @@ export async function commitOfficialTransformation({
       date_sortie: date,
       last_slaughter_date: date,
       cout_revient_viande_kg: costing.costPerKg,
+      last_transformation_id: transformId,
     });
     }
   }
 
-  if (animalId && handlers.onUpdateAnimal) {
+  if (animalId && handlers.onUpdateAnimal && clean(animal?.last_transformation_id) !== transformId) {
     if (transformType === 'mortalite_animal') {
       await handlers.onUpdateAnimal(animalId, {
         status: 'mort',
@@ -479,6 +512,7 @@ export async function commitOfficialTransformation({
         date_sortie: date,
         date_deces: date,
         cause_deces: clean(form.notes) || '',
+        last_transformation_id: transformId,
       });
     } else {
     const animalStatus = transformType === 'abattage' || transformType === 'reforme' ? 'abattu' : 'pret_vente';
@@ -490,32 +524,9 @@ export async function commitOfficialTransformation({
       poids_carcasse: poidsCarcasse,
       produit_stock: produitNom,
       cout_revient_viande_kg: costing.costPerKg,
+      last_transformation_id: transformId,
     });
 
-    if (isBovinAnimal(animal) && (transformType === 'abattage' || transformType === 'reforme')) {
-      await emitBovinCoproductSideEffects({
-        animal: { ...animal, poids_carcasse: poidsCarcasse || animal?.poids_carcasse },
-        animalId,
-        date,
-        handlers: {
-          onCreateBusinessEvent: handlers.onCreateBusinessEvent,
-          onCreateStock: handlers.onCreateStock,
-          onUpdateStock: handlers.onUpdateStock,
-          onCreateOpportunity: handlers.onCreateOpportunity,
-          onRefreshOpportunities: handlers.onRefreshOpportunities,
-          onRefreshBusinessEvents: handlers.onRefreshBusinessEvents,
-        },
-        context: {
-          stocks: context.stocks || [],
-          businessEvents: context.businessEvents || [],
-          opportunities: context.opportunities || [],
-        },
-        relatedId: transformId,
-        issueKey,
-        farmId,
-        sourceType: 'erp_real',
-      });
-    }
     }
   }
 
@@ -545,9 +556,43 @@ export async function commitOfficialTransformation({
           source_module: 'elevage',
           source_record_id: lotId || animalId,
           issue_key: issueKey,
+          event_key: `${issueKey}:loss`,
+          idempotency_key: `${issueKey}:loss`,
           side_effects_managed: true,
+          cash_effect: false,
+          source_type: 'perte_technique',
         }, farmId));
       }
+    }
+  }
+
+  if (costing.transformFees > 0 && handlers.onCreateFinanceTransaction) {
+    const financeId = `ALLOC-TRF-${transformId}`;
+    const exists = arr(context.transactions).some((transaction) =>
+      clean(transaction.id) === financeId
+      || clean(transaction.event_key) === `${issueKey}:cost`,
+    );
+    if (!exists) {
+      await handlers.onCreateFinanceTransaction(stampElevageLogFarmId({
+        id: financeId,
+        type: 'sortie',
+        libelle: `Coûts transformation ${produitNom}`,
+        montant: costing.transformFees,
+        amount: costing.transformFees,
+        date,
+        categorie: 'Transformation',
+        activite: 'elevage',
+        module_lie: 'elevage',
+        source_module: 'elevage',
+        source_record_id: transformId,
+        linked_transformation_id: transformId,
+        issue_key: issueKey,
+        event_key: `${issueKey}:cost`,
+        idempotency_key: `${issueKey}:cost`,
+        cash_effect: false,
+        source_type: 'allocation_transformation',
+        side_effects_managed: true,
+      }, farmId));
     }
   }
 
@@ -577,9 +622,14 @@ export async function commitOfficialTransformation({
     stockId = stockResult.stockId || '';
     stockCreated = stockResult.created;
 
-    if (stockId && handlers.onCreateStockMovement) {
+    const movementId = `MVT-TRF-${transformId}`;
+    const movementExists = arr(context.stockMovements).some((movement) =>
+      clean(movement.id) === movementId
+      || clean(movement.event_key) === `${issueKey}:stock`,
+    );
+    if (stockId && handlers.onCreateStockMovement && !movementExists) {
       await handlers.onCreateStockMovement({
-        id: makeId('MVT'),
+        id: movementId,
         stock_id: stockId,
         type: 'entree',
         quantite: poidsCarcasse,
@@ -590,6 +640,8 @@ export async function commitOfficialTransformation({
         source_type: 'transformation',
         source_record_id: transformId,
         issue_key: issueKey,
+        event_key: `${issueKey}:stock`,
+        idempotency_key: `${issueKey}:stock`,
         farm_id: farmId,
       });
     }
@@ -597,12 +649,16 @@ export async function commitOfficialTransformation({
 
   const proofUrl = clean(form.preuve_url || form.certificat_url);
   const photoData = clean(form.preuve_photo_data);
-  if ((proofUrl || photoData) && handlers.onCreateDocument) {
+  const documentExists = arr(context.documents).some((document) =>
+    clean(document.event_key) === `${issueKey}:document`
+    || clean(document.linked_transformation_id) === transformId,
+  );
+  if ((proofUrl || photoData) && handlers.onCreateDocument && !documentExists) {
     const docCategory = /certificat|sanitaire/i.test(form.preuve_type || '')
       ? 'certificat_sanitaire'
       : 'transformation';
     await handlers.onCreateDocument({
-      id: makeId('DOC'),
+      id: `DOC-TRF-${transformId}`,
       title: clean(form.document_title) || `Transformation ${transformType}`,
       document_category: docCategory,
       module_source: 'elevage',
@@ -614,6 +670,9 @@ export async function commitOfficialTransformation({
       file_url: proofUrl || '',
       preuve_photo_data: photoData || '',
       issue_key: issueKey,
+      event_key: `${issueKey}:document`,
+      idempotency_key: `${issueKey}:document`,
+      linked_transformation_id: transformId,
       farm_id: farmId,
       side_effects_managed: true,
       created_from: 'transformation_official',
@@ -626,8 +685,16 @@ export async function commitOfficialTransformation({
     || (lotId && clean(row.lot_id) === lotId),
   );
 
+  eventPayload.stock_id = stockId;
+  eventPayload.statut_sanitaire = sanitaryActive
+    ? (form.sanitary_override ? 'derogation_tracee' : 'delai_actif')
+    : 'conforme';
+  record.statut_sanitaire = eventPayload.statut_sanitaire;
+  if (handlers.onCreateBusinessEvent) await handlers.onCreateBusinessEvent(eventPayload);
+
   return {
     ok: true,
+    replayed: false,
     transformId,
     issueKey,
     stockId,

@@ -54,7 +54,7 @@ test('Activité & Suivi — onglet contrôlé Cockpit', async () => {
   assert.doesNotMatch(html, /ERREUR MODULE|is not defined/i);
 });
 
-test('Documents & Rapports — onglet contrôlé Centre de contrôle', async () => {
+test('Documents & Rapports — onglet contrôlé Archives', async () => {
   const mod = await import('../../src/modules/DocumentsRapportsModule.jsx');
   const html = renderToString(
     React.createElement(AuthProvider, null, React.createElement(AppProvider, null, React.createElement(mod.default, {
@@ -63,26 +63,26 @@ test('Documents & Rapports — onglet contrôlé Centre de contrôle', async () 
       onTabChange: () => {},
     }))),
   );
-  assert.match(html, /Documents|Centre de contrôle|Santé docs/i);
+  assert.match(html, /Documents|Archives immuables/i);
   assert.doesNotMatch(html, /ERREUR MODULE|is not defined/i);
 });
 
-test('RH — onglet contrôlé Cockpit', async () => {
-  const mod = await import('../../src/modules/OperationsRessourcesRecoveredModule.jsx');
+test('Équipe — onglet contrôlé Vue d’ensemble', async () => {
+  const mod = await import('../../src/modules/EquipeV1Module.jsx');
   const html = renderToString(
     React.createElement(AuthProvider, null, React.createElement(AppProvider, null, React.createElement(mod.default, {
       ...sharedSeed,
       equipements: horizonFarmSimulationSeed.equipements || [],
-      initialTab: 'Cockpit RH & Maintenance',
+      initialTab: 'Vue d’ensemble',
       onTabChange: () => {},
     }))),
   );
-  assert.match(html, /Opérations & Ressources|Santé RH/i);
+  assert.match(html, /Équipe|Organisation opérationnelle/i);
   assert.doesNotMatch(html, /ERREUR MODULE|is not defined/i);
 });
 
 test('alias legacy — Résumé vers onglets canoniques', () => {
-  assert.equal(resolveActiviteSuiviTab('Résumé'), 'Cockpit & décisions');
-  assert.equal(resolveDocumentsTab('Résumé'), 'Centre de contrôle');
-  assert.equal(resolveRhTab('Résumé'), 'Cockpit RH & Maintenance');
+  assert.equal(resolveActiviteSuiviTab('Résumé'), 'ActiviteAlertsView');
+  assert.equal(resolveDocumentsTab('Résumé'), 'ReportsArchivesView');
+  assert.equal(resolveRhTab('Résumé'), 'TeamOverviewView');
 });

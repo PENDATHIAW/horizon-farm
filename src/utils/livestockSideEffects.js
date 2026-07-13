@@ -4,7 +4,7 @@ import { attachIdempotency, buildIdempotencyKey, findByRecordId, WORKFLOW_TYPES 
 const today = () => new Date().toISOString().slice(0, 10);
 const clean = (value) => String(value || '').trim();
 
-export function buildMortalityEvent({ lot = {}, before = {}, after = {}, source = 'modification lot avicole', delta = 0 } = {}) {
+export function buildMortalityEvent({ lot = {}, before: _before = {}, after = {}, source = 'modification lot avicole', delta = 0 } = {}) {
   const lotId = clean(lot.id || after.id);
   const date = today();
   const eventId = eventIds.mortality(lotId, date, delta || 'delta');

@@ -33,7 +33,6 @@ function formatHealthLabel(data = {}) {
 
 export default function VisionPrioritiesTab({
   data,
-  dataMap = {},
   moduleId = 'centre_ia',
   setTab,
   onNavigate,
@@ -58,7 +57,7 @@ export default function VisionPrioritiesTab({
   );
   const compactRows = useMemo(
     () => dedupeByTitle(data.priorities, COMPACT_LIMIT),
-    [data.priorities, compact],
+    [data.priorities],
   );
   const openOpps = data.openOpportunities?.length ?? 0;
   const totalPriorities = data.priorities?.length || 0;
@@ -131,21 +130,21 @@ export default function VisionPrioritiesTab({
 
   if (compact) {
     const treasury = data.treasuryResult ?? data.balance;
-    const treasuryTone = treasury >= 0 ? 'text-emerald-800' : 'text-red-800';
+    const treasuryTone = treasury >= 0 ? 'text-positive' : 'text-urgent';
 
     return (
       <div className="space-y-4">
-        <section className="rounded-2xl border border-[#d6c3a0] bg-white px-4 py-3 text-sm flex flex-wrap items-center gap-x-4 gap-y-2">
-          <span className="font-black text-[#2f2415]">{totalPriorities} action{totalPriorities > 1 ? 's' : ''} à traiter</span>
-          <span className="text-[#8a7456]">Santé <b className="text-[#2f2415]">{healthLabel}</b></span>
+        <section className="rounded-2xl border border-line bg-white px-4 py-3 text-sm flex flex-wrap items-center gap-x-4 gap-y-2">
+          <span className="font-semibold text-earth">{totalPriorities} action{totalPriorities > 1 ? 's' : ''} à traiter</span>
+          <span className="text-slate">Santé <b className="text-earth">{healthLabel}</b></span>
           <span className={treasuryTone}>Trésorerie <b>{fmtCurrency(treasury)}</b></span>
           {onNavigate ? (
-            <button type="button" onClick={() => onNavigate('activite_suivi', { tab: 'Tâches' })} className="text-xs font-black text-[#9a6b12] underline">
+            <button type="button" onClick={() => onNavigate('activite_suivi', { tab: 'Tâches' })} className="text-xs font-semibold text-horizon-dark underline">
               Activité & Suivi
             </button>
           ) : null}
           {totalPriorities > COMPACT_LIMIT && setTab ? (
-            <button type="button" onClick={() => setTab('Croissance & opportunités')} className="text-xs font-black text-[#9a6b12] flex items-center gap-1">
+            <button type="button" onClick={() => setTab('Croissance & opportunités')} className="text-xs font-semibold text-horizon-dark flex items-center gap-1">
               Voir croissance <ChevronRight size={12} />
             </button>
           ) : null}
@@ -164,12 +163,12 @@ export default function VisionPrioritiesTab({
                   onClick={() => r.isEngine ? navigateVisionFinding(onNavigate, r.finding) : openVisionPriority(r, moduleId, { setTab, onNavigate })}
                   actions={<>
                     {r.isEngine ? (
-                      <button type="button" disabled={busyId === r.id} onClick={() => applyFinding(r)} className="rounded-lg bg-[#22c55e] px-2 py-1 text-xs font-black text-[#052e16] disabled:opacity-50">
+                      <button type="button" disabled={busyId === r.id} onClick={() => applyFinding(r)} className="rounded-lg bg-leaf px-2 py-1 text-xs font-semibold text-earth disabled:opacity-50">
                         {busyId === r.id ? '…' : 'Appliquer'}
                       </button>
                     ) : null}
-                    <button type="button" onClick={() => r.isEngine ? navigateVisionFinding(onNavigate, r.finding) : navFromItem(onNavigate, r)} className="rounded-lg border border-[#d6c3a0] px-2 py-1 text-xs font-black">Ouvrir</button>
-                    {!r.isEngine && onCreateTask ? <button type="button" onClick={() => createTask(r)} className="rounded-lg border border-emerald-300 px-2 py-1 text-xs font-black text-emerald-700">Tâche</button> : null}
+                    <button type="button" onClick={() => r.isEngine ? navigateVisionFinding(onNavigate, r.finding) : navFromItem(onNavigate, r)} className="rounded-lg border border-line px-2 py-1 text-xs font-semibold">Ouvrir</button>
+                    {!r.isEngine && onCreateTask ? <button type="button" onClick={() => createTask(r)} className="rounded-lg border border-positive px-2 py-1 text-xs font-semibold text-positive">Tâche</button> : null}
                   </>}
                 />
               ))}
@@ -183,7 +182,7 @@ export default function VisionPrioritiesTab({
   }
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-6">
       <TabIntro
         title="Priorités actionnables"
         detail={data.periodLabel ? `Lecture financière sur ${data.periodLabel} — créances sur l'historique complet.` : 'Signaux d’analyse et alertes terrain à traiter en priorité.'}
@@ -208,10 +207,10 @@ export default function VisionPrioritiesTab({
                 tone={r.tone}
                 onClick={() => navigateVisionFinding(onNavigate, r.finding)}
                 actions={<>
-                  <button type="button" disabled={busyId === r.id} onClick={() => applyFinding(r)} className="rounded-lg bg-[#22c55e] px-2 py-1 text-xs font-black text-[#052e16] disabled:opacity-50">
+                  <button type="button" disabled={busyId === r.id} onClick={() => applyFinding(r)} className="rounded-lg bg-leaf px-2 py-1 text-xs font-semibold text-earth disabled:opacity-50">
                     {busyId === r.id ? '…' : r.finding?.auto_action === 'create_task' ? 'Créer tâche' : r.finding?.auto_action === 'create_alert' ? 'Créer alerte' : 'Appliquer'}
                   </button>
-                  <button type="button" onClick={() => navigateVisionFinding(onNavigate, r.finding)} className="rounded-lg border border-[#d6c3a0] px-2 py-1 text-xs font-black">Voir source</button>
+                  <button type="button" onClick={() => navigateVisionFinding(onNavigate, r.finding)} className="rounded-lg border border-line px-2 py-1 text-xs font-semibold">Voir source</button>
                 </>}
               />
             ))}
@@ -230,10 +229,10 @@ export default function VisionPrioritiesTab({
                 tone={r.tone}
                 onClick={() => openVisionPriority(r, moduleId, { setTab, onNavigate })}
                 actions={<>
-                  <button type="button" onClick={() => navFromItem(onNavigate, r)} className="rounded-lg border border-[#d6c3a0] px-2 py-1 text-xs font-black">Voir source</button>
-                  {onCreateTask ? <button type="button" onClick={() => createTask(r)} className="rounded-lg border border-emerald-300 px-2 py-1 text-xs font-black text-emerald-700">Tâche</button> : null}
-                  {onCreateAlert ? <button type="button" onClick={() => createAlert(r)} className="rounded-lg border border-amber-300 px-2 py-1 text-xs font-black text-amber-700">Alerte</button> : null}
-                  <button type="button" onClick={() => markTreated(r)} className="rounded-lg border border-[#d6c3a0] px-2 py-1 text-xs font-black">Traité</button>
+                  <button type="button" onClick={() => navFromItem(onNavigate, r)} className="rounded-lg border border-line px-2 py-1 text-xs font-semibold">Voir source</button>
+                  {onCreateTask ? <button type="button" onClick={() => createTask(r)} className="rounded-lg border border-positive px-2 py-1 text-xs font-semibold text-positive">Tâche</button> : null}
+                  {onCreateAlert ? <button type="button" onClick={() => createAlert(r)} className="rounded-lg border border-vigilance px-2 py-1 text-xs font-semibold text-horizon-dark">Alerte</button> : null}
+                  <button type="button" onClick={() => markTreated(r)} className="rounded-lg border border-line px-2 py-1 text-xs font-semibold">Traité</button>
                 </>}
               />
             ))}

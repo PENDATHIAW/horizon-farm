@@ -293,7 +293,7 @@ function sumEggsInWindow(logs = [], daysBack = 7) {
   return { recent, previous, delta: previous > 0 ? Math.round(((recent - previous) / previous) * 100) : (recent > 0 ? 100 : 0) };
 }
 
-function buildOperationalSignals({ topics, context = {}, labels = [], last, prev, unit, delta, trend, seriesName = '' }) {
+function buildOperationalSignals({ topics, context = {}, last, prev, unit, delta, trend, seriesName = '' }) {
   const signals = [];
   const push = (signal) => {
     if (signal?.label) signals.push(signal);
@@ -457,7 +457,6 @@ export function explainChartCurve({
   unit = '',
   primarySeriesName = '',
   periodLabel = 'la période affichée',
-  moduleId = '',
   context = {},
 } = {}) {
   const primary = pickPrimarySeries(series, primarySeriesName);

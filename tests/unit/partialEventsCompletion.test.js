@@ -141,7 +141,13 @@ test('irrigation_event — consomme Smart Farm, impacte coût parcelle et alerte
   assert.equal(workflow.culturePatch.irrigation_history[0].volume_litres, 1400);
   assert.match(workflow.alert.title, /Consommation eau anormale/);
   assert.ok(workflow.task);
-  assert.equal(workflow.financeTransaction.montant, 2800);
+  assert.equal(workflow.financeTransaction, null);
+  assert.deepEqual(workflow.costAllocation, {
+    type: 'cout_technique',
+    source_type: 'irrigation_estimee',
+    amount: 2800,
+    cash_effect: false,
+  });
   assert.equal(workflow.event.event_type, 'irrigation_event');
   assert.equal(workflow.event.smartfarm_source_id, 'READ-EAU-1');
 });

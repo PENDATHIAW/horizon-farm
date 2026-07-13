@@ -3,7 +3,6 @@ import { useMemo } from 'react';
 import toast from 'react-hot-toast';
 import {
   BP_LINE_STATUS_OPTIONS,
-  bpCostAmount,
   bpCostLabel,
   BP_LINE_STATUS,
   bpCostPlannedAmount,
@@ -88,10 +87,10 @@ export function BpDistributionNav({
   ];
 
   return (
-    <section className="rounded-3xl border border-[#d6c3a0] bg-gradient-to-br from-[#fffdf8] to-white p-5 shadow-sm space-y-3">
+    <section className="rounded-3xl border border-line bg-card p-6 shadow-card space-y-3">
       <div>
-        <p className="text-xs font-black uppercase tracking-widest text-[#8a7456]">Répartition BP visible</p>
-        <p className="mt-1 text-sm text-[#7d6a4a]">
+        <p className="text-xs font-semibold uppercase tracking-normal text-slate">Répartition BP visible</p>
+        <p className="mt-1 text-sm text-slate">
           Investissements = lignes actionnables uniquement. Charges, financements et prévisions ont leurs onglets dédiés ci-dessous.
         </p>
       </div>
@@ -107,19 +106,19 @@ export function BpDistributionNav({
               }
               onSelectTab?.(card.tab);
             }}
-            className="rounded-2xl border border-[#eadcc2] bg-white p-4 text-left hover:border-[#2f2415]/40 transition-colors"
+            className="rounded-2xl border border-line bg-white p-4 text-left hover:border-earth/40 transition-colors"
           >
-            <p className="font-black text-[#2f2415] text-sm">{card.title}</p>
-            <p className="mt-1 text-[11px] text-[#8a7456] leading-snug">{card.subtitle}</p>
-            <p className="mt-2 text-xs font-bold text-emerald-800">{card.stat}</p>
-            <span className="mt-2 inline-flex items-center gap-1 text-[10px] font-black text-[#2f2415]">
+            <p className="font-semibold text-earth text-sm">{card.title}</p>
+            <p className="mt-1 text-meta text-slate leading-snug">{card.subtitle}</p>
+            <p className="mt-2 text-xs font-semibold text-positive">{card.stat}</p>
+            <span className="mt-2 inline-flex items-center gap-1 text-meta font-semibold text-earth">
               {card.external ? 'Ouvrir Documents' : 'Voir l’onglet'}
               <ArrowRight size={12} />
             </span>
           </button>
         ))}
       </div>
-      <p className="text-[11px] text-[#8a7456] flex items-center gap-1">
+      <p className="text-meta text-slate flex items-center gap-1">
         <FileText size={12} />
         Actions disponibles sur chaque ligne : Concrétiser · Compléter · Joindre preuve · Voir opération — menu « … » pour réparer une liaison exceptionnelle.
       </p>
@@ -132,14 +131,14 @@ export function InvestmentsInvestorBridge({ onNavigate, ...props }) {
   const summary = useMemo(() => getInvestorReadySummary(buildCoreDataMap(props)), [props]);
 
   return (
-    <div className="rounded-3xl border border-[#d6c3a0] bg-gradient-to-br from-[#fffdf8] to-white p-5 shadow-sm">
+    <div className="rounded-3xl border border-line bg-card p-6 shadow-card">
       <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
         <div>
-          <p className="flex items-center gap-2 text-xs font-black uppercase tracking-widest text-[#8a7456]">
+          <p className="flex items-center gap-2 text-xs font-semibold uppercase tracking-normal text-slate">
             <Handshake size={14} />
             Dossier investisseur / financeur
           </p>
-          <p className="mt-1 text-sm text-[#7d6a4a] leading-relaxed">
+          <p className="mt-1 text-sm text-slate leading-relaxed">
             Le BP et les lignes actionnables restent ici. Le pack présentable (banque, subvention, événement) est dans
             {' '}
             <b>Financements</b>
@@ -147,15 +146,15 @@ export function InvestmentsInvestorBridge({ onNavigate, ...props }) {
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-3">
-          <div className="rounded-2xl border border-[#eadcc2] bg-white px-4 py-3 text-center min-w-[120px]">
-            <p className="text-[10px] uppercase font-black text-[#8a7456]">Préparation dossier</p>
-            <p className="text-2xl font-black text-[#2f2415]">{summary.readiness_score}%</p>
-            <p className="text-xs text-[#8a7456]">{summary.readiness_label}</p>
+          <div className="rounded-2xl border border-line bg-white px-4 py-3 text-center min-w-[120px]">
+            <p className="text-meta uppercase font-semibold text-slate">Préparation dossier</p>
+            <p className="text-2xl font-semibold text-earth">{summary.readiness_score}%</p>
+            <p className="text-xs text-slate">{summary.readiness_label}</p>
           </div>
           <button
             type="button"
             onClick={() => onNavigate?.('financements')}
-            className="inline-flex min-h-[44px] items-center gap-2 rounded-2xl bg-[#2f2415] px-4 py-2 text-sm font-black text-white hover:bg-[#3d2f1d]"
+            className="inline-flex min-h-[44px] items-center gap-2 rounded-2xl bg-earth px-4 py-2 text-sm font-semibold text-white hover:bg-earth"
           >
             Ouvrir Financements
             <ArrowRight size={16} />
@@ -163,14 +162,14 @@ export function InvestmentsInvestorBridge({ onNavigate, ...props }) {
         </div>
       </div>
       {summary.gaps?.length ? (
-        <ul className="mt-3 text-xs text-amber-900 space-y-1 rounded-2xl border border-amber-200 bg-amber-50 p-3">
+        <ul className="mt-3 text-xs text-horizon-dark space-y-1 rounded-2xl border border-vigilance bg-vigilance-bg p-3">
           {summary.gaps.slice(0, 4).map((g) => (
             <li key={g}>• {g}</li>
           ))}
           {summary.gaps.length > 4 ? <li>• + {summary.gaps.length - 4} autre(s) point(s)</li> : null}
         </ul>
       ) : (
-        <p className="mt-3 text-xs text-emerald-800 rounded-2xl border border-emerald-200 bg-emerald-50 p-3">
+        <p className="mt-3 text-xs text-positive rounded-2xl border border-positive bg-positive-bg p-3">
           Dossier cohérent côté ERP — vous pouvez générer le pack financeur depuis Financements.
         </p>
       )}
@@ -191,44 +190,44 @@ export function BpFundingFinanceurPanel({ bpFundingSources = [], besoinsTotal = 
   const amort = official.amortization || {};
 
   return (
-    <section className="rounded-3xl border border-[#d6c3a0] bg-white p-5 shadow-sm space-y-4">
+    <section className="rounded-3xl border border-line bg-white p-6 shadow-card space-y-4">
       <div>
-        <p className="flex items-center gap-2 text-lg font-black text-[#2f2415]">
+        <p className="flex items-center gap-2 text-lg font-semibold text-earth">
           <Landmark size={20} />
           Financement & scénario financeur
         </p>
-        <p className="mt-1 text-sm text-[#8a7456]">Ressources du BP officiel Horizon Farm — à croiser avec le dossier investisseur.</p>
+        <p className="mt-1 text-sm text-slate">Ressources du BP officiel Horizon Farm — à croiser avec le dossier investisseur.</p>
       </div>
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-        <div className="rounded-2xl border border-[#eadcc2] bg-[#fffdf8] p-4">
-          <p className="text-xs text-[#8a7456]">Besoins démarrage</p>
-          <p className="mt-1 text-lg font-black text-[#2f2415]">{fmtCurrency(besoins)}</p>
+        <div className="rounded-2xl border border-line bg-card p-4">
+          <p className="text-xs text-slate">Besoins démarrage</p>
+          <p className="mt-1 text-lg font-semibold text-earth">{fmtCurrency(besoins)}</p>
         </div>
-        <div className="rounded-2xl border border-[#eadcc2] bg-[#fffdf8] p-4">
-          <p className="text-xs text-[#8a7456]">Ressources déclarées</p>
-          <p className="mt-1 text-lg font-black text-emerald-700">{fmtCurrency(ressourcesTotal)}</p>
+        <div className="rounded-2xl border border-line bg-card p-4">
+          <p className="text-xs text-slate">Ressources déclarées</p>
+          <p className="mt-1 text-lg font-semibold text-positive">{fmtCurrency(ressourcesTotal)}</p>
         </div>
-        <div className="rounded-2xl border border-[#eadcc2] bg-[#fffdf8] p-4">
-          <p className="text-xs text-[#8a7456]">Écart besoins / ressources</p>
-          <p className={`mt-1 text-lg font-black ${ecart === 0 ? 'text-emerald-700' : 'text-amber-700'}`}>{fmtCurrency(ecart)}</p>
+        <div className="rounded-2xl border border-line bg-card p-4">
+          <p className="text-xs text-slate">Écart besoins / ressources</p>
+          <p className={`mt-1 text-lg font-semibold ${ecart === 0 ? 'text-positive' : 'text-horizon-dark'}`}>{fmtCurrency(ecart)}</p>
         </div>
-        <div className="rounded-2xl border border-[#eadcc2] bg-[#fffdf8] p-4">
-          <p className="text-xs text-[#8a7456]">Amortissement ({amort.years || 2} ans)</p>
-          <p className="mt-1 text-lg font-black text-[#2f2415]">{fmtCurrency(amort.amortizableAmount)}</p>
+        <div className="rounded-2xl border border-line bg-card p-4">
+          <p className="text-xs text-slate">Amortissement ({amort.years || 2} ans)</p>
+          <p className="mt-1 text-lg font-semibold text-earth">{fmtCurrency(amort.amortizableAmount)}</p>
         </div>
       </div>
-      <div className="overflow-x-auto rounded-2xl border border-[#eadcc2]">
+      <div className="overflow-x-auto rounded-2xl border border-line">
         <table className="w-full min-w-[520px] text-sm">
           <thead>
-            <tr className="bg-[#fffdf8] text-left text-xs uppercase text-[#8a7456]">
+            <tr className="bg-card text-left text-xs uppercase text-slate">
               <th className="px-3 py-2">Source</th>
               <th className="px-3 py-2 text-right">Montant</th>
             </tr>
           </thead>
           <tbody>
             {fundingRows.map((row) => (
-              <tr key={row.id || row.designation} className="border-t border-[#eadcc2]">
-                <td className="px-3 py-2 font-bold text-[#2f2415]">{row.designation || row.nom || row.name || '—'}</td>
+              <tr key={row.id || row.designation} className="border-t border-line">
+                <td className="px-3 py-2 font-semibold text-earth">{row.designation || row.nom || row.name || '—'}</td>
                 <td className="px-3 py-2 text-right">{fmtCurrency(n(row.montant ?? row.amount ?? row.total))}</td>
               </tr>
             ))}
@@ -236,12 +235,12 @@ export function BpFundingFinanceurPanel({ bpFundingSources = [], besoinsTotal = 
         </table>
       </div>
       {amort.annualDepreciation?.length ? (
-        <div className="rounded-2xl border border-[#eadcc2] bg-[#fffdf8] p-4 text-sm text-[#5c4a32]">
-          <p className="flex items-center gap-2 font-black text-[#2f2415]">
+        <div className="rounded-2xl border border-line bg-card p-4 text-sm text-slate">
+          <p className="flex items-center gap-2 font-semibold text-earth">
             <PiggyBank size={16} />
             Plan d’amortissement annuel
           </p>
-          <p className="mt-2 text-xs text-[#8a7456]">
+          <p className="mt-2 text-xs text-slate">
             {amort.annualDepreciation.map((v, i) => `An ${i + 1}: ${fmtCurrency(v)}`).join(' · ')}
           </p>
         </div>
@@ -272,7 +271,7 @@ export function BpMonthlyCostsPanel({
 }) {
   const rows = arr(costs);
   const monthlyTotal = rows.reduce((s, r) => s + n(r.montant_mensuel ?? r.amount ?? r.montant), 0);
-  const annualTotal = rows.reduce((s, r) => s + n(r.montant_annuel ?? r.annual ?? (n(r.montant_mensuel ?? r.amount) * 12)), 0);
+
 
   const updateCostStatus = async (cost, status) => {
     if (!isBpCostEditable(cost)) return toast.error('Resynchronisez le BP pour modifier cette charge.');
@@ -293,23 +292,23 @@ export function BpMonthlyCostsPanel({
   };
 
   return (
-    <section className="rounded-3xl border border-[#d6c3a0] bg-white p-5 shadow-sm space-y-4">
+    <section className="rounded-3xl border border-line bg-white p-6 shadow-card space-y-4">
       <div>
-        <p className="flex items-center gap-2 text-lg font-black text-[#2f2415]">
+        <p className="flex items-center gap-2 text-lg font-semibold text-earth">
           <PiggyBank size={20} />
           Charges mensuelles BP
         </p>
-        <p className="mt-1 text-sm text-[#8a7456]">
+        <p className="mt-1 text-sm text-slate">
           Chaque ligne peut être concrétisée vers Finance, RH ou Achats — comme les investissements actionnables.
         </p>
       </div>
 
       {needsSync ? (
-        <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
-          <p className="font-black">Charges en lecture seule</p>
+        <div className="rounded-2xl border border-vigilance bg-vigilance-bg p-4 text-sm text-horizon-dark">
+          <p className="font-semibold">Charges en lecture seule</p>
           <p className="mt-1">Cliquez <b>Resynchroniser le BP officiel</b> en haut pour enregistrer les lignes et activer Concrétiser / Modifier le statut.</p>
           {onRequestSync ? (
-            <button type="button" onClick={onRequestSync} className="mt-3 rounded-xl bg-[#2f2415] px-4 py-2 text-xs font-black text-white">
+            <button type="button" onClick={onRequestSync} className="mt-3 rounded-xl bg-earth px-4 py-2 text-xs font-semibold text-white">
               Resynchroniser maintenant
             </button>
           ) : null}
@@ -317,28 +316,28 @@ export function BpMonthlyCostsPanel({
       ) : null}
 
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-        <div className="rounded-2xl border border-[#eadcc2] bg-[#fffdf8] p-4">
-          <p className="text-xs text-[#8a7456]">Prévu (mensuel)</p>
-          <p className="mt-1 text-lg font-black text-[#2f2415]">{fmtCurrency(costTotals.prevu ?? monthlyTotal)}</p>
+        <div className="rounded-2xl border border-line bg-card p-4">
+          <p className="text-xs text-slate">Prévu (mensuel)</p>
+          <p className="mt-1 text-lg font-semibold text-earth">{fmtCurrency(costTotals.prevu ?? monthlyTotal)}</p>
         </div>
-        <div className="rounded-2xl border border-[#eadcc2] bg-[#fffdf8] p-4">
-          <p className="text-xs text-[#8a7456]">Concrétisé</p>
-          <p className="mt-1 text-lg font-black text-emerald-700">{fmtCurrency(costTotals.concretise ?? 0)}</p>
+        <div className="rounded-2xl border border-line bg-card p-4">
+          <p className="text-xs text-slate">Concrétisé</p>
+          <p className="mt-1 text-lg font-semibold text-positive">{fmtCurrency(costTotals.concretise ?? 0)}</p>
         </div>
-        <div className="rounded-2xl border border-[#eadcc2] bg-[#fffdf8] p-4">
-          <p className="text-xs text-[#8a7456]">Reste</p>
-          <p className="mt-1 text-lg font-black text-amber-700">{fmtCurrency(costTotals.reste ?? monthlyTotal)}</p>
+        <div className="rounded-2xl border border-line bg-card p-4">
+          <p className="text-xs text-slate">Reste</p>
+          <p className="mt-1 text-lg font-semibold text-horizon-dark">{fmtCurrency(costTotals.reste ?? monthlyTotal)}</p>
         </div>
-        <div className="rounded-2xl border border-[#eadcc2] bg-[#fffdf8] p-4">
-          <p className="text-xs text-[#8a7456]">Lignes</p>
-          <p className="mt-1 text-lg font-black text-[#2f2415]">{String(costTotals.count ?? rows.length)}</p>
+        <div className="rounded-2xl border border-line bg-card p-4">
+          <p className="text-xs text-slate">Lignes</p>
+          <p className="mt-1 text-lg font-semibold text-earth">{String(costTotals.count ?? rows.length)}</p>
         </div>
       </div>
 
-      <div className="overflow-x-auto rounded-2xl border border-[#eadcc2]">
+      <div className="overflow-x-auto rounded-2xl border border-line">
         <table className="w-full min-w-[900px] text-sm">
           <thead>
-            <tr className="bg-[#fffdf8] text-left text-xs uppercase text-[#8a7456]">
+            <tr className="bg-card text-left text-xs uppercase text-slate">
               <th className="px-3 py-2">Poste</th>
               <th className="px-3 py-2">Module cible</th>
               <th className="px-3 py-2 text-right">Prévu</th>
@@ -352,9 +351,9 @@ export function BpMonthlyCostsPanel({
             {rows.map((r, i) => {
               const status = normalizeBpLineStatus(r);
               return (
-                <tr key={r.id || i} className="border-t border-[#eadcc2]">
-                  <td className="px-3 py-2 font-bold text-[#2f2415]">{bpCostLabel(r)}</td>
-                  <td className="px-3 py-2 text-[#8a7456]">{MODULE_LABELS[r.module_cible] || r.module_cible || '—'}</td>
+                <tr key={r.id || i} className="border-t border-line">
+                  <td className="px-3 py-2 font-semibold text-earth">{bpCostLabel(r)}</td>
+                  <td className="px-3 py-2 text-slate">{MODULE_LABELS[r.module_cible] || r.module_cible || '—'}</td>
                   <td className="px-3 py-2 text-right">{fmtCurrency(bpCostPlannedAmount(r))}</td>
                   <td className="px-3 py-2 text-right">{fmtCurrency(r.montant_paye ?? r.montant_reel ?? 0)}</td>
                   <td className="px-3 py-2 text-right">{fmtCurrency(r.reste_a_realiser ?? Math.max(0, bpCostPlannedAmount(r) - n(r.montant_paye ?? r.montant_reel)))}</td>
@@ -363,14 +362,14 @@ export function BpMonthlyCostsPanel({
                       <select
                         value={status}
                         onChange={(e) => updateCostStatus(r, e.target.value)}
-                        className="rounded-lg border border-[#eadcc2] bg-white px-2 py-1 text-xs font-bold text-[#2f2415]"
+                        className="rounded-lg border border-line bg-white px-2 py-1 text-xs font-semibold text-earth"
                       >
                         {BP_LINE_STATUS_OPTIONS.map((opt) => (
                           <option key={opt.value} value={opt.value}>{opt.label}</option>
                         ))}
                       </select>
                     ) : (
-                      <span className="text-[#8a7456]">{bpLineStatusLabel(status)}</span>
+                      <span className="text-slate">{bpLineStatusLabel(status)}</span>
                     )}
                   </td>
                   <td className="px-3 py-2 text-right">
@@ -388,7 +387,7 @@ export function BpMonthlyCostsPanel({
             })}
             {!rows.length ? (
               <tr>
-                <td colSpan={6} className="px-3 py-6 text-center text-[#8a7456]">Aucune charge BP — resynchronisez le plan officiel.</td>
+                <td colSpan={6} className="px-3 py-6 text-center text-slate">Aucune charge BP — resynchronisez le plan officiel.</td>
               </tr>
             ) : null}
           </tbody>
@@ -404,22 +403,22 @@ export function BpRevenueForecastsPanel({ projections = [] }) {
   const annual = rows.reduce((s, r) => s + n(r.ca_estime ?? r.revenue ?? r.montant), 0);
 
   return (
-    <section className="rounded-3xl border border-[#d6c3a0] bg-white p-5 shadow-sm space-y-4">
+    <section className="rounded-3xl border border-line bg-white p-6 shadow-card space-y-4">
       <div>
-        <p className="flex items-center gap-2 text-lg font-black text-[#2f2415]">
+        <p className="flex items-center gap-2 text-lg font-semibold text-earth">
           <TrendingUp size={20} />
           Prévisions CA BP
         </p>
-        <p className="mt-1 text-sm text-[#8a7456]">Revenus par période — comparer avec l’onglet Suivi réel et Objectifs & Croissance.</p>
+        <p className="mt-1 text-sm text-slate">Revenus par période — comparer avec l’onglet Suivi réel et Objectifs & Croissance.</p>
       </div>
-      <div className="rounded-2xl border border-[#eadcc2] bg-[#fffdf8] p-4 max-w-xs">
-        <p className="text-xs text-[#8a7456]">CA prévu cumulé (lignes affichées)</p>
-        <p className="mt-1 text-lg font-black text-[#2f2415]">{fmtCurrency(annual)}</p>
+      <div className="rounded-2xl border border-line bg-card p-4 max-w-xs">
+        <p className="text-xs text-slate">CA prévu cumulé (lignes affichées)</p>
+        <p className="mt-1 text-lg font-semibold text-earth">{fmtCurrency(annual)}</p>
       </div>
-      <div className="overflow-x-auto rounded-2xl border border-[#eadcc2]">
+      <div className="overflow-x-auto rounded-2xl border border-line">
         <table className="w-full min-w-[520px] text-sm">
           <thead>
-            <tr className="bg-[#fffdf8] text-left text-xs uppercase text-[#8a7456]">
+            <tr className="bg-card text-left text-xs uppercase text-slate">
               <th className="px-3 py-2">Période</th>
               <th className="px-3 py-2">Activité</th>
               <th className="px-3 py-2 text-right">CA estimé</th>
@@ -427,15 +426,15 @@ export function BpRevenueForecastsPanel({ projections = [] }) {
           </thead>
           <tbody>
             {rows.slice(0, 24).map((r, i) => (
-              <tr key={r.id || i} className="border-t border-[#eadcc2]">
+              <tr key={r.id || i} className="border-t border-line">
                 <td className="px-3 py-2">{r.mois || r.periode || r.period || r.label || '—'}</td>
-                <td className="px-3 py-2 text-[#8a7456]">{r.activite || r.activity || r.designation || '—'}</td>
-                <td className="px-3 py-2 text-right font-bold">{fmtCurrency(n(r.ca_estime ?? r.revenue ?? r.montant))}</td>
+                <td className="px-3 py-2 text-slate">{r.activite || r.activity || r.designation || '—'}</td>
+                <td className="px-3 py-2 text-right font-semibold">{fmtCurrency(n(r.ca_estime ?? r.revenue ?? r.montant))}</td>
               </tr>
             ))}
             {!rows.length ? (
               <tr>
-                <td colSpan={3} className="px-3 py-6 text-center text-[#8a7456]">Aucune projection — synchronisez le BP.</td>
+                <td colSpan={3} className="px-3 py-6 text-center text-slate">Aucune projection — synchronisez le BP.</td>
               </tr>
             ) : null}
           </tbody>

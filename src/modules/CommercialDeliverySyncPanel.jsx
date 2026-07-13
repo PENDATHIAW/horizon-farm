@@ -39,22 +39,22 @@ export default function CommercialDeliverySyncPanel({
   };
 
   return (
-    <section className="rounded-2xl border border-[#d6c3a0] bg-white p-4 shadow-sm space-y-4">
+    <section className="rounded-2xl border border-line bg-white p-4 shadow-card space-y-4">
       <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
         <div>
-          <p className="text-[11px] font-black uppercase tracking-wide text-[#9a6b12] flex items-center gap-1"><Truck size={14} /> Livraisons en attente</p>
-          <p className="text-sm text-[#8a7456] mt-1">{summary.count} vente(s) payée(s) ou ouverte(s) sans livraison confirmée · {fmtCurrency(summary.total)}</p>
+          <p className="text-meta font-semibold uppercase tracking-normal text-horizon-dark flex items-center gap-1"><Truck size={14} /> Livraisons en attente</p>
+          <p className="text-sm text-slate mt-1">{summary.count} vente(s) payée(s) ou ouverte(s) sans livraison confirmée · {fmtCurrency(summary.total)}</p>
         </div>
-        <button type="button" onClick={() => setTab?.('Ventes')} className="text-xs font-black text-[#9a6b12] underline">Voir ventes →</button>
+        <button type="button" onClick={() => setTab?.('Ventes')} className="text-xs font-semibold text-horizon-dark underline">Voir ventes →</button>
       </div>
       <div className="space-y-2">
         {summary.rows.slice(0, 5).map((row) => (
-          <div key={row.id} className="flex flex-col gap-2 rounded-xl border border-amber-200 bg-amber-50/60 px-3 py-2 sm:flex-row sm:items-center sm:justify-between">
+          <div key={row.id} className="flex flex-col gap-2 rounded-xl border border-vigilance bg-vigilance-bg px-3 py-2 sm:flex-row sm:items-center sm:justify-between">
             <button type="button" onClick={() => setTab?.('Ventes')} className="text-left">
-              <p className="font-black text-sm text-[#2f2415]">{row.title}</p>
-              <p className="text-xs text-[#8a7456]">{row.detail}</p>
+              <p className="font-semibold text-sm text-earth">{row.title}</p>
+              <p className="text-xs text-slate">{row.detail}</p>
             </button>
-            <button type="button" onClick={() => confirmDelivery(row)} className="rounded-lg bg-[#2f2415] px-3 py-1.5 text-xs font-black text-white flex items-center gap-1"><PackageCheck size={13} /> Confirmer livraison</button>
+            <button type="button" onClick={() => confirmDelivery(row)} className="rounded-lg bg-earth px-3 py-2 text-xs font-semibold text-white flex items-center gap-1"><PackageCheck size={13} /> Confirmer livraison</button>
           </div>
         ))}
       </div>

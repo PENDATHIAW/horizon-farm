@@ -1,3 +1,5 @@
+/* global __APP_BUILD_SHA__ */
+
 const STALE_BUILD_MARKERS = ['index-DrX_eSIh', 'index-DU6ne3u9', 'index-C6b11YcK', 'index-CC7OqkEB', 'index-CORKCWhl'];
 const BUILD_SHA_STORAGE_KEY = 'horizon-farm-app-build';
 const LEGACY_BUILD_SHA_KEY = 'horizon-farm-build-sha';

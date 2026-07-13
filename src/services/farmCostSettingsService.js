@@ -1,4 +1,5 @@
 import { supabase } from '../lib/supabase';
+import { resolveFarmIdForWrite, withFarmId } from '../utils/farmScopePayload.js';
 import {
   DEFAULT_FARM_COST_SETTINGS,
   FARM_COST_SETTINGS_KEY,
@@ -27,10 +28,11 @@ function readLocal() {
 
 export const farmCostSettingsService = {
   async load() {
+    const farmId = resolveFarmIdForWrite();
     const { data, error } = await supabase
       .from('farm_cost_settings')
       .select('settings, updated_at')
-      .eq('id', SETTINGS_ROW_ID)
+      .eq('farm_id', farmId)
       .maybeSingle();
 
     if (error || !data?.settings) {
@@ -45,6 +47,7 @@ export const farmCostSettingsService = {
   },
 
   async save(next = {}) {
+    const farmId = resolveFarmIdForWrite();
     const normalized = normalizeFarmCostSettings({
       ...next,
       updatedAt: new Date().toISOString(),
@@ -54,11 +57,11 @@ export const farmCostSettingsService = {
     const { data, error } = await supabase
       .from('farm_cost_settings')
       .upsert(
-        {
-          id: SETTINGS_ROW_ID,
+        withFarmId('farm_cost_settings', {
+          id: farmId || SETTINGS_ROW_ID,
           settings: normalized,
           updated_at: normalized.updatedAt,
-        },
+        }),
         { onConflict: 'id' },
       )
       .select('settings, updated_at')

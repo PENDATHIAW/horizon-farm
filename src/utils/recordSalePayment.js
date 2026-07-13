@@ -1,19 +1,19 @@
-import { buildClientSalesSummary } from './clientWorkflows';
-import { makeId } from './ids';
-import { toNumber } from './format';
-import { buildCoherentOrderPatch, findExistingFinanceForPayment, findExistingPayment } from '../services/salesIntegrityService';
-import { remainingForOrder } from './salesStatuses';
-import { capSalePayment } from './salesWorkflows';
-import { financeIds, runPaymentSideEffects } from './saleSideEffects';
+import { buildClientSalesSummary } from './clientWorkflows.js';
+import { makeId } from './ids.js';
+import { toNumber } from './format.js';
+import { buildCoherentOrderPatch, findExistingFinanceForPayment, findExistingPayment } from '../services/salesIntegrityService.js';
+import { remainingForOrder } from './salesStatuses.js';
+import { capSalePayment } from './salesWorkflows.js';
+import { financeIds, runPaymentSideEffects } from './saleSideEffects.js';
 import {
   buildCommercialFarmContext,
   enrichFinanceWithOrderFarmId,
   enrichPaymentWithFarmId,
   validateCommercialSaleFarmContext,
 } from './commercialFarmScope.js';
-import { createImpactJournal, finalizeImpactJournal, IMPACT_KEYS, instrumentHandlers, markImpactNa, OPERATION_EXPECTATIONS, OPERATION_TYPES } from './workflowImpactJournal';
-import { showWorkflowImpactToast } from './workflowImpactToast';
-import { buildIdempotencyKey, WORKFLOW_TYPES } from './workflowDedupe';
+import { createImpactJournal, finalizeImpactJournal, IMPACT_KEYS, instrumentHandlers, markImpactNa, OPERATION_EXPECTATIONS, OPERATION_TYPES } from './workflowImpactJournal.js';
+import { showWorkflowImpactToast } from './workflowImpactToast.js';
+import { buildIdempotencyKey, WORKFLOW_TYPES } from './workflowDedupe.js';
 
 const arr = (value) => (Array.isArray(value) ? value : []);
 const clean = (value = '') => String(value || '').trim();
@@ -59,13 +59,11 @@ export async function recordSalePayment({
   activeFarm = null,
 } = {}) {
   const {
-    onCreatePayment,
     onCreateFinanceTransaction,
     onUpdateFinanceTransaction,
     onUpdateOrder,
     onUpdateClient,
     onUpdateAlert,
-    onUpdateTask,
   } = handlers;
 
   const remaining = remainingForOrder(sale, payments);

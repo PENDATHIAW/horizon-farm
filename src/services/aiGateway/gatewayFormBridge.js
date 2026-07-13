@@ -3,7 +3,7 @@
  */
 
 import { draftToFormRequest } from '../aiRecommendationsService.js';
-import { normalizeLegacyDraft } from './aiActionDrafts.js';
+
 
 export function gatewayDraftToLegacyHeyDraft(gatewayDraft = {}) {
   if (gatewayDraft.draft?.legacy_hey) return gatewayDraft.draft.legacy_hey;

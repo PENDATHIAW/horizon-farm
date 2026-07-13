@@ -10,9 +10,7 @@ const lower = (value) => clean(value).toLowerCase();
 const num = (value) => toNumber(value);
 const dateOf = (row = {}) => row.updated_at || row.created_at || row.date || row.event_date || null;
 
-function linkedId(row = '') {
-  return clean(row?.related_id || row?.source_record_id || row?.entity_id || row?.stock_id || row?.order_id || row?.sale_id || row?.lot_id || row?.animal_id || row?.id);
-}
+
 
 function hasStockMovementEvent(events = [], stockId = '') {
   const target = clean(stockId);
@@ -539,7 +537,7 @@ const VERIFY_FNS = [
 ];
 
 export function auditWorkflowQuality(dataMap = {}, manualChecks = {}) {
-  const results = VERIFY_FNS.map((fn, index) => {
+  const results = VERIFY_FNS.map((fn) => {
     const base = fn(dataMap);
     const manual = manualChecks[base.id];
     if (manual?.status === 'manual_ok') {

@@ -16,6 +16,15 @@ const ANIMAUX_ACTIONS = [
   { key: 'sale', label: 'Vente', icon: ShoppingCart, modal: 'sale' },
 ];
 
+const OPERATIONAL_TABS = new Set([
+  'Lots & animaux',
+  'Alimentation élevage',
+  'Production élevage',
+  'Santé & Biosécurité',
+]);
+
+export const shouldShowElevageMobileToolbar = (tab) => OPERATIONAL_TABS.has(tab);
+
 export default function ElevageMobileToolbar({ scope = 'avicole', onOpenWorkflow, onNavigate }) {
   const isAnimaux = scope === 'animaux';
   const actions = isAnimaux ? ANIMAUX_ACTIONS : AVICOLE_ACTIONS;
@@ -30,13 +39,13 @@ export default function ElevageMobileToolbar({ scope = 'avicole', onOpenWorkflow
 
   return (
     <div className="sticky bottom-2 z-20 md:hidden">
-      <div className={`rounded-2xl border border-[#d6c3a0] bg-white/95 backdrop-blur p-2 shadow-lg grid gap-1 ${actions.length > 4 ? 'grid-cols-3' : 'grid-cols-2'}`}>
+      <div className={`rounded-2xl border border-line bg-white/95 backdrop-blur p-2 shadow-float grid gap-1 ${actions.length > 4 ? 'grid-cols-3' : 'grid-cols-2'}`}>
         {actions.map(({ key, label, icon: Icon, primary }) => (
           <button
             key={key}
             type="button"
             onClick={() => handleClick(actions.find((a) => a.key === key))}
-            className={`flex flex-col items-center justify-center rounded-xl px-2 py-2 text-[10px] font-black min-h-[52px] ${primary ? 'bg-[#2f2415] text-white' : 'bg-[#fffdf8] text-[#2f2415] border border-[#eadcc2]'}`}
+            className={`flex flex-col items-center justify-center rounded-xl px-2 py-2 text-meta font-semibold min-h-[52px] ${primary ? 'bg-earth text-white' : 'bg-card text-earth border border-line'}`}
           >
             <Icon size={16} />
             {label}

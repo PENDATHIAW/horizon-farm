@@ -1,40 +1,53 @@
-import { MODULE_TABS_CONFIG } from '../../config/moduleTabs.config.js';
 import { sortModuleTabsForFarm } from '../../config/farmAdaptation.js';
+import { ERP_ROLES } from '../../config/moduleTabs/shared.js';
+import { resolveModuleTab, visibleModuleTabs } from '../../config/moduleTabs/index.js';
+import { resolveModuleFlags } from '../../config/moduleFlags.js';
+import ModuleOverviewStrip from './ModuleOverviewStrip.jsx';
 
-/**
- * Barre d'onglets pilotée par la configuration unique
- * (src/config/moduleTabs.config.js) : id, libellé du dictionnaire, rôle
- * requis et flag y sont déclarés. `role` masque les onglets dont
- * rolesMasques contient le rôle de l'utilisateur.
- */
+/** Barre d'onglets issue de la configuration canonique de chaque module. */
 export default function ModuleTabsBar({ moduleId, active, onChange, tabBadges = {}, wrap = false, activeFarm = null, role = null, rolesMasquesPour = null }) {
-  const roleEffectif = role || rolesMasquesPour;
-  const entrees = (MODULE_TABS_CONFIG[moduleId]?.onglets || [])
-    .filter((entree) => !roleEffectif || !entree.rolesMasques?.includes(roleEffectif));
-  const rawTabs = entrees.map((entree) => entree.libelle);
-  const tabs = sortModuleTabsForFarm(moduleId, rawTabs, activeFarm);
+  const requestedRole = role || rolesMasquesPour;
+  const canonicalRole = ERP_ROLES.includes(requestedRole) ? requestedRole : null;
+  const rawTabs = visibleModuleTabs(moduleId, {
+    role: canonicalRole,
+    flags: activeFarm ? resolveModuleFlags(activeFarm) : {},
+  });
+  const sortedLabels = sortModuleTabsForFarm(moduleId, rawTabs.map((tab) => tab.label), activeFarm);
+  const tabs = sortedLabels.map((label) => rawTabs.find((tab) => tab.label === label)).filter(Boolean);
+  const selected = resolveModuleTab(moduleId, active);
   if (!tabs.length) return null;
   return (
-    <div className={wrap ? '' : 'overflow-x-auto'}>
-      <div className={`flex gap-2 rounded-2xl border border-[#d6c3a0] bg-white p-2 ${wrap ? 'flex-wrap' : 'min-w-max'}`}>
-        {tabs.map((tab) => {
-          const badge = tabBadges[tab];
-          return (
-            <button
-              key={tab}
-              type="button"
-              onClick={() => onChange(tab)}
-              className={`inline-flex items-center gap-1.5 rounded-xl px-4 py-2 text-sm font-black transition whitespace-nowrap ${active === tab ? 'bg-[#22c55e] text-[#052e16]' : 'text-[#8a7456] hover:bg-[#fffdf8] hover:text-[#2f2415]'}`}
-            >
-              {tab}
-              {badge > 0 ? (
-                <span className={`rounded-full px-1.5 py-0.5 text-[10px] font-black leading-none ${active === tab ? 'bg-[#052e16]/15 text-[#052e16]' : 'bg-amber-100 text-amber-800'}`}>
-                  {badge}
-                </span>
-              ) : null}
-            </button>
-          );
-        })}
+    <div className="space-y-4">
+      {moduleId !== 'dashboard' ? <ModuleOverviewStrip moduleId={moduleId} /> : null}
+      <div className={wrap ? '' : 'overflow-x-auto'}>
+        <div
+          role="tablist"
+          aria-label={`Navigation ${moduleId}`}
+          className={`flex gap-2 rounded-card border border-line bg-card p-2 shadow-card ${wrap ? 'flex-wrap' : 'min-w-max'}`}
+        >
+          {tabs.map((tab) => {
+            const isActive = selected?.id === tab.id;
+            const badge = tabBadges[tab.id] ?? tabBadges[tab.label] ?? tabBadges[tab.component];
+            return (
+              <button
+                key={tab.id}
+                type="button"
+                role="tab"
+                aria-label={tab.label}
+                aria-selected={isActive}
+                onClick={() => onChange(tab.component || tab.id, tab)}
+                className={`inline-flex min-h-11 items-center gap-2 whitespace-nowrap rounded-control px-4 py-2 text-sm font-semibold transition ${isActive ? 'bg-earth text-pure' : 'text-slate hover:bg-mist hover:text-earth'}`}
+              >
+                {tab.label}
+                {badge > 0 ? (
+                  <span className={`rounded-full px-2 py-1 text-meta font-semibold leading-none ${isActive ? 'bg-positive-bg text-earth' : 'bg-vigilance-bg text-horizon-dark'}`}>
+                    {badge}
+                  </span>
+                ) : null}
+              </button>
+            );
+          })}
+        </div>
       </div>
     </div>
   );

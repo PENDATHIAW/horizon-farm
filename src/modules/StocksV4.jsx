@@ -17,26 +17,11 @@ import {
 
 const lower = (value) => String(value || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
 const today = () => new Date().toISOString().slice(0, 10);
-const stockKg = (row = {}) => lower(row.unite).includes('sac') ? toNumber(row.quantite) * toNumber(row.poids_sac_kg || row.sac_kg || 50) : toNumber(row.quantite);
+
 const productLabel = (row = {}) => row.produit || row.name || row.nom || row.id || 'Produit stock';
-const nextStockQtyAfterKg = (row = {}, kg = 0) => {
-  if (lower(row.unite).includes('sac')) {
-    const sacKg = toNumber(row.poids_sac_kg || row.sac_kg || 50) || 50;
-    return Math.max(0, toNumber(row.quantite) - (toNumber(kg) / sacKg));
-  }
-  return Math.max(0, toNumber(row.quantite) - toNumber(kg));
-};
-const targetLabel = (target = {}) => target.name || target.nom || target.tag || target.id;
-const activityForFeeding = (targetType = '', target = {}) => {
-  if (targetType === 'animal') {
-    const text = lower(`${target.type || ''} ${target.espece || ''} ${target.name || ''}`);
-    if (text.includes('ovin')) return 'ovins';
-    if (text.includes('caprin') || text.includes('chevre') || text.includes('chèvre')) return 'caprins';
-    return 'bovins';
-  }
-  const text = lower(`${target.type || ''} ${target.type_lot || ''} ${target.name || ''}`);
-  return text.includes('pondeuse') || text.includes('ponte') || text.includes('oeuf') ? 'avicole_pondeuses' : 'avicole_chair';
-};
+
+
+
 const inferMovementType = (draft = {}) => {
   const text = lower(`${draft.raw_input || ''} ${draft.intent || ''}`);
   if (text.includes('perte') || text.includes('perdu') || text.includes('casse') || text.includes('abime')) return 'perte';
@@ -51,12 +36,9 @@ const findStock = (rows = [], product = '', id = '') => {
 const movementTitle = (type = '') => type === 'perte' ? 'Perte stock' : type === 'sortie' ? 'Sortie / utilisation stock' : 'Réception stock';
 
 function ModuleSection({ icon: Icon, title, subtitle, children }) {
-  return <section className="rounded-3xl border border-[#d6c3a0] bg-white p-5 shadow-sm space-y-4"><div><p className="flex items-center gap-2 text-lg font-black text-[#2f2415]"><Icon size={20} /> {title}</p>{subtitle ? <p className="mt-1 text-sm text-[#8a7456]">{subtitle}</p> : null}</div>{children}</section>;
+  return <section className="rounded-3xl border border-line bg-white p-6 shadow-card space-y-4"><div><p className="flex items-center gap-2 text-lg font-semibold text-earth"><Icon size={20} /> {title}</p>{subtitle ? <p className="mt-1 text-sm text-slate">{subtitle}</p> : null}</div>{children}</section>;
 }
-function CollapsibleSection({ icon: Icon, title, subtitle, defaultOpen = false, children }) {
-  const [open, setOpen] = useState(defaultOpen);
-  return <section className="rounded-3xl border border-[#d6c3a0] bg-white shadow-sm overflow-hidden"><button type="button" onClick={() => setOpen((value) => !value)} className="flex min-h-[64px] w-full items-center justify-between gap-3 px-5 py-4 text-left hover:bg-[#fffdf8]"><span><span className="flex items-center gap-2 text-lg font-black text-[#2f2415]"><Icon size={20} /> {title}</span>{subtitle ? <span className="mt-1 block text-sm text-[#8a7456]">{subtitle}</span> : null}</span><ChevronDown size={20} className={`shrink-0 text-[#8a7456] transition-transform ${open ? 'rotate-180' : ''}`} /></button>{open ? <div className="border-t border-[#eadcc2] p-5">{children}</div> : null}</section>;
-}
+
 
 function HeyHorizonStockCard({
   draft,
@@ -186,11 +168,11 @@ function HeyHorizonStockCard({
       onClose?.();
     } catch (error) { toast.error(error.message || 'Mouvement stock impossible'); } finally { setSaving(false); }
   };
-  return <section className="rounded-3xl border border-emerald-200 bg-emerald-50 p-5 shadow-sm space-y-4">
-    <div className="flex items-start justify-between gap-3"><div><p className="text-xs uppercase tracking-widest text-emerald-700 font-black flex items-center gap-2"><CheckCircle2 size={15} /> Fiche préparée par Hey Horizon</p><h3 className="mt-1 text-xl font-black text-[#2f2415]">{movementTitle(movementType)}</h3><p className="mt-1 text-sm text-emerald-800">Complète si besoin, puis valide. Le stock, l’historique et les impacts ERP seront mis à jour.</p></div><button type="button" onClick={onClose} className="rounded-full border border-emerald-200 bg-white p-2 text-emerald-700"><X size={16} /></button></div>
-    <div className="grid grid-cols-1 md:grid-cols-3 gap-3"><label className="space-y-1"><span className="text-xs font-bold text-emerald-800">Produit</span><select value={stockId} onChange={(e) => setStockId(e.target.value)} className="w-full min-h-[44px] rounded-xl border border-emerald-200 bg-white px-3 py-2 text-sm">{rows.map((row) => <option key={row.id} value={row.id}>{productLabel(row)} · {row.id} · {row.quantite} {row.unite}</option>)}</select></label><label className="space-y-1"><span className="text-xs font-bold text-emerald-800">Mouvement</span><select value={movementType} onChange={(e) => setMovementType(e.target.value)} className="w-full min-h-[44px] rounded-xl border border-emerald-200 bg-white px-3 py-2 text-sm"><option value="reception">Réceptionner</option><option value="sortie">Utiliser / sortir</option><option value="perte">Déclarer perte</option></select></label><label className="space-y-1"><span className="text-xs font-bold text-emerald-800">Quantité</span><input type="number" value={quantity} onChange={(e) => setQuantity(e.target.value)} className="w-full min-h-[44px] rounded-xl border border-emerald-200 bg-white px-3 py-2 text-sm" /></label><label className="space-y-1"><span className="text-xs font-bold text-emerald-800">Unité</span><input value={unit} onChange={(e) => setUnit(e.target.value)} className="w-full min-h-[44px] rounded-xl border border-emerald-200 bg-white px-3 py-2 text-sm" /></label><label className="space-y-1"><span className="text-xs font-bold text-emerald-800">Prix / coût unitaire</span><input type="number" value={unitPrice} onChange={(e) => setUnitPrice(e.target.value)} className="w-full min-h-[44px] rounded-xl border border-emerald-200 bg-white px-3 py-2 text-sm" /></label><label className="space-y-1"><span className="text-xs font-bold text-emerald-800">Date</span><input type="date" value={date} onChange={(e) => setDate(e.target.value)} className="w-full min-h-[44px] rounded-xl border border-emerald-200 bg-white px-3 py-2 text-sm" /></label><label className="space-y-1 md:col-span-3"><span className="text-xs font-bold text-emerald-800">Note</span><input value={note} onChange={(e) => setNote(e.target.value)} className="w-full min-h-[44px] rounded-xl border border-emerald-200 bg-white px-3 py-2 text-sm" /></label></div>
-    <div className="rounded-xl border border-emerald-200 bg-white p-3 text-sm text-emerald-800">Stock : <b>{currentQty}</b> → <b>{Number(nextQty.toFixed(3))}</b> {unit || stock.unite || ''}{amount > 0 ? <> · Valeur estimée : <b>{amount.toLocaleString('fr-FR')} FCFA</b></> : null}</div>
-    <div className="flex justify-end"><button type="button" onClick={submit} disabled={saving} className="rounded-xl bg-[#2f2415] px-5 py-2 text-sm font-black text-white disabled:opacity-60">{saving ? 'Validation...' : 'Valider mouvement stock'}</button></div>
+  return <section className="rounded-3xl border border-positive bg-positive-bg p-6 shadow-card space-y-4">
+    <div className="flex items-start justify-between gap-3"><div><p className="text-xs uppercase tracking-normal text-positive font-semibold flex items-center gap-2"><CheckCircle2 size={15} /> Fiche préparée par Hey Horizon</p><h3 className="mt-1 text-xl font-semibold text-earth">{movementTitle(movementType)}</h3><p className="mt-1 text-sm text-positive">Complète si besoin, puis valide. Le stock, l’historique et les impacts ERP seront mis à jour.</p></div><button type="button" onClick={onClose} className="rounded-full border border-positive bg-white p-2 text-positive"><X size={16} /></button></div>
+    <div className="grid grid-cols-1 md:grid-cols-3 gap-3"><label className="space-y-1"><span className="text-xs font-semibold text-positive">Produit</span><select value={stockId} onChange={(e) => setStockId(e.target.value)} className="w-full min-h-[44px] rounded-xl border border-positive bg-white px-3 py-2 text-sm">{rows.map((row) => <option key={row.id} value={row.id}>{productLabel(row)} · {row.id} · {row.quantite} {row.unite}</option>)}</select></label><label className="space-y-1"><span className="text-xs font-semibold text-positive">Mouvement</span><select value={movementType} onChange={(e) => setMovementType(e.target.value)} className="w-full min-h-[44px] rounded-xl border border-positive bg-white px-3 py-2 text-sm"><option value="reception">Réceptionner</option><option value="sortie">Utiliser / sortir</option><option value="perte">Déclarer perte</option></select></label><label className="space-y-1"><span className="text-xs font-semibold text-positive">Quantité</span><input type="number" value={quantity} onChange={(e) => setQuantity(e.target.value)} className="w-full min-h-[44px] rounded-xl border border-positive bg-white px-3 py-2 text-sm" /></label><label className="space-y-1"><span className="text-xs font-semibold text-positive">Unité</span><input value={unit} onChange={(e) => setUnit(e.target.value)} className="w-full min-h-[44px] rounded-xl border border-positive bg-white px-3 py-2 text-sm" /></label><label className="space-y-1"><span className="text-xs font-semibold text-positive">Prix / coût unitaire</span><input type="number" value={unitPrice} onChange={(e) => setUnitPrice(e.target.value)} className="w-full min-h-[44px] rounded-xl border border-positive bg-white px-3 py-2 text-sm" /></label><label className="space-y-1"><span className="text-xs font-semibold text-positive">Date</span><input type="date" value={date} onChange={(e) => setDate(e.target.value)} className="w-full min-h-[44px] rounded-xl border border-positive bg-white px-3 py-2 text-sm" /></label><label className="space-y-1 md:col-span-3"><span className="text-xs font-semibold text-positive">Note</span><input value={note} onChange={(e) => setNote(e.target.value)} className="w-full min-h-[44px] rounded-xl border border-positive bg-white px-3 py-2 text-sm" /></label></div>
+    <div className="rounded-xl border border-positive bg-white p-3 text-sm text-positive">Stock : <b>{currentQty}</b> → <b>{Number(nextQty.toFixed(3))}</b> {unit || stock.unite || ''}{amount > 0 ? <> · Valeur estimée : <b>{amount.toLocaleString('fr-FR')} FCFA</b></> : null}</div>
+    <div className="flex justify-end"><button type="button" onClick={submit} disabled={saving} className="rounded-xl bg-earth px-6 py-2 text-sm font-semibold text-white disabled:opacity-60">{saving ? 'Validation...' : 'Valider mouvement stock'}</button></div>
   </section>;
 }
 
@@ -201,11 +183,11 @@ export default function StocksV4(props) {
   useEffect(() => {
     const pending = readStockPendingForm() || readBpPendingForm();
     if (pending?.module === 'stock' && pending.form_type === 'stock_purchase') {
-      setPurchaseDraft({
-        form_type: pending.form_type,
-        intent_label: pending.intent_label,
-        draft_fields: pending.draft_fields,
-      });
+      queueMicrotask(() => setPurchaseDraft({
+          form_type: pending.form_type,
+          intent_label: pending.intent_label,
+          draft_fields: pending.draft_fields,
+        }));
       clearStockPendingForm();
       clearBpPendingForm();
     }

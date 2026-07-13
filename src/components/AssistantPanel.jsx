@@ -1,5 +1,5 @@
-import { Bot, Ear, Mic, RefreshCw, Send, Sun, Volume2, VolumeX, X } from 'lucide-react';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import {  Ear, Mic, RefreshCw, Send, Sun, Volume2, VolumeX, X } from 'lucide-react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import toast from 'react-hot-toast';
 import HeyHorizonDraftSummary from './HeyHorizonDraftSummary';
 import HorizonDraftPanel from './HorizonDraftPanel';
@@ -80,7 +80,7 @@ export default function AssistantPanel({ open, onClose, dataMap, onNavigate, onC
 
   const resetConversation = () => { speech.stop(); cancelDraft(); lastHeardRef.current = ''; setMessages([{ role: 'assistant', text: 'Nouvelle demande ouverte. Clique Parler, écris une action ou choisis un raccourci.' }]); setQuery(''); };
 
-  const loadExternalDraft = (nextDraft, sourceLabel = 'Centre décisionnel') => {
+  const loadExternalDraft = useCallback((nextDraft, sourceLabel = 'Centre décisionnel') => {
     if (!nextDraft) return;
     loadDraft(nextDraft);
     setLocalOpen(true);
@@ -89,7 +89,7 @@ export default function AssistantPanel({ open, onClose, dataMap, onNavigate, onC
     setMessages((prev) => [...prev, { role: 'assistant', text }]);
     speech.speak(text);
     if (shouldAutoOpenHeyHorizonForm(nextDraft)) openHeyHorizonForm(nextDraft, onNavigate);
-  };
+  }, [loadDraft, onNavigate, speech]);
 
   const processCommand = async (rawText, { fromSilence = false } = {}) => {
     const cleaned = stripWakeWord(rawText || '').trim() || normalizeHeyHorizonText(rawText || '').trim();
@@ -120,9 +120,9 @@ export default function AssistantPanel({ open, onClose, dataMap, onNavigate, onC
   };
   const scheduleSilenceProcessing = (text) => { const cleaned = stripWakeWord(text || '').trim() || normalizeHeyHorizonText(text || '').trim(); if (!cleaned || cleaned === lastHeardRef.current) return; lastHeardRef.current = cleaned; window.clearTimeout(silenceTimerRef.current); silenceTimerRef.current = window.setTimeout(() => processCommand(cleaned, { fromSilence: true }), 1400); };
 
-  useEffect(() => { if (!terrainMode) { voice.stop(); return; } if (!voice.listening) voice.start(); }, [terrainMode]);
+  useEffect(() => { if (!terrainMode) { voice.stop(); return; } if (!voice.listening) voice.start(); }, [terrainMode, voice]);
   useEffect(() => () => window.clearTimeout(silenceTimerRef.current), []);
-  useEffect(() => { const handler = (event) => loadExternalDraft(event.detail?.draft, event.detail?.sourceLabel || 'Centre décisionnel'); window.addEventListener('horizon-open-draft', handler); return () => window.removeEventListener('horizon-open-draft', handler); }, [speech, onNavigate]);
+  useEffect(() => { const handler = (event) => loadExternalDraft(event.detail?.draft, event.detail?.sourceLabel || 'Centre décisionnel'); window.addEventListener('horizon-open-draft', handler); return () => window.removeEventListener('horizon-open-draft', handler); }, [loadExternalDraft]);
 
   useEffect(() => {
     const handler = async (event) => {
@@ -159,25 +159,25 @@ export default function AssistantPanel({ open, onClose, dataMap, onNavigate, onC
 
   return <>
     <HorizonWakeAnimation state={wakeState} onClose={() => setWakeState('idle')} />
-    {panelOpen ? <aside className="fixed right-4 top-[72px] z-50 w-[min(470px,calc(100vw-2rem))] max-h-[calc(100vh-90px)] bg-white/96 backdrop-blur border border-[#d6c3a0] rounded-3xl shadow-2xl overflow-hidden max-md:top-auto max-md:bottom-[92px] max-md:right-3 max-md:left-3 max-md:w-auto max-md:max-h-[calc(100vh-170px)]">
-      <div className="px-4 py-3 border-b border-[#d6c3a0] flex items-center gap-3 bg-[#fffdf8]">
-        <div className="w-11 h-11 rounded-full bg-amber-100 text-[#9a6b12] flex items-center justify-center border border-amber-200 shadow-inner"><Sun size={22} /></div>
-        <div className="flex-1 min-w-0"><div className="flex items-center gap-2 flex-wrap"><p className="font-black text-[#2f2415]">Hey Horizon</p><span className="rounded-full bg-[#2f2415] px-2 py-0.5 text-[10px] font-black text-white">Actions terrain</span>{voice.listening ? <span className="rounded-full bg-emerald-50 px-2 py-0.5 text-[10px] font-black text-emerald-700"><Ear size={10} className="inline" /> écoute</span> : null}</div><p className="text-xs text-[#8a7456]">Vente, vaccin, stock… · Pilotage → Centre décisionnel</p></div>
-        <button type="button" onClick={resetConversation} className="p-2 text-[#8a7456] hover:text-[#2f2415]" title="Nouvelle demande"><RefreshCw size={16} /></button>
-        <button type="button" onClick={closePanel} className="p-2 text-[#8a7456] hover:text-[#2f2415]" title="Fermer"><X size={16} /></button>
+    {panelOpen ? <aside className="fixed right-4 top-[72px] z-50 w-[min(470px,calc(100vw-2rem))] max-h-[calc(100vh-90px)] bg-white/96 backdrop-blur border border-line rounded-3xl shadow-float overflow-hidden max-md:top-auto max-md:bottom-[92px] max-md:right-3 max-md:left-3 max-md:w-auto max-md:max-h-[calc(100vh-170px)]">
+      <div className="px-4 py-3 border-b border-line flex items-center gap-3 bg-card">
+        <div className="w-11 h-11 rounded-full bg-vigilance-bg text-horizon-dark flex items-center justify-center border border-vigilance shadow-card"><Sun size={22} /></div>
+        <div className="flex-1 min-w-0"><div className="flex items-center gap-2 flex-wrap"><p className="font-semibold text-earth">Hey Horizon</p><span className="rounded-full bg-earth px-2 py-1 text-meta font-semibold text-white">Actions terrain</span>{voice.listening ? <span className="rounded-full bg-positive-bg px-2 py-1 text-meta font-semibold text-positive"><Ear size={10} className="inline" /> écoute</span> : null}</div><p className="text-xs text-slate">Vente, vaccin, stock… · Pilotage → Centre décisionnel</p></div>
+        <button type="button" onClick={resetConversation} className="p-2 text-slate hover:text-earth" title="Nouvelle demande"><RefreshCw size={16} /></button>
+        <button type="button" onClick={closePanel} className="p-2 text-slate hover:text-earth" title="Fermer"><X size={16} /></button>
       </div>
-      <div className="p-3 border-b border-[#eadcc2] bg-white space-y-3">
-        <div className="grid grid-cols-[1fr_auto_auto] gap-2 max-sm:grid-cols-1"><input value={query} onChange={(event) => setQuery(event.target.value)} onKeyDown={(event) => { if (event.key === 'Enter') processCommand(query); }} className="bg-white border border-[#d6c3a0] rounded-xl px-3 py-3 text-sm text-[#2f2415] outline-none focus:border-emerald-500" placeholder={voice.listening ? voice.transcript || 'J’écoute...' : 'Ex : J’ai vacciné BOV002, vendu 10 poulets…'} /><button type="button" onClick={voice.listening ? voice.stop : voice.start} className={`min-h-[46px] rounded-xl border px-3 text-sm font-black ${voice.listening ? 'border-emerald-500 bg-emerald-50 text-emerald-700 animate-pulse' : 'border-[#d6c3a0] bg-[#fffdf8] text-[#7d6a4a]'}`} title={voice.listening ? 'Arrêter le micro' : 'Parler à Horizon'}><Mic size={16} className="inline mr-1" /> {voice.listening ? 'Stop' : 'Parler'}</button><button type="button" onClick={() => processCommand(query)} className="min-h-[46px] rounded-xl bg-emerald-600 px-3 text-sm font-black text-white" title="Envoyer"><Send size={16} className="inline mr-1" /> Envoyer</button></div>
-        <div className="flex flex-wrap gap-2">{QUICK_ACTIONS.map((item) => <button key={item.label} type="button" onClick={() => quickAction(item)} className="rounded-full border border-[#eadcc2] bg-[#fffdf8] px-3 py-1.5 text-xs font-black text-[#7d6a4a] hover:border-[#c9a96a]">{item.label}</button>)}</div>
-        <div className="flex items-center justify-between gap-2 rounded-2xl border border-[#eadcc2] bg-[#fffdf8] p-3 text-xs"><div><b className="text-[#2f2415]">Micro continu</b><p className="text-[#8a7456]">Optionnel : Horizon traite après une pause.</p></div><button type="button" onClick={toggleTerrainMode} className={`rounded-xl border px-3 py-1.5 font-black ${terrainMode ? 'border-emerald-200 bg-emerald-50 text-emerald-700' : 'border-[#d6c3a0] bg-white text-[#8a7456]'}`}>{terrainMode ? 'ON' : 'OFF'}</button><button type="button" onClick={toggleVoiceReplies} className={`rounded-xl border px-3 py-1.5 font-black ${speech.enabled ? 'border-emerald-200 bg-emerald-50 text-emerald-700' : 'border-[#d6c3a0] bg-white text-[#8a7456]'}`}>{speech.enabled ? <Volume2 size={14} className="inline" /> : <VolumeX size={14} className="inline" />}</button></div>
-        {terrainMode ? <div className={`rounded-xl border px-3 py-2 text-[11px] font-bold ${voice.listening ? 'border-emerald-200 bg-emerald-50 text-emerald-700' : 'border-amber-200 bg-amber-50 text-amber-700'}`}>🎤 {voice.listening ? 'J’écoute. Parle puis marque une pause.' : `Micro non actif : ${voice.error || voice.hint || 'autorisation à vérifier.'}`}</div> : null}
+      <div className="p-3 border-b border-line bg-white space-y-3">
+        <div className="grid grid-cols-[1fr_auto_auto] gap-2 max-sm:grid-cols-1"><input value={query} onChange={(event) => setQuery(event.target.value)} onKeyDown={(event) => { if (event.key === 'Enter') processCommand(query); }} className="bg-white border border-line rounded-xl px-3 py-3 text-sm text-earth outline-none focus:border-positive" placeholder={voice.listening ? voice.transcript || 'J’écoute...' : 'Ex : J’ai vacciné BOV002, vendu 10 poulets…'} /><button type="button" onClick={voice.listening ? voice.stop : voice.start} className={`min-h-[46px] rounded-xl border px-3 text-sm font-semibold ${voice.listening ? 'border-positive bg-positive-bg text-positive animate-pulse' : 'border-line bg-card text-slate'}`} title={voice.listening ? 'Arrêter le micro' : 'Parler à Horizon'}><Mic size={16} className="inline mr-1" /> {voice.listening ? 'Stop' : 'Parler'}</button><button type="button" onClick={() => processCommand(query)} className="min-h-[46px] rounded-xl bg-positive px-3 text-sm font-semibold text-white" title="Envoyer"><Send size={16} className="inline mr-1" /> Envoyer</button></div>
+        <div className="flex flex-wrap gap-2">{QUICK_ACTIONS.map((item) => <button key={item.label} type="button" onClick={() => quickAction(item)} className="rounded-full border border-line bg-card px-3 py-2 text-xs font-semibold text-slate hover:border-horizon">{item.label}</button>)}</div>
+        <div className="flex items-center justify-between gap-2 rounded-2xl border border-line bg-card p-3 text-xs"><div><b className="text-earth">Micro continu</b><p className="text-slate">Optionnel : Horizon traite après une pause.</p></div><button type="button" onClick={toggleTerrainMode} className={`rounded-xl border px-3 py-2 font-semibold ${terrainMode ? 'border-positive bg-positive-bg text-positive' : 'border-line bg-white text-slate'}`}>{terrainMode ? 'ON' : 'OFF'}</button><button type="button" onClick={toggleVoiceReplies} className={`rounded-xl border px-3 py-2 font-semibold ${speech.enabled ? 'border-positive bg-positive-bg text-positive' : 'border-line bg-white text-slate'}`}>{speech.enabled ? <Volume2 size={14} className="inline" /> : <VolumeX size={14} className="inline" />}</button></div>
+        {terrainMode ? <div className={`rounded-xl border px-3 py-2 text-meta font-semibold ${voice.listening ? 'border-positive bg-positive-bg text-positive' : 'border-vigilance bg-vigilance-bg text-horizon-dark'}`}>🎤 {voice.listening ? 'J’écoute. Parle puis marque une pause.' : `Micro non actif : ${voice.error || voice.hint || 'autorisation à vérifier.'}`}</div> : null}
       </div>
       <div className="max-h-[44vh] overflow-y-auto p-4 space-y-3 max-md:max-h-[38vh]">
         <DraftSummary draft={draft} />
         <HorizonDraftPanel draft={draft} onChangeField={updateDraftFieldHandler} onValidate={handleValidateDraft} onCancel={() => handleCancelDraft()} onOpenModule={onNavigate} />
-        {messages.slice(-5).map((message, index) => <div key={`${message.role}-${index}`} className={`rounded-2xl px-3 py-2 text-sm leading-relaxed ${message.role === 'assistant' ? 'bg-[#fffdf8] border border-[#eadcc2] text-[#7d6a4a]' : 'bg-emerald-500/10 border border-emerald-500/20 text-emerald-700'}`}>{message.text}</div>)}
-        {isThinking || isValidating ? <div className="rounded-2xl bg-amber-50 border border-amber-200 px-3 py-2 text-xs font-bold text-amber-700">{isValidating ? 'Horizon valide et rafraîchit les modules...' : 'Horizon comprend la demande...'}</div> : null}
-        {results.length > 0 && !draft && query.trim() ? <div className="space-y-2"><p className="text-[11px] uppercase tracking-widest text-[#8a7456] font-bold">Résultats ERP</p>{results.map((result) => { const target = resolveSearchNavigation(result.moduleKey); return <button key={`${result.moduleKey}-${result.id}`} type="button" onClick={() => { onNavigate?.(target.module, target.tab ? { tab: target.tab } : {}); toast.success(`Ouverture ${heyHorizonModuleLabel(target.module)}`); }} className="w-full text-left bg-[#fffdf8] border border-[#d6c3a0] rounded-xl p-2 hover:border-emerald-500 transition-colors"><div className="text-sm font-semibold text-[#2f2415]">{result.title}</div><div className="text-xs text-[#8a7456]">{heyHorizonModuleLabel(target.module)} · {result.subtitle}</div></button>; })}</div> : null}
+        {messages.slice(-5).map((message, index) => <div key={`${message.role}-${index}`} className={`rounded-2xl px-3 py-2 text-sm leading-relaxed ${message.role === 'assistant' ? 'bg-card border border-line text-slate' : 'bg-positive border border-positive text-positive'}`}>{message.text}</div>)}
+        {isThinking || isValidating ? <div className="rounded-2xl bg-vigilance-bg border border-vigilance px-3 py-2 text-xs font-semibold text-horizon-dark">{isValidating ? 'Horizon valide et rafraîchit les modules...' : 'Horizon comprend la demande...'}</div> : null}
+        {results.length > 0 && !draft && query.trim() ? <div className="space-y-2"><p className="text-meta uppercase tracking-normal text-slate font-semibold">Résultats ERP</p>{results.map((result) => { const target = resolveSearchNavigation(result.moduleKey); return <button key={`${result.moduleKey}-${result.id}`} type="button" onClick={() => { onNavigate?.(target.module, target.tab ? { tab: target.tab } : {}); toast.success(`Ouverture ${heyHorizonModuleLabel(target.module)}`); }} className="w-full text-left bg-card border border-line rounded-xl p-2 hover:border-positive transition-colors"><div className="text-sm font-semibold text-earth">{result.title}</div><div className="text-xs text-slate">{heyHorizonModuleLabel(target.module)} · {result.subtitle}</div></button>; })}</div> : null}
       </div>
     </aside> : null}
   </>;

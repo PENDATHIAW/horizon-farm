@@ -6,28 +6,13 @@ import { fmtCurrency, fmtNumber } from '../../../utils/format.js';
 
 function Card({ title, value, hint }) {
   return (
-    <div className="rounded-2xl border border-[#d6c3a0] bg-white p-4">
-      <p className="text-[10px] font-black uppercase tracking-wide text-[#8a7456]">{title}</p>
-      <p className="mt-1 text-xl font-black text-[#2f2415]">{value}</p>
-      {hint ? <p className="mt-1 text-xs text-[#8a7456] leading-relaxed">{hint}</p> : null}
+    <div className="rounded-2xl border border-line bg-white p-4">
+      <p className="text-meta font-semibold uppercase tracking-normal text-slate">{title}</p>
+      <p className="mt-1 text-xl font-semibold text-earth">{value}</p>
+      {hint ? <p className="mt-1 text-xs text-slate leading-relaxed">{hint}</p> : null}
     </div>
   );
 }
-
-const extensionReadiness = [
-  {
-    name: 'BOVINIA',
-    stage: 'Extension future',
-    role: 'Valorisation alimentaire des coproduits animaux en bone broth, après stabilisation de la ferme.',
-    gates: ['Volume de matière première traçable', 'Rendement transformation', 'Coût par stick / boîte', 'Conformité alimentaire', 'Ventes pilotes et réachat'],
-  },
-  {
-    name: 'tallow & go',
-    stage: 'Extension future',
-    role: 'Valorisation cosmétique du suif, à lancer seulement lorsque la chaîne matière, qualité et marge est sécurisée.',
-    gates: ['Approvisionnement suif', 'Qualité / conservation', 'Coût formule', 'Packaging', 'Tests clients et marge'],
-  },
-];
 
 export default function AgriFeedsDashboardTab({ dataMap = {}, onNavigateTab }) {
   const normalized = useMemo(() => normalizeAgriFeedsDataMap(dataMap), [dataMap]);
@@ -37,60 +22,60 @@ export default function AgriFeedsDashboardTab({ dataMap = {}, onNavigateTab }) {
 
   return (
     <div className="space-y-4">
-      <section className="rounded-3xl border border-[#d6c3a0] bg-[#fffdf8] p-5">
+      <section className="rounded-3xl border border-line bg-card p-6">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
-            <p className="text-lg font-black text-[#2f2415]">Mode actuel — {readiness.modeShortLabel}</p>
-            <p className="text-sm text-[#8a7456] mt-1 max-w-2xl leading-relaxed">
+            <p className="text-lg font-semibold text-earth">État actuel — {readiness.modeShortLabel}</p>
+            <p className="text-sm text-slate mt-1 max-w-2xl leading-relaxed">
               {readiness.modeLabel}. Score de préparation : <b>{readiness.readiness_score}/100</b>.
               {' '}{readiness.note}
             </p>
           </div>
-          <div className="rounded-2xl border border-[#d6c3a0] bg-white px-4 py-2 text-sm font-black text-[#2f2415]">
-            Phase 1 {readiness.scores.phase1_reference}/100 · Pilote {readiness.scores.pilot_internal}/100 · Vente {readiness.scores.progressive_sales}/100
+          <div className="rounded-2xl border border-line bg-white px-4 py-2 text-sm font-semibold text-earth">
+            Référence {readiness.scores.phase1_reference}/100 · Pilote {readiness.scores.pilot_internal}/100 · Vente {readiness.scores.progressive_sales}/100
           </div>
         </div>
         <div className="mt-4 grid grid-cols-1 md:grid-cols-3 gap-3">
-          <div className="rounded-2xl border border-emerald-200 bg-emerald-50/60 p-3">
-            <p className="text-[10px] font-black uppercase text-emerald-900">Conditions remplies</p>
+          <div className="rounded-2xl border border-positive bg-positive-bg p-3">
+            <p className="text-meta font-semibold uppercase text-positive">Conditions remplies</p>
             {readiness.conditions_met.length
-              ? readiness.conditions_met.map((item) => <p key={item} className="text-xs mt-1 text-emerald-950">✓ {item}</p>)
-              : <p className="text-xs mt-1 text-emerald-900/80">Aucune condition encore consolidée.</p>}
+              ? readiness.conditions_met.map((item) => <p key={item} className="text-xs mt-1 text-positive">✓ {item}</p>)
+              : <p className="text-xs mt-1 text-positive">Aucune condition encore consolidée.</p>}
           </div>
-          <div className="rounded-2xl border border-amber-200 bg-amber-50/70 p-3">
-            <p className="text-[10px] font-black uppercase text-amber-900">À vérifier</p>
+          <div className="rounded-2xl border border-vigilance bg-vigilance-bg p-3">
+            <p className="text-meta font-semibold uppercase text-horizon-dark">À vérifier</p>
             {readiness.conditions_missing.length
-              ? readiness.conditions_missing.map((item) => <p key={item} className="text-xs mt-1 text-amber-950">○ {item}</p>)
+              ? readiness.conditions_missing.map((item) => <p key={item} className="text-xs mt-1 text-horizon-dark">○ {item}</p>)
               : <p className="text-xs mt-1">Rien de bloquant sur ce mode.</p>}
           </div>
-          <div className="rounded-2xl border border-rose-200 bg-rose-50/60 p-3">
-            <p className="text-[10px] font-black uppercase text-rose-900">Points d’attention</p>
+          <div className="rounded-2xl border border-urgent bg-urgent-bg p-3">
+            <p className="text-meta font-semibold uppercase text-urgent">Points d’attention</p>
             {readiness.blockers.length
-              ? readiness.blockers.map((item) => <p key={item} className="text-xs mt-1 text-rose-950">! {item}</p>)
-              : <p className="text-xs mt-1 text-rose-900/80">Aucun bloqueur critique.</p>}
+              ? readiness.blockers.map((item) => <p key={item} className="text-xs mt-1 text-urgent">! {item}</p>)
+              : <p className="text-xs mt-1 text-urgent">Aucun bloqueur critique.</p>}
           </div>
         </div>
         {readiness.priority_actions?.length ? (
-          <div className="mt-4 rounded-2xl border border-[#eadcc2] bg-white p-3">
-            <p className="text-[10px] font-black uppercase text-[#8a7456]">Actions prioritaires proposées</p>
+          <div className="mt-4 rounded-2xl border border-line bg-white p-3">
+            <p className="text-meta font-semibold uppercase text-slate">Actions prioritaires proposées</p>
             {readiness.priority_actions.map((item) => (
-              <p key={item} className="text-sm mt-1 text-[#2f2415]">→ {item}</p>
+              <p key={item} className="text-sm mt-1 text-earth">→ {item}</p>
             ))}
           </div>
         ) : null}
 
         {readiness.warnings?.length ? (
-          <div className="mt-3 rounded-2xl border border-amber-200 bg-amber-50/60 p-3">
-            <p className="text-[10px] font-black uppercase text-amber-900">Points à surveiller</p>
+          <div className="mt-3 rounded-2xl border border-vigilance bg-vigilance-bg p-3">
+            <p className="text-meta font-semibold uppercase text-horizon-dark">Points à surveiller</p>
             {readiness.warnings.map((w) => (
-              <p key={w} className="text-xs mt-1 text-amber-950">! {w}</p>
+              <p key={w} className="text-xs mt-1 text-horizon-dark">! {w}</p>
             ))}
           </div>
         ) : null}
 
-        <div className="mt-3 rounded-2xl border border-[#d6c3a0] bg-[#fffdf8] p-3">
-          <p className="text-xs font-black text-[#2f2415]">Confirmation requise</p>
-          <p className="text-xs text-[#8a7456] leading-relaxed">
+        <div className="mt-3 rounded-2xl border border-line bg-card p-3">
+          <p className="text-xs font-semibold text-earth">Confirmation requise</p>
+          <p className="text-xs text-slate leading-relaxed">
             {readiness.ai_disclaimer || 'L’IA propose. L’humain valide.'}
           </p>
         </div>
@@ -104,18 +89,18 @@ export default function AgriFeedsDashboardTab({ dataMap = {}, onNavigateTab }) {
           return (
             <div
               key={key}
-              className={`rounded-2xl border p-3 ${recommended ? 'border-emerald-400 bg-emerald-50/70' : 'border-[#eadcc2] bg-white'}`}
+              className={`rounded-2xl border p-3 ${recommended ? 'border-positive bg-positive-bg' : 'border-line bg-white'}`}
             >
-              <p className="text-[10px] font-black uppercase text-[#8a7456]">
+              <p className="text-meta font-semibold uppercase text-slate">
                 {recommended ? 'Mode recommandé' : 'Mode'}
               </p>
-              <p className="text-sm font-black text-[#2f2415]">{info.label}</p>
-              <p className="text-xs text-[#8a7456]">Score {info.score}/100</p>
+              <p className="text-sm font-semibold text-earth">{info.label}</p>
+              <p className="text-xs text-slate">Score {info.score}/100</p>
               {info.blockers?.length ? (
-                <p className="text-xs mt-1 text-rose-900">{info.blockers.length} bloqueur(s)</p>
+                <p className="text-xs mt-1 text-urgent">{info.blockers.length} bloqueur(s)</p>
               ) : null}
               {info.warnings?.length ? (
-                <p className="text-xs mt-1 text-amber-900">{info.warnings.length} point(s) à surveiller</p>
+                <p className="text-xs mt-1 text-horizon-dark">{info.warnings.length} point(s) à surveiller</p>
               ) : null}
             </div>
           );
@@ -123,13 +108,13 @@ export default function AgriFeedsDashboardTab({ dataMap = {}, onNavigateTab }) {
       </section>
 
       {readiness.per_mode?.PROGRESSIVE_SALES?.gates ? (
-        <section className="rounded-3xl border border-[#d6c3a0] bg-white p-5">
-          <p className="font-black text-[#2f2415]">Portes Phase 2B — Vente progressive</p>
+        <section className="rounded-3xl border border-line bg-white p-6">
+          <p className="font-semibold text-earth">Conditions de vente progressive</p>
           <div className="mt-2 grid grid-cols-1 md:grid-cols-2 gap-2">
             {Object.entries(readiness.per_mode.PROGRESSIVE_SALES.gates).map(([key, ok]) => (
               <div
                 key={key}
-                className={`rounded-xl border px-3 py-2 text-xs ${ok ? 'border-emerald-200 bg-emerald-50/60 text-emerald-950' : 'border-rose-200 bg-rose-50/50 text-rose-950'}`}
+                className={`rounded-xl border px-3 py-2 text-xs ${ok ? 'border-positive bg-positive-bg text-positive' : 'border-urgent bg-urgent-bg text-urgent'}`}
               >
                 <span>{ok ? '✓ ' : '! '}{readiness.per_mode.PROGRESSIVE_SALES.gateLabels?.[key] || key}</span>
               </div>
@@ -140,7 +125,7 @@ export default function AgriFeedsDashboardTab({ dataMap = {}, onNavigateTab }) {
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         <Card
-          title="Distributions Phase 1"
+          title="Distributions de référence"
           value={fmtNumber(benchmark.totals.distributions)}
           hint="Aliments du marché suivis"
         />
@@ -161,56 +146,30 @@ export default function AgriFeedsDashboardTab({ dataMap = {}, onNavigateTab }) {
         />
       </div>
 
-      <section className="rounded-3xl border border-[#d6c3a0] bg-white p-5">
-        <p className="font-black text-[#2f2415]">Décision AGRI FEEDS</p>
-        <p className="text-sm text-[#8a7456] mt-1 leading-relaxed">
-          En Mode Référence, la priorité est de consolider les données d’alimentation du marché.
+      <section className="rounded-3xl border border-line bg-white p-6">
+        <p className="font-semibold text-earth">Décision AGRI FEEDS</p>
+        <p className="text-sm text-slate mt-1 leading-relaxed">
+          La priorité actuelle est de consolider les données d’alimentation du marché.
           La production et la vente AGRI FEEDS restent fermées tant que les conditions ne sont pas réunies.
         </p>
         <div className="mt-3 flex flex-wrap gap-2">
           <button
             type="button"
-            onClick={() => onNavigateTab?.('Référence Phase 1')}
-            className="rounded-xl bg-[#22c55e] px-4 py-2 text-sm font-black text-[#052e16]"
+            onClick={() => onNavigateTab?.('Coûts & décisions')}
+            className="rounded-xl bg-leaf px-4 py-2 text-sm font-semibold text-earth"
           >
-            Voir la référence Phase 1
+            Voir les coûts & décisions
           </button>
           <button
             type="button"
-            onClick={() => onNavigateTab?.('Qualité & reporting')}
-            className="rounded-xl border border-[#d6c3a0] bg-[#fffdf8] px-4 py-2 text-sm font-black text-[#2f2415]"
+            onClick={() => onNavigateTab?.('Qualité')}
+            className="rounded-xl border border-line bg-card px-4 py-2 text-sm font-semibold text-earth"
           >
             Zones site prévues
           </button>
         </div>
       </section>
 
-      <section className="rounded-3xl border border-[#d6c3a0] bg-white p-5 space-y-3">
-        <div>
-          <p className="font-black text-[#2f2415]">Extensions futures — aide à la décision uniquement</p>
-          <p className="text-sm text-[#8a7456] mt-1 leading-relaxed max-w-3xl">
-            BOVINIA et tallow & go ne sont pas des modules opérationnels séparés. L’ERP doit seulement aider à décider quand ces extensions pourront être lancées, à partir des données réelles de la ferme, des coûts, de la qualité, de la traçabilité et de la marge.
-          </p>
-        </div>
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
-          {extensionReadiness.map((extension) => (
-            <article key={extension.name} className="rounded-2xl border border-[#eadcc2] bg-[#fffdf8] p-4">
-              <div className="flex flex-wrap items-start justify-between gap-2">
-                <p className="font-black text-[#2f2415]">{extension.name}</p>
-                <span className="rounded-xl border border-[#d6c3a0] bg-white px-2 py-1 text-[11px] font-bold text-[#8a7456]">
-                  {extension.stage}
-                </span>
-              </div>
-              <p className="mt-2 text-sm text-[#2f2415] leading-relaxed">{extension.role}</p>
-              <div className="mt-3 space-y-1">
-                {extension.gates.map((gate) => (
-                  <p key={gate} className="text-xs text-[#8a7456]">○ {gate}</p>
-                ))}
-              </div>
-            </article>
-          ))}
-        </div>
-      </section>
     </div>
   );
 }

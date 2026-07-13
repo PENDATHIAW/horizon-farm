@@ -29,13 +29,6 @@ export const GREENPRENEURS_STATUS_THRESHOLDS = {
   pret_renforcer: 55,
 };
 
-/** Seuils phases valorisation Tallow & Go / BOVINIA */
-export const VALORISATION_READINESS_THRESHOLDS = {
-  non_pret: 39,
-  a_preparer: 59,
-  pilote_possible: 74,
-};
-
 /** Canal vente fumier/fientes — plateforme Orgaloop (conjoint). */
 export const ORGALOOP_EFFLUENT_CHANNEL = {
   platformName: 'Orgaloop',
@@ -55,20 +48,12 @@ export const CIRCULAR_BUSINESS_EVENT_TYPES = [
   'compost_produit',
   'parcelle_fertilisee',
   'engrais_chimique_evite',
-  'coproduit_bovin_collecte',
-  'suif_collecte',
-  'os_collectes',
-  'coproduit_transformation_test',
 ];
 
 /** Catégories stock recommandées */
 export const CIRCULAR_STOCK_CATEGORIES = [
   'effluent',
   'fertilisant_naturel',
-  'coproduit_bovin',
-  'suif',
-  'os',
-  'transformation_test',
 ];
 
 /** Estimations mensuelles (hypothèse BP DER/FJ) — kg */
@@ -76,23 +61,11 @@ export const CIRCULAR_SIMULATION_MONTHLY_KG = {
   fientes_pondeuses: 48000,
   litiere_chair: 2000,
   fumier_bovin: 750,
-  suif_par_bovin: 12,
-  os_par_bovin: 18,
 };
 
-/** Options stock UI — catégories circulaires / coproduits */
+/** Options stock UI pour les flux organiques actifs. */
 export const CIRCULAR_STOCK_CATEGORY_OPTIONS = [
   { value: 'effluent', label: 'Effluent (fientes / litière)' },
   { value: 'fertilisant_naturel', label: 'Fertilisant naturel / compost' },
   { value: 'fumier', label: 'Fumier' },
-  { value: 'coproduit_bovin', label: 'Coproduit bovin (générique)' },
-  { value: 'suif', label: 'Suif brut' },
-  { value: 'os', label: 'Os bovins' },
-  { value: 'transformation_test', label: 'Intrants transformation (test)' },
 ];
-
-/** Si true, crée aussi des lignes stock suif/os (déconseillé avant phase 2 — risque péremption). */
-export const COPRODUCT_AUTO_STOCK_ENABLED = false;
-
-/** Jours conseillés avant transformation du suif brut (alerte métier). */
-export const SUIF_RAW_MAX_STORAGE_DAYS = 14;

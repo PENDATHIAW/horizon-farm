@@ -1,12 +1,10 @@
 import { buildDecisionCenterPlan, annualRevenueTarget } from '../growthDecisionEngine.js';
 import { computeDashboardPeriodGoal } from '../../modules/dashboard/dashboardMetrics.js';
 
-/** KPI stratégiques Objectifs & Croissance — distincts du Centre opérationnel. */
 export function computeGrowthKpis(dataMap = {}, periodScope = {}) {
   const plan = buildDecisionCenterPlan(dataMap, { periodScope });
   const salesOrders = dataMap.sales_orders || dataMap.salesOrders || [];
   const goal = computeDashboardPeriodGoal(salesOrders, periodScope, plan.goals?.global || {}, plan.activityYear);
-
   return {
     annualTarget: annualRevenueTarget,
     periodTarget: goal.periodTarget,

@@ -161,8 +161,8 @@ export function buildFinancialGapAnalysis(dataMap = {}, referenceDate = new Date
   const goals = buildGoalPerformance(dataMap);
   const workshopTargets = buildWorkshopFinancialTargets(dataMap);
   const salesOrders = arr(dataMap.sales_orders || dataMap.salesOrders);
-  const payments = arr(dataMap.payments);
-  const finances = arr(dataMap.finances || dataMap.transactions);
+
+
 
   const now = referenceDate instanceof Date ? referenceDate : new Date(referenceDate);
   const monthIdx = now.getMonth();
@@ -319,7 +319,7 @@ export function buildObjectifsDecisionPlan(dataMap = {}, options = {}) {
   };
 }
 
-function buildChartDataset(dataMap, { zootechnical, financial, breakEven, lotPivots, referenceDate }) {
+function buildChartDataset(dataMap, { zootechnical, financial, breakEven, lotPivots }) {
   const monthlyBp = HORIZON_FARM_OFFICIAL_BP.revenue.monthly || [];
   const salesOrders = arr(dataMap.sales_orders || dataMap.salesOrders);
   const monthLabels = monthlyBp.map((_, i) => `M${i + 1}`);

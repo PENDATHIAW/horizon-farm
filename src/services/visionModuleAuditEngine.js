@@ -3,7 +3,7 @@ import { MODULE_REGISTRY } from '../config/modules.config.js';
 import { runErpHealthEngine } from './erpHealthEngine.js';
 
 const arr = (v) => (Array.isArray(v) ? v : []);
-const n = (v = 0) => Number(v || 0);
+
 
 const MODULE_DATA_KEYS = {
   dashboard: ['sales_orders', 'payments', 'finances', 'animaux', 'avicole', 'stock', 'taches', 'alertes_center'],
@@ -20,9 +20,7 @@ const MODULE_DATA_KEYS = {
   rh: ['equipements', 'finances', 'documents'],
   gestion_systeme: ['audit_logs'],
   smartfarm: ['sensor_devices', 'camera_devices', 'alertes_center'],
-  sync_activity: ['audit_logs'],
   impact_business: ['business_events', 'documents', 'finances'],
-  centre_ia: ['sales_orders', 'finances', 'alertes_center', 'business_events'],
 };
 
 function scoreFromIssues(issues) {

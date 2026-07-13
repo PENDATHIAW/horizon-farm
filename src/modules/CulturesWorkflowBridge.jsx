@@ -10,7 +10,7 @@ const today = () => new Date().toISOString().slice(0, 10);
 const now = () => new Date().toISOString();
 const cultureName = (row = {}) => row.nom || row.type || row.id || 'Culture';
 const parcelName = (row = {}) => row.parcelle_code || row.parcelle_nom || row.parcelle || 'Parcelle non renseignée';
-const campaignName = (row = {}) => row.campagne || row.saison || row.date_debut_campagne || 'Campagne non renseignée';
+
 const healthScore = (row = {}) => toNumber(row.score_sante ?? row.health_score ?? calculateCultureMetrics(row).healthScore ?? 100);
 const expectedHarvest = (row = {}) => toNumber(row.quantite_prevue ?? row.production_prevue ?? row.expected_yield);
 const harvestedQty = (row = {}) => toNumber(row.quantite_recoltee ?? row.harvested_qty);
@@ -112,11 +112,11 @@ export default function CulturesWorkflowBridge({ rows = [], onUpdate, onRefresh 
   };
 
   return (
-    <div className="rounded-2xl border border-[#d6c3a0] bg-white p-5 space-y-4">
+    <div className="rounded-2xl border border-line bg-white p-6 space-y-4">
       <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3">
         <div>
-          <p className="text-xs uppercase tracking-widest text-[#8a7456]">Cultures connectées</p>
-          <h3 className="font-black text-[#2f2415]">Récoltes, risques, stock et suivi</h3>
+          <p className="text-xs uppercase tracking-normal text-slate">Cultures connectées</p>
+          <h3 className="font-semibold text-earth">Récoltes, risques, stock et suivi</h3>
         </div>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-2 text-sm">
           <Box icon={Sprout} label="Prévu" value={fmtNumber(totalExpected)} />
@@ -127,14 +127,14 @@ export default function CulturesWorkflowBridge({ rows = [], onUpdate, onRefresh 
       </div>
 
       {ready.length ? (
-        <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-3">
-          <p className="font-bold text-emerald-800 mb-2"><CalendarClock size={14} className="inline" /> Récoltes à préparer</p>
+        <div className="rounded-xl border border-positive bg-positive-bg p-3">
+          <p className="font-semibold text-positive mb-2"><CalendarClock size={14} className="inline" /> Récoltes à préparer</p>
           <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-2">
             {ready.map(({ row, risk }) => (
-              <div key={row.id} className="rounded-xl border border-emerald-200 bg-white p-3">
-                <p className="font-bold text-[#2f2415]">{cultureName(row)}</p>
-                <p className="text-xs text-[#8a7456] mt-1">{parcelName(row)} · prévu {fmtNumber(risk.expected)}</p>
-                <p className="mt-2 text-xs text-emerald-800">Récolte → onglet <b>Récoltes</b> (workflow officiel).</p>
+              <div key={row.id} className="rounded-xl border border-positive bg-white p-3">
+                <p className="font-semibold text-earth">{cultureName(row)}</p>
+                <p className="text-xs text-slate mt-1">{parcelName(row)} · prévu {fmtNumber(risk.expected)}</p>
+                <p className="mt-2 text-xs text-positive">Récolte → onglet <b>Récoltes</b> (workflow officiel).</p>
               </div>
             ))}
           </div>
@@ -144,20 +144,20 @@ export default function CulturesWorkflowBridge({ rows = [], onUpdate, onRefresh 
       {risks.length ? (
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-2">
           {risks.map(({ row, risk }) => (
-            <div key={row.id} className="rounded-xl border border-amber-200 bg-amber-50/60 p-3">
-              <p className="font-bold text-[#2f2415]"><AlertTriangle size={14} className="inline text-amber-600" /> {cultureName(row)}</p>
-              <p className="text-xs text-[#8a7456] mt-1">{risk.reasons.join(' · ')}</p>
-              <button type="button" className="mt-3 text-sm font-bold text-emerald-700" onClick={() => createRiskFollowUp(row, risk)}>Créer suivi</button>
+            <div key={row.id} className="rounded-xl border border-vigilance bg-vigilance-bg p-3">
+              <p className="font-semibold text-earth"><AlertTriangle size={14} className="inline text-horizon-dark" /> {cultureName(row)}</p>
+              <p className="text-xs text-slate mt-1">{risk.reasons.join(' · ')}</p>
+              <button type="button" className="mt-3 text-sm font-semibold text-positive" onClick={() => createRiskFollowUp(row, risk)}>Créer suivi</button>
             </div>
           ))}
         </div>
       ) : (
-        <div className="rounded-xl border border-[#eadcc2] bg-[#fffdf8] p-3 text-sm text-[#8a7456]"><CheckCircle2 size={14} className="inline" /> Aucune culture à risque détectée.</div>
+        <div className="rounded-xl border border-line bg-card p-3 text-sm text-slate"><CheckCircle2 size={14} className="inline" /> Aucune culture à risque détectée.</div>
       )}
     </div>
   );
 }
 
 function Box({ icon: Icon, label, value }) {
-  return <div className="rounded-xl bg-[#fffdf8] border border-[#eadcc2] px-3 py-2 min-w-[96px]"><Icon size={14} className="text-[#9a6b12]" /><b className="block text-[#2f2415]">{value}</b><span className="text-xs text-[#8a7456]">{label}</span></div>;
+  return <div className="rounded-xl bg-card border border-line px-3 py-2 min-w-[96px]"><Icon size={14} className="text-horizon-dark" /><b className="block text-earth">{value}</b><span className="text-xs text-slate">{label}</span></div>;
 }

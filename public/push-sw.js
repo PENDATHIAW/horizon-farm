@@ -1,5 +1,5 @@
 async function resolvePushPayload(event) {
-  let payload = {};
+  let payload;
   try {
     payload = event.data ? event.data.json() : {};
   } catch {

@@ -42,19 +42,19 @@ export default function GlobalFarmControl({
   const label = formatFarmScopeLabel(normalizedScope, farms);
   const activitiesLabel = selectedFarm ? formatFarmActivitiesLabel(selectedFarm.activity_type) : 'Consolidation multi-fermes';
   const statusLabel = selectedFarm?.status === 'paused' ? 'En pause' : selectedFarm?.status === 'archived' ? 'Archivée' : selectedFarm ? 'Active' : null;
-  const statusTone = selectedFarm?.status === 'paused' ? 'border-amber-200 bg-amber-50 text-amber-800' : 'border-emerald-200 bg-emerald-50 text-emerald-800';
+  const statusTone = selectedFarm?.status === 'paused' ? 'border-vigilance bg-vigilance-bg text-horizon-dark' : 'border-positive bg-positive-bg text-positive';
 
   if (!multiFarm) {
     return (
-      <div className="border-b border-[#dcfce7] bg-[#f8fcf8] px-3 md:px-6 py-2">
+      <div className="border-b border-positive-bg bg-mist px-3 md:px-6 py-2">
         <div className="flex flex-wrap items-center gap-2">
-          <div className="inline-flex items-center gap-2 rounded-full border border-[#d1e5d1] bg-white px-3 py-1.5 text-xs font-semibold text-[#052e16]">
+          <div className="inline-flex items-center gap-2 rounded-full border border-line bg-white px-3 py-2 text-xs font-semibold text-earth">
             <Building2 size={13} aria-hidden="true" />
             <span>{label}</span>
           </div>
-          <span className="text-[11px] text-[#6b8a6b]">Horizon Farm est votre ferme par défaut.</span>
+          <span className="text-meta text-slate">Horizon Farm est votre ferme par défaut.</span>
           {canManage && onManageFarms ? (
-            <button type="button" onClick={onManageFarms} className="inline-flex items-center gap-1 rounded-full border border-[#d1e5d1] bg-white px-3 py-1 text-[11px] font-bold text-[#052e16] hover:bg-[#dcfce7]">
+            <button type="button" onClick={onManageFarms} className="inline-flex items-center gap-1 rounded-full border border-line bg-white px-3 py-1 text-meta font-semibold text-earth hover:bg-positive-bg">
               <Settings2 size={12} />
               Gérer les fermes
             </button>
@@ -65,7 +65,7 @@ export default function GlobalFarmControl({
   }
 
   return (
-    <div className="border-b border-[#dcfce7] bg-[#f8fcf8] px-3 md:px-6 py-2">
+    <div className="border-b border-positive-bg bg-mist px-3 md:px-6 py-2">
       <div className="flex flex-wrap items-center gap-2">
         <div className="relative inline-block">
           <button
@@ -73,7 +73,7 @@ export default function GlobalFarmControl({
             aria-haspopup="listbox"
             aria-expanded={open}
             onClick={() => setOpen((value) => !value)}
-            className="inline-flex items-center gap-2 rounded-full border border-[#22c55e]/40 bg-white px-3 py-1.5 text-xs font-bold text-[#052e16] hover:bg-[#dcfce7] transition-colors"
+            className="inline-flex items-center gap-2 rounded-full border border-leaf/40 bg-white px-3 py-2 text-xs font-semibold text-earth hover:bg-positive-bg transition-colors"
           >
             <Building2 size={13} aria-hidden="true" />
             <span>{label}</span>
@@ -89,7 +89,7 @@ export default function GlobalFarmControl({
               />
               <div
                 role="listbox"
-                className="absolute left-0 top-full z-30 mt-2 min-w-[240px] rounded-2xl border border-[#d1e5d1] bg-white p-2 shadow-2xl"
+                className="absolute left-0 top-full z-30 mt-2 min-w-[240px] rounded-2xl border border-line bg-white p-2 shadow-float"
               >
                 {allowAllFarms ? (
                   <button
@@ -97,7 +97,7 @@ export default function GlobalFarmControl({
                     role="option"
                     aria-selected={normalizedScope.mode === 'all'}
                     onClick={() => commitNow({ mode: 'all' })}
-                    className={`w-full rounded-xl px-3 py-2 text-left text-xs font-semibold ${normalizedScope.mode === 'all' ? 'bg-[#22c55e] text-[#052e16]' : 'text-[#052e16] hover:bg-[#dcfce7]'}`}
+                    className={`w-full rounded-xl px-3 py-2 text-left text-xs font-semibold ${normalizedScope.mode === 'all' ? 'bg-leaf text-earth' : 'text-earth hover:bg-positive-bg'}`}
                   >
                     Toutes les fermes
                   </button>
@@ -109,22 +109,22 @@ export default function GlobalFarmControl({
                     role="option"
                     aria-selected={normalizedScope.mode === 'single' && normalizedScope.farmId === farm.id}
                     onClick={() => commitNow({ mode: 'single', farmId: farm.id })}
-                    className={`mt-1 w-full rounded-xl px-3 py-2 text-left text-xs font-semibold ${normalizedScope.mode === 'single' && normalizedScope.farmId === farm.id ? 'bg-[#22c55e] text-[#052e16]' : 'text-[#052e16] hover:bg-[#dcfce7]'}`}
+                    className={`mt-1 w-full rounded-xl px-3 py-2 text-left text-xs font-semibold ${normalizedScope.mode === 'single' && normalizedScope.farmId === farm.id ? 'bg-leaf text-earth' : 'text-earth hover:bg-positive-bg'}`}
                   >
                     {farm.name}
-                    {farm.is_default ? <span className="ml-1 text-[10px] font-medium text-[#6b8a6b]">(défaut)</span> : null}
+                    {farm.is_default ? <span className="ml-1 text-meta font-medium text-slate">(défaut)</span> : null}
                   </button>
                 ))}
               </div>
             </>
           ) : null}
         </div>
-        <span className="text-[11px] text-[#6b8a6b]">{activitiesLabel}</span>
+        <span className="text-meta text-slate">{activitiesLabel}</span>
         {statusLabel ? (
-          <span className={`rounded-full border px-2 py-0.5 text-[10px] font-black ${statusTone}`}>{statusLabel}</span>
+          <span className={`rounded-full border px-2 py-1 text-meta font-semibold ${statusTone}`}>{statusLabel}</span>
         ) : null}
         {canManage && onManageFarms ? (
-          <button type="button" onClick={onManageFarms} className="inline-flex items-center gap-1 rounded-full border border-[#d1e5d1] bg-white px-3 py-1 text-[11px] font-bold text-[#052e16] hover:bg-[#dcfce7]">
+          <button type="button" onClick={onManageFarms} className="inline-flex items-center gap-1 rounded-full border border-line bg-white px-3 py-1 text-meta font-semibold text-earth hover:bg-positive-bg">
             <Settings2 size={12} />
             Gérer les fermes
           </button>

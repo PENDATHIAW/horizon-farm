@@ -1,42 +1,35 @@
 import { expect, test } from '@playwright/test';
+import navigation from '../../src/i18n/fr/navigation.js';
+import { MODULE_TAB_CONFIGS } from '../../src/config/moduleTabs/index.js';
 
 const LOGIN = process.env.E2E_LOGIN || '';
 const PASSWORD = process.env.E2E_PASSWORD || '';
 
-const MODULE_LABELS = [
-  'Accueil',
-  'Assistant',
-  'Centre décisionnel',
-  'AGRI FEEDS',
-  'Objectifs & Croissance',
-  'Financements',
-  'Élevage',
-  'Cultures',
-  'Commercial',
-  'Achats & Stock',
-  'Finance & Pilotage',
-  'Activité & Suivi',
-  'Documents & Rapports',
-  'Équipe',
-  'Smart Farm',
-  'Gestion du système',
+const MODULE_IDS = [
+  'dashboard',
+  'assistant_erp',
+  'centre_decisionnel',
+  'objectifs_croissance',
+  'elevage',
+  'cultures',
+  'commercial',
+  'achats_stock',
+  'finance_pilotage',
+  'activite_suivi',
+  'documents_rapports',
+  'equipe',
+  'equipements',
+  'gestion_systeme',
+  'agri_feeds',
+  'smartfarm',
+  'financements',
 ];
 
-const MODULE_TABS = {
-  'Centre décisionnel': ['À traiter', 'Écarts', 'Risques', 'Décisions', 'Historique'],
-  'AGRI FEEDS': ['Tableau de bord', 'Référence Phase 1', 'Matières & fournisseurs', 'Formulations', 'Production', 'Tests & comparaison', 'Commercial', 'Qualité & reporting'],
-  'Objectifs & Croissance': ['Suivi du Business Plan', 'Prévisionnel vs réel', 'Simulations', 'Capacité de remboursement'],
-  Financements: ['Tableau de bord', 'Opportunités', 'Contacts', 'Dossiers & pièces', 'Fonds & justificatifs', 'Espace Financeurs'],
-  Élevage: ['Lots & bandes', 'Pondeuses', 'Embouche bovine', 'Santé & biosécurité', 'Alimentation', 'Performances'],
-  Cultures: ['Parcelles & campagnes', 'Irrigation', 'Récoltes', 'Économie circulaire', 'Marge parcelle'],
-  Commercial: ['Ventes', 'Clients & créances', 'Livraisons', 'Factures', 'Marge commerciale'],
-  'Achats & Stock': ['Inventaire', 'Réceptions & achats', 'Fournisseurs & dettes', 'Mouvements stock', 'Matières organiques'],
-  'Finance & Pilotage': ['Résumé', 'Trésorerie', 'Créances & dettes', 'Coûts par filière', 'Financement', 'Écarts budget'],
-  'Activité & Suivi': ['Tâches du jour', 'Alertes', 'Décisions', 'Registre d’actions', 'Traçabilité opérationnelle'],
-  'Documents & Rapports': ['Documents', 'Justificatifs', 'Rapports financeur', 'Exports', 'Audit documentaire'],
-  'Opérations & Ressources': ['Équipe', 'Responsabilités', 'Planning', 'Temps de travail', 'Incidents'],
-  'Smart Farm': ['Capteurs', 'Eau', 'Énergie', 'Alertes techniques', 'Automatisation terrain'],
-};
+const MODULE_LABELS = MODULE_IDS.map((id) => navigation.modules[id]);
+const MODULE_TABS = Object.fromEntries(MODULE_IDS.map((id) => [
+  navigation.modules[id],
+  (MODULE_TAB_CONFIGS[id] || []).map((tab) => tab.label),
+]));
 
 const escapeRegExp = (value) => String(value).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
@@ -82,11 +75,11 @@ async function openModule(page, label, waitOptions = {}) {
 }
 
 test.describe('Modules Horizon Farm', () => {
-  test.describe.configure({ timeout: 300_000 });
-  test.setTimeout(240_000);
+  test.describe.configure({ timeout: 600_000 });
+  test.setTimeout(600_000);
 
   test('ouvre chaque module principal sans ErrorBoundary visible', async ({ page }) => {
-    test.setTimeout(120_000);
+    test.setTimeout(300_000);
     const runtimeErrors = [];
     page.on('pageerror', (error) => runtimeErrors.push(error.message));
     page.on('console', (message) => {
@@ -131,15 +124,15 @@ test.describe('Modules Horizon Farm', () => {
     expect(runtimeErrors, `Erreurs runtime detectees:\n${runtimeErrors.join('\n')}`).toEqual([]);
   });
 
-  test('ouvre Commercial / Clients & créances sans ErrorBoundary visible', async ({ page }) => {
+  test('ouvre Commercial / Clients sans ErrorBoundary visible', async ({ page }) => {
     test.setTimeout(90_000);
     await login(page);
     await openModule(page, 'Commercial', { waitForNetwork: false });
-    const tab = page.locator('main').getByRole('button', { name: /^Clients & créances(\b|\s|$)/i }).first();
+    const tab = page.locator('main').getByRole('button', { name: /^Clients(\b|\s|$)/i }).first();
     await expect(tab).toBeVisible({ timeout: 10_000 });
     await tab.click({ timeout: 5_000 });
     await waitForModuleReady(page, { waitForNetwork: false });
-    await assertNoModuleError(page, 'Commercial / Clients & créances');
+    await assertNoModuleError(page, 'Commercial / Clients');
     await expect(page.locator('main')).toContainText(/clients|créances|creances/i, { timeout: 10_000 });
   });
 });

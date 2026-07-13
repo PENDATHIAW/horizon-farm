@@ -9,6 +9,7 @@ import { diagnoseElevageEntity } from '../../src/utils/elevageLotDiagnostic.js';
 import { buildFeedStockRuptureAlerts, suggestRationForTarget } from '../../src/utils/elevageFeedingIntel.js';
 import { evaluateElevageHealthBlocks } from '../../src/utils/elevageHealthBlocks.js';
 import { classifyElevageDocument } from '../../src/utils/elevageDocumentVault.js';
+import { MODULE_OVERVIEW_KPIS } from '../../src/config/moduleOverviewKpis.js';
 import { setupTestStorage, assertModuleTabStable, buildSimulatedProps, withSimulatedMode } from './helpers/moduleTabTestHarness.js';
 
 setupTestStorage();
@@ -17,10 +18,9 @@ const root = join(dirname(fileURLToPath(import.meta.url)), '../..');
 const recoveredSrc = readFileSync(join(root, 'src/modules/ElevageRecoveredModule.jsx'), 'utf8');
 const cyclesSrc = readFileSync(join(root, 'src/modules/elevage/ElevageCyclesPanel.jsx'), 'utf8');
 
-test('Résumé — cockpit 6 KPI via ElevageSummaryCockpit', () => {
-  assert.match(recoveredSrc, /ElevageSummaryCockpit/);
-  const summarySrc = readFileSync(join(root, 'src/modules/elevage/ElevageSummaryCockpit.jsx'), 'utf8');
-  assert.match(summarySrc, /Brief Assistant/);
+test('Vue élevage — bandeau KPI global et métriques métier', () => {
+  assert.deepEqual(MODULE_OVERVIEW_KPIS.elevage, ['effectif_animaux', 'ponte', 'alertes_urgentes', 'depenses']);
+  assert.match(recoveredSrc, /ElevageMobileToolbar/);
   const kpis = buildElevageCockpitKpis({ layingRateLabel: '82 %', layingRateCalculable: true, feedCost: 1000 });
   assert.equal(kpis.length, 6);
   assert.equal(kpis[0].id, 'laying');

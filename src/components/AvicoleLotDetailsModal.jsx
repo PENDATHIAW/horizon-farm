@@ -19,15 +19,15 @@ import { PondeuseProductionPanel, SaleOpportunityGuardPanel, WeightProjectionPan
 import { avicoleActiveCount, avicoleCalculatedActiveCount, avicoleDeadCount, avicoleHasCountMismatch, avicoleInitialCount, avicoleOtherExitCount, avicoleRegisteredActiveCount, avicoleSickCount, avicoleSoldCount } from '../utils/avicoleMetrics';
 
 const Field = ({ label, value, children, danger = false }) => (
-  <div className={`rounded-xl border px-3 py-2 ${danger ? 'border-red-200 bg-red-50' : 'border-[#eadcc2] bg-white'}`}>
-    <p className="text-[11px] uppercase tracking-wide text-[#8a7456]">{label}</p>
-    <div className={`mt-1 text-sm font-semibold break-words ${danger ? 'text-red-700' : 'text-[#2f2415]'}`}>{children || value || '-'}</div>
+  <div className={`rounded-xl border px-3 py-2 ${danger ? 'border-urgent bg-urgent-bg' : 'border-line bg-white'}`}>
+    <p className="text-meta uppercase tracking-normal text-slate">{label}</p>
+    <div className={`mt-1 text-sm font-semibold break-words ${danger ? 'text-urgent' : 'text-earth'}`}>{children || value || '-'}</div>
   </div>
 );
 const Section = ({ title, children, note }) => (
-  <section className="rounded-2xl border border-[#d6c3a0] bg-[#fffdf8] p-4">
-    <h3 className="text-sm font-black text-[#2f2415] mb-1">{title}</h3>
-    {note ? <p className="mb-3 text-xs text-[#8a7456]">{note}</p> : null}
+  <section className="rounded-2xl border border-line bg-card p-4">
+    <h3 className="text-sm font-semibold text-earth mb-1">{title}</h3>
+    {note ? <p className="mb-3 text-xs text-slate">{note}</p> : null}
     <div className="grid grid-cols-1 md:grid-cols-2 gap-3">{children}</div>
   </section>
 );
@@ -119,10 +119,10 @@ export default function AvicoleLotDetailsModal({ open, onClose, lot, productionL
   const [tab, setTab] = useState('situation');
 
   useEffect(() => {
-    if (open) setTab('situation');
+    if (open) queueMicrotask(() => setTab('situation'));
   }, [open, lot?.id]);
 
-  if (!lot) return <BaseModal open={open} onClose={onClose} title="Fiche lot avicole"><p className="text-[#8a7456]">Aucun lot sélectionné.</p></BaseModal>;
+  if (!lot) return <BaseModal open={open} onClose={onClose} title="Fiche lot avicole"><p className="text-slate">Aucun lot sélectionné.</p></BaseModal>;
   const layer = isPondeuse(lot);
   const decision = buildAvicoleLotDecision(lot, productionLogs);
   const metrics = calculateLotMetrics({ lot, feedingLogs: alimentationLogs, productionLogs });
@@ -157,7 +157,7 @@ export default function AvicoleLotDetailsModal({ open, onClose, lot, productionL
 
   return <BaseModal open={open} onClose={onClose} title={`Fiche ${layer ? 'pondeuses' : 'poulets de chair'} · ${lot.name || lot.id}`}>
     <div className="space-y-4">
-      <div className="rounded-2xl border border-[#d6c3a0] bg-[#2f2415] p-4 text-white"><p className="text-xs uppercase tracking-[0.2em] text-[#c9a96a]">{layer ? 'Lot pondeuses' : 'Lot poulets de chair'}</p><h2 className="mt-1 text-2xl font-black">{lot.name || lot.id}</h2><p className="mt-1 text-sm text-[#f4e6c8]">{lot.type || 'Type non renseigné'} · {active} sujet(s) actif(s)</p><div className="mt-3 flex flex-wrap gap-2"><Badge status={lot.status || 'actif'} /><Badge status={lot.health_status || 'sain'} /><span className="rounded-full bg-white/10 border border-white/10 px-3 py-1 text-xs text-[#f4e6c8]">{livingTarget.status?.replaceAll('_', ' ') || decision.decision}</span></div></div>
+      <div className="rounded-2xl border border-line bg-earth p-4 text-white"><p className="text-xs uppercase tracking-normal text-horizon">{layer ? 'Lot pondeuses' : 'Lot poulets de chair'}</p><h2 className="mt-1 text-2xl font-semibold">{lot.name || lot.id}</h2><p className="mt-1 text-sm text-line">{lot.type || 'Type non renseigné'} · {active} sujet(s) actif(s)</p><div className="mt-3 flex flex-wrap gap-2"><Badge status={lot.status || 'actif'} /><Badge status={lot.health_status || 'sain'} /><span className="rounded-full bg-white/10 border border-white/10 px-3 py-1 text-xs text-line">{livingTarget.status?.replaceAll('_', ' ') || decision.decision}</span></div></div>
 
       <SalePricingSummaryCard
         variant="avicole_lot"
@@ -186,7 +186,7 @@ export default function AvicoleLotDetailsModal({ open, onClose, lot, productionL
           <Field label="Malades / à surveiller" value={fmtNumber(sickCount(lot))} />
           <Field label="Vendus / sortis" value={fmtNumber(avicoleSoldCount(lot) + avicoleOtherExitCount(lot))} />
           <Field label="Effectif actuel calculé" value={fmtNumber(active)} />
-          <Field label="Effectif actuel enregistré" value={fmtNumber(avicoleRegisteredActiveCount(lot))} danger={avicoleHasCountMismatch(lot)}>{fmtNumber(avicoleRegisteredActiveCount(lot))}{avicoleHasCountMismatch(lot) ? <p className="mt-1 text-[11px] text-red-700">Incohérence : le calcul donne {fmtNumber(avicoleCalculatedActiveCount(lot))}.</p> : null}</Field>
+          <Field label="Effectif actuel enregistré" value={fmtNumber(avicoleRegisteredActiveCount(lot))} danger={avicoleHasCountMismatch(lot)}>{fmtNumber(avicoleRegisteredActiveCount(lot))}{avicoleHasCountMismatch(lot) ? <p className="mt-1 text-meta text-urgent">Incohérence : le calcul donne {fmtNumber(avicoleCalculatedActiveCount(lot))}.</p> : null}</Field>
           <Field label="Date entrée" value={lot.date_debut || lot.entry_date || '-'} />
           <Field label="Phase" value={lot.phase || '-'} />
         </Section>
@@ -228,20 +228,20 @@ export default function AvicoleLotDetailsModal({ open, onClose, lot, productionL
       {tab === 'decision' ? (
         <>
           <SaleOpportunityGuardPanel guard={guard} />
-          <div className="flex flex-wrap gap-2 rounded-2xl border border-[#eadcc2] bg-white p-3"><Btn small onClick={confirmOpportunity}>{existingOpportunity ? 'Mettre à jour opportunité' : 'Confirmer opportunité de vente'}</Btn><Btn small variant="outline" onClick={() => onNavigate?.('ventes')}>Voir opportunités / ventes</Btn></div>
+          <div className="flex flex-wrap gap-2 rounded-2xl border border-line bg-white p-3"><Btn small onClick={confirmOpportunity}>{existingOpportunity ? 'Mettre à jour opportunité' : 'Confirmer opportunité de vente'}</Btn><Btn small variant="outline" onClick={() => onNavigate?.('ventes')}>Voir opportunités / ventes</Btn></div>
           <Section title="Décision suggérée" note="Décision affichée, à valider par l'utilisateur avant création d'opportunité."><Field label="Décision" value={decision.decision} /><Field label="Priorité" value={decision.priority || '-'} /><Field label="Prochaine action" value={decision.nextWeighingDate || decision.reformStart || livingTarget.nextWeighingDate || '-'} /><Field label="Poids / ponte attendu" value={decision.expectedWeight ? `${decision.expectedWeight} kg` : decision.expectedEggsDay ? eggTabletLabel(decision.expectedEggsDay) : livingTarget.expectedEggsDay ? eggTabletLabel(livingTarget.expectedEggsDay) : '-'} /></Section>
         </>
       ) : null}
 
       {tab === 'finances' ? (
         <Section title="Coûts, ventes et marge consolidés" note={SALE_PRICE_HELP_AVICOLE}>
-          {finance.warnings.length ? <div className="md:col-span-2 rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800"><AlertTriangle size={15} className="inline" /> {finance.warnings.join(' ')}</div> : null}
+          {finance.warnings.length ? <div className="md:col-span-2 rounded-xl border border-vigilance bg-vigilance-bg p-3 text-sm text-horizon-dark"><AlertTriangle size={15} className="inline" /> {finance.warnings.join(' ')}</div> : null}
           <Field label="Coût achat bande" value={fmtCurrency(finance.achat)} />
           <Field label="Alimentation calculée" value={fmtCurrency(finance.alimentation)} />
           <Field label="Événements de charge" value={fmtCurrency(finance.eventCharges)} />
           <Field label="Transactions Finance liées" value={fmtCurrency(finance.financeCharges)} />
           <Field label="Coût total consolidé" value={fmtCurrency(finance.totalCost)} />
-          <Field label={finance.ordersCount > 0 ? 'Vente liée' : 'Vente estimée'} value={fmtCurrency(finance.revenue)}>{fmtCurrency(finance.revenue)}<p className="mt-1 text-[11px] text-[#8a7456]">{finance.revenueSource}</p></Field>
+          <Field label={finance.ordersCount > 0 ? 'Vente liée' : 'Vente estimée'} value={fmtCurrency(finance.revenue)}>{fmtCurrency(finance.revenue)}<p className="mt-1 text-meta text-slate">{finance.revenueSource}</p></Field>
           <Field label="Payé" value={fmtCurrency(finance.paid)} />
           <Field label="Reste à encaisser" value={fmtCurrency(finance.remaining)} danger={finance.remaining > 0} />
           <Field label="Commandes liées" value={fmtNumber(finance.ordersCount)} />
@@ -252,7 +252,7 @@ export default function AvicoleLotDetailsModal({ open, onClose, lot, productionL
           <Field label="Prix marche observe" value={salePricing.marketPrice ? fmtCurrency(salePricing.marketPrice) : 'Non renseigne'} />
           <Field label={PROPOSED_PRICE_MARGIN_LABEL} value={proposed.marginOnProposed != null ? fmtCurrency(proposed.marginOnProposed) : '—'} />
           <Field label="Marge consolidée (revenu fiche)" value={fmtCurrency(finance.margin)} danger={finance.margin < 0} />
-          {salePricing.alerts?.length ? <div className="md:col-span-2 rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800">{salePricing.alerts.join(' ')}</div> : null}
+          {salePricing.alerts?.length ? <div className="md:col-span-2 rounded-xl border border-vigilance bg-vigilance-bg p-3 text-sm text-horizon-dark">{salePricing.alerts.join(' ')}</div> : null}
         </Section>
       ) : null}
     </div>

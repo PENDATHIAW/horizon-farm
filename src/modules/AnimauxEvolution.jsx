@@ -3,7 +3,7 @@ import SmartEvolutionChart from '../components/charts/SmartEvolutionChart.jsx';
 import SmartPieChart from '../components/charts/SmartPieChart.jsx';
 import { toNumber } from '../utils/format';
 import { isActiveAnimalForFeeding } from '../utils/alimentation';
-import { buildGrowthSummary } from '../utils/animalGrowth';
+
 import { getAnimalSaleReadiness, calculateAnimalSalePricing } from '../utils/animalSalePricing';
 import { summarizeUnifiedFarmCosts } from '../services/unifiedCostService.js';
 
@@ -17,7 +17,7 @@ const isSold = (row = {}) => ['vendu', 'sold'].includes(lower(row.status || row.
 const isLoss = (row = {}) => ['mort', 'vole', 'volé', 'perdu'].includes(lower(row.status || row.statut));
 const isReady = (row = {}) => Boolean(row.pret_vente_confirme || row.ready_for_sale || row.sale_ready || row.pret_a_la_vente || lower(row.status || row.statut) === 'pret_a_la_vente' || row.pret_vente_recommande || getAnimalSaleReadiness({ animal: row }).recommended);
 const rowDate = (row = {}) => row.date_entree_ferme || row.date_achat || row.created_at || row.updated_at || row.naissance || row.date_naissance;
-const eventDate = (row = {}) => row.date || row.created_at || row.updated_at || row.paid_at || row.payment_date || row.date_commande || row.date_operation || row.date_paiement;
+
 const orderAmount = (row = {}) => toNumber(row.montant_total ?? row.total ?? row.amount ?? row.total_amount ?? row.ca ?? row.ca_total ?? 0);
 const paymentAmount = (row = {}) => toNumber(row.montant_paye ?? row.montant ?? row.amount ?? row.paid_amount ?? 0);
 const transactionAmount = (row = {}) => toNumber(row.montant ?? row.amount ?? row.total ?? row.montant_total ?? row.total_amount ?? row.credit ?? row.credit_amount ?? 0);
@@ -35,8 +35,8 @@ function matchAnimal(item = {}, animal = {}) { const id = String(animal.id || ''
 function financeSalesForAnimal(animal = {}, transactions = []) { const rows = arr(transactions).filter((tx) => isIncome(tx) && (matchAnimal(tx, animal) || animalKeywordMatches(tx))); return { rows, total: rows.reduce((sum, tx) => sum + transactionAmount(tx), 0) }; }
 function linkedSalesForAnimal(animal = {}, salesOrders = [], payments = [], transactions = []) { const orders = arr(salesOrders).filter((order) => !['annule', 'annulee', 'annulé', 'cancelled'].includes(lower(order.statut || order.status)) && matchAnimal(order, animal)); const totalOrders = orders.reduce((sum, order) => sum + orderAmount(order), 0); const orderIds = orders.map((order) => String(order.id || '')).filter(Boolean); const paidOrders = arr(payments).filter((payment) => orderIds.includes(String(payment.order_id || payment.sale_id || payment.source_record_id || payment.related_id || '')) || matchAnimal(payment, animal)).reduce((sum, payment) => sum + paymentAmount(payment), 0); const finance = totalOrders > 0 ? { rows: [], total: 0 } : financeSalesForAnimal(animal, transactions); const total = totalOrders + finance.total; const paid = paidOrders + finance.total; return { orders, financeRows: finance.rows, total, paid, remaining: Math.max(0, total - paid) }; }
 function animalSaleValue(animal, salesOrders = [], payments = [], transactions = []) { const linked = linkedSalesForAnimal(animal, salesOrders, payments, transactions); if (linked.total > 0) return linked.total; const pricing = calculateAnimalSalePricing({ animal, metrics: { totalCost: purchaseCost(animal) } }); return toNumber(animal.prix_vente_reel ?? animal.sale_price ?? animal.prix_vente ?? pricing.recommendedSalePrice ?? animal.prix_vente_estime_auto ?? animal.prix_vente_estime ?? 0); }
-function SmallMetric({ label, value, hint, danger = false }) { return <div className={`border rounded-xl p-3 ${danger ? 'bg-red-50 border-red-200' : 'bg-[#fffdf8] border-[#d6c3a0]'}`}><p className="text-xs text-[#8a7456]">{label}</p><p className={`text-xl font-black mt-1 ${danger ? 'text-red-600' : 'text-[#2f2415]'}`}>{value}</p>{hint ? <p className="text-xs text-[#8a7456] mt-1">{hint}</p> : null}</div>; }
-function Header({ priority, onNavigate }) { const PriorityIcon = priority.icon; return <div className="bg-white border border-[#d6c3a0] rounded-2xl p-4"><div className="flex items-start justify-between gap-3"><div className="flex items-start gap-3"><div className="w-10 h-10 rounded-xl bg-[#fff3d8] text-[#9a6b12] flex items-center justify-center"><TrendingUp size={18} /></div><div><p className="font-black text-[#2f2415]">Évolution embouche interactive</p><p className="text-xs text-[#8a7456] mt-1">Coût de revient, GMQ, poids projeté, ventes, marge, santé et pertes.</p></div></div><button type="button" onClick={() => onNavigate?.(priority.module)} className="hidden md:inline-flex items-center gap-2 rounded-xl bg-[#c9a96a] px-3 py-2 text-sm font-bold text-white hover:bg-[#b6975f]"><PriorityIcon size={15} />{priority.label}</button></div></div>; }
+
+
 function costDetailMap(summary = {}) { return new Map(arr(summary.details).map((item) => [String(item.animalId), item])); }
 function detailFor(animal = {}, map = new Map()) { return map.get(String(animal.id)) || { baseCost: purchaseCost(animal), realFeedCost: 0, healthCost: 0, otherDirectCost: 0, totalCost: purchaseCost(animal), costComplete: false, costMissing: true, gmq: 0, projectedExitWeight: 0, costPerKg: 0, costPerDay: 0 }; }
 function buildMonthly({ rows = [], opportunities = [], salesOrders = [], payments = [], transactions = [], details = new Map() }) {
@@ -47,19 +47,17 @@ function buildMonthly({ rows = [], opportunities = [], salesOrders = [], payment
 }
 function values(rows, key) { return rows.map((row) => toNumber(row[key])); }
 function labels(rows) { return rows.map((row) => row.mois); }
-export default function AnimauxEvolution({ rows = [], alimentationLogs = [], vaccins = [], opportunities = [], businessEvents = [], salesOrders = [], payments = [], transactions = [], onNavigate }) {
+export default function AnimauxEvolution({ rows = [], alimentationLogs = [], vaccins = [], opportunities = [], businessEvents = [], salesOrders = [], payments = [], transactions = [] }) {
   const animals = arr(rows);
   const costSummary = summarizeUnifiedFarmCosts({ animaux: animals, alimentationLogs, vaccins, healthEvents: businessEvents, directCharges: businessEvents }).animaux;
   const details = costDetailMap(costSummary);
   const costDetails = animals.map((animal) => detailFor(animal, details));
-  const complete = costDetails.filter((item) => item.costComplete);
-  const totalCost = costDetails.reduce((sum, item) => sum + toNumber(item.totalCost), 0);
-  const totalFeed = costDetails.reduce((sum, item) => sum + toNumber(item.realFeedCost), 0);
-  const totalHealth = costDetails.reduce((sum, item) => sum + toNumber(item.healthCost), 0);
-  const avgCost = complete.length ? complete.reduce((sum, item) => sum + toNumber(item.totalCost), 0) / complete.length : 0;
-  const avgCostPerKg = complete.filter((item) => item.costPerKg > 0).length ? complete.filter((item) => item.costPerKg > 0).reduce((sum, item) => sum + item.costPerKg, 0) / complete.filter((item) => item.costPerKg > 0).length : 0;
-  const avgGMQ = costDetails.filter((item) => item.gmq > 0).length ? costDetails.filter((item) => item.gmq > 0).reduce((sum, item) => sum + item.gmq, 0) / costDetails.filter((item) => item.gmq > 0).length : 0;
-  const avgProjectedWeight = costDetails.filter((item) => item.projectedExitWeight > 0).length ? costDetails.filter((item) => item.projectedExitWeight > 0).reduce((sum, item) => sum + item.projectedExitWeight, 0) / costDetails.filter((item) => item.projectedExitWeight > 0).length : 0;
+
+
+
+
+
+
   const monthly = buildMonthly({ rows, opportunities, salesOrders, payments, transactions, details });
   const chargePie = {
     aliment: costDetails.reduce((sum, item) => sum + toNumber(item.realFeedCost), 0),
@@ -67,7 +65,7 @@ export default function AnimauxEvolution({ rows = [], alimentationLogs = [], vac
     autres: costDetails.reduce((sum, item) => sum + toNumber(item.baseCost) + toNumber(item.otherDirectCost), 0),
   };
 
-  if (!animals.length) return <div className="rounded-2xl border border-[#eadcc2] bg-[#fffdf8] p-4 text-sm text-[#8a7456]">Aucun animal — graphiques indisponibles.</div>;
+  if (!animals.length) return <div className="rounded-2xl border border-line bg-card p-4 text-sm text-slate">Aucun animal — graphiques indisponibles.</div>;
 
   return (
     <ChartsGrid>

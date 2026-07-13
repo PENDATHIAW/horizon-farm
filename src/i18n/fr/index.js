@@ -4,10 +4,13 @@
  * Toute chaîne visible générée par l'application doit venir d'ici.
  */
 import commun from './commun.js';
+import dailyEntries from './dailyEntries.js';
 import navigation from './navigation.js';
+import moduleTabs from './moduleTabs.js';
+import shared from './shared.js';
 import composants from './composants.js';
 
-const dictionnaire = { commun, navigation, composants };
+const dictionnaire = { commun, dailyEntries, navigation, moduleTabs, shared, composants };
 
 export default dictionnaire;
 

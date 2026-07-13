@@ -1,4 +1,4 @@
-import React from 'react';
+import 'react';
 import { HORIZON_DESIGN as D } from './horizonDesignTokens.js';
 import {
   formatConversationalHorizonAnswer,
@@ -27,7 +27,7 @@ export default function HorizonStructuredMessage({ text = '', structured = null 
       {paragraphs.map((paragraph, index) => (
         <p
           key={index}
-          className="text-[15px] leading-relaxed whitespace-pre-wrap"
+          className="text-body leading-relaxed whitespace-pre-wrap"
           style={{ color: D.assistantBubbleText }}
         >
           {paragraph}

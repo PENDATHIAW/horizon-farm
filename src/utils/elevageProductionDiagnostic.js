@@ -14,7 +14,7 @@ import {
   revenueOfLot,
 } from './elevageActivityPnl.js';
 import { fmtCurrency, fmtNumber, fmtPercent } from './format.js';
-import { PRODUCTION_FINANCE_LABELS } from './productionFinancialTruth.js';
+import { PRODUCTION_FINANCE_LABELS, PRODUCTION_FINANCE_SOURCE } from './productionFinancialTruth.js';
 
 const arr = (v) => (Array.isArray(v) ? v : []);
 const n = (v) => Number(v || 0);
@@ -152,7 +152,7 @@ export function listProductionDiagnosticTargets({
   const targets = [];
 
   arr(lots).filter((lot) => avicoleHasActiveBirds(lot) && isChairLot(lot)).forEach((lot) => {
-    const { score, hints, kind } = scoreChairLot(lot, ctx);
+    const { score, hints } = scoreChairLot(lot, ctx);
     targets.push({
       id: `lot:${lot.id}`,
       entityId: lot.id,
@@ -166,7 +166,7 @@ export function listProductionDiagnosticTargets({
   });
 
   arr(lots).filter((lot) => avicoleHasActiveBirds(lot) && isPondeuseLot(lot)).forEach((lot) => {
-    const { score, hints, kind } = scorePondeuseLot(lot, ctx);
+    const { score, hints } = scorePondeuseLot(lot, ctx);
     targets.push({
       id: `lot:${lot.id}`,
       entityId: lot.id,
@@ -180,8 +180,8 @@ export function listProductionDiagnosticTargets({
   });
 
   arr(animaux).filter((a) => !isClosedAnimal(a)).forEach((animal) => {
-    let speciesKind = 'bovin';
-    let category = 'Bovins';
+    let speciesKind;
+    let category;
     if (isCaprinAnimal(animal)) {
       speciesKind = 'caprin';
       category = 'Caprins';
@@ -283,10 +283,10 @@ export function buildProductionDiagnostic(target, marginContext = {}) {
   const totalCost = n(unified.totalCost);
   const margin = revenue > 0 ? revenue - totalCost : null;
 
-  let constat = '';
-  let causeProbable = '';
-  let impact = '';
-  let actionRecommandee = '';
+  let constat;
+  let causeProbable;
+  let impact;
+  let actionRecommandee;
 
   if (target.type === 'lot_chair') {
     const decision = buildBroilerLotDecision(row);
@@ -330,7 +330,6 @@ export function buildProductionDiagnostic(target, marginContext = {}) {
   } else {
     const kpi = buildBovinKpis(row, ctx);
     constat = `Poids ${fmtNumber(kpi.weight)} kg · GMQ ${kpi.gmq ? `${fmtNumber(kpi.gmq)} g/j` : '—'} · cible ${kpi.targetWeight || '—'} kg.`;
-    const entry = n(row.poids_entree);
     const lag = kpi.gmq && kpi.gmq < 700 ? Math.round((1 - kpi.gmq / 800) * 100) : 0;
     if (lag >= 10) {
       causeProbable = `GMQ en retard (~${lag} % sous référence embouche).`;
@@ -368,7 +367,7 @@ export function buildProductionDiagnostic(target, marginContext = {}) {
         tone: margin > 0 ? 'good' : margin < 0 ? 'bad' : 'warn',
         note: PRODUCTION_FINANCE_LABELS.marginNote,
       },
-      source: 'Coût unifié ERP — identique Finance & Rentabilité.',
+      source: PRODUCTION_FINANCE_SOURCE,
     },
     reliable: totalCost > 0 && (margin != null || revenue > 0),
   };

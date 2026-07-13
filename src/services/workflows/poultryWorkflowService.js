@@ -58,9 +58,6 @@ export function buildSaleReadyOpportunityPayload({
     created_by_source: 'sale_ready_workflow',
     decision_origin: 'Disponibilité ferme',
     opportunity_id: null,
-    source_module: 'opportunites_vente',
-    source_type: sourceType,
-    source_id: record.id,
     source_label: record.name || record.nom || record.id,
   };
 

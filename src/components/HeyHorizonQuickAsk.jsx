@@ -22,7 +22,7 @@ export default function HeyHorizonQuickAsk({
 
   return (
     <div className={`flex flex-wrap items-center gap-2 ${className}`}>
-      <span className="inline-flex items-center gap-1 text-[11px] font-black uppercase tracking-wide text-[#9a6b12]">
+      <span className="inline-flex items-center gap-1 text-meta font-semibold uppercase tracking-normal text-horizon-dark">
         <Bot size={14} /> Hey Horizon
       </span>
       {items.map((item) => (
@@ -44,7 +44,7 @@ export default function HeyHorizonQuickAsk({
             }
             onNavigate?.(item.moduleId, { tab: item.tab, heyHorizonQuery: item.query });
           }}
-          className="rounded-full border border-[#eadcc2] bg-[#fffdf8] px-3 py-1 text-xs font-black text-[#2f2415] hover:bg-[#dcfce7]"
+          className="rounded-full border border-line bg-card px-3 py-1 text-xs font-semibold text-earth hover:bg-positive-bg"
         >
           {item.label}
         </button>

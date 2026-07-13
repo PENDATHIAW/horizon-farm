@@ -104,23 +104,23 @@ export default function CommercialSubscriptionFormModal({
       )}
     >
       {!selectableClients.length ? (
-        <p className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+        <p className="rounded-xl border border-vigilance bg-vigilance-bg px-4 py-3 text-sm text-horizon-dark">
           Créez d&apos;abord un client avant d&apos;ajouter un abonnement.
         </p>
       ) : (
         <form className="space-y-4" onSubmit={(event) => { event.preventDefault(); void submitForm(); }}>
           {errors.length ? (
-            <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">
+            <div className="rounded-xl border border-urgent bg-urgent-bg px-4 py-3 text-sm text-urgent">
               {errors.map((error) => <p key={error}>{error}</p>)}
             </div>
           ) : null}
 
           <label className="block space-y-1">
-            <span className="text-xs font-black uppercase tracking-wide text-[#8a7456]">Client</span>
+            <span className="text-xs font-semibold uppercase tracking-normal text-slate">Client</span>
             <select
               value={effectiveClientId}
               onChange={(event) => setField('clientId', event.target.value)}
-              className="w-full rounded-xl border border-[#d6c3a0] bg-white px-3 py-2 text-sm"
+              className="w-full rounded-xl border border-line bg-white px-3 py-2 text-sm"
               required
             >
               <option value="">Choisir un client</option>
@@ -131,12 +131,12 @@ export default function CommercialSubscriptionFormModal({
           </label>
 
           <label className="block space-y-1">
-            <span className="text-xs font-black uppercase tracking-wide text-[#8a7456]">Produit / article</span>
+            <span className="text-xs font-semibold uppercase tracking-normal text-slate">Produit / article</span>
             <input
               type="text"
               value={form.productName}
               onChange={(event) => setField('productName', event.target.value)}
-              className="w-full rounded-xl border border-[#d6c3a0] bg-white px-3 py-2 text-sm"
+              className="w-full rounded-xl border border-line bg-white px-3 py-2 text-sm"
               placeholder="Ex. Œufs tablettes"
               required
             />
@@ -144,23 +144,23 @@ export default function CommercialSubscriptionFormModal({
 
           <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
             <label className="block space-y-1">
-              <span className="text-xs font-black uppercase tracking-wide text-[#8a7456]">Quantité</span>
+              <span className="text-xs font-semibold uppercase tracking-normal text-slate">Quantité</span>
               <input
                 type="number"
                 min="0.01"
                 step="0.01"
                 value={form.quantity}
                 onChange={(event) => setField('quantity', event.target.value)}
-                className="w-full rounded-xl border border-[#d6c3a0] bg-white px-3 py-2 text-sm"
+                className="w-full rounded-xl border border-line bg-white px-3 py-2 text-sm"
                 required
               />
             </label>
             <label className="block space-y-1">
-              <span className="text-xs font-black uppercase tracking-wide text-[#8a7456]">Unité</span>
+              <span className="text-xs font-semibold uppercase tracking-normal text-slate">Unité</span>
               <select
                 value={form.unit}
                 onChange={(event) => setField('unit', event.target.value)}
-                className="w-full rounded-xl border border-[#d6c3a0] bg-white px-3 py-2 text-sm"
+                className="w-full rounded-xl border border-line bg-white px-3 py-2 text-sm"
                 required
               >
                 {SUBSCRIPTION_UNIT_OPTIONS.map((unit) => (
@@ -169,14 +169,14 @@ export default function CommercialSubscriptionFormModal({
               </select>
             </label>
             <label className="block space-y-1">
-              <span className="text-xs font-black uppercase tracking-wide text-[#8a7456]">Prix unitaire (FCFA)</span>
+              <span className="text-xs font-semibold uppercase tracking-normal text-slate">Prix unitaire (FCFA)</span>
               <input
                 type="number"
                 min="0"
                 step="1"
                 value={form.unitPrice}
                 onChange={(event) => setField('unitPrice', event.target.value)}
-                className="w-full rounded-xl border border-[#d6c3a0] bg-white px-3 py-2 text-sm"
+                className="w-full rounded-xl border border-line bg-white px-3 py-2 text-sm"
                 required
               />
             </label>
@@ -184,11 +184,11 @@ export default function CommercialSubscriptionFormModal({
 
           <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
             <label className="block space-y-1">
-              <span className="text-xs font-black uppercase tracking-wide text-[#8a7456]">Fréquence</span>
+              <span className="text-xs font-semibold uppercase tracking-normal text-slate">Fréquence</span>
               <select
                 value={form.frequency}
                 onChange={(event) => setField('frequency', event.target.value)}
-                className="w-full rounded-xl border border-[#d6c3a0] bg-white px-3 py-2 text-sm"
+                className="w-full rounded-xl border border-line bg-white px-3 py-2 text-sm"
                 required
               >
                 {SUBSCRIPTION_FREQUENCY_OPTIONS.map((option) => (
@@ -197,12 +197,12 @@ export default function CommercialSubscriptionFormModal({
               </select>
             </label>
             <label className="block space-y-1">
-              <span className="text-xs font-black uppercase tracking-wide text-[#8a7456]">Jour / date prévue</span>
+              <span className="text-xs font-semibold uppercase tracking-normal text-slate">Jour / date prévue</span>
               <input
                 type="text"
                 value={form.plannedDay}
                 onChange={(event) => setField('plannedDay', event.target.value)}
-                className="w-full rounded-xl border border-[#d6c3a0] bg-white px-3 py-2 text-sm"
+                className="w-full rounded-xl border border-line bg-white px-3 py-2 text-sm"
                 placeholder="Ex. vendredi ou 2026-06-10"
               />
             </label>
@@ -210,30 +210,30 @@ export default function CommercialSubscriptionFormModal({
 
           <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
             <label className="block space-y-1">
-              <span className="text-xs font-black uppercase tracking-wide text-[#8a7456]">Date de début</span>
+              <span className="text-xs font-semibold uppercase tracking-normal text-slate">Date de début</span>
               <input
                 type="date"
                 value={form.startDate}
                 onChange={(event) => setField('startDate', event.target.value)}
-                className="w-full rounded-xl border border-[#d6c3a0] bg-white px-3 py-2 text-sm"
+                className="w-full rounded-xl border border-line bg-white px-3 py-2 text-sm"
                 required
               />
             </label>
             <label className="block space-y-1">
-              <span className="text-xs font-black uppercase tracking-wide text-[#8a7456]">Date de fin (optionnel)</span>
+              <span className="text-xs font-semibold uppercase tracking-normal text-slate">Date de fin (optionnel)</span>
               <input
                 type="date"
                 value={form.endDate}
                 onChange={(event) => setField('endDate', event.target.value)}
-                className="w-full rounded-xl border border-[#d6c3a0] bg-white px-3 py-2 text-sm"
+                className="w-full rounded-xl border border-line bg-white px-3 py-2 text-sm"
               />
             </label>
             <label className="block space-y-1">
-              <span className="text-xs font-black uppercase tracking-wide text-[#8a7456]">Statut</span>
+              <span className="text-xs font-semibold uppercase tracking-normal text-slate">Statut</span>
               <select
                 value={form.status}
                 onChange={(event) => setField('status', event.target.value)}
-                className="w-full rounded-xl border border-[#d6c3a0] bg-white px-3 py-2 text-sm"
+                className="w-full rounded-xl border border-line bg-white px-3 py-2 text-sm"
               >
                 <option value={SUBSCRIPTION_STATUSES.ACTIVE}>Actif</option>
                 <option value={SUBSCRIPTION_STATUSES.SUSPENDED}>Suspendu</option>
@@ -242,11 +242,11 @@ export default function CommercialSubscriptionFormModal({
           </div>
 
           <label className="block space-y-1">
-            <span className="text-xs font-black uppercase tracking-wide text-[#8a7456]">Notes (optionnel)</span>
+            <span className="text-xs font-semibold uppercase tracking-normal text-slate">Notes (optionnel)</span>
             <textarea
               value={form.notes}
               onChange={(event) => setField('notes', event.target.value)}
-              className="min-h-[80px] w-full rounded-xl border border-[#d6c3a0] bg-white px-3 py-2 text-sm"
+              className="min-h-[80px] w-full rounded-xl border border-line bg-white px-3 py-2 text-sm"
               placeholder="Instructions de livraison, contact, etc."
             />
           </label>

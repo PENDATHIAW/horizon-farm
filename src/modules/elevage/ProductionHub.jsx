@@ -1,20 +1,20 @@
-import { Beef, ChevronDown, Drumstick, Egg, Factory, Sparkles } from 'lucide-react';
-import { useMemo, useState } from 'react';
+import { Beef, ChevronDown, Drumstick, Egg, Factory } from 'lucide-react';
+import { useState } from 'react';
 import { fmtCurrency, fmtNumber, fmtPercent } from '../../utils/format';
 import { navigateToEggStock } from '../../utils/productionNavigation.js';
-import { diagnoseElevageEntity, pickDefaultDiagnosticTarget } from '../../utils/elevageLotDiagnostic.js';
-import { PRODUCTION_FINANCE_LABELS } from '../../utils/productionFinancialTruth.js';
+import { PRODUCTION_FINANCE_LABELS, PRODUCTION_FINANCE_SOURCE } from '../../utils/productionFinancialTruth.js';
 import { ELEVAGE_KPI_GRID, ElevageStatCard } from './elevageUi.jsx';
+import ProductionDiagnosticPanel from './ProductionDiagnosticPanel.jsx';
 
 function ActionCard({ title, text, onClick }) {
   return (
     <button
       type="button"
       onClick={onClick}
-      className="min-h-[48px] rounded-2xl border border-[#eadcc2] bg-[#fffdf8] p-4 text-left transition hover:bg-[#dcfce7]"
+      className="min-h-[48px] rounded-2xl border border-line bg-card p-4 text-left transition hover:bg-positive-bg"
     >
-      <b className="text-[#2f2415]">{title}</b>
-      <p className="mt-1 text-sm text-[#8a7456]">{text}</p>
+      <b className="text-earth">{title}</b>
+      <p className="mt-1 text-sm text-slate">{text}</p>
     </button>
   );
 }
@@ -22,22 +22,22 @@ function ActionCard({ title, text, onClick }) {
 function CollapsibleBlock({ icon: Icon, title, intro, defaultOpen = false, children }) {
   const [open, setOpen] = useState(defaultOpen);
   return (
-    <section className="rounded-3xl border border-[#d6c3a0] bg-white p-5 shadow-sm space-y-4">
+    <section className="rounded-3xl border border-line bg-white p-6 shadow-card space-y-4">
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
         className="flex w-full min-h-[48px] items-start justify-between gap-3 text-left"
       >
         <div className="min-w-0">
-          <h2 className="flex items-center gap-2 text-lg font-black text-[#2f2415]">
+          <h2 className="flex items-center gap-2 text-lg font-semibold text-earth">
             <Icon size={20} aria-hidden="true" />
             {title}
           </h2>
-          <p className="mt-1 text-sm leading-relaxed text-[#8a7456]">{intro}</p>
+          <p className="mt-1 text-sm leading-relaxed text-slate">{intro}</p>
         </div>
         <ChevronDown
           size={20}
-          className={`shrink-0 text-[#8a7456] transition-transform ${open ? 'rotate-180' : ''}`}
+          className={`shrink-0 text-slate transition-transform ${open ? 'rotate-180' : ''}`}
           aria-hidden="true"
         />
       </button>
@@ -79,15 +79,6 @@ export default function ProductionHub({
   const transform = snapshot.transformation || {};
   const perf = snapshot.performance || {};
 
-  const defaultTarget = useMemo(() => pickDefaultDiagnosticTarget({ lots, animaux }), [lots, animaux]);
-  const [diagnostic, setDiagnostic] = useState(null);
-
-  const runDiagnostic = () => {
-    const pick = defaultTarget;
-    if (!pick) return;
-    setDiagnostic(diagnoseElevageEntity(pick.entity, { lots, marginContext }));
-  };
-
   const heroKpisAll = [
     {
       label: 'Œufs vendables (7 j)',
@@ -128,17 +119,17 @@ export default function ProductionHub({
       : heroKpisAll;
 
   const hubBody = (
-    <div className="space-y-5 production-hub-mobile">
+    <div className="space-y-6 production-hub-mobile">
       <style>{`
         @media (max-width: 640px) {
           .production-hub-mobile .grid { gap: 0.75rem; }
         }
       `}</style>
 
-      <section className="rounded-3xl border border-[#d6c3a0] bg-[#fffdf8] p-5 shadow-sm space-y-4">
+      <section className="rounded-3xl border border-line bg-card p-6 shadow-card space-y-4">
         <div>
-          <h2 className="text-lg font-black text-[#2f2415]">Performances & rendements</h2>
-          <p className="mt-2 text-sm leading-relaxed text-[#8a7456]">
+          <h2 className="text-lg font-semibold text-earth">Performances & rendements</h2>
+          <p className="mt-2 text-sm leading-relaxed text-slate">
             Œufs, lait/viande, rendement, indice de consommation et rentabilité technique — données issues d&apos;Alimentation, Avicole, Animaux et Transformation.
             Le registre cheptel et les lots sont sur <b>Animaux</b> et <b>Avicole</b>.
           </p>
@@ -148,28 +139,16 @@ export default function ProductionHub({
             <ElevageStatCard key={kpi.label} label={kpi.label} value={kpi.value} tone={kpi.tone} />
           ))}
         </div>
-        <div className="flex flex-wrap gap-3">
-          <button
-            type="button"
-            disabled={!defaultTarget}
-            onClick={runDiagnostic}
-            className="min-h-[48px] inline-flex items-center gap-2 rounded-xl bg-[#2f2415] px-4 text-sm font-black text-white disabled:opacity-50"
-          >
-            <Sparkles size={16} /> Analyser ce lot
-          </button>
-        </div>
-        {diagnostic ? (
-          <div className={`rounded-xl border p-4 text-sm ${diagnostic.reliable ? 'border-emerald-200 bg-emerald-50 text-emerald-900' : 'border-amber-200 bg-amber-50 text-amber-900'}`}>
-            <b>{diagnostic.title}</b>
-            <p className="mt-2">{diagnostic.causeText}</p>
-            {diagnostic.tips?.length ? (
-              <ul className="mt-2 list-disc pl-4 text-xs">
-                {diagnostic.tips.map((t) => <li key={t}>{t}</li>)}
-              </ul>
-            ) : null}
-          </div>
-        ) : null}
+        <p className="text-meta text-slate">Source des coûts : {PRODUCTION_FINANCE_SOURCE}</p>
       </section>
+
+      <ProductionDiagnosticPanel
+        lots={lots}
+        animaux={animaux}
+        transformationRows={transform.recent || []}
+        meatStockKg={transform.meatStockKg || perf.meatStockKg || 0}
+        marginContext={marginContext}
+      />
 
       {(contextView === 'all' || contextView === 'avicole') ? (
         <>
@@ -193,16 +172,16 @@ export default function ProductionHub({
         </div>
         {eggs.recentLogs?.length ? (
           <div className="space-y-1">
-            <p className="text-xs font-black uppercase tracking-wide text-[#8a7456]">Derniers ramassages</p>
+            <p className="text-xs font-semibold uppercase tracking-normal text-slate">Derniers ramassages</p>
             {eggs.recentLogs.map((row) => (
-              <div key={row.id || row.date} className="flex justify-between border-b border-[#eadcc2]/70 py-2 text-sm last:border-b-0">
-                <span className="text-[#2f2415]">{String(row.date || row.created_at || '—').slice(0, 10)}</span>
-                <span className="font-black text-[#8a7456]">{fmtNumber(row.oeufs_produits || row.eggs_count || 0)} œufs</span>
+              <div key={row.id || row.date} className="flex justify-between border-b border-line/70 py-2 text-sm last:border-b-0">
+                <span className="text-earth">{String(row.date || row.created_at || '—').slice(0, 10)}</span>
+                <span className="font-semibold text-slate">{fmtNumber(row.oeufs_produits || row.eggs_count || 0)} œufs</span>
               </div>
             ))}
           </div>
         ) : (
-          <p className="rounded-xl border border-[#eadcc2] bg-[#fffdf8] px-3 py-2 text-sm text-[#8a7456]">
+          <p className="rounded-xl border border-line bg-card px-3 py-2 text-sm text-slate">
             Aucun ramassage sur 7 jours — enregistrez un ramassage pour suivre la ponte.
           </p>
         )}
@@ -237,9 +216,9 @@ export default function ProductionHub({
         </div>
         {chair.readyList?.length ? (
           <ul className="space-y-1 text-sm">
-            <p className="text-xs font-black uppercase tracking-wide text-[#8a7456]">Échéances vente (lecture)</p>
+            <p className="text-xs font-semibold uppercase tracking-normal text-slate">Échéances vente (lecture)</p>
             {chair.readyList.map((lot) => (
-              <li key={lot.id} className="rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-emerald-900">
+              <li key={lot.id} className="rounded-lg border border-positive bg-positive-bg px-3 py-2 text-positive">
                 <b>{lot.name}</b> · {fmtNumber(lot.effectif)} actifs
                 {lot.weight > 0 ? ` · ${lot.weight.toFixed(2)} kg` : ''}
               </li>
@@ -276,9 +255,9 @@ export default function ProductionHub({
         </div>
         {bovins.nearTargetList?.length ? (
           <ul className="space-y-1 text-sm">
-            <p className="text-xs font-black uppercase tracking-wide text-[#8a7456]">Proches poids cible</p>
+            <p className="text-xs font-semibold uppercase tracking-normal text-slate">Proches poids cible</p>
             {bovins.nearTargetList.map((k) => (
-              <li key={k.id} className="rounded-lg border border-[#eadcc2] bg-[#fffdf8] px-3 py-2">
+              <li key={k.id} className="rounded-lg border border-line bg-card px-3 py-2">
                 <b>{k.name}</b>
                 {k.weight > 0 ? ` · ${k.weight} kg` : ''}
                 {k.targetWeight > 0 ? ` / cible ${k.targetWeight} kg` : ''}
@@ -352,14 +331,14 @@ export default function ProductionHub({
         {transform.recent?.length ? (
           <ul className="space-y-1 text-sm">
             {transform.recent.map((row) => (
-              <li key={row.id} className="flex justify-between border-b border-[#eadcc2]/70 py-2 last:border-b-0">
-                <span className="text-[#2f2415]">{row.kindLabel || row.kind} · {row.label || row.entityId}</span>
-                <span className="text-xs text-[#8a7456]">{row.date || '—'}</span>
+              <li key={row.id} className="flex justify-between border-b border-line/70 py-2 last:border-b-0">
+                <span className="text-earth">{row.kindLabel || row.kind} · {row.label || row.entityId}</span>
+                <span className="text-xs text-slate">{row.date || '—'}</span>
               </li>
             ))}
           </ul>
         ) : (
-          <p className="rounded-xl border border-[#eadcc2] bg-[#fffdf8] px-3 py-2 text-sm text-[#8a7456]">Aucune transformation enregistrée.</p>
+          <p className="rounded-xl border border-line bg-card px-3 py-2 text-sm text-slate">Aucune transformation enregistrée.</p>
         )}
         <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
           <ActionCard key="tr-hub" title="Journal transformation" text="Abattages, mortalités, ventes." onClick={() => setTab('Transformation')} />
@@ -377,8 +356,8 @@ export default function ProductionHub({
 
   if (placement === 'footer') {
     return (
-      <details className="rounded-2xl border border-[#eadcc2] bg-[#fffdf8] p-4">
-        <summary className="cursor-pointer font-black text-sm text-[#2f2415]">
+      <details className="rounded-2xl border border-line bg-card p-4">
+        <summary className="cursor-pointer font-semibold text-sm text-earth">
           Performances & rendements (analyse complémentaire)
         </summary>
         <div className="mt-4">{hubBody}</div>

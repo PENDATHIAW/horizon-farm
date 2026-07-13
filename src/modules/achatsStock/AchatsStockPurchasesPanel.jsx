@@ -19,21 +19,21 @@ export default function AchatsStockPurchasesPanel({ data, setTab, onNavigate, on
         <button
           type="button"
           onClick={() => openStockPurchaseForm({ setTab, intent_label: 'Nouvelle réception', draft_fields: { date: today } })}
-          className="inline-flex items-center gap-1 rounded-xl bg-[#2f2415] px-3 py-2 text-xs font-black text-white"
+          className="inline-flex items-center gap-1 rounded-xl bg-earth px-3 py-2 text-xs font-semibold text-white"
         >
           <Plus size={14} /> Nouvelle réception
         </button>
         <button
           type="button"
           onClick={() => openStockPurchaseForm({ setTab, intent_label: 'Ajouter preuve achat', draft_fields: { date: today } })}
-          className="inline-flex items-center gap-1 rounded-xl border border-[#eadcc2] bg-white px-3 py-2 text-xs font-black text-[#2f2415]"
+          className="inline-flex items-center gap-1 rounded-xl border border-line bg-white px-3 py-2 text-xs font-semibold text-earth"
         >
           <FileWarning size={14} /> Ajouter preuve
         </button>
         <button
           type="button"
           onClick={() => setTab?.('Fournisseurs')}
-          className="inline-flex items-center gap-1 rounded-xl border border-emerald-300 bg-emerald-50 px-3 py-2 text-xs font-black text-emerald-800"
+          className="inline-flex items-center gap-1 rounded-xl border border-positive bg-positive-bg px-3 py-2 text-xs font-semibold text-positive"
         >
           <CreditCard size={14} /> Payer fournisseur
         </button>
@@ -41,7 +41,7 @@ export default function AchatsStockPurchasesPanel({ data, setTab, onNavigate, on
 
       {ops.recentReceptions?.length ? (
         <AchatsStockSection title="Réceptions récentes" subtitle="Dernières entrées de stock enregistrées.">
-          <div className="divide-y divide-[#eadcc2]/60">
+          <div className="divide-y divide-line/60">
             {ops.recentReceptions.map((row) => (
               <AchatsStockTodoRow
                 key={row.id}
@@ -56,7 +56,7 @@ export default function AchatsStockPurchasesPanel({ data, setTab, onNavigate, on
 
       {ops.unpaidPurchases?.length ? (
         <AchatsStockSection title="Achats à payer" subtitle="Dépenses finance en attente de règlement.">
-          <div className="divide-y divide-[#eadcc2]/60">
+          <div className="divide-y divide-line/60">
             {ops.unpaidPurchases.slice(0, 6).map((trx) => (
               <AchatsStockTodoRow
                 key={trx.id}
@@ -73,7 +73,7 @@ export default function AchatsStockPurchasesPanel({ data, setTab, onNavigate, on
 
       {ops.purchasesWithoutProof?.length ? (
         <AchatsStockSection title="Achats sans preuve" subtitle="Justificatifs manquants — à compléter.">
-          <div className="divide-y divide-[#eadcc2]/60">
+          <div className="divide-y divide-line/60">
             {ops.purchasesWithoutProof.slice(0, 5).map((trx) => (
               <AchatsStockTodoRow
                 key={trx.id}
@@ -94,7 +94,7 @@ export default function AchatsStockPurchasesPanel({ data, setTab, onNavigate, on
 
       {ops.suppliersToContact?.length ? (
         <AchatsStockSection title="Fournisseurs à contacter" subtitle="Dettes actives — relance ou paiement.">
-          <div className="divide-y divide-[#eadcc2]/60">
+          <div className="divide-y divide-line/60">
             {ops.suppliersToContact.map((s) => (
               <AchatsStockTodoRow
                 key={s.id || s.name}
@@ -112,7 +112,7 @@ export default function AchatsStockPurchasesPanel({ data, setTab, onNavigate, on
 
       {ops.restockNeeds?.length ? (
         <AchatsStockSection title="Besoins réapprovisionnement" subtitle="Articles sous seuil minimum.">
-          <div className="divide-y divide-[#eadcc2]/60">
+          <div className="divide-y divide-line/60">
             {ops.restockNeeds.map((row) => (
               <AchatsStockTodoRow
                 key={row.id}
@@ -133,11 +133,11 @@ export default function AchatsStockPurchasesPanel({ data, setTab, onNavigate, on
 
       {missing.length ? (
         <AchatsStockSection title="Achats sans entrée stock" subtitle="Ces dépenses finance n'ont pas encore d'impact inventaire.">
-          <div className="rounded-2xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900 flex items-start gap-2">
-            <AlertTriangle size={16} className="shrink-0 mt-0.5" />
+          <div className="rounded-2xl border border-vigilance bg-vigilance-bg p-3 text-sm text-horizon-dark flex items-start gap-2">
+            <AlertTriangle size={16} className="shrink-0 mt-1" />
             <span>{missing.length} achat(s) détecté(s) sans mouvement stock associé.</span>
           </div>
-          <div className="divide-y divide-[#eadcc2]/60">
+          <div className="divide-y divide-line/60">
             {missing.map((trx) => (
               <AchatsStockTodoRow
                 key={trx.id}
@@ -185,12 +185,12 @@ export default function AchatsStockPurchasesPanel({ data, setTab, onNavigate, on
         <button
           type="button"
           onClick={() => setTab?.('Fournisseurs')}
-          className="inline-flex items-center gap-2 rounded-xl border border-[#eadcc2] bg-[#fffdf8] px-4 py-3 text-sm font-black text-[#2f2415] hover:bg-white"
+          className="inline-flex items-center gap-2 rounded-xl border border-line bg-card px-4 py-3 text-sm font-semibold text-earth hover:bg-white"
         >
           <ShoppingBag size={16} />
           {data.supplierDebts?.length || 0} fournisseur(s) · {fmtCurrency(data.debt)} → Fournisseurs
         </button>
-        <p className="text-xs text-[#8a7456] flex items-center gap-1 mt-2">
+        <p className="text-xs text-slate flex items-center gap-1 mt-2">
           <Truck size={13} /> Chaque réception suit le même parcours : stock, finance, mouvement et preuve.
         </p>
       </AchatsStockSection>

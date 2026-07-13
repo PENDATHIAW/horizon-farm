@@ -85,8 +85,8 @@ test('onglet contrôlé — Trésorerie rend la saisie flux', async () => {
   assert.doesNotMatch(html, /ERREUR MODULE|is not defined/i);
 });
 
-test('resolveFinanceTab — alias Investissements vers Pilotage', () => {
-  assert.equal(resolveFinanceTab('Investissements'), 'Pilotage');
-  assert.equal(resolveFinanceTab('Résumé'), 'Résumé');
-  assert.equal(resolveFinanceTab('Créances'), 'Créances & dettes');
+test('resolveFinanceTab — alias externes vers composants rendus', () => {
+  assert.equal(resolveFinanceTab('Investissements'), 'Investissements & dettes finance');
+  assert.equal(resolveFinanceTab('Résumé'), 'Vue finance');
+  assert.equal(resolveFinanceTab('Créances'), 'Budget & écarts finance');
 });

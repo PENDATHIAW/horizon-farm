@@ -45,7 +45,7 @@ export function buildCommercialSaleGapRows({
     const total = amount(order);
     const paid = paidOnOrder(order, payments);
     const lines = orderItems(orderId, items);
-    const issueKey = order.issue_key || `sale:ventes:${orderId}`;
+
 
     if (total > 0 && !lines.length && !num(order.quantity)) {
       rows.push({

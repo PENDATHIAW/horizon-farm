@@ -115,34 +115,34 @@ export default function GenericCrudModule({
         </div>
       ) : null}
 
-      <div className="bg-[#ffffff] border border-[#d6c3a0] rounded-2xl p-4">
+      <div className="bg-pure border border-line rounded-2xl p-4">
         <input
           value={search}
           onChange={(event) => setSearch(event.target.value)}
           placeholder="Rechercher..."
-          className="w-full bg-[#fffdf8] border border-[#d6c3a0] rounded-xl px-3 py-2 text-sm text-[#2f2415] outline-none focus:border-[#c9a96a]"
+          className="w-full bg-card border border-line rounded-xl px-3 py-2 text-sm text-earth outline-none focus:border-horizon"
         />
       </div>
 
-      <div className="bg-[#ffffff] border border-[#d6c3a0] rounded-2xl overflow-hidden">
+      <div className="bg-pure border border-line rounded-2xl overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
-              <tr className="bg-[#fffdf8] border-b border-[#e7d9be]">
-                {visibleColumns.map((column) => <th key={column} className="text-left text-xs text-[#8a7456] uppercase px-4 py-3">{column}</th>)}
-                <th className="text-left text-xs text-[#8a7456] uppercase px-4 py-3">Actions</th>
+              <tr className="bg-card border-b border-line">
+                {visibleColumns.map((column) => <th key={column} className="text-left text-xs text-slate uppercase px-4 py-3">{column}</th>)}
+                <th className="text-left text-xs text-slate uppercase px-4 py-3">Actions</th>
               </tr>
             </thead>
             <tbody>
               {loading ? Array.from({ length: 5 }).map((_, index) => (
-                <tr key={index}><td colSpan={visibleColumns.length + 1} className="px-4 py-4"><div className="h-3 rounded bg-[#d6c3a0]/60 animate-pulse" /></td></tr>
+                <tr key={index}><td colSpan={visibleColumns.length + 1} className="px-4 py-4"><div className="h-3 rounded bg-line/60 animate-pulse" /></td></tr>
               )) : null}
               {!loading && filteredRows.length === 0 ? (
-                <tr><td colSpan={visibleColumns.length + 1} className="px-4 py-8 text-center text-[#8a7456]">Aucune donnee.</td></tr>
+                <tr><td colSpan={visibleColumns.length + 1} className="px-4 py-8 text-center text-slate">Aucune donnee.</td></tr>
               ) : null}
               {!loading ? filteredRows.map((row) => (
-                <tr key={row.id} className="border-b border-[#e7d9be]/70 hover:bg-[#fffdf8]">
-                  {visibleColumns.map((column) => <td key={column} className="px-4 py-3 text-[#2f2415] max-w-[220px] truncate">{String(row[column] ?? '-')}</td>)}
+                <tr key={row.id} className="border-b border-line/70 hover:bg-card">
+                  {visibleColumns.map((column) => <td key={column} className="px-4 py-3 text-earth max-w-[220px] truncate">{String(row[column] ?? '-')}</td>)}
                   <td className="px-4 py-3">
                     <div className="flex gap-1">
                       <ActionIconButton icon={Eye} title="Voir" color="sky" onClick={() => { setSelected(row); setModal('details'); }} />

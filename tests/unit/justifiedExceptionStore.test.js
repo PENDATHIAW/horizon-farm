@@ -1,4 +1,7 @@
 import assert from 'node:assert/strict';
+import test from 'node:test';
+import * as rules from '../../src/utils/justifiedExceptionRules.js';
+import * as store from '../../src/utils/justifiedExceptionStore.js';
 
 function setupLocalStorage(initial = {}) {
   let store = { ...initial };
@@ -10,18 +13,8 @@ function setupLocalStorage(initial = {}) {
   return store;
 }
 
-async function loadStoreModule() {
+test('exceptions justifiées — création, filtrage, révocation et migration', () => {
   setupLocalStorage();
-  return import(`../../src/utils/justifiedExceptionStore.js?test=${Date.now()}-${Math.random()}`);
-}
-
-async function loadRulesModule() {
-  return import('../../src/utils/justifiedExceptionRules.js');
-}
-
-async function run() {
-  const rules = await loadRulesModule();
-  const store = await loadStoreModule();
 
   const issueKey = rules.buildInterconnectionIssueKey({
     flow: 'sales_finance',
@@ -61,13 +54,8 @@ async function run() {
 
   setupLocalStorage();
   globalThis.localStorage.setItem(rules.LEGACY_IGNORED_INTERCONNECTION_KEY, JSON.stringify(['legacy:key:1']));
-  const migratedStore = await import(`../../src/utils/justifiedExceptionStore.js?legacy=${Date.now()}`);
-  const rows = migratedStore.readJustifiedExceptions();
+  const rows = store.readJustifiedExceptions();
   assert.equal(rows.length, 1);
   assert.equal(rows[0].issue_key, 'legacy:key:1');
   assert.equal(globalThis.localStorage.getItem(rules.LEGACY_IGNORED_INTERCONNECTION_KEY), null);
-
-  console.log('justifiedExceptionStore.test.js OK');
-}
-
-run();
+});

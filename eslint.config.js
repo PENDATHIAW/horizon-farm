@@ -24,7 +24,7 @@ export default defineConfig([
     rules: {
       // The current repository still contains legacy lint debt outside the PR scope.
       // Keep these signals visible in CI without blocking build/test validation.
-      'no-unused-vars': 'warn',
+      'no-unused-vars': ['warn', { argsIgnorePattern: '^_', caughtErrorsIgnorePattern: '^_' }],
       'no-useless-assignment': 'warn',
       'no-undef': 'warn',
       'no-dupe-keys': 'warn',
@@ -40,7 +40,9 @@ export default defineConfig([
       'react-hooks/rules-of-hooks': 'warn',
       'react-hooks/static-components': 'warn',
       'react-hooks/use-memo': 'warn',
-      'react-refresh/only-export-components': 'warn',
+      // Components and their domain helpers intentionally share files in this ERP.
+      // HMR export shape is therefore not a useful correctness signal here.
+      'react-refresh/only-export-components': 'off',
     },
   },
 ])

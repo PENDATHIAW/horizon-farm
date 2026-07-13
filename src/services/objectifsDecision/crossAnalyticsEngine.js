@@ -3,8 +3,8 @@
  * véto, inflation aliment, saisonnalité météo, démarque stock, qualité lots par client.
  */
 
-import { calculateAnimalCost } from '../../utils/costEngine.js';
-import { avicoleActiveCount, avicoleDeadCount, avicoleInitialCount } from '../../utils/avicoleMetrics.js';
+
+import { avicoleActiveCount, avicoleDeadCount } from '../../utils/avicoleMetrics.js';
 import { inferWorkshopFromLot } from './breedStockReferential.js';
 import { buildLotPivotContext } from './datePivotEngine.js';
 
@@ -287,7 +287,7 @@ export function buildStockShrinkageAnalysis(dataMap = {}) {
   const alerts = [];
 
   lots.filter((l) => inferWorkshopFromLot(l) === 'pondeuses').forEach((lot) => {
-    const birds = avicoleActiveCount(lot) || avicoleInitialCount(lot);
+
     const logs = productionLogs.filter((r) => lotIdOf(r) === String(lot.id));
     const theoreticalEggs = logs.reduce((s, r) => s + num(r.oeufs_produits ?? r.eggs), 0);
     const soldEggs = salesOrders

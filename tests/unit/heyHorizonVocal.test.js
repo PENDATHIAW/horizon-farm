@@ -9,7 +9,7 @@ import {
   isFarmBriefQuery,
   processHeyHorizonVoiceBrief,
 } from '../../src/services/heyHorizonVoice/farmBriefService.js';
-import { formatVoiceBrief, buildBriefSections } from '../../src/services/heyHorizonVoice/voiceBriefFormatter.js';
+import { formatVoiceBrief } from '../../src/services/heyHorizonVoice/voiceBriefFormatter.js';
 
 const emptyMap = composeDecisionDataMap({ crud: {}, dataMap: {} });
 

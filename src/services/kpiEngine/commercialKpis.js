@@ -13,11 +13,6 @@ export {
 
 import { buildConsolidatedCommercialKpis } from '../../utils/commercialKpiConsolidated.js';
 
-/**
- * CA commercial agrégé — délégation directe sur `buildConsolidatedCommercialKpis`.
- * Garantit la même définition (devis exclus, statut annulé exclu, anti double-count paiement)
- * pour Dashboard, financeur et pilotage secondaire.
- */
 export function computeCommercialKpis(orders = [], payments = [], periodScope = {}, extras = {}) {
   const kpis = buildConsolidatedCommercialKpis({
     orders,
@@ -33,10 +28,6 @@ export function computeCommercialKpis(orders = [], payments = [], periodScope = 
     receivable: kpis.receivable,
     orderCount: kpis.orderCount,
     periodScope,
-    sources: {
-      ca: 'buildConsolidatedCommercialKpis',
-      collected: 'buildConsolidatedCommercialKpis',
-      receivable: 'buildConsolidatedCommercialKpis',
-    },
+    sources: kpis.sources,
   };
 }

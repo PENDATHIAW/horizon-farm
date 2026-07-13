@@ -4,14 +4,14 @@ export default function FinanceDemoBanner({ demo = null }) {
   if (!demo?.enabled) return null;
 
   return (
-    <section className="rounded-2xl border border-sky-200 bg-sky-50 px-4 py-3 text-sm text-sky-900">
+    <section className="rounded-2xl border border-line bg-neutral-bg px-4 py-3 text-sm text-neutral">
       <div className="flex items-start gap-2">
-        <Presentation size={18} className="shrink-0 mt-0.5" />
+        <Presentation size={18} className="shrink-0 mt-1" />
         <div>
-          <p className="font-black text-[#2f2415]">{demo.label}</p>
-          <p className="mt-1 text-sky-800">{demo.message}</p>
+          <p className="font-semibold text-earth">{demo.label}</p>
+          <p className="mt-1 text-neutral">{demo.message}</p>
           {demo.presentationTips?.length ? (
-            <ul className="mt-2 list-disc pl-4 text-xs text-sky-800">
+            <ul className="mt-2 list-disc pl-4 text-xs text-neutral">
               {demo.presentationTips.map((tip) => (
                 <li key={tip}>{tip}</li>
               ))}

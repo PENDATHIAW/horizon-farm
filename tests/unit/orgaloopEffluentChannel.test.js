@@ -16,7 +16,6 @@ import {
   ensureOrgaloopEffluentOpportunity,
   enhanceManureWorkflowForOrgaloop,
   emitOrgaloopEffluentSaleSideEffects,
-  isOrgaloopEffluentOpportunity,
 } from '../../src/services/greenpreneurs/orgaloopEffluentWorkflow.js';
 import { computeCircularEconomyMetrics } from '../../src/services/greenpreneurs/circularEconomyMetrics.js';
 import { buildGreenpreneursCentreAlerts } from '../../src/services/greenpreneurs/greenpreneursMetrics.js';
@@ -180,7 +179,6 @@ test('centre alerts — hybride priorité cultures + surplus Orgaloop', () => {
       engraisSavingsFcfa: 10000,
       hasRealData: true,
     },
-    valorisation: { phase2_tallow_go: { status: 'non_pret', nextActions: [] } },
   });
   assert.ok(hybridAlerts.some((a) => a.id === 'gp-fumier-priorite-cultures'));
   assert.ok(hybridAlerts.some((a) => a.id === 'gp-surplus-orgaloop'));
@@ -198,7 +196,6 @@ test('centre alerts — hybride priorité cultures + surplus Orgaloop', () => {
       engraisSavingsFcfa: 50000,
       hasRealData: true,
     },
-    valorisation: { phase2_tallow_go: { status: 'non_pret', nextActions: [] } },
   });
   assert.ok(soldAlerts.some((a) => a.id === 'gp-orgaloop-ventes-trackees'));
 });

@@ -20,7 +20,7 @@ export const FLAGGED_MODULES = Object.freeze({
 
 /** Tables préchargées appartenant à un module sous flag. */
 export const FLAGGED_DATA_KEYS = Object.freeze({
-  smartfarm: ['sensor_devices', 'camera_devices', 'smartfarm_events'],
+  smartfarm: ['sensor_devices', 'smartfarm_events'],
   financements: [
     'funding_opportunities', 'funding_contacts', 'funding_applications',
     'funding_document_library', 'funding_agreements', 'funding_expense_allocations',
@@ -29,6 +29,8 @@ export const FLAGGED_DATA_KEYS = Object.freeze({
   agri_feeds: [],
   assistant_erp: [],
 });
+
+export const RETIRED_DATA_KEYS = Object.freeze(['camera_devices']);
 
 const STORAGE_KEY = 'horizon:modules-actifs';
 
@@ -71,6 +73,7 @@ export function isModuleEnabled(moduleId, flags = {}) {
 
 /** Une table de données est chargeable si son module propriétaire est actif. */
 export function isDataKeyEnabled(dataKey, flags = {}) {
+  if (RETIRED_DATA_KEYS.includes(dataKey)) return false;
   for (const [moduleId, keys] of Object.entries(FLAGGED_DATA_KEYS)) {
     if (keys.includes(dataKey)) return isModuleEnabled(moduleId, flags);
   }

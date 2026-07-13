@@ -27,12 +27,12 @@ function RecentTrace({ auditRows = [], eventRows = [] }) {
     .slice(0, 8);
 
   return (
-    <div className="rounded-2xl border border-[#d6c3a0] bg-white p-5 space-y-4">
+    <div className="rounded-2xl border border-line bg-white p-6 space-y-4">
       <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3">
-        <div><p className="text-xs uppercase tracking-widest text-[#8a7456]">Traçabilité</p><h3 className="font-black text-[#2f2415]">Dernières actions ERP</h3></div>
-        <div className="rounded-xl border border-[#eadcc2] bg-[#fffdf8] px-3 py-2 text-sm text-[#7d6a4a]"><GitBranch size={14} className="inline" /> {combined.length} action(s)</div>
+        <div><p className="text-xs uppercase tracking-normal text-slate">Traçabilité</p><h3 className="font-semibold text-earth">Dernières actions ERP</h3></div>
+        <div className="rounded-xl border border-line bg-card px-3 py-2 text-sm text-slate"><GitBranch size={14} className="inline" /> {combined.length} action(s)</div>
       </div>
-      {combined.length ? <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-2">{combined.map((row) => <div key={row.id || row._key} className="rounded-xl border border-[#eadcc2] bg-[#fffdf8] p-3"><p className="font-bold text-[#2f2415] truncate"><CheckCircle2 size={14} className="inline text-emerald-600" /> {row.title || row.action || row.event_type || 'Action'}</p><p className="text-xs text-[#8a7456] mt-1 truncate">{row.module || row.module_source || 'ERP'} · {row.actor || row.entity_type || ''}</p><p className="text-xs text-[#8a7456] mt-1">{row._date || 'date non renseignée'}</p></div>)}</div> : <div className="rounded-xl border border-[#eadcc2] bg-[#fffdf8] p-3 text-sm text-[#8a7456]">Aucune action récente.</div>}
+      {combined.length ? <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-2">{combined.map((row) => <div key={row.id || row._key} className="rounded-xl border border-line bg-card p-3"><p className="font-semibold text-earth truncate"><CheckCircle2 size={14} className="inline text-positive" /> {row.title || row.action || row.event_type || 'Action'}</p><p className="text-xs text-slate mt-1 truncate">{row.module || row.module_source || 'ERP'} · {row.actor || row.entity_type || ''}</p><p className="text-xs text-slate mt-1">{row._date || 'date non renseignée'}</p></div>)}</div> : <div className="rounded-xl border border-line bg-card p-3 text-sm text-slate">Aucune action récente.</div>}
     </div>
   );
 }
@@ -40,7 +40,7 @@ function RecentTrace({ auditRows = [], eventRows = [] }) {
 function ModuleActivity({ rows = [], events = [] }) {
   const grouped = groupByModule([...arr(rows), ...arr(events)]);
   if (!grouped.length) return null;
-  return <div className="rounded-2xl border border-[#d6c3a0] bg-white p-5"><p className="font-black text-[#2f2415] mb-3">Modules les plus actifs</p><div className="grid grid-cols-1 md:grid-cols-3 xl:grid-cols-6 gap-2">{grouped.map(([module, count]) => <div key={module} className="rounded-xl border border-[#eadcc2] bg-[#fffdf8] p-3"><p className="text-xs text-[#8a7456] truncate">{module}</p><p className="text-xl font-black text-[#2f2415]">{count}</p></div>)}</div></div>;
+  return <div className="rounded-2xl border border-line bg-white p-6"><p className="font-semibold text-earth mb-3">Modules les plus actifs</p><div className="grid grid-cols-1 md:grid-cols-3 xl:grid-cols-6 gap-2">{grouped.map(([module, count]) => <div key={module} className="rounded-xl border border-line bg-card p-3"><p className="text-xs text-slate truncate">{module}</p><p className="text-xl font-semibold text-earth">{count}</p></div>)}</div></div>;
 }
 
 export default function AuditLogs(props) {
@@ -54,17 +54,17 @@ export default function AuditLogs(props) {
   return (
     <div className="space-y-6">
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <KpiCard icon={History} label="Actions tracées" value={rows.length} color="bg-sky-500/20 text-sky-400" />
-        <KpiCard icon={UserCheck} label="Utilisateurs" value={new Set(rows.map((r) => r.actor).filter(Boolean)).size} color="bg-emerald-500/20 text-emerald-500" />
-        <KpiCard icon={MonitorSmartphone} label="Appareils" value={new Set(rows.map((r) => r.device).filter(Boolean)).size} color="bg-amber-500/20 text-amber-500" />
-        <KpiCard icon={Lock} label="Sensibles" value={sensitiveCount} color="bg-red-500/20 text-red-500" />
+        <KpiCard icon={History} label="Actions tracées" value={rows.length} color="bg-neutral text-neutral" />
+        <KpiCard icon={UserCheck} label="Utilisateurs" value={new Set(rows.map((r) => r.actor).filter(Boolean)).size} color="bg-positive text-positive" />
+        <KpiCard icon={MonitorSmartphone} label="Appareils" value={new Set(rows.map((r) => r.device).filter(Boolean)).size} color="bg-vigilance text-horizon-dark" />
+        <KpiCard icon={Lock} label="Sensibles" value={sensitiveCount} color="bg-urgent text-urgent" />
       </div>
 
       <ModuleTimeline title="Timeline audit & traçabilité" subtitle="Journal chronologique des actions ERP, événements métier et opérations sensibles." rows={timelineRows} onRefresh={eventsCrud.refresh} onNavigate={() => props.onNavigate?.('audit_logs')} navigateLabel="Ouvrir audit" />
       <RecentTrace auditRows={rows} eventRows={eventRows} />
       <ModuleActivity rows={rows} events={eventRows} />
 
-      {uniqueKeys < rows.length ? <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-700"><AlertTriangle size={16} className="inline" /> Certaines actions semblent répétées. À vérifier avant validation finale.</div> : null}
+      {uniqueKeys < rows.length ? <div className="rounded-2xl border border-vigilance bg-vigilance-bg p-4 text-sm text-horizon-dark"><AlertTriangle size={16} className="inline" /> Certaines actions semblent répétées. À vérifier avant validation finale.</div> : null}
 
       <GenericCrudModule {...props} moduleKey="audit_logs" title="Journal activité & sécurité" sub="Actions, utilisateurs, appareils et contrôles sensibles" fields={MODULE_FORM_FIELDS.audit_logs} columns={['id', 'actor', 'action', 'module', 'record_id', 'device', 'created_at']} readOnly exportTitle="Journal activite Horizon Farm" kpis={[]} />
     </div>

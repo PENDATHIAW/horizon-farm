@@ -143,17 +143,17 @@ async function deleteOrder(order, props) {
 }
 
 function StatusBadge({ children, tone = 'neutral' }) {
-  const cls = tone === 'good' ? 'bg-emerald-100 text-emerald-700' : tone === 'warn' ? 'bg-amber-100 text-amber-800' : 'bg-[#f5ead7] text-[#7d6a4a]';
-  return <span className={`rounded-full px-2 py-0.5 text-xs font-black ${cls}`}>{children}</span>;
+  const cls = tone === 'good' ? 'bg-positive-bg text-positive' : tone === 'warn' ? 'bg-vigilance-bg text-horizon-dark' : 'bg-mist text-slate';
+  return <span className={`rounded-full px-2 py-1 text-xs font-semibold ${cls}`}>{children}</span>;
 }
 
 function MarginCell({ row }) {
   if (hasMissingCost(row)) {
-    return <td className="px-5 py-4 text-right align-top"><span className="font-bold text-amber-700">Non fiable</span><p className="text-[11px] text-[#8a7456] mt-1">coût à compléter</p></td>;
+    return <td className="px-6 py-4 text-right align-top"><span className="font-semibold text-horizon-dark">Non fiable</span><p className="text-meta text-slate mt-1">coût à compléter</p></td>;
   }
   const net = netMarginOf(row);
   const rate = netMarginRateOf(row);
-  return <td className="px-5 py-4 text-right align-top"><span className={`font-black text-base ${net < 0 ? 'text-red-600' : 'text-emerald-700'}`}>{fmtCurrency(net)}</span><p className="text-[11px] text-[#8a7456] mt-1">{rate}% · nette</p></td>;
+  return <td className="px-6 py-4 text-right align-top"><span className={`font-semibold text-base ${net < 0 ? 'text-urgent' : 'text-positive'}`}>{fmtCurrency(net)}</span><p className="text-meta text-slate mt-1">{rate}% · nette</p></td>;
 }
 
 function CostCell({ row, order, deliveries, onNavigate }) {
@@ -165,14 +165,14 @@ function CostCell({ row, order, deliveries, onNavigate }) {
   if (hasMissingCost(row)) {
     const target = moduleForSaleSource(order || row);
     return (
-      <td className="px-5 py-4 text-right align-top">
-        <span className="font-bold text-amber-700">À compléter</span>
+      <td className="px-6 py-4 text-right align-top">
+        <span className="font-semibold text-horizon-dark">À compléter</span>
         {onNavigate ? (
-          <button type="button" onClick={() => onNavigate(target.module, { tab: target.tab || undefined })} className="block text-[11px] font-black text-[#9a6b12] mt-1 underline ml-auto max-w-[200px]">
+          <button type="button" onClick={() => onNavigate(target.module, { tab: target.tab || undefined })} className="block text-meta font-semibold text-horizon-dark mt-1 underline ml-auto max-w-[200px]">
             → {target.label}
           </button>
         ) : (
-          <p className="text-[11px] text-[#8a7456] mt-1 max-w-[200px] ml-auto">source production</p>
+          <p className="text-meta text-slate mt-1 max-w-[200px] ml-auto">source production</p>
         )}
       </td>
     );
@@ -182,13 +182,13 @@ function CostCell({ row, order, deliveries, onNavigate }) {
     : !qty.isEggSale && breakdown.productionCost > 0 && toNumber(order?.quantity ?? order?.quantite) > 0
       ? `${fmtCurrency(breakdown.productionCost / toNumber(order.quantity ?? order.quantite))} / unité`
       : null;
-  return <td className="px-5 py-4 text-right align-top font-black text-[#2f2415]" title={tooltip}><span>{fmtCurrency(costOf(row))}</span>{breakdown.lines.length ? <p className="text-[11px] font-normal text-[#8a7456] mt-1 max-w-[220px] ml-auto leading-snug">{costBreakdownShort(breakdown, 3)}</p> : null}{unitHint ? <p className="text-[11px] font-normal text-[#8a7456] mt-0.5">{unitHint}</p> : null}</td>;
+  return <td className="px-6 py-4 text-right align-top font-semibold text-earth" title={tooltip}><span>{fmtCurrency(costOf(row))}</span>{breakdown.lines.length ? <p className="text-meta font-normal text-slate mt-1 max-w-[220px] ml-auto leading-snug">{costBreakdownShort(breakdown, 3)}</p> : null}{unitHint ? <p className="text-meta font-normal text-slate mt-1">{unitHint}</p> : null}</td>;
 }
 
 function ActionButtons({ order, props, linkedPayments, onOpen }) {
   const remaining = remainingForOrder(order, linkedPayments);
   const delivered = isDelivered(order);
-  return <div className="flex flex-wrap justify-end gap-1"><button type="button" title="Voir" onClick={() => onOpen(order, 'view')} className="rounded-lg border border-[#d6c3a0] bg-white px-2 py-1 text-xs font-black text-[#2f2415]"><Eye size={12} className="inline" /></button><button type="button" title="Modifier" onClick={() => onOpen(order, 'edit')} className="rounded-lg border border-[#d6c3a0] bg-white px-2 py-1 text-xs font-black text-[#2f2415]"><Edit3 size={12} className="inline" /></button><button type="button" title="Supprimer" onClick={() => deleteOrder(order, props)} className="rounded-lg border border-red-200 bg-red-50 px-2 py-1 text-xs font-black text-red-700"><Trash2 size={12} className="inline" /></button>{remaining > 0 ? <button type="button" onClick={() => settleOrder(order, props, linkedPayments)} className="rounded-lg bg-[#2f2415] px-2 py-1 text-xs font-black text-white"><CreditCard size={12} className="inline" /> Encaisser</button> : null}{!delivered ? <button type="button" onClick={() => markDelivered(order, props)} className="rounded-lg border border-[#d6c3a0] bg-white px-2 py-1 text-xs font-black text-[#2f2415]"><Truck size={12} className="inline" /> Livrée</button> : null}{remaining <= 0 && delivered ? <CheckCircle2 size={17} className="text-emerald-700 self-center" /> : null}</div>;
+  return <div className="flex flex-wrap justify-end gap-1"><button type="button" title="Voir" onClick={() => onOpen(order, 'view')} className="rounded-lg border border-line bg-white px-2 py-1 text-xs font-semibold text-earth"><Eye size={12} className="inline" /></button><button type="button" title="Modifier" onClick={() => onOpen(order, 'edit')} className="rounded-lg border border-line bg-white px-2 py-1 text-xs font-semibold text-earth"><Edit3 size={12} className="inline" /></button><button type="button" title="Supprimer" onClick={() => deleteOrder(order, props)} className="rounded-lg border border-urgent bg-urgent-bg px-2 py-1 text-xs font-semibold text-urgent"><Trash2 size={12} className="inline" /></button>{remaining > 0 ? <button type="button" onClick={() => settleOrder(order, props, linkedPayments)} className="rounded-lg bg-earth px-2 py-1 text-xs font-semibold text-white"><CreditCard size={12} className="inline" /> Encaisser</button> : null}{!delivered ? <button type="button" onClick={() => markDelivered(order, props)} className="rounded-lg border border-line bg-white px-2 py-1 text-xs font-semibold text-earth"><Truck size={12} className="inline" /> Livrée</button> : null}{remaining <= 0 && delivered ? <CheckCircle2 size={17} className="text-positive self-center" /> : null}</div>;
 }
 
 function MobileSaleCard({ order, linkedPayments, props, marginRow, deliveries, onOpen }) {
@@ -198,7 +198,7 @@ function MobileSaleCard({ order, linkedPayments, props, marginRow, deliveries, o
   const productTotal = productAmountOf(order, deliveries);
   const breakdown = costBreakdownOf(marginRow, order, deliveries);
   const total = saleAmount(order);
-  return <article className="rounded-2xl border border-[#eadcc2] bg-white p-5 space-y-4 md:hidden"><div><p className="text-[11px] font-bold uppercase text-[#8a7456]">Vente</p><p className="font-black text-[#2f2415]">{productLabel(order)}</p><p className="text-xs text-[#8a7456]">{order.id} · {saleDate(order) || 'date non renseignée'}</p><p className="text-sm font-bold text-[#2f2415] mt-2">{qty.label}</p></div><div className="grid grid-cols-2 gap-3 text-sm"><div><p className="text-[11px] font-bold uppercase text-[#8a7456]">Client</p><p>{clientLabel(order)}</p></div><div><p className="text-[11px] font-bold uppercase text-[#8a7456]">Produits</p><p className="font-black">{fmtCurrency(productTotal)}</p></div><div><p className="text-[11px] font-bold uppercase text-[#8a7456]">Total</p><p className="font-black">{fmtCurrency(total)}</p></div><div><p className="text-[11px] font-bold uppercase text-[#8a7456]">Reste</p><p className="font-black">{fmtCurrency(remaining)}</p></div><div className="col-span-2"><p className="text-[11px] font-bold uppercase text-[#8a7456]">Coût direct</p><p className="font-black">{hasMissingCost(marginRow) ? 'À compléter' : fmtCurrency(costOf(marginRow))}</p>{!hasMissingCost(marginRow) && breakdown.lines.length ? <p className="text-xs text-[#8a7456] mt-1">{costBreakdownShort(breakdown, 4)}</p> : null}</div><div><p className="text-[11px] font-bold uppercase text-[#8a7456]">Marge nette</p><p className={`font-black ${hasMissingCost(marginRow) ? 'text-amber-700' : netMarginOf(marginRow) < 0 ? 'text-red-600' : 'text-emerald-700'}`}>{hasMissingCost(marginRow) ? 'Non fiable' : fmtCurrency(netMarginOf(marginRow))}</p></div><div><p className="text-[11px] font-bold uppercase text-[#8a7456]">Statut</p><div className="flex flex-wrap gap-1 mt-1"><StatusBadge tone={isPaid(order, linkedPayments) ? 'good' : 'warn'}>{isPaid(order, linkedPayments) ? 'Payée' : 'À encaisser'}</StatusBadge><StatusBadge tone={delivered ? 'good' : 'warn'}>{delivered ? 'Livrée' : 'À livrer'}</StatusBadge></div></div></div><ActionButtons order={order} props={props} linkedPayments={linkedPayments} onOpen={onOpen} /></article>;
+  return <article className="rounded-2xl border border-line bg-white p-6 space-y-4 md:hidden"><div><p className="text-meta font-semibold uppercase text-slate">Vente</p><p className="font-semibold text-earth">{productLabel(order)}</p><p className="text-xs text-slate">{order.id} · {saleDate(order) || 'date non renseignée'}</p><p className="text-sm font-semibold text-earth mt-2">{qty.label}</p></div><div className="grid grid-cols-2 gap-3 text-sm"><div><p className="text-meta font-semibold uppercase text-slate">Client</p><p>{clientLabel(order)}</p></div><div><p className="text-meta font-semibold uppercase text-slate">Produits</p><p className="font-semibold">{fmtCurrency(productTotal)}</p></div><div><p className="text-meta font-semibold uppercase text-slate">Total</p><p className="font-semibold">{fmtCurrency(total)}</p></div><div><p className="text-meta font-semibold uppercase text-slate">Reste</p><p className="font-semibold">{fmtCurrency(remaining)}</p></div><div className="col-span-2"><p className="text-meta font-semibold uppercase text-slate">Coût direct</p><p className="font-semibold">{hasMissingCost(marginRow) ? 'À compléter' : fmtCurrency(costOf(marginRow))}</p>{!hasMissingCost(marginRow) && breakdown.lines.length ? <p className="text-xs text-slate mt-1">{costBreakdownShort(breakdown, 4)}</p> : null}</div><div><p className="text-meta font-semibold uppercase text-slate">Marge nette</p><p className={`font-semibold ${hasMissingCost(marginRow) ? 'text-horizon-dark' : netMarginOf(marginRow) < 0 ? 'text-urgent' : 'text-positive'}`}>{hasMissingCost(marginRow) ? 'Non fiable' : fmtCurrency(netMarginOf(marginRow))}</p></div><div><p className="text-meta font-semibold uppercase text-slate">Statut</p><div className="flex flex-wrap gap-1 mt-1"><StatusBadge tone={isPaid(order, linkedPayments) ? 'good' : 'warn'}>{isPaid(order, linkedPayments) ? 'Payée' : 'À encaisser'}</StatusBadge><StatusBadge tone={delivered ? 'good' : 'warn'}>{delivered ? 'Livrée' : 'À livrer'}</StatusBadge></div></div></div><ActionButtons order={order} props={props} linkedPayments={linkedPayments} onOpen={onOpen} /></article>;
 }
 
 export default function SalesFollowUpPanel(props) {
@@ -208,7 +208,7 @@ export default function SalesFollowUpPanel(props) {
   const [initialMode, setInitialMode] = useState('view');
   const orders = useMemo(() => arr(props.rows).slice().sort((a, b) => clean(saleDate(b)).localeCompare(clean(saleDate(a)))), [props.rows]);
   const linkedPayments = useMemo(() => linkedPaymentsForOrders(orders, payments), [orders, payments]);
-  const marginContext = useMemo(() => buildMarginContext(props, payments), [props.lots, props.avicole, props.animaux, props.cultures, props.stocks, props.stock, props.alimentationLogs, props.alimentation_logs, props.productionLogs, props.production_oeufs_logs, props.vaccins, props.sante, props.businessEvents, props.business_events, props.transactions, payments]);
+  const marginContext = useMemo(() => buildMarginContext(props, payments), [props, payments]);
   const enrichedOrders = useMemo(() => {
     const base = summarizeSalesMargins(orders, marginContext);
     const overhead = allocateOverheadToEntities({ module: 'ventes', entities: orders, transactions: marginContext.transactions });
@@ -223,35 +223,35 @@ export default function SalesFollowUpPanel(props) {
   const openSale = (order, mode = 'view') => { setSelected(order); setInitialMode(mode); };
   const missingCostCount = enrichedOrders.filter(hasMissingCost).length;
 
-  return <section className="rounded-3xl border border-[#d6c3a0] bg-white p-5 shadow-sm space-y-4">
+  return <section className="rounded-3xl border border-line bg-white p-6 shadow-card space-y-4">
     {selected ? <SaleActionModal sale={selected} payments={payments} props={props} initialMode={initialMode} marginDetail={marginById.get(String(selected.id))} onClose={() => setSelected(null)} /> : null}
     <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-3">
       <div>
-        <p className="text-xs uppercase tracking-widest text-[#8a7456] font-black flex items-center gap-2"><PackageCheck size={15} /> Suivi des ventes</p>
-        <h3 className="text-xl font-black text-[#2f2415] mt-1">Historique, marges et actions</h3>
-        <p className="text-sm text-[#8a7456] mt-1">Un seul coût direct par vente (production + livraison + pertes). La marge nette déduit en plus les charges RH et d’exploitation allouées.</p>
+        <p className="text-xs uppercase tracking-normal text-slate font-semibold flex items-center gap-2"><PackageCheck size={15} /> Suivi des ventes</p>
+        <h3 className="text-xl font-semibold text-earth mt-1">Historique, marges et actions</h3>
+        <p className="text-sm text-slate mt-1">Un seul coût direct par vente (production + livraison + pertes). La marge nette déduit en plus les charges RH et d’exploitation allouées.</p>
       </div>
-      <div className="rounded-2xl border border-[#eadcc2] bg-[#fffdf8] p-3 text-sm text-[#7d6a4a]">{orders.length} vente(s){missingCostCount ? ` · ${missingCostCount} coût(s) à compléter` : ''}</div>
+      <div className="rounded-2xl border border-line bg-card p-3 text-sm text-slate">{orders.length} vente(s){missingCostCount ? ` · ${missingCostCount} coût(s) à compléter` : ''}</div>
     </div>
-    {missingCostCount ? <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800">{missingCostCount} vente(s) sans coût source fiable. Compléter alimentation / production dans <button type="button" className="font-black underline" onClick={() => props.onNavigate?.('elevage', { tab: 'Avicole' })}>Élevage</button> ou <button type="button" className="font-black underline" onClick={() => props.onNavigate?.('achats_stock', { tab: 'Stock' })}>Stock</button>.</div> : null}
-    <details className="rounded-2xl border border-[#eadcc2] bg-[#fffdf8] p-4 text-sm text-[#7d6a4a]"><summary className="cursor-pointer font-black text-[#2f2415]">Comment est calculée la marge ?</summary><p className="mt-3 leading-relaxed">{SALES_MARGIN_FORMULA}</p><p className="mt-2 text-xs">Livraison : comptée uniquement si mode livré/à livrer et montant renseigné — retrait sur place = 0 FCFA. Viande abattue : vendre depuis le stock (kg), coût déjà consolidé au journal d’abattage.</p></details>
-    <div className="space-y-3 md:hidden">{orders.length ? orders.map((order) => <MobileSaleCard key={order.id} order={order} linkedPayments={linkedPayments} props={props} marginRow={marginById.get(String(order.id)) || order} deliveries={deliveries} onOpen={openSale} />) : <div className="rounded-2xl border border-[#eadcc2] bg-[#fffdf8] p-6 text-center text-[#8a7456]">Aucune vente enregistrée pour le moment.</div>}</div>
-    <div className="hidden md:block overflow-x-auto rounded-2xl border border-[#eadcc2] bg-[#fffdf8] -mx-1 px-1">
+    {missingCostCount ? <div className="rounded-2xl border border-vigilance bg-vigilance-bg p-4 text-sm text-horizon-dark">{missingCostCount} vente(s) sans coût source fiable. Compléter alimentation / production dans <button type="button" className="font-semibold underline" onClick={() => props.onNavigate?.('elevage', { tab: 'Avicole' })}>Élevage</button> ou <button type="button" className="font-semibold underline" onClick={() => props.onNavigate?.('achats_stock', { tab: 'Stock' })}>Stock</button>.</div> : null}
+    <details className="rounded-2xl border border-line bg-card p-4 text-sm text-slate"><summary className="cursor-pointer font-semibold text-earth">Comment est calculée la marge ?</summary><p className="mt-3 leading-relaxed">{SALES_MARGIN_FORMULA}</p><p className="mt-2 text-xs">Livraison : comptée uniquement si mode livré/à livrer et montant renseigné — retrait sur place = 0 FCFA. Viande abattue : vendre depuis le stock (kg), coût déjà consolidé au journal d’abattage.</p></details>
+    <div className="space-y-3 md:hidden">{orders.length ? orders.map((order) => <MobileSaleCard key={order.id} order={order} linkedPayments={linkedPayments} props={props} marginRow={marginById.get(String(order.id)) || order} deliveries={deliveries} onOpen={openSale} />) : <div className="rounded-2xl border border-line bg-card p-6 text-center text-slate">Aucune vente enregistrée pour le moment.</div>}</div>
+    <div className="hidden md:block overflow-x-auto rounded-2xl border border-line bg-card -mx-1 px-1">
       <table className="min-w-[1580px] w-full text-sm">
         <thead className="sticky top-0 z-10">
-          <tr className="border-b-2 border-[#d6c3a0] bg-[#fffdf8] text-left text-xs uppercase tracking-wide text-[#8a7456]">
-            <th scope="col" className="px-5 py-4 font-black whitespace-nowrap">Date</th>
-            <th scope="col" className="px-5 py-4 font-black min-w-[200px]">Vente</th>
-            <th scope="col" className="px-5 py-4 font-black min-w-[140px]">Quantité</th>
-            <th scope="col" className="px-5 py-4 font-black min-w-[120px]">Client</th>
-            <th scope="col" className="px-5 py-4 font-black text-right whitespace-nowrap" title="Montant produits hors livraison">Produits</th>
-            <th scope="col" className="px-5 py-4 font-black text-right whitespace-nowrap">Total</th>
-            <th scope="col" className="px-5 py-4 font-black text-right whitespace-nowrap">Payé</th>
-            <th scope="col" className="px-5 py-4 font-black text-right whitespace-nowrap">Reste</th>
-            <th scope="col" className="px-5 py-4 font-black text-right min-w-[180px]" title="Production + livraison + pertes (calcul unique)">Coût direct</th>
-            <th scope="col" className="px-5 py-4 font-black text-right min-w-[120px]">Marge nette</th>
-            <th scope="col" className="px-5 py-4 font-black min-w-[140px]">Statut</th>
-            <th scope="col" className="px-5 py-4 font-black text-right min-w-[180px]">Actions</th>
+          <tr className="border-b-2 border-line bg-card text-left text-xs uppercase tracking-normal text-slate">
+            <th scope="col" className="px-6 py-4 font-semibold whitespace-nowrap">Date</th>
+            <th scope="col" className="px-6 py-4 font-semibold min-w-[200px]">Vente</th>
+            <th scope="col" className="px-6 py-4 font-semibold min-w-[140px]">Quantité</th>
+            <th scope="col" className="px-6 py-4 font-semibold min-w-[120px]">Client</th>
+            <th scope="col" className="px-6 py-4 font-semibold text-right whitespace-nowrap" title="Montant produits hors livraison">Produits</th>
+            <th scope="col" className="px-6 py-4 font-semibold text-right whitespace-nowrap">Total</th>
+            <th scope="col" className="px-6 py-4 font-semibold text-right whitespace-nowrap">Payé</th>
+            <th scope="col" className="px-6 py-4 font-semibold text-right whitespace-nowrap">Reste</th>
+            <th scope="col" className="px-6 py-4 font-semibold text-right min-w-[180px]" title="Production + livraison + pertes (calcul unique)">Coût direct</th>
+            <th scope="col" className="px-6 py-4 font-semibold text-right min-w-[120px]">Marge nette</th>
+            <th scope="col" className="px-6 py-4 font-semibold min-w-[140px]">Statut</th>
+            <th scope="col" className="px-6 py-4 font-semibold text-right min-w-[180px]">Actions</th>
           </tr>
         </thead>
         <tbody>
@@ -262,21 +262,21 @@ export default function SalesFollowUpPanel(props) {
             const qty = saleQuantityDetail(order);
             const productTotal = productAmountOf(order, deliveries);
             const total = saleAmount(order);
-            return <tr key={order.id} className="border-t border-[#eadcc2] hover:bg-white align-top">
-              <td className="px-5 py-4 text-[#7d6a4a] whitespace-nowrap">{saleDate(order) || '—'}</td>
-              <td className="px-5 py-4"><b className="text-[#2f2415] text-base">{productLabel(order)}</b><p className="text-xs text-[#8a7456] mt-1">{order.id}</p>{marginRow.source_label ? <p className="text-[11px] text-[#8a7456] mt-1">Source : {marginRow.source_label}</p> : null}</td>
-              <td className="px-5 py-4 font-bold text-[#2f2415]">{qty.label}</td>
-              <td className="px-5 py-4 text-[#7d6a4a]">{clientLabel(order)}</td>
-              <td className="px-5 py-4 text-right text-[#2f2415] whitespace-nowrap">{fmtCurrency(productTotal)}</td>
-              <td className="px-5 py-4 text-right font-black text-[#2f2415] whitespace-nowrap">{fmtCurrency(total)}</td>
-              <td className="px-5 py-4 text-right text-[#2f2415] whitespace-nowrap">{fmtCurrency(paidForOrder(order, linkedPayments))}</td>
-              <td className="px-5 py-4 text-right font-black text-[#2f2415] whitespace-nowrap">{fmtCurrency(remaining)}</td>
+            return <tr key={order.id} className="border-t border-line hover:bg-white align-top">
+              <td className="px-6 py-4 text-slate whitespace-nowrap">{saleDate(order) || '—'}</td>
+              <td className="px-6 py-4"><b className="text-earth text-base">{productLabel(order)}</b><p className="text-xs text-slate mt-1">{order.id}</p>{marginRow.source_label ? <p className="text-meta text-slate mt-1">Source : {marginRow.source_label}</p> : null}</td>
+              <td className="px-6 py-4 font-semibold text-earth">{qty.label}</td>
+              <td className="px-6 py-4 text-slate">{clientLabel(order)}</td>
+              <td className="px-6 py-4 text-right text-earth whitespace-nowrap">{fmtCurrency(productTotal)}</td>
+              <td className="px-6 py-4 text-right font-semibold text-earth whitespace-nowrap">{fmtCurrency(total)}</td>
+              <td className="px-6 py-4 text-right text-earth whitespace-nowrap">{fmtCurrency(paidForOrder(order, linkedPayments))}</td>
+              <td className="px-6 py-4 text-right font-semibold text-earth whitespace-nowrap">{fmtCurrency(remaining)}</td>
               <CostCell row={marginRow} order={order} deliveries={deliveries} onNavigate={props.onNavigate} />
               <MarginCell row={marginRow} />
-              <td className="px-5 py-4"><div className="flex flex-wrap gap-1.5"><StatusBadge tone={isPaid(order, linkedPayments) ? 'good' : 'warn'}>{isPaid(order, linkedPayments) ? 'Payée' : 'À encaisser'}</StatusBadge><StatusBadge tone={delivered ? 'good' : 'warn'}>{delivered ? 'Livrée' : 'À livrer'}</StatusBadge></div></td>
-              <td className="px-5 py-4"><ActionButtons order={order} props={props} linkedPayments={linkedPayments} onOpen={openSale} /></td>
+              <td className="px-6 py-4"><div className="flex flex-wrap gap-2"><StatusBadge tone={isPaid(order, linkedPayments) ? 'good' : 'warn'}>{isPaid(order, linkedPayments) ? 'Payée' : 'À encaisser'}</StatusBadge><StatusBadge tone={delivered ? 'good' : 'warn'}>{delivered ? 'Livrée' : 'À livrer'}</StatusBadge></div></td>
+              <td className="px-6 py-4"><ActionButtons order={order} props={props} linkedPayments={linkedPayments} onOpen={openSale} /></td>
             </tr>;
-          }) : <tr><td colSpan="12" className="px-5 py-8 text-center text-[#8a7456]">Aucune vente enregistrée pour le moment.</td></tr>}
+          }) : <tr><td colSpan="12" className="px-6 py-8 text-center text-slate">Aucune vente enregistrée pour le moment.</td></tr>}
         </tbody>
       </table>
     </div>

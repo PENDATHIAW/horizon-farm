@@ -96,15 +96,15 @@ export default function FinanceReconciliationPanel({
 
   return (
     <div className="space-y-4">
-      <section className="rounded-3xl border border-[#d6c3a0] bg-white p-5 shadow-sm">
+      <section className="rounded-3xl border border-line bg-white p-6 shadow-card">
         <div className="flex items-start gap-2">
-          <Wallet className="text-[#9a6b12] shrink-0" size={22} />
+          <Wallet className="text-horizon-dark shrink-0" size={22} />
           <div>
-            <h2 className="text-lg font-black text-[#2f2415]">Réconciliation financière</h2>
-            <p className="text-sm text-[#8a7456]">
+            <h2 className="text-lg font-semibold text-earth">Réconciliation financière</h2>
+            <p className="text-sm text-slate">
               Paiements sans commande, commandes sans paiement, transactions sans preuve et écarts ventes / encaissements.
             </p>
-            <p className="mt-2 text-xs text-[#8a7456]">
+            <p className="mt-2 text-xs text-slate">
               {reconciliationView?.count ?? rows.length}
               {' '}
               élément(s) à rapprocher — aucune écriture automatique sans validation.
@@ -114,7 +114,7 @@ export default function FinanceReconciliationPanel({
       </section>
 
       {empty ? (
-        <section className="rounded-3xl border border-emerald-200 bg-emerald-50 p-5 text-sm text-emerald-800">
+        <section className="rounded-3xl border border-positive bg-positive-bg p-6 text-sm text-positive">
           Aucun écart de rapprochement détecté entre paiements, recettes finance et stock.
         </section>
       ) : (
@@ -132,13 +132,13 @@ export default function FinanceReconciliationPanel({
           ) : null}
 
           {manualAnomalies.length ? (
-            <section className="rounded-3xl border border-[#d6c3a0] bg-white p-5 shadow-sm space-y-3">
-              <h3 className="text-sm font-black text-[#2f2415]">Éléments à rapprocher</h3>
+            <section className="rounded-3xl border border-line bg-white p-6 shadow-card space-y-3">
+              <h3 className="text-sm font-semibold text-earth">Éléments à rapprocher</h3>
               {manualAnomalies.map((anomaly) => (
-                <div key={anomaly.id} className="rounded-2xl border border-[#eadcc2] bg-[#fffdf8] p-4">
-                  <p className="font-black text-[#2f2415]">{anomaly.title}</p>
-                  <p className="text-xs text-[#8a7456] mt-1">{anomaly.description}</p>
-                  <p className="text-xs text-[#8a7456] mt-1">
+                <div key={anomaly.id} className="rounded-2xl border border-line bg-card p-4">
+                  <p className="font-semibold text-earth">{anomaly.title}</p>
+                  <p className="text-xs text-slate mt-1">{anomaly.description}</p>
+                  <p className="text-xs text-slate mt-1">
                     Source :
                     {' '}
                     {anomaly.source}
@@ -150,7 +150,7 @@ export default function FinanceReconciliationPanel({
                   <button
                     type="button"
                     onClick={() => setTab?.(anomaly.kind === 'missing_proof' ? 'Trésorerie' : 'Créances')}
-                    className="mt-2 rounded-lg border border-[#d6c3a0] px-2 py-1 text-xs font-black"
+                    className="mt-2 rounded-lg border border-line px-2 py-1 text-xs font-semibold"
                   >
                     Traiter
                   </button>
@@ -160,22 +160,22 @@ export default function FinanceReconciliationPanel({
           ) : null}
 
           {rows.length ? (
-            <section className="rounded-3xl border border-[#d6c3a0] bg-white p-5 shadow-sm space-y-4">
-              <h3 className="text-sm font-black text-[#2f2415]">Actions de rapprochement</h3>
+            <section className="rounded-3xl border border-line bg-white p-6 shadow-card space-y-4">
+              <h3 className="text-sm font-semibold text-earth">Actions de rapprochement</h3>
               <div className="space-y-3">
                 {rows.map((row) => {
                   const Icon = kindIcon(row.kind);
                   return (
                     <div
                       key={row.id}
-                      className="flex flex-col gap-3 rounded-2xl border border-[#eadcc2] bg-[#fffdf8] p-4 sm:flex-row sm:items-center sm:justify-between"
+                      className="flex flex-col gap-3 rounded-2xl border border-line bg-card p-4 sm:flex-row sm:items-center sm:justify-between"
                     >
                       <div>
-                        <p className="font-black text-[#2f2415] flex items-center gap-2">
-                          <Icon size={16} className="text-[#9a6b12]" />
+                        <p className="font-semibold text-earth flex items-center gap-2">
+                          <Icon size={16} className="text-horizon-dark" />
                           {row.title}
                         </p>
-                        <p className="text-xs text-[#8a7456] mt-1">{row.detail}</p>
+                        <p className="text-xs text-slate mt-1">{row.detail}</p>
                       </div>
                       <div className="flex flex-wrap gap-2">
                         {row.kind === 'payment_without_finance' && !aiCoveredRowIds.has(row.id) ? (
@@ -189,7 +189,7 @@ export default function FinanceReconciliationPanel({
                           </Btn>
                         ) : null}
                         {row.kind === 'payment_without_finance' && aiCoveredRowIds.has(row.id) ? (
-                          <span className="text-[11px] text-violet-700 font-semibold self-center">
+                          <span className="text-meta text-neutral font-semibold self-center">
                             Signaux métier disponibles ci-dessus
                           </span>
                         ) : null}

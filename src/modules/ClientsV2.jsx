@@ -8,9 +8,9 @@ import { normalizeClientFromSales } from '../utils/clientWorkflows';
 
 export default function ClientsV2(props) {
   const embedded = Boolean(props.embedded);
-  const salesOrders = props.salesOrders || [];
-  const payments = props.payments || [];
-  const rows = (props.rows || []).map((client) => normalizeClientFromSales(client, salesOrders, payments));
+  const salesOrders = useMemo(() => props.salesOrders || [], [props.salesOrders]);
+  const payments = useMemo(() => props.payments || [], [props.payments]);
+  const rows = useMemo(() => (props.rows || []).map((client) => normalizeClientFromSales(client, salesOrders, payments)), [props.rows, salesOrders, payments]);
   const [debtFilter, setDebtFilter] = useState(false);
 
   const receivable = useMemo(() => receivableFromOrders(salesOrders, payments), [salesOrders, payments]);

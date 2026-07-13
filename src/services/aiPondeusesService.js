@@ -39,7 +39,7 @@ const feedQty = (row = {}) => valueByKeys(row, ['quantite', 'quantity', 'qty']);
 const rowsForLot = (rows, lotId) => asRows(rows).filter((row) => row.lot_id === lotId || row.cible_id === lotId || row.entity_id === lotId);
 const latestMarketPrice = (marketPrices = [], category) => asRows(marketPrices).filter((row) => normalizeText(row.product_category) === normalizeText(category)).sort((a, b) => (dateOf(b, ['observed_at', 'created_at'])?.getTime() || 0) - (dateOf(a, ['observed_at', 'created_at'])?.getTime() || 0))[0] || null;
 
-export const buildPondeusesIntelligence = ({ lots = [], productionLogs = [], alimentationLogs = [], stocks = [], marketPrices = [], meteo = null } = {}) => {
+export const buildPondeusesIntelligence = ({ lots = [], productionLogs = [], alimentationLogs = [], marketPrices = [], meteo = null } = {}) => {
   const layerLots = asRows(lots).filter(isLayerLot);
   const eggMarketPrice = latestMarketPrice(marketPrices, 'oeufs');
   const feedMarketPrice = latestMarketPrice(marketPrices, 'aliment_pondeuse');

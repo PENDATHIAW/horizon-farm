@@ -4,7 +4,7 @@ import { consolidateFinance } from '../utils/financeConsolidationEngine';
 const arr = (value) => Array.isArray(value) ? value : [];
 const lower = (value) => String(value || '').toLowerCase();
 const amount = (row = {}) => toNumber(row.montant ?? row.amount ?? row.total ?? row.montant_total ?? row.chiffre_affaires ?? row.cout ?? row.coût ?? row.cost);
-const total = (row = {}) => toNumber(row.montant_total ?? row.total ?? row.chiffre_affaires ?? row.amount);
+
 const textOf = (row = {}) => lower(`${row.profit_bucket || ''} ${row.categorie || ''} ${row.category || ''} ${row.module_lie || ''} ${row.source_module || ''} ${row.entity_type || ''} ${row.target_type || ''} ${row.module || ''} ${row.source_type || ''} ${row.libelle || ''} ${row.title || ''} ${row.description || ''}`);
 
 export const PROFIT_BUCKETS = {

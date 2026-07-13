@@ -6,7 +6,6 @@ import { interpretHorizonCommand } from '../aiIntentEngine.js';
 import { parseContextualVoicePhrase } from '../aiGateway/contextualVoiceParser.js';
 import {
   AI_DRAFT_SOURCES,
-  createAiActionDraft,
   normalizeLegacyDraft,
   TARGET_WORKFLOWS,
 } from '../aiGateway/aiActionDrafts.js';
@@ -270,7 +269,7 @@ function buildPaymentCollectionParse(raw = '', dataMap = {}) {
   return { drafts: [draft], clarify: '', phrase: raw, scenario: 'payment_collection' };
 }
 
-function buildDeliveryParse(raw = '', dataMap = {}) {
+function buildDeliveryParse(raw = '', _dataMap = {}) {
   const { quantity, unit } = extractQuantity(raw);
   const destination = extractClientName(raw) || extractNamedDestination(raw);
   const product = lower(raw).includes('poulet') ? 'poulet' : 'produit';

@@ -2,7 +2,7 @@ import { daysBetween } from './avicoleLivingTargets.js';
 import { resolveSoucheCode, SOUCHE_REFERENTIAL, theoreticalGmq, theoreticalLayingPct } from '../config/soucheReferential.js';
 
 const arr = (v) => (Array.isArray(v) ? v : []);
-const n = (v) => Number(v || 0);
+
 const todayIso = () => new Date().toISOString().slice(0, 10);
 
 /** Date pivot J-0 : mise en place du lot ou entrée ferme. */

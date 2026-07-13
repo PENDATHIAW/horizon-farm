@@ -92,7 +92,7 @@ export default function AchatsStockMovementsPanel({ data, onNavigate, setTab, ac
 
   return (
     <div className="space-y-4 achats-stock-mobile">
-      <div className="rounded-2xl border border-sky-200 bg-sky-50 px-4 py-3 text-sm text-sky-900">
+      <div className="rounded-2xl border border-line bg-neutral-bg px-4 py-3 text-sm text-neutral">
         <b>Lecture seule</b> — les saisies (réception, sortie, perte) se font dans l&apos;onglet <b>Stock</b>.
       </div>
       <AchatsStockSection title="Où agir ?" subtitle="Mouvements enregistrés en priorité · historique distingué.">
@@ -105,8 +105,8 @@ export default function AchatsStockMovementsPanel({ data, onNavigate, setTab, ac
       <AchatsStockSection title="Filtres" subtitle="Lecture fiable du journal stock.">
         <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-6">
           <label className="text-xs">
-            <span className="font-black text-[#8a7456]">Période</span>
-            <select value={periodDays} onChange={(e) => setPeriodDays(e.target.value)} className="mt-1 w-full rounded-lg border border-[#eadcc2] px-2 py-1.5 text-xs">
+            <span className="font-semibold text-slate">Période</span>
+            <select value={periodDays} onChange={(e) => setPeriodDays(e.target.value)} className="mt-1 w-full rounded-lg border border-line px-2 py-2 text-xs">
               <option value="7">7 jours</option>
               <option value="30">30 jours</option>
               <option value="90">90 jours</option>
@@ -114,8 +114,8 @@ export default function AchatsStockMovementsPanel({ data, onNavigate, setTab, ac
             </select>
           </label>
           <label className="text-xs">
-            <span className="font-black text-[#8a7456]">Ferme</span>
-            <select value={farmFilter} onChange={(e) => setFarmFilter(e.target.value)} className="mt-1 w-full rounded-lg border border-[#eadcc2] px-2 py-1.5 text-xs">
+            <span className="font-semibold text-slate">Ferme</span>
+            <select value={farmFilter} onChange={(e) => setFarmFilter(e.target.value)} className="mt-1 w-full rounded-lg border border-line px-2 py-2 text-xs">
               <option value="">Toutes</option>
               <option value="__none">Sans ferme</option>
               {accessibleFarms.map((farm) => (
@@ -124,8 +124,8 @@ export default function AchatsStockMovementsPanel({ data, onNavigate, setTab, ac
             </select>
           </label>
           <label className="text-xs">
-            <span className="font-black text-[#8a7456]">Type</span>
-            <select value={typeFilter} onChange={(e) => setTypeFilter(e.target.value)} className="mt-1 w-full rounded-lg border border-[#eadcc2] px-2 py-1.5 text-xs">
+            <span className="font-semibold text-slate">Type</span>
+            <select value={typeFilter} onChange={(e) => setTypeFilter(e.target.value)} className="mt-1 w-full rounded-lg border border-line px-2 py-2 text-xs">
               <option value="">Tous</option>
               <option value="entree">Entrées</option>
               <option value="sortie">Sorties</option>
@@ -133,8 +133,8 @@ export default function AchatsStockMovementsPanel({ data, onNavigate, setTab, ac
             </select>
           </label>
           <label className="text-xs">
-            <span className="font-black text-[#8a7456]">Source</span>
-            <select value={sourceFilter} onChange={(e) => setSourceFilter(e.target.value)} className="mt-1 w-full rounded-lg border border-[#eadcc2] px-2 py-1.5 text-xs">
+            <span className="font-semibold text-slate">Source</span>
+            <select value={sourceFilter} onChange={(e) => setSourceFilter(e.target.value)} className="mt-1 w-full rounded-lg border border-line px-2 py-2 text-xs">
               <option value="">Toutes</option>
               <option value="journal">Journal</option>
               <option value="historique">Historique</option>
@@ -144,16 +144,16 @@ export default function AchatsStockMovementsPanel({ data, onNavigate, setTab, ac
             </select>
           </label>
           <label className="text-xs sm:col-span-2">
-            <span className="font-black text-[#8a7456]">Article</span>
-            <input value={articleFilter} onChange={(e) => setArticleFilter(e.target.value)} placeholder="Rechercher…" className="mt-1 w-full rounded-lg border border-[#eadcc2] px-2 py-1.5 text-xs" />
+            <span className="font-semibold text-slate">Article</span>
+            <input value={articleFilter} onChange={(e) => setArticleFilter(e.target.value)} placeholder="Rechercher…" className="mt-1 w-full rounded-lg border border-line px-2 py-2 text-xs" />
           </label>
         </div>
-        <label className="flex items-center gap-2 text-xs text-[#8a7456]">
+        <label className="flex items-center gap-2 text-xs text-slate">
           <input type="checkbox" checked={showLegacy} onChange={(e) => setShowLegacy(e.target.checked)} />
           Afficher l’historique (alimentation et événements antérieurs)
         </label>
         {withoutFarm > 0 ? (
-          <p className="text-xs text-amber-700">{withoutFarm} mouvement(s) sans ferme renseignée (historique).</p>
+          <p className="text-xs text-horizon-dark">{withoutFarm} mouvement(s) sans ferme renseignée (historique).</p>
         ) : null}
       </AchatsStockSection>
 

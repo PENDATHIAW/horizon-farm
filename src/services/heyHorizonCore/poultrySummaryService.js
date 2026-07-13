@@ -6,7 +6,7 @@ import {
   avicoleSickCount,
 } from '../../utils/avicoleMetrics.js';
 import { computeEggProductionSummary } from '../../modules/dashboard/dashboardMetrics.js';
-import { arr, metaBase, n, pickRows } from './coreUtils.js';
+import {  metaBase, n, pickRows } from './coreUtils.js';
 
 /**
  * Synthèse aviculture — lots, effectifs, production œufs.

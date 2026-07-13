@@ -2,7 +2,7 @@
  * Commercial V2 — relances clients structurées (priorité, canal, message).
  */
 
-import { buildClientSegmentation, buildClientSegment } from '../services/clientSegmentationEngine.js';
+import {  buildClientSegment } from '../services/clientSegmentationEngine.js';
 import { buildClientSalesSummary } from './clientWorkflows.js';
 import { isQuoteOrder, quoteStatusOf, QUOTE_STATUSES } from './commercialQuoteWorkflow.js';
 import { remainingForOrder } from './salesStatuses.js';
@@ -12,8 +12,8 @@ import { fmtCurrency } from './format.js';
 
 const arr = (value) => (Array.isArray(value) ? value : []);
 const num = (value) => Number(value || 0);
-const lower = (value) => String(value || '').toLowerCase();
-const clean = (value) => String(value || '').trim();
+
+
 
 function clientName(client = {}) {
   return client.nom || client.name || client.id || 'Client';
@@ -47,11 +47,10 @@ export function buildCommercialRelanceRows({
   clients = [],
   orders = [],
   payments = [],
-  whatsappLogs = [],
 } = {}) {
   const rows = [];
   const linked = linkedPaymentsForOrders(orders, payments);
-  const segmentation = buildClientSegmentation(clients, { sales_orders: orders, payments });
+
 
   arr(clients).forEach((client) => {
     const summary = buildClientSalesSummary(client, orders, payments);

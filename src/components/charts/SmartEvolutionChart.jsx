@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { ChartPeriodContext, useChartPeriodContext } from './chartPeriodContext';
+import {  useChartPeriodContext } from './chartPeriodContext';
 import ReactECharts from 'echarts-for-react';
 import { exportModuleReportPdf } from '../../utils/moduleReportExports';
 import ChartExplainPanel from './ChartExplainPanel.jsx';
@@ -17,7 +17,7 @@ const formatCompact = (value, unit = '') => {
   return `${number.toLocaleString('fr-FR')}${unit ? ` ${unit}` : ''}`;
 };
 
-const defaultPalette = ['#b7791f', '#2f855a', '#2b6cb0', '#c53030', '#805ad5', '#dd6b20', '#319795', '#4a5568'];
+const defaultPalette = ['var(--hf-horizon-dark)', 'var(--hf-positive)', 'var(--hf-neutral)', 'var(--hf-urgent)', 'var(--hf-leaf)', 'var(--hf-horizon)', 'var(--hf-leaf)', 'var(--hf-slate)'];
 
 function buildSeries(series = [], showValueLabels = false) {
   return series.map((item, index) => ({
@@ -45,7 +45,7 @@ function buildSeries(series = [], showValueLabels = false) {
       },
       fontSize: 10,
       fontWeight: item.type === 'line' ? 700 : 500,
-      color: item.type === 'line' ? (item.color || defaultPalette[index % defaultPalette.length]) : '#2f2415',
+      color: item.type === 'line' ? (item.color || defaultPalette[index % defaultPalette.length]) : 'var(--hf-ink)',
       overflow: 'truncate',
     },
     labelLayout: { hideOverlap: true, moveOverlap: 'shiftY' },
@@ -165,8 +165,8 @@ export default function SmartEvolutionChart({
       subtext: subtitle,
       left: 0,
       top: 0,
-      textStyle: { color: '#2f2415', fontSize: 15, fontWeight: 800 },
-      subtextStyle: { color: '#8a7456', fontSize: 11, lineHeight: 16 },
+      textStyle: { color: 'var(--hf-ink)', fontSize: 15, fontWeight: 800 },
+      subtextStyle: { color: 'var(--hf-slate)', fontSize: 11, lineHeight: 16 },
     },
     grid: {
       left: 58,
@@ -178,29 +178,29 @@ export default function SmartEvolutionChart({
     legend: {
       type: 'scroll',
       ...(legendBottom ? { bottom: 6, left: 'center', width: '96%' } : { top: 52, left: 0, right: 0 }),
-      textStyle: { color: '#5f4b2f', fontSize: 11 },
+      textStyle: { color: 'var(--hf-slate)', fontSize: 11 },
       itemGap: 16,
       itemWidth: 14,
       itemHeight: 8,
     },
     tooltip: {
       trigger: 'axis',
-      axisPointer: { type: 'cross', label: { backgroundColor: '#2f2415' } },
-      backgroundColor: 'rgba(255,253,248,0.96)',
-      borderColor: '#d6c3a0',
+      axisPointer: { type: 'cross', label: { backgroundColor: 'var(--hf-ink)' } },
+      backgroundColor: 'var(--hf-card)',
+      borderColor: 'var(--hf-line)',
       borderWidth: 1,
-      textStyle: { color: '#2f2415', fontSize: 12 },
-      extraCssText: 'box-shadow: 0 12px 30px rgba(47,36,21,.14); border-radius: 12px;',
+      textStyle: { color: 'var(--hf-ink)', fontSize: 12 },
+      extraCssText: 'box-shadow: var(--hf-shadow-card); border-radius: var(--hf-radius-card);',
     },
     toolbox: { show: false },
     dataZoom: filtered.months.length > 6
-      ? [{ type: 'inside', start: 0, end: 100 }, { type: 'slider', start: 0, end: 100, height: 20, bottom: rotate ? 34 : 28, borderColor: '#eadcc2', fillerColor: 'rgba(201,169,106,.18)' }]
+      ? [{ type: 'inside', start: 0, end: 100 }, { type: 'slider', start: 0, end: 100, height: 20, bottom: rotate ? 34 : 28, borderColor: 'var(--hf-line)', fillerColor: 'var(--hf-vigilance-bg)' }]
       : [],
     xAxis: {
       type: 'category',
       data: filtered.months,
       axisLabel: {
-        color: '#5f4b2f',
+        color: 'var(--hf-slate)',
         fontSize: 10,
         rotate,
         interval: 0,
@@ -210,38 +210,38 @@ export default function SmartEvolutionChart({
         width: categoryAxis ? 72 : 56,
       },
       axisTick: { alignWithLabel: true },
-      axisLine: { lineStyle: { color: '#d6c3a0' } },
+      axisLine: { lineStyle: { color: 'var(--hf-line)' } },
     },
     yAxis: [
       {
         type: 'value',
         name: leftUnit,
         nameGap: 12,
-        nameTextStyle: { color: '#8a7456', fontSize: 11 },
-        axisLabel: { color: '#5f4b2f', formatter: (value) => formatCompact(value, leftUnit) },
-        splitLine: { lineStyle: { color: '#eadcc2', type: 'dashed' } },
+        nameTextStyle: { color: 'var(--hf-slate)', fontSize: 11 },
+        axisLabel: { color: 'var(--hf-slate)', formatter: (value) => formatCompact(value, leftUnit) },
+        splitLine: { lineStyle: { color: 'var(--hf-line)', type: 'dashed' } },
       },
       {
         type: 'value',
         name: rightUnit,
         nameGap: 12,
-        nameTextStyle: { color: '#8a7456', fontSize: 11 },
-        axisLabel: { color: '#5f4b2f', formatter: (value) => formatCompact(value, rightUnit) },
+        nameTextStyle: { color: 'var(--hf-slate)', fontSize: 11 },
+        axisLabel: { color: 'var(--hf-slate)', formatter: (value) => formatCompact(value, rightUnit) },
         splitLine: { show: false },
       },
     ],
     series: buildSeries(filtered.series, showValueLabels),
   };
 
-  const Controls = lockControls ? null : <div className="mb-3 rounded-2xl border border-[#eadcc2] bg-[#fffdf8] p-3"><div className="grid grid-cols-2 md:grid-cols-6 gap-2 text-xs"><select value={filter.mode} onChange={(e) => setFilter((prev) => ({ ...prev, mode: e.target.value }))} className="rounded-xl border border-[#d6c3a0] bg-white px-2 py-2 text-[#2f2415]"><option value="all">Toutes périodes</option><option value="year">Année</option><option value="month">Mois</option><option value="day">Jour</option><option value="range">Période</option></select>{(filter.mode === 'year' || filter.mode === 'month') ? <select value={filter.year} onChange={(e) => setFilter((prev) => ({ ...prev, year: e.target.value }))} className="rounded-xl border border-[#d6c3a0] bg-white px-2 py-2 text-[#2f2415]">{(years.length ? years : [new Date().getFullYear()]).map((year) => <option key={year} value={year}>{year}</option>)}</select> : null}{filter.mode === 'month' ? <input type="number" min="1" max="12" value={filter.month} onChange={(e) => setFilter((prev) => ({ ...prev, month: e.target.value }))} className="rounded-xl border border-[#d6c3a0] bg-white px-2 py-2 text-[#2f2415]" /> : null}{filter.mode === 'day' ? <input type="date" value={filter.day} onChange={(e) => setFilter((prev) => ({ ...prev, day: e.target.value }))} className="rounded-xl border border-[#d6c3a0] bg-white px-2 py-2 text-[#2f2415]" /> : null}{filter.mode === 'range' ? <input type="date" value={filter.start} onChange={(e) => setFilter((prev) => ({ ...prev, start: e.target.value }))} className="rounded-xl border border-[#d6c3a0] bg-white px-2 py-2 text-[#2f2415]" /> : null}{filter.mode === 'range' ? <input type="date" value={filter.end} onChange={(e) => setFilter((prev) => ({ ...prev, end: e.target.value }))} className="rounded-xl border border-[#d6c3a0] bg-white px-2 py-2 text-[#2f2415]" /> : null}<button type="button" onClick={() => setFilter({ mode: 'all', year: years[0] || new Date().getFullYear(), month: 1, day: '', start: '', end: '' })} className="rounded-xl border border-[#d6c3a0] bg-white px-2 py-2 font-bold text-[#2f2415]">Réinitialiser</button><button type="button" onClick={exportPdf} className="rounded-xl bg-[#2f2415] px-2 py-2 font-bold text-white">Exporter PDF</button></div><p className="mt-2 text-[11px] text-[#8a7456]">Période active : {periodLabel}</p></div>;
+  const Controls = lockControls ? null : <div className="mb-3 rounded-2xl border border-line bg-card p-3"><div className="grid grid-cols-2 md:grid-cols-6 gap-2 text-xs"><select value={filter.mode} onChange={(e) => setFilter((prev) => ({ ...prev, mode: e.target.value }))} className="rounded-xl border border-line bg-white px-2 py-2 text-earth"><option value="all">Toutes périodes</option><option value="year">Année</option><option value="month">Mois</option><option value="day">Jour</option><option value="range">Période</option></select>{(filter.mode === 'year' || filter.mode === 'month') ? <select value={filter.year} onChange={(e) => setFilter((prev) => ({ ...prev, year: e.target.value }))} className="rounded-xl border border-line bg-white px-2 py-2 text-earth">{(years.length ? years : [new Date().getFullYear()]).map((year) => <option key={year} value={year}>{year}</option>)}</select> : null}{filter.mode === 'month' ? <input type="number" min="1" max="12" value={filter.month} onChange={(e) => setFilter((prev) => ({ ...prev, month: e.target.value }))} className="rounded-xl border border-line bg-white px-2 py-2 text-earth" /> : null}{filter.mode === 'day' ? <input type="date" value={filter.day} onChange={(e) => setFilter((prev) => ({ ...prev, day: e.target.value }))} className="rounded-xl border border-line bg-white px-2 py-2 text-earth" /> : null}{filter.mode === 'range' ? <input type="date" value={filter.start} onChange={(e) => setFilter((prev) => ({ ...prev, start: e.target.value }))} className="rounded-xl border border-line bg-white px-2 py-2 text-earth" /> : null}{filter.mode === 'range' ? <input type="date" value={filter.end} onChange={(e) => setFilter((prev) => ({ ...prev, end: e.target.value }))} className="rounded-xl border border-line bg-white px-2 py-2 text-earth" /> : null}<button type="button" onClick={() => setFilter({ mode: 'all', year: years[0] || new Date().getFullYear(), month: 1, day: '', start: '', end: '' })} className="rounded-xl border border-line bg-white px-2 py-2 font-semibold text-earth">Réinitialiser</button><button type="button" onClick={exportPdf} className="rounded-xl bg-earth px-2 py-2 font-semibold text-white">Exporter PDF</button></div><p className="mt-2 text-meta text-slate">Période active : {periodLabel}</p></div>;
 
-  if (!hasData) return <div className="bg-white border border-[#d6c3a0] rounded-2xl p-4">{Controls}<p className="font-black text-[#2f2415]">{title}</p>{subtitle ? <p className="text-xs text-[#8a7456] mt-1">{subtitle}</p> : null}<div className="h-64 mt-4 rounded-xl bg-[#fffdf8] border border-[#eadcc2] flex items-center justify-center text-sm text-[#8a7456]">{emptyText}</div>{explainPayload ? <ChartExplainPanel payload={explainPayload} disabled /> : null}</div>;
+  if (!hasData) return <div className="bg-white border border-line rounded-2xl p-4">{Controls}<p className="font-semibold text-earth">{title}</p>{subtitle ? <p className="text-xs text-slate mt-1">{subtitle}</p> : null}<div className="h-64 mt-4 rounded-xl bg-card border border-line flex items-center justify-center text-sm text-slate">{emptyText}</div>{explainPayload ? <ChartExplainPanel payload={explainPayload} disabled /> : null}</div>;
 
   return (
-    <div className="bg-white border border-[#d6c3a0] rounded-2xl p-4 shadow-sm">
+    <div className="bg-white border border-line rounded-2xl p-4 shadow-card">
       {Controls}
-      <ReactECharts option={option} style={{ height: chartHeight, width: '100%' }} notMerge lazyUpdate />
-      {!compact ? <p className="mt-2 text-[11px] text-[#8a7456]">Astuce : clique sur la légende pour masquer/afficher une série, puis utilise le zoom en bas pour affiner l’affichage.</p> : null}
+      <ReactECharts option={option} style={{ height: chartHeight, width: '100%' }} opts={{ renderer: 'svg' }} notMerge lazyUpdate />
+      {!compact ? <p className="mt-2 text-meta text-slate">Astuce : clique sur la légende pour masquer/afficher une série, puis utilise le zoom en bas pour affiner l’affichage.</p> : null}
       {explainPayload ? <ChartExplainPanel payload={explainPayload} /> : null}
     </div>
   );

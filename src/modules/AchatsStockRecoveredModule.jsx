@@ -9,7 +9,6 @@ import AchatsStockInsightPanel from './achatsStock/AchatsStockInsightPanel.jsx';
 import AchatsStockLowStockPanel from './achatsStock/AchatsStockLowStockPanel.jsx';
 import AchatsStockSupplierDebtsPanel from './achatsStock/AchatsStockSupplierDebtsPanel.jsx';
 import AchatsStockExpiryPanel from './achatsStock/AchatsStockExpiryPanel.jsx';
-import AchatsStockTransferPanel from './achatsStock/AchatsStockTransferPanel.jsx';
 import AchatsStockDataQualityPanel from './achatsStock/AchatsStockDataQualityPanel.jsx';
 import StockProductionSourcesPanel from './achatsStock/StockProductionSourcesPanel.jsx';
 import StockNavigationContextBanner from './achatsStock/StockNavigationContextBanner.jsx';
@@ -58,7 +57,7 @@ function Summary({ data, setTab, onApply, onRelance, busyId, onNavigate, onMarkE
   const iaFindings = [...(data.stockIaRecs || []), ...(data.healthFindings || [])].slice(0, 6);
 
   return (
-    <div className="space-y-5 achats-stock-mobile">
+    <div className="space-y-6 achats-stock-mobile">
       <style>{`
         @media (max-width: 640px) {
           .achats-stock-mobile .overflow-x-auto { max-width: 100vw; }
@@ -89,10 +88,10 @@ function Summary({ data, setTab, onApply, onRelance, busyId, onNavigate, onMarkE
 
       <AchatsStockSection title="Parcours rapide" subtitle="Actions terrain les plus fréquentes.">
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
-          <button type="button" onClick={() => openStockPurchaseForm({ setTab, intent_label: 'Réception stock', draft_fields: { date: new Date().toISOString().slice(0, 10) } })} className="rounded-2xl border border-emerald-200 bg-emerald-50 p-4 text-left"><b className="text-[#2f2415]">+ Réception</b><p className="mt-1 text-sm text-[#8a7456]">Parcours unique d’achat.</p></button>
-          <button type="button" onClick={() => setTab('Achats')} className="rounded-2xl border border-[#eadcc2] bg-[#fffdf8] p-4 text-left"><b className="text-[#2f2415]">Achats</b><p className="mt-1 text-sm text-[#8a7456]">À payer, preuves, réappro.</p></button>
-          <button type="button" onClick={() => setTab('Mouvements')} className="rounded-2xl border border-[#eadcc2] bg-[#fffdf8] p-4 text-left"><b className="text-[#2f2415]">Mouvements</b><p className="mt-1 text-sm text-[#8a7456]">Journal et filtres.</p></button>
-          <button type="button" onClick={() => onNavigate?.('commercial', { tab: 'Opportunités' })} className="rounded-2xl border border-emerald-200 bg-emerald-50 p-4 text-left"><b className="text-[#2f2415]">Commercial</b><p className="mt-1 text-sm text-[#8a7456]">Vendre stock disponible.</p></button>
+          <button type="button" onClick={() => openStockPurchaseForm({ setTab, intent_label: 'Réception stock', draft_fields: { date: new Date().toISOString().slice(0, 10) } })} className="rounded-2xl border border-positive bg-positive-bg p-4 text-left"><b className="text-earth">+ Réception</b><p className="mt-1 text-sm text-slate">Parcours unique d’achat.</p></button>
+          <button type="button" onClick={() => setTab('Achats')} className="rounded-2xl border border-line bg-card p-4 text-left"><b className="text-earth">Achats</b><p className="mt-1 text-sm text-slate">À payer, preuves, réappro.</p></button>
+          <button type="button" onClick={() => setTab('Mouvements')} className="rounded-2xl border border-line bg-card p-4 text-left"><b className="text-earth">Mouvements</b><p className="mt-1 text-sm text-slate">Journal et filtres.</p></button>
+          <button type="button" onClick={() => onNavigate?.('commercial', { tab: 'Opportunités' })} className="rounded-2xl border border-positive bg-positive-bg p-4 text-left"><b className="text-earth">Commercial</b><p className="mt-1 text-sm text-slate">Vendre stock disponible.</p></button>
         </div>
       </AchatsStockSection>
 
@@ -126,12 +125,12 @@ function Summary({ data, setTab, onApply, onRelance, busyId, onNavigate, onMarkE
 export default function AchatsStockRecoveredModule(props) {
   const { initialTab, onTabChange } = props;
   const controlled = Boolean(onTabChange);
-  const [internalTab, setInternalTab] = useState(() => resolveAchatsStockTab(initialTab || 'Inventaire'));
+  const [internalTab, setInternalTab] = useState(() => resolveAchatsStockTab(initialTab || 'Tableau de bord'));
   const [inventaireSection, setInventaireSection] = useState(null);
   const movementsDetailsRef = useRef(null);
   const annexeDetailsRef = useRef(null);
   const tab = controlled
-    ? resolveAchatsStockTab(initialTab || 'Inventaire')
+    ? resolveAchatsStockTab(initialTab || 'Tableau de bord')
     : internalTab;
   const rememberInventaireSection = useCallback((value = '') => {
     const rawKey = low(String(value || '').trim());
@@ -164,7 +163,7 @@ export default function AchatsStockRecoveredModule(props) {
   }, [controlled, initialTab, rememberInventaireSection]);
 
   useEffect(() => {
-    if (tab !== 'Inventaire' || !inventaireSection) return;
+    if (tab !== 'Inventaires stock' || !inventaireSection) return;
     const target = inventaireSection === 'mouvements' ? movementsDetailsRef.current : annexeDetailsRef.current;
     if (!target) return;
     target.open = true;
@@ -406,18 +405,18 @@ export default function AchatsStockRecoveredModule(props) {
 
   return (
     <div className="space-y-6 achats-stock-mobile">
-      <section className="rounded-3xl border border-[#d6c3a0] bg-white p-5 shadow-sm">
+      <section className="rounded-3xl border border-line bg-white p-6 shadow-card">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
           <div>
-            <p className="text-xs uppercase tracking-[0.25em] text-[#9a6b12] font-black">Gestion</p>
-            <h1 className="mt-1 text-2xl font-black text-[#2f2415]">Achats & Stock</h1>
-            <p className="mt-1 text-sm text-[#8a7456]">Stock agricole fiable — achats, mouvements, péremption, multi-fermes.</p>
+            <p className="text-xs uppercase tracking-normal text-horizon-dark font-semibold">Gestion</p>
+            <h1 className="mt-1 text-2xl font-semibold text-earth">Achats & Stock</h1>
+            <p className="mt-1 text-sm text-slate">Produits, fournisseurs, achats, stocks, mouvements et inventaires du site.</p>
             {props.periodLabel ? <div className="mt-2"><PeriodScopeBadge label={props.periodLabel} /></div> : null}
           </div>
-          <div className="rounded-2xl border border-[#eadcc2] bg-[#fffdf8] px-4 py-3 text-sm">
-            <button type="button" onClick={() => setTab('Inventaire')} className="text-left">
-              <span className="text-[#8a7456]">Santé </span>
-              <b className={data.healthScore >= 75 ? 'text-emerald-700' : 'text-amber-700'}>{data.healthScore}/100</b>
+          <div className="rounded-2xl border border-line bg-card px-4 py-3 text-sm">
+            <button type="button" onClick={() => setTab('Tableau de bord')} className="text-left">
+              <span className="text-slate">Santé </span>
+              <b className={data.healthScore >= 75 ? 'text-positive' : 'text-horizon-dark'}>{data.healthScore}/100</b>
             </button>
           </div>
         </div>
@@ -427,7 +426,11 @@ export default function AchatsStockRecoveredModule(props) {
         onNavigate={props.onNavigate}
       />
       <Tabs active={tab} onChange={setTab} />
-      {tab === 'Inventaire' ? (
+      {tab === 'Tableau de bord stock' ? (
+        <Summary data={data} setTab={setTab} onApply={applyFinding} onRelance={relanceSupplier} busyId={busyId} onNavigate={props.onNavigate} onMarkExpiry={handleExpiryAction} showStartup={data.startupMode} />
+      ) : null}
+      {tab === 'Produits & catégories stock' ? <StocksV5 {...stockProps} /> : null}
+      {tab === 'Stocks & lots' ? (
         <div className="space-y-4">
           <StockNavigationContextBanner
             stockContext={props.stockNavigationContext?.stockContext}
@@ -438,58 +441,37 @@ export default function AchatsStockRecoveredModule(props) {
           />
           <StocksV5 {...stockProps} />
           <CollapsibleAdvancedSection
-            eyebrow="Compléments stock"
-            title="Transferts, sources & Élevage"
-            description="Panels optionnels — le détail opérationnel reste dans StocksV5."
+            eyebrow="Sources du stock"
+            title="Origine production et élevage"
+            description="Lecture des sources, sans stock parallèle dans les modules producteurs."
             open={stockAdvancedOpen}
             onToggle={() => setStockAdvancedOpen((v) => !v)}
           >
             <StockProductionSourcesPanel rows={stocks} onNavigate={props.onNavigate} />
-            <AchatsStockTransferPanel
-              stocks={stocks}
-              accessibleFarms={props.accessibleFarms || []}
-              farmScope={props.farmScope}
-              onUpdateStock={props.onUpdateStock || stockCrud.update}
-              onCreateStockMovement={props.onCreateStockMovement || movementsCrud.create}
-              onCreateBusinessEvent={props.onCreateBusinessEvent || eventsCrud.create}
-              onRefreshStockMovements={props.onRefreshStockMovements || movementsCrud.refresh}
-              onCreateTrace={props.onCreateTrace || traceCrud.create}
-              onUpdateTrace={props.onUpdateTrace || traceCrud.update}
-              existingTraces={traceRows}
-              existingMovements={stockMovements}
-            />
           </CollapsibleAdvancedSection>
-          <details ref={movementsDetailsRef} className="rounded-2xl border border-[#eadcc2] bg-[#fffdf8] p-4">
-            <summary className="cursor-pointer font-black text-sm text-[#2f2415]">Mouvements enregistrés</summary>
-            <div className="mt-3">
-              <AchatsStockMovementsPanel data={data} onNavigate={props.onNavigate} setTab={setTab} accessibleFarms={props.accessibleFarms || []} />
-            </div>
-          </details>
-          <details ref={annexeDetailsRef} className="rounded-2xl border border-[#eadcc2] bg-[#fffdf8] p-4">
-            <summary className="cursor-pointer font-black text-sm text-[#2f2415]">Annexe & graphiques</summary>
+        </div>
+      ) : null}
+      {tab === 'Mouvements stock' ? (
+        <div ref={movementsDetailsRef}><AchatsStockMovementsPanel data={data} onNavigate={props.onNavigate} setTab={setTab} accessibleFarms={props.accessibleFarms || []} /></div>
+      ) : null}
+      {tab === 'Inventaires stock' ? (
+        <div className="space-y-4">
+          <StocksV5 {...stockProps} />
+          <details ref={annexeDetailsRef} className="rounded-2xl border border-line bg-card p-4">
+            <summary className="cursor-pointer font-semibold text-sm text-earth">Annexe & graphiques</summary>
             <div className="mt-3 space-y-4">
               <AchatsStockAnnexeTab documents={documents} onNavigate={props.onNavigate} />
               <ModuleGraphiquesTab moduleId="achats_stock" periodFiltered={periodFiltered} stocks={stocks} alimentationLogs={feedLogs} fournisseurs={suppliers} transactions={transactions} onNavigate={props.onNavigate} />
             </div>
           </details>
         </div>
-      ) : tab === 'Réceptions & achats' ? (
+      ) : null}
+      {tab === 'Achats & réceptions stock' ? (
         <div className="space-y-4">
-          <Summary
-            data={data}
-            setTab={setTab}
-            onApply={applyFinding}
-            onRelance={relanceSupplier}
-            busyId={busyId}
-            onNavigate={props.onNavigate}
-            onMarkExpiry={handleExpiryAction}
-            showStartup={data.startupMode}
-          />
           <AchatsStockPurchasesPanel data={data} onNavigate={props.onNavigate} setTab={setTab} onRelance={relanceSupplier} busyId={busyId} />
         </div>
-      ) : (
-        <FournisseursReadable {...supplierProps} hideEvolutionSection />
-      )}
+      ) : null}
+      {tab === 'Fournisseurs stock' ? <FournisseursReadable {...supplierProps} hideEvolutionSection /> : null}
     </div>
   );
 }

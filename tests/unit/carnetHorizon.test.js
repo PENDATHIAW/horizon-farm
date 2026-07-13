@@ -178,7 +178,7 @@ test('buildCarnetHorizonView — sections dirigeant', () => {
   assert.equal(carnet.domains.length, 4);
   assert.ok(carnet.objectifs?.month);
   assert.ok(carnet.conseil?.action);
-  assert.ok(Array.isArray(carnet.journal.items));
+  assert.equal(Object.hasOwn(carnet, 'journal'), false);
   assert.ok(carnet.capteurs);
   assert.equal(carnet.capteurs.navigate.module, 'smartfarm');
 });
@@ -198,7 +198,7 @@ test('buildCarnetSensorStrip — température et alertes capteurs', () => {
 });
 
 test('buildSensorDashboardSummary — sans capteur utilise météo', () => {
-  const summary = buildSensorDashboardSummary([], [], { temp: 31 });
+  const summary = buildSensorDashboardSummary([], { temp: 31 });
   assert.equal(summary.tempDisplay, 31);
   assert.equal(summary.headline, '31°C');
 });

@@ -15,6 +15,13 @@ import {
 } from './commercialFarmScope.js';
 import { validateSaleStockAvailability } from './commercialStockValidation.js';
 import { emitOrgaloopEffluentSaleSideEffects } from '../services/greenpreneurs/orgaloopEffluentWorkflow.js';
+import {
+  attachDailyEntryMeta,
+  DAILY_ENTRY_TYPES,
+  dailyEntryRecordId,
+  findDailyEntryReplay,
+  resolveDailyEntryIdentity,
+} from './dailyQuickEntryContract.js';
 
 const arr = (value) => (Array.isArray(value) ? value : []);
 const clean = (value) => String(value || '').trim();
@@ -70,6 +77,16 @@ export function deliveryStatusFromMode(mode = '') {
   return 'recupere';
 }
 
+export function resolveCommercialBusinessEventType(line = {}) {
+  const sourceType = lower(line.source_type);
+  const text = lower(`${line.sale_kind || ''} ${line.product_name || ''} ${line.unit || ''}`);
+  if (/oeuf|œuf|tablette|plateau/.test(text)) return 'egg_sale';
+  if (sourceType === SALE_PRODUCT_TYPES.LOT) return 'broiler_sale';
+  if (sourceType === SALE_PRODUCT_TYPES.ANIMAL) return 'bovine_sale';
+  if (sourceType === SALE_PRODUCT_TYPES.CULTURE || /culture|recolte|récolte|maraich|maraîch/.test(text)) return 'crop_sale';
+  return 'commercial_sale';
+}
+
 export function orderStatusFromFulfillment(mode = '') {
   const m = lower(mode);
   if (m === 'a_livrer') return 'en_preparation';
@@ -119,7 +136,7 @@ export function computeSaleAmounts(form = {}) {
 }
 
 export function validateCommercialSaleForm(form = {}, options = {}) {
-  const { lines, grandTotal, paid, remaining, paymentStatus } = computeSaleAmounts(form);
+  const { lines, grandTotal, paid, paymentStatus } = computeSaleAmounts(form);
   if (!lines.length || !lines.some((l) => clean(l.product_name))) {
     return 'Au moins une ligne de vente est obligatoire.';
   }
@@ -169,18 +186,32 @@ export function buildCommercialSaleRecords({
   selectedMeta = null,
   farmId = null,
   lineMetaBySource = null,
+  eventKey = '',
+  entryId = '',
+  actorId = '',
 } = {}) {
   const id = orderId || makeId('CMD');
   const issueKey = buildSaleIssueKey(id);
+  const resolvedEventKey = clean(eventKey || form.event_key) || issueKey;
+  const identity = {
+    eventKey: resolvedEventKey,
+    entryId: clean(entryId || form.entry_id),
+    farmId: clean(farmId || form.farm_id),
+  };
   const { lines, productTotal, deliveryFee, grandTotal, paid, remaining, paymentStatus } = computeSaleAmounts(form);
   const primary = lines[0] || {};
   const realClientId = form.client_id === 'client_passage' ? '' : form.client_id;
   const isEggSale = primary.sale_kind === 'oeufs_tablettes' || primary.unit === 'tablette';
-  const invId = form.invoice_issued ? (invoiceId || makeId('FAC')) : '';
-  const payId = paid > 0 ? (paymentId || makeId('PAY')) : '';
+  const invId = form.invoice_issued
+    ? (invoiceId || dailyEntryRecordId('FAC', { ...identity, eventKey: `${resolvedEventKey}:invoice` }))
+    : '';
+  const payId = paid > 0
+    ? (paymentId || dailyEntryRecordId('PAY', { ...identity, eventKey: `${resolvedEventKey}:payment` }))
+    : '';
   const sourceModule = resolveSourceModule(primary.source_type);
+  const businessEventType = resolveCommercialBusinessEventType(primary);
 
-  const order = {
+  const order = attachDailyEntryMeta({
     id,
     date: form.date || today(),
     client_id: realClientId,
@@ -225,7 +256,7 @@ export function buildCommercialSaleRecords({
     side_effects_managed: true,
     issue_key: issueKey,
     source_record_id: id,
-  };
+  }, identity, actorId || form.recorded_by);
 
   const metaForLine = (line) => {
     const key = `${line.source_type || ''}:${line.source_id || ''}`;
@@ -237,7 +268,7 @@ export function buildCommercialSaleRecords({
   const items = lines.map((line, index) => {
     const meta = metaForLine(line);
     return {
-      id: makeId('CMDI'),
+      id: dailyEntryRecordId('CMDI', { ...identity, eventKey: `${resolvedEventKey}:line:${index + 1}` }),
       order_id: id,
       source_type: line.source_type,
       source_module: resolveSourceModule(line.source_type),
@@ -253,6 +284,7 @@ export function buildCommercialSaleRecords({
       sale_kind: line.sale_kind || line.source_type,
       line_index: index + 1,
       issue_key: `${issueKey}:line:${index + 1}`,
+      event_key: `${resolvedEventKey}:line:${index + 1}`,
       available_quantity_snapshot: meta?.qty ?? null,
       source_impact_applied: false,
       side_effects_managed: true,
@@ -261,12 +293,13 @@ export function buildCommercialSaleRecords({
   });
 
   const delivery = {
-    id: makeId('LIV'),
+    id: dailyEntryRecordId('LIV', { ...identity, eventKey: `${resolvedEventKey}:delivery` }),
     order_id: id,
     sale_id: id,
     source_module: 'ventes',
     source_record_id: id,
     issue_key: `${issueKey}:delivery`,
+    event_key: `${resolvedEventKey}:delivery`,
     date_livraison: form.date || today(),
     date_prevue: form.delivery_planned_date || form.date || today(),
     date_livraison_prevue: form.delivery_planned_date || form.date || today(),
@@ -297,6 +330,7 @@ export function buildCommercialSaleRecords({
     source_module: 'ventes',
     source_record_id: id,
     issue_key: `${issueKey}:invoice`,
+    event_key: `${resolvedEventKey}:invoice`,
     numero_facture: `FAC-${id.slice(-6)}`,
     date_facture: form.date || today(),
     montant_total: grandTotal,
@@ -307,7 +341,7 @@ export function buildCommercialSaleRecords({
   } : null;
 
   const document = invId ? {
-    id: makeId('DOC'),
+    id: dailyEntryRecordId('DOC', { ...identity, eventKey: `${resolvedEventKey}:document` }),
     title: `Facture FAC-${id.slice(-6)}`,
     document_category: 'facture',
     module_source: 'ventes',
@@ -320,6 +354,7 @@ export function buildCommercialSaleRecords({
     source_module: 'ventes',
     source_record_id: id,
     issue_key: `${issueKey}:document`,
+    event_key: `${resolvedEventKey}:document`,
     status: 'emise',
     amount: grandTotal,
     transaction_id: paid > 0 ? financeIds.paid(id, payId) : '',
@@ -334,6 +369,7 @@ export function buildCommercialSaleRecords({
     source_record_id: id,
     source_module: 'ventes',
     issue_key: `${issueKey}:payment:${payId}`,
+    event_key: `${resolvedEventKey}:payment`,
     client_id: realClientId,
     invoice_id: invId,
     date_paiement: form.date || today(),
@@ -348,9 +384,10 @@ export function buildCommercialSaleRecords({
     created_from: 'commercial_sale_workflow',
   } : null;
 
-  const businessEvent = {
-    id: makeId('EVT'),
-    event_type: 'vente_commercial_workflow',
+  const businessEvent = attachDailyEntryMeta({
+    id: dailyEntryRecordId('EVT-Q', identity),
+    event_type: businessEventType,
+    legacy_event_type: 'vente_commercial_workflow',
     module_source: 'ventes',
     entity_type: 'commande',
     entity_id: id,
@@ -370,7 +407,7 @@ export function buildCommercialSaleRecords({
     severity: 'info',
     side_effects_managed: true,
     created_from: 'commercial_sale_workflow',
-  };
+  }, identity, actorId || form.recorded_by);
 
   const records = {
     order,
@@ -381,6 +418,7 @@ export function buildCommercialSaleRecords({
     payment,
     businessEvent,
     issueKey,
+    eventKey: resolvedEventKey,
     paid,
     remaining,
     primaryLine: primary,
@@ -400,6 +438,7 @@ export function prepareCommercialSaleCommit({
   accessibleFarms = [],
   activeFarm = null,
   explicitFarmId = '',
+  userId = '',
 } = {}) {
   const farmContext = buildCommercialFarmContext(farmScope, accessibleFarms, activeFarm);
   const requestedFarmId = clean(explicitFarmId || form.farm_id);
@@ -409,25 +448,41 @@ export function prepareCommercialSaleCommit({
     if (!farmCheck.ok) {
       throw new Error(farmCheck.message);
     }
+    const identity = resolveDailyEntryIdentity(DAILY_ENTRY_TYPES.SALE, form, {
+      farmId: farmCheck.farmId,
+      recordId: form.source_id,
+    });
+    const stableOrderId = orderId || clean(form.order_id) || dailyEntryRecordId('CMD', identity);
     const records = buildCommercialSaleRecords({
       form,
-      orderId,
+      orderId: stableOrderId,
       clientLabel,
       selectedMeta,
       farmId: farmCheck.farmId,
+      eventKey: identity.eventKey,
+      entryId: identity.entryId,
+      actorId: userId || form.recorded_by,
     });
-    return { records, farmContext, farmId: farmCheck.farmId };
+    return { records, farmContext, farmId: farmCheck.farmId, identity };
   }
 
   const farmId = requestedFarmId || resolveCommercialSaleFarmId(farmContext) || null;
+  const identity = resolveDailyEntryIdentity(DAILY_ENTRY_TYPES.SALE, form, {
+    farmId,
+    recordId: form.source_id,
+  });
+  const stableOrderId = orderId || clean(form.order_id) || dailyEntryRecordId('CMD', identity);
   const records = buildCommercialSaleRecords({
     form,
-    orderId,
+    orderId: stableOrderId,
     clientLabel,
     selectedMeta,
     farmId,
+    eventKey: identity.eventKey,
+    entryId: identity.entryId,
+    actorId: userId || form.recorded_by,
   });
-  return { records, farmContext, farmId };
+  return { records, farmContext, farmId, identity };
 }
 
 /** Persiste commande + lignes + livraison + facture + paiement puis effets métier. */
@@ -444,10 +499,24 @@ export async function commitCommercialSale(records, handlers = {}, context = {})
   } = handlers;
 
   const farmId = records.farmId || records.order?.farm_id || null;
+  const eventKey = clean(records.eventKey || records.order?.event_key || records.businessEvent?.event_key);
+  const replay = findDailyEntryReplay([
+    ...arr(context.salesOrders),
+    ...arr(context.businessEvents || context.business_events),
+  ], eventKey) || arr(context.salesOrders).find((row) => clean(row.id) === clean(records.order?.id));
+  if (replay) {
+    return {
+      orderId: records.order.id,
+      issueKey: records.issueKey,
+      eventKey,
+      paid: records.paid,
+      remaining: records.remaining,
+      replayed: true,
+    };
+  }
 
   await onCreateOrder?.(records.order);
   for (const item of records.items) {
-    // eslint-disable-next-line no-await-in-loop
     await onCreateItem?.(item);
   }
   await onCreateDelivery?.(records.delivery);
@@ -526,7 +595,14 @@ export async function commitCommercialSale(records, handlers = {}, context = {})
   }
 
   await onRefreshWorkflow?.();
-  return { orderId: records.order.id, issueKey: records.issueKey };
+  return {
+    orderId: records.order.id,
+    issueKey: records.issueKey,
+    eventKey,
+    paid: records.paid,
+    remaining: records.remaining,
+    replayed: false,
+  };
 }
 
 /** Finance depuis paiement (rapprochement) avec anti-doublon. */

@@ -13,7 +13,7 @@ const low = (v) => String(v || '').toLowerCase();
 const isOpen = (r = {}) => !['termine', 'terminé', 'done', 'closed', 'resolu', 'résolu', 'traitee', 'traitée'].includes(low(r.status || r.statut));
 
 function severityRank(severity = '') {
-  const map = { critique: 0, haute: 1, eleve: 1, haute: 1, moyenne: 2, moyen: 2, basse: 3, faible: 3 };
+  const map = { critique: 0, haute: 1, eleve: 1, moyenne: 2, moyen: 2, basse: 3, faible: 3 };
   return map[low(severity)] ?? 9;
 }
 

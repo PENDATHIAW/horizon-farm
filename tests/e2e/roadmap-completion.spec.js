@@ -6,7 +6,7 @@ import { auditCultureWorkflow } from '../../src/services/cultureWorkflowBridgeSe
 import { buildNotificationPayloadFromAlert } from '../../src/services/notificationPayloads.js';
 import { buildStockMovementPayload } from '../../src/services/stockMovementHelpers.js';
 import { auditRhPayrollFinanceGaps } from '../../src/services/rhPayrollFinanceSyncService.js';
-import { buildEquipmentSmartFarmSummary } from '../../src/services/equipmentSmartFarmBridge.js';
+import { buildSmartFarmDeviceFollowUp } from '../../src/utils/smartFarmWorkflows.js';
 
 test('roadmap: issue grouping regroupe les éléments liés', () => {
   const key = 'ventes:ventes:CMD-1:encaissement';
@@ -66,34 +66,31 @@ test('roadmap: RH paie sans finance remonte un gap', () => {
   expect(audit.gaps.length).toBeGreaterThan(0);
 });
 
-test('roadmap: équipement smart farm lie capteur', () => {
-  const summary = buildEquipmentSmartFarmSummary(
-    [{ id: 'EQ-1', name: 'Incubateur' }],
-    [{ id: 'S1', equipment_id: 'EQ-1' }],
-    [],
-  );
-  expect(summary[0].totalDevices).toBe(1);
+test('roadmap: un capteur critique prépare alerte, tâche et événement', () => {
+  const followUp = buildSmartFarmDeviceFollowUp({
+    device: { id: 'S1', name: 'Humidité', status: 'offline' },
+  });
+  expect(followUp.alert.entity_id).toBe('S1');
+  expect(followUp.task.source_record_id).toBe('S1');
+  expect(followUp.event.event_type).toBe('smartfarm_signal_critique');
 });
 
 test('roadmap: panneaux UI branchés dans modules actifs', () => {
   const files = [
-    'src/modules/IssueProblemFichePanel.jsx',
-    'src/modules/RhPayrollFinanceSyncPanel.jsx',
-    'src/modules/EquipementsSmartFarmBridge.jsx',
-    'src/modules/finance/FinanceReconciliationPanel.jsx',
-    'src/modules/DocumentsOrphanSyncPanel.jsx',
+    'src/modules/activiteSuivi/ActiviteWorkflowBridge.jsx',
+    'src/modules/EquipementsOperationalModule.jsx',
+    'src/modules/finance/FinancePilotageV1Module.jsx',
+    'src/modules/documents/DocumentsWorkflowBridge.jsx',
   ];
   files.forEach((file) => {
     expect(readFileSync(file, 'utf8').length).toBeGreaterThan(100);
   });
-  const alertes = readFileSync('src/modules/AlertesCenter.jsx', 'utf8');
-  expect(alertes).toContain('IssueProblemFichePanel');
-  const sync = readFileSync('src/modules/SyncERPModule.jsx', 'utf8');
-  expect(sync).toContain('IssueProblemFichePanel');
-  const gestion = readFileSync('src/modules/GestionSystemeUnified.jsx', 'utf8');
-  expect(gestion).toContain('IssueProblemFichePanel');
-  const equipements = readFileSync('src/modules/Equipements.jsx', 'utf8');
-  expect(equipements).toContain('EquipementsSmartFarmBridge');
-  const ventes = readFileSync('src/modules/VentesV4.jsx', 'utf8');
-  expect(ventes).toContain('SalesWorkflowRepairPanel');
+  const activite = readFileSync('src/modules/activiteSuivi/ActiviteWorkflowBridge.jsx', 'utf8');
+  expect(activite).toContain('createLinkedTaskFromAlert');
+  const gestion = readFileSync('src/modules/GestionSystemeV1Module.jsx', 'utf8');
+  expect(gestion).toContain('SystemSyncView');
+  const equipements = readFileSync('src/modules/EquipementsOperationalModule.jsx', 'utf8');
+  expect(equipements).toContain('EquipementsQuickActionsBridge');
+  const commercial = readFileSync('src/modules/CommercialRecoveredModule.jsx', 'utf8');
+  expect(commercial).toContain('DailySaleModal');
 });

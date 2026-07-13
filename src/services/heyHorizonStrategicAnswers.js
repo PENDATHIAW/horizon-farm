@@ -57,12 +57,12 @@ export function buildStrategicAnswer(type, dataMap = {}) {
   const sales = arr(dataMap.salesOrdersAll || dataMap.sales_orders || dataMap.salesOrders);
   const payments = arr(dataMap.paymentsAll || dataMap.payments);
   const finances = arr(dataMap.finances || dataMap.transactions);
-  const clients = arr(dataMap.clients);
+
   const lots = arr(dataMap.avicole || dataMap.lots);
-  const animaux = arr(dataMap.animaux);
+
   const equipements = arr(dataMap.equipements);
-  const tasks = arr(dataMap.taches || dataMap.tasks);
-  const alertes = arr(dataMap.alertes_center || dataMap.alertes);
+
+
   const health = runErpHealthEngine(dataMap);
 
   switch (type) {

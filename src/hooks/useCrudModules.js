@@ -28,7 +28,6 @@ export default function useCrudModules() {
   const alimentation_logs = useCrudModule('alimentation_logs');
   const production_oeufs_logs = useCrudModule('production_oeufs_logs');
   const sensor_devices = useCrudModule('sensor_devices');
-  const camera_devices = useCrudModule('camera_devices');
   const smartfarm_events = useCrudModule('smartfarm_events');
   const business_events = useCrudModule('business_events');
   const alertes_center = useCrudModule('alertes_center');
@@ -41,6 +40,7 @@ export default function useCrudModules() {
   const payments = useCrudModule('payments');
   const sales_opportunities = useCrudModule('sales_opportunities');
   const stock_movements = useCrudModule('stock_movements');
+  const planning_simulations = useCrudModule('planning_simulations');
   const funding_opportunities = useCrudModule('funding_opportunities');
   const funding_contacts = useCrudModule('funding_contacts');
   const funding_applications = useCrudModule('funding_applications');
@@ -79,7 +79,6 @@ export default function useCrudModules() {
     alimentation_logs,
     production_oeufs_logs,
     sensor_devices,
-    camera_devices,
     smartfarm_events,
     business_events,
     alertes_center,
@@ -92,6 +91,7 @@ export default function useCrudModules() {
     payments,
     sales_opportunities,
     stock_movements,
+    planning_simulations,
     funding_opportunities,
     funding_contacts,
     funding_applications,
@@ -129,7 +129,6 @@ export default function useCrudModules() {
     alimentation_logs,
     production_oeufs_logs,
     sensor_devices,
-    camera_devices,
     smartfarm_events,
     business_events,
     alertes_center,
@@ -142,6 +141,7 @@ export default function useCrudModules() {
     payments,
     sales_opportunities,
     stock_movements,
+    planning_simulations,
     funding_opportunities,
     funding_contacts,
     funding_applications,

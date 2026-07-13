@@ -1,1 +1,0 @@
-export { default } from './InvestissementsV9.jsx';

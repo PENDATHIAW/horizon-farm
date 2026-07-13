@@ -11,14 +11,12 @@ const arr = (v) => (Array.isArray(v) ? v : []);
 
 export function useSmartFarmTelemetry(props = {}) {
   const sensorCrud = useCrudModule('sensor_devices');
-  const cameraCrud = useCrudModule('camera_devices');
   const tasksCrud = useCrudModule('taches');
   const alertsCrud = useCrudModule('alertes_center');
   const eventsCrud = useCrudModule('business_events');
   const smartfarmEventsCrud = useCrudModule('smartfarm_events');
 
   const sensors = rowsOf(props.sensors, sensorCrud, false);
-  const cameras = rowsOf(props.cameras, cameraCrud, false);
   const tasks = rowsOf(props.tasks || props.taches, tasksCrud, false);
   const alertes = rowsOf(props.alertes, alertsCrud, false);
   const smartfarmEvents = arr(props.smartfarmEvents || props.dataMap?.smartfarm_events);
@@ -28,10 +26,6 @@ export function useSmartFarmTelemetry(props = {}) {
     onUpdateSensor: props.onUpdateSensor || sensorCrud.update,
     onDeleteSensor: props.onDeleteSensor || sensorCrud.remove,
     onRefreshSensors: props.onRefreshSensors || sensorCrud.refresh,
-    onCreateCamera: props.onCreateCamera || cameraCrud.create,
-    onUpdateCamera: props.onUpdateCamera || cameraCrud.update,
-    onDeleteCamera: props.onDeleteCamera || cameraCrud.remove,
-    onRefreshCameras: props.onRefreshCameras || cameraCrud.refresh,
     onCreateTask: props.onCreateTask || tasksCrud.create,
     onRefreshTasks: props.onRefreshTasks || tasksCrud.refresh,
     onCreateAlert: props.onCreateAlert || alertsCrud.create,
@@ -42,13 +36,12 @@ export function useSmartFarmTelemetry(props = {}) {
     onUpdateSmartfarmEvent: props.onUpdateSmartfarmEvent || smartfarmEventsCrud.update,
     onRefreshSmartfarmEvents: props.onRefreshSmartfarmEvents || smartfarmEventsCrud.refresh,
     onNavigate: props.onNavigate,
-  }), [props, sensorCrud, cameraCrud, tasksCrud, alertsCrud, eventsCrud, smartfarmEventsCrud]);
+  }), [props, sensorCrud, tasksCrud, alertsCrud, eventsCrud, smartfarmEventsCrud]);
 
   const realtime = useSmartFarmRealtime({
     enabled: props.online !== false,
     seedEvents: smartfarmEvents,
     onRefreshSensors: handlers.onRefreshSensors,
-    onRefreshCameras: handlers.onRefreshCameras,
     onRefreshEvents: handlers.onRefreshSmartfarmEvents,
   });
 
@@ -61,11 +54,12 @@ export function useSmartFarmTelemetry(props = {}) {
       try {
         const deviceResult = await syncSmartFarmCriticalSignals({
           sensors,
-          cameras,
           tasks,
           alertes,
+          onCreateTask: h.onCreateTask,
           onCreateAlert: h.onCreateAlert,
           onCreateBusinessEvent: h.onCreateBusinessEvent,
+          onRefreshTasks: h.onRefreshTasks,
           onRefreshAlertes: h.onRefreshAlertes,
           onRefreshBusinessEvents: h.onRefreshBusinessEvents,
         });
@@ -86,32 +80,30 @@ export function useSmartFarmTelemetry(props = {}) {
     })();
     return () => { cancelled = true; };
     // eslint-disable-next-line react-hooks/exhaustive-deps -- sync sur changement de parc / événements
-  }, [sensors.length, cameras.length, mergedEvents.length, sensors.map((s) => s.id).join(','), cameras.map((c) => c.id).join(',')]);
+  }, [sensors.length, mergedEvents.length, sensors.map((s) => s.id).join(',')]);
 
   const data = useMemo(() => {
     const zones = new Set([
       ...sensors.map((s) => s.zone || s.location || 'Zone'),
-      ...cameras.map((c) => c.zone || c.location || 'Zone'),
     ]);
-    const criticalDevices = [...sensors, ...cameras].filter(isSmartFarmDeviceCritical);
+    const criticalDevices = sensors.filter(isSmartFarmDeviceCritical);
     const recentEvents = [...mergedEvents]
       .sort((a, b) => String(b.created_at || '').localeCompare(String(a.created_at || '')))
       .slice(0, 100);
 
     return {
       sensors,
-      cameras,
       tasks,
       alertes,
       smartfarmEvents: recentEvents,
-      criticalCount: criticalDevices.length || countSmartFarmCriticalDevices(sensors, cameras),
+      criticalCount: criticalDevices.length || countSmartFarmCriticalDevices(sensors),
       zoneCount: zones.size,
       online: props.online !== false,
       meteo: props.meteo,
       realtimeConnected: realtime.connected,
       lastPulse: realtime.lastPulse,
     };
-  }, [sensors, cameras, tasks, alertes, mergedEvents, props.online, props.meteo, realtime.connected, realtime.lastPulse]);
+  }, [sensors, tasks, alertes, mergedEvents, props.online, props.meteo, realtime.connected, realtime.lastPulse]);
 
   const sensorProps = {
     rows: sensors,
@@ -123,22 +115,11 @@ export function useSmartFarmTelemetry(props = {}) {
     onNavigate: props.onNavigate,
   };
 
-  const cameraProps = {
-    rows: cameras,
-    loading: props.cameraLoading || cameraCrud.loading,
-    onCreate: handlers.onCreateCamera,
-    onUpdate: handlers.onUpdateCamera,
-    onDelete: handlers.onDeleteCamera,
-    onRefresh: handlers.onRefreshCameras,
-    onNavigate: props.onNavigate,
-  };
-
   return {
     data,
     handlers,
     sensorProps,
-    cameraProps,
     realtime,
-    crud: { sensorCrud, cameraCrud, tasksCrud, alertsCrud, eventsCrud, smartfarmEventsCrud },
+    crud: { sensorCrud, tasksCrud, alertsCrud, eventsCrud, smartfarmEventsCrud },
   };
 }

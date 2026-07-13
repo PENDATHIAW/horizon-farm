@@ -40,11 +40,11 @@ export default function CommercialSubscriptionsPanel({
 
   return (
     <div className="space-y-4">
-      <section className="rounded-2xl border border-[#d6c3a0] bg-white p-4">
+      <section className="rounded-2xl border border-line bg-white p-4">
         <div className="flex flex-wrap items-center justify-between gap-2">
           <div>
-            <p className="text-xs uppercase tracking-widest text-[#8a7456] font-black flex items-center gap-2"><RefreshCw size={14} /> Abonnements</p>
-            <p className="text-sm text-[#8a7456]">Commandes récurrentes — création via formulaire, génération manuelle avec validation.</p>
+            <p className="text-xs uppercase tracking-normal text-slate font-semibold flex items-center gap-2"><RefreshCw size={14} /> Abonnements</p>
+            <p className="text-sm text-slate">Commandes récurrentes — création via formulaire, génération manuelle avec validation.</p>
           </div>
           <button
             type="button"
@@ -52,42 +52,42 @@ export default function CommercialSubscriptionsPanel({
               setFormSession((value) => value + 1);
               setFormOpen(true);
             }}
-            className="rounded-xl bg-[#2f2415] px-3 py-2 text-xs font-black text-white"
+            className="rounded-xl bg-earth px-3 py-2 text-xs font-semibold text-white"
           >
             <Plus size={12} className="inline" /> Nouvel abonnement
           </button>
         </div>
         {toPrepare.length ? (
-          <div className="mt-3 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-900">
+          <div className="mt-3 rounded-xl border border-vigilance bg-vigilance-bg px-3 py-2 text-sm text-horizon-dark">
             {toPrepare.length} abonnement(s) à préparer prochainement
           </div>
         ) : null}
       </section>
 
       {!subscriptions.length ? (
-        <p className="rounded-xl border border-[#eadcc2] bg-[#fffdf8] px-4 py-6 text-center text-sm text-[#8a7456]">Aucun abonnement actif.</p>
+        <p className="rounded-xl border border-line bg-card px-4 py-6 text-center text-sm text-slate">Aucun abonnement actif.</p>
       ) : (
         <div className="space-y-2">
           {subscriptions.map((sub) => (
-            <div key={sub.id} className="rounded-xl border border-[#eadcc2] bg-[#fffdf8] p-3 flex flex-col md:flex-row md:items-center justify-between gap-2">
+            <div key={sub.id} className="rounded-xl border border-line bg-card p-3 flex flex-col md:flex-row md:items-center justify-between gap-2">
               <div>
-                <p className="font-black text-[#2f2415]">{sub.clientName} · {sub.productName}</p>
-                <p className="text-xs text-[#8a7456]">
+                <p className="font-semibold text-earth">{sub.clientName} · {sub.productName}</p>
+                <p className="text-xs text-slate">
                   {sub.quantity} {sub.unit} · {sub.frequencyLabel}
                   {sub.plannedDay ? ` · ${sub.plannedDay}` : ''}
                   · {fmtCurrency(sub.unitPrice * sub.quantity)}
                   · prochaine : {sub.nextOrderDate || '—'}
                 </p>
-                <p className="text-[11px] font-bold text-[#9a6b12]">{sub.statusLabel}</p>
+                <p className="text-meta font-semibold text-horizon-dark">{sub.statusLabel}</p>
               </div>
               <div className="flex flex-wrap gap-1">
                 {sub.status === SUBSCRIPTION_STATUSES.ACTIVE ? (
                   <>
-                    <button type="button" onClick={() => createOrder(sub)} className="rounded-lg border border-emerald-200 bg-emerald-50 px-2 py-1 text-[11px] font-black text-emerald-800">Créer commande prévue</button>
-                    <button type="button" onClick={() => toggleStatus(sub, SUBSCRIPTION_STATUSES.SUSPENDED)} className="rounded-lg border border-amber-200 bg-amber-50 px-2 py-1 text-[11px] font-black text-amber-800"><PauseCircle size={12} className="inline" /></button>
+                    <button type="button" onClick={() => createOrder(sub)} className="rounded-lg border border-positive bg-positive-bg px-2 py-1 text-meta font-semibold text-positive">Créer commande prévue</button>
+                    <button type="button" onClick={() => toggleStatus(sub, SUBSCRIPTION_STATUSES.SUSPENDED)} className="rounded-lg border border-vigilance bg-vigilance-bg px-2 py-1 text-meta font-semibold text-horizon-dark"><PauseCircle size={12} className="inline" /></button>
                   </>
                 ) : (
-                  <button type="button" onClick={() => toggleStatus(sub, SUBSCRIPTION_STATUSES.ACTIVE)} className="rounded-lg border border-sky-200 bg-sky-50 px-2 py-1 text-[11px] font-black text-sky-800"><PlayCircle size={12} className="inline" /> Réactiver</button>
+                  <button type="button" onClick={() => toggleStatus(sub, SUBSCRIPTION_STATUSES.ACTIVE)} className="rounded-lg border border-line bg-neutral-bg px-2 py-1 text-meta font-semibold text-neutral"><PlayCircle size={12} className="inline" /> Réactiver</button>
                 )}
               </div>
             </div>

@@ -65,12 +65,12 @@ export default function StockStatusPanel(props) {
   const expired = rows.filter((r) => ['perime', 'epuise'].includes(r.statut || r.stock_status)).length;
 
   return (
-    <div className="rounded-2xl border border-[#d6c3a0] bg-white p-5 space-y-4">
+    <div className="rounded-2xl border border-line bg-white p-6 space-y-4">
       <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3">
         <div>
-          <p className="text-xs uppercase tracking-widest text-[#8a7456]">Statuts stock</p>
-          <h3 className="font-black text-[#2f2415]">Disponibilité, livraison, contrôle et retour fournisseur</h3>
-          <p className="text-sm text-[#8a7456] mt-1">Chaque stock peut être suivi avec un statut métier modifiable selon sa catégorie.</p>
+          <p className="text-xs uppercase tracking-normal text-slate">Statuts stock</p>
+          <h3 className="font-semibold text-earth">Disponibilité, livraison, contrôle et retour fournisseur</h3>
+          <p className="text-sm text-slate mt-1">Chaque stock peut être suivi avec un statut métier modifiable selon sa catégorie.</p>
         </div>
         <div className="grid grid-cols-3 gap-2 text-sm">
           <Box label="En attente" value={pending} />
@@ -83,10 +83,10 @@ export default function StockStatusPanel(props) {
         {(suivis.length ? suivis : rows.slice(0, 6)).map((row) => {
           const current = row.statut || row.stock_status || 'ok';
           return (
-            <div key={row.id} className="rounded-xl border border-[#eadcc2] bg-[#fffdf8] p-3">
-              <p className="font-bold text-[#2f2415]">{row.produit || row.id}</p>
-              <p className="text-xs text-[#8a7456] mt-1">{row.categorie || 'stock'} · {fmtNumber(row.quantite)} {row.unite || ''} · statut: <b>{statusLabel(current)}</b></p>
-              <select className="mt-3 w-full rounded-xl border border-[#d6c3a0] bg-white px-3 py-2 text-sm" value={current} onChange={(e) => updateStatus(row, e.target.value, props)}>
+            <div key={row.id} className="rounded-xl border border-line bg-card p-3">
+              <p className="font-semibold text-earth">{row.produit || row.id}</p>
+              <p className="text-xs text-slate mt-1">{row.categorie || 'stock'} · {fmtNumber(row.quantite)} {row.unite || ''} · statut: <b>{statusLabel(current)}</b></p>
+              <select className="mt-3 w-full rounded-xl border border-line bg-white px-3 py-2 text-sm" value={current} onChange={(e) => updateStatus(row, e.target.value, props)}>
                 {STATUSES.filter((s) => statusOptions(row).includes(s.value)).map((s) => <option key={s.value} value={s.value}>{s.label}</option>)}
               </select>
             </div>
@@ -98,5 +98,5 @@ export default function StockStatusPanel(props) {
 }
 
 function Box({ label, value }) {
-  return <div className="rounded-xl bg-[#fffdf8] border border-[#eadcc2] px-3 py-2 min-w-[100px]"><b className="block text-[#2f2415]">{value}</b><span className="text-xs text-[#8a7456]">{label}</span></div>;
+  return <div className="rounded-xl bg-card border border-line px-3 py-2 min-w-[100px]"><b className="block text-earth">{value}</b><span className="text-xs text-slate">{label}</span></div>;
 }

@@ -3,47 +3,35 @@ import { renderToString } from 'react-dom/server';
 import { AppProvider } from '../../../src/context/AppContext.jsx';
 import { AuthProvider } from '../../../src/context/AuthContext.jsx';
 import { MODULE_ENTRY_POINTS } from '../../../src/config/moduleEntryPoints.js';
-import { MODULE_TARGET_TABS } from '../../../src/config/horizonVision.config.js';
+import { getModuleTabs } from '../../../src/config/moduleTabs/index.js';
 import {
-  COMMERCIAL_TABS,
-  ACHATS_STOCK_TABS,
-  ELEVAGE_TABS,
-  FINANCE_TABS,
-  ACTIVITE_SUIVI_TABS,
-  DOCUMENTS_RAPPORTS_TABS,
-  RH_TABS,
-  SMARTFARM_TABS,
-  SYNC_ACTIVITY_TABS,
-  CULTURES_TABS,
-  AGRI_FEEDS_TABS,
   DASHBOARD_TABS,
-  OBJECTIFS_TABS,
-  CENTRE_IA_TABS,
-  INVESTISSEURS_TABS,
 } from '../../../src/utils/commercialNavigation.js';
 import { SIMULATED_DATA_MODE_KEY } from '../../../src/utils/uiPreferences.js';
 import { horizonFarmSimulationSeed } from '../../../src/utils/horizonFarmSimulationSeed.js';
 
 const ERROR_PATTERN = /ERREUR MODULE|is not defined|useAppData must be used|cannot read properties of undefined|useApp must be used/i;
 
+const configuredLabels = (moduleId) => getModuleTabs(moduleId).map((tab) => tab.label);
+
 export const MODULE_TAB_MATRIX = {
   dashboard: DASHBOARD_TABS,
-  assistant_erp: MODULE_TARGET_TABS.assistant_erp,
-  finance_pilotage: FINANCE_TABS,
-  commercial: COMMERCIAL_TABS,
-  achats_stock: ACHATS_STOCK_TABS,
-  elevage: ELEVAGE_TABS,
-  agri_feeds: AGRI_FEEDS_TABS,
-  cultures: CULTURES_TABS,
-  documents_rapports: DOCUMENTS_RAPPORTS_TABS,
-  financements: INVESTISSEURS_TABS,
-  rh: RH_TABS,
-  smartfarm: SMARTFARM_TABS,
-  sync_activity: SYNC_ACTIVITY_TABS,
-  gestion_systeme: MODULE_TARGET_TABS.gestion_systeme,
-  activite_suivi: ACTIVITE_SUIVI_TABS,
-  centre_ia: CENTRE_IA_TABS,
-  objectifs_croissance: OBJECTIFS_TABS,
+  assistant_erp: configuredLabels('assistant_erp'),
+  finance_pilotage: configuredLabels('finance_pilotage'),
+  commercial: configuredLabels('commercial'),
+  achats_stock: configuredLabels('achats_stock'),
+  elevage: configuredLabels('elevage'),
+  agri_feeds: configuredLabels('agri_feeds'),
+  cultures: configuredLabels('cultures'),
+  documents_rapports: configuredLabels('documents_rapports'),
+  financements: [...configuredLabels('financements'), ...configuredLabels('financements_externe')],
+  rh: configuredLabels('rh'),
+  smartfarm: configuredLabels('smartfarm'),
+  sync_activity: configuredLabels('sync_activity'),
+  gestion_systeme: configuredLabels('gestion_systeme'),
+  activite_suivi: configuredLabels('activite_suivi'),
+  centre_ia: configuredLabels('centre_decisionnel'),
+  objectifs_croissance: configuredLabels('objectifs_croissance'),
 };
 
 export function setupTestStorage() {

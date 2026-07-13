@@ -32,35 +32,35 @@ export default function SystemAccessAuditPanel({ role = 'visiteur', auditLogs = 
   const rolePermissions = ROLE_PERMISSIONS[role] || ROLE_PERMISSIONS.visiteur || [];
 
   return (
-    <section className="rounded-3xl border border-[#d6c3a0] bg-white p-5 shadow-sm space-y-4">
+    <section className="rounded-3xl border border-line bg-white p-6 shadow-card space-y-4">
       <div>
-        <p className="inline-flex items-center gap-2 rounded-full border border-[#eadcc2] bg-[#fffdf8] px-3 py-1 text-xs font-black text-[#8a7456]">
+        <p className="inline-flex items-center gap-2 rounded-full border border-line bg-card px-3 py-1 text-xs font-semibold text-slate">
           <ShieldCheck size={14} /> RBAC & traces admin
         </p>
-        <h3 className="mt-3 text-xl font-black text-[#2f2415]">Contrôle des accès</h3>
-        <p className="mt-1 text-sm text-[#8a7456]">Rôle courant : <b>{role}</b> · {activeAdmins} admin(s) actif(s) · permissions {rolePermissions.includes('*') ? 'complètes' : rolePermissions.length} module(s).</p>
+        <h3 className="mt-3 text-xl font-semibold text-earth">Contrôle des accès</h3>
+        <p className="mt-1 text-sm text-slate">Rôle courant : <b>{role}</b> · {activeAdmins} admin(s) actif(s) · permissions {rolePermissions.includes('*') ? 'complètes' : rolePermissions.length} module(s).</p>
       </div>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
         {matrix.map((row) => (
-          <div key={row.moduleKey} className={`rounded-xl border px-3 py-2 text-sm ${row.allowed ? 'border-emerald-200 bg-emerald-50 text-emerald-800' : 'border-amber-200 bg-amber-50 text-amber-800'}`}>
+          <div key={row.moduleKey} className={`rounded-xl border px-3 py-2 text-sm ${row.allowed ? 'border-positive bg-positive-bg text-positive' : 'border-vigilance bg-vigilance-bg text-horizon-dark'}`}>
             <b>{row.label}</b>
             <p className="text-xs mt-1">{row.allowed ? 'Accès autorisé' : 'Accès restreint'} · {row.serverEnforced ? 'contrôle actif' : 'à renforcer côté serveur'}</p>
           </div>
         ))}
       </div>
-      <div className="rounded-2xl border border-[#eadcc2] bg-[#fffdf8] p-4">
-        <p className="font-black text-[#2f2415] flex items-center gap-2"><UserCog size={16} /> Traces administration récentes</p>
+      <div className="rounded-2xl border border-line bg-card p-4">
+        <p className="font-semibold text-earth flex items-center gap-2"><UserCog size={16} /> Traces administration récentes</p>
         {adminLogs.length ? (
-          <ul className="mt-3 space-y-2 text-sm text-[#7d6a4a]">
+          <ul className="mt-3 space-y-2 text-sm text-slate">
             {adminLogs.map((log) => (
-              <li key={log.id || `${log.action}-${log.created_at}`} className="rounded-xl border border-[#eadcc2] bg-white px-3 py-2">
-                <b className="text-[#2f2415]">{log.title || log.action}</b>
+              <li key={log.id || `${log.action}-${log.created_at}`} className="rounded-xl border border-line bg-white px-3 py-2">
+                <b className="text-earth">{log.title || log.action}</b>
                 <p className="text-xs">{String(log.created_at || log.date || '—').slice(0, 19)} · {log.actor_email || log.actor || 'ERP'}</p>
               </li>
             ))}
           </ul>
         ) : (
-          <p className="mt-3 text-sm text-[#8a7456]">Aucune trace admin récente. Les modifications utilisateurs doivent être journalisées via Gestion système.</p>
+          <p className="mt-3 text-sm text-slate">Aucune trace admin récente. Les modifications utilisateurs doivent être journalisées via Gestion système.</p>
         )}
       </div>
     </section>

@@ -1,16 +1,16 @@
-import { syncFinanceSideEffects, closeOpportunityForOrder, syncSaleTraceFromOrder, resolveSaleTasksOnPayment } from '../services/erpInterconnectionEngine';
-import { getFinanceActivityFromSale, getFinanceCategoryFromSale } from '../services/financeSyncService';
-import { buildClientReminderFollowUp, buildClientSalesSummary, resolveClientReminderFollowUp } from './clientWorkflows';
-import { buildClientReceivablePatch } from './recordSalePayment';
-import { buildReverseSaleSourcePatch, buildSaleSourcePatch } from './salesWorkflows';
-import { remainingForOrder } from './salesStatuses';
-import { financeIds } from './sideEffectIds';
+import { syncFinanceSideEffects, closeOpportunityForOrder, syncSaleTraceFromOrder, resolveSaleTasksOnPayment } from '../services/erpInterconnectionEngine.js';
+import { getFinanceActivityFromSale, getFinanceCategoryFromSale } from '../services/financeSyncService.js';
+import { buildClientReminderFollowUp, buildClientSalesSummary, resolveClientReminderFollowUp } from './clientWorkflows.js';
+import { buildClientReceivablePatch } from './recordSalePayment.js';
+import { buildReverseSaleSourcePatch, buildSaleSourcePatch } from './salesWorkflows.js';
+import { remainingForOrder } from './salesStatuses.js';
+import { financeIds } from './sideEffectIds.js';
 import { enrichFinanceWithOrderFarmId } from './commercialFarmScope.js';
 import { isStockableSourceType } from './commercialStockValidation.js';
 import { planStockMovementFromSaleLine } from './stockMovementBridge.js';
 import { movementAlreadyExists, persistStockMovement } from '../services/stockMovementHelpers.js';
-import { makeId } from './ids';
-import { toNumber } from './format';
+import { makeId } from './ids.js';
+import { toNumber } from './format.js';
 
 export { financeIds };
 

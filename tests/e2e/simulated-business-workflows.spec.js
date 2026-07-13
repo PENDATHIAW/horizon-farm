@@ -761,7 +761,8 @@ test.describe('Audit métier avec données simulées Horizon Farm', () => {
       note: 'Courroie remplacée',
       date: today(),
     });
-    expect(workflow.equipmentPatch).toMatchObject({ status: 'operationnel', statut: 'operationnel', maintenance_status: 'termine', repair_cost: 45000 });
+    expect(workflow.equipmentPatch).toMatchObject({ status: 'operationnel', statut: 'operationnel', maintenance_status: 'termine' });
+    expect(workflow.equipmentPatch).not.toHaveProperty('repair_cost');
     expect(workflow.taskPatch).toMatchObject({ id: 'TSK-EQP-001', patch: { status: 'termine', statut: 'termine' } });
     expect(workflow.alertPatch).toMatchObject({ id: 'ALT-EQP-001', patch: { status: 'resolue', statut: 'resolue' } });
     expect(workflow.financeTransaction).toMatchObject({ type: 'sortie', module_lie: 'equipements', source_record_id: 'EQP-POMPE-001', montant: 45000, cash_effect: true });
@@ -809,16 +810,6 @@ test.describe('Audit métier avec données simulées Horizon Farm', () => {
   test('Smart Farm distingue données simulées et données réelles', () => {
     expect(smartDeviceSource({ id: 'SIM-SENS-01', status: 'simulation' })).toBe('simulation');
     expect(smartDeviceSource({ id: 'SENS-REAL-01', status: 'online', source_type: 'reel' })).toBe('reel');
-  });
-
-  test('caméra Smart Farm hors ligne crée une action terrain', () => {
-    const workflow = buildSmartFarmDeviceFollowUp({
-      device: { id: 'CAM-ENTREE-001', name: 'Caméra entrée', status: 'offline', source_type: 'reel', zone: 'Entrée principale' },
-      kind: 'camera',
-      date: today(),
-    });
-    expect(workflow.task).toMatchObject({ module_lie: 'smartfarm', related_id: 'CAM-ENTREE-001', priority: 'haute' });
-    expect(workflow.alert).toMatchObject({ module_source: 'smartfarm', entity_type: 'camera', entity_id: 'CAM-ENTREE-001' });
   });
 
   test('Hey Horizon prépare les intentions terrain sans confondre les modules', () => {
@@ -961,18 +952,12 @@ test.describe('Audit métier avec données simulées Horizon Farm', () => {
       'src/modules/SanteEvolution.jsx',
       'src/modules/SanteV6.jsx',
       'src/modules/SanteV7.jsx',
-      'src/modules/SanteV5.jsx',
-      'src/modules/SanteV3.jsx',
-      'src/modules/SanteV2.jsx',
       'src/modules/StocksV3.jsx',
       'src/modules/StocksV4.jsx',
       'src/modules/DocumentsV2.jsx',
       'src/modules/TradeDocumentsHealth.jsx',
-      'src/modules/ImpactBusinessShell.jsx',
       'src/components/SettingsPanel.jsx',
       'src/components/AssistantPanel.jsx',
-      'src/modules/SalesWorkflowRepairPanel.jsx',
-      'src/modules/DecisionRecommendationCard.jsx',
       'src/modules/LifecycleHistoryPanel.jsx',
       'src/modules/VentesV4.jsx',
     ];

@@ -53,7 +53,7 @@ function buildCentreRecommendationsAnswer(dataMap = {}, options = {}) {
     intent: 'centre_recommendations',
     situation,
     cause: plan.goals?.month?.attainment != null
-      ? `Objectif mois à ${n(plan.goals.month.attainment)} % — les recommandations visent l\'écart restant.`
+      ? `Objectif mois à ${n(plan.goals.month.attainment)} % — les recommandations visent l'écart restant.`
       : 'Synthèse croissance + alertes techniques.',
     action,
     sources: ['buildDecisionCenterPlan', 'buildStrategicDecisionPlan'],
@@ -109,11 +109,11 @@ function fmt(v) {
 }
 
 const INTENT_HANDLERS = Object.freeze({
-  today_priorities: (dm, opt) => withCentreMeta(buildPrioritesConseilAnswer(dm), 'Urgences & risques'),
-  priorites_du_jour: (dm, opt) => withCentreMeta(buildPrioritesConseilAnswer(dm), 'Urgences & risques'),
-  farm_overview: (dm, opt) => withCentreMeta(buildCommentVaLaFermeConseilAnswer(dm), 'Urgences & risques'),
-  comment_va_la_ferme: (dm, opt) => withCentreMeta(buildCommentVaLaFermeConseilAnswer(dm), 'Urgences & risques'),
-  farm_status: (dm, opt) => withCentreMeta(buildCommentVaLaFermeConseilAnswer(dm), 'Urgences & risques'),
+  today_priorities: (dm) => withCentreMeta(buildPrioritesConseilAnswer(dm), 'Urgences & risques'),
+  priorites_du_jour: (dm) => withCentreMeta(buildPrioritesConseilAnswer(dm), 'Urgences & risques'),
+  farm_overview: (dm) => withCentreMeta(buildCommentVaLaFermeConseilAnswer(dm), 'Urgences & risques'),
+  comment_va_la_ferme: (dm) => withCentreMeta(buildCommentVaLaFermeConseilAnswer(dm), 'Urgences & risques'),
+  farm_status: (dm) => withCentreMeta(buildCommentVaLaFermeConseilAnswer(dm), 'Urgences & risques'),
   main_risk: (dm) => withCentreMeta(buildRisquesAnswer(dm), 'Urgences & risques'),
   farm_risks: (dm) => withCentreMeta(buildRisquesAnswer(dm), 'Urgences & risques'),
   farm_opportunities: (dm) => withCentreMeta(buildOpportunitesAnswer(dm), 'Croissance & opportunités'),

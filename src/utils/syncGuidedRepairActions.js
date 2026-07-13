@@ -12,7 +12,7 @@ const amountOf = (row = {}) => toNumber(row.montant ?? row.amount ?? row.total ?
 const paymentAmount = (row = {}) => toNumber(row.montant_paye ?? row.montant ?? row.amount ?? row.paid_amount ?? 0);
 const saleIdOf = (row = {}) => clean(row.order_id || row.sale_id || row.source_record_id || row.related_id || row.commande_id);
 const isOut = (row = {}) => ['sortie', 'expense', 'out', 'charge', 'depense', 'dépense'].includes(lower(row.type));
-const isCompletedTask = (row = {}) => ['termine', 'terminé', 'done', 'closed', 'clos'].includes(lower(row.status || row.statut));
+
 
 export const GUIDED_REPAIR_SCENARIOS = {
   STOCKABLE_EXPENSE_NO_STOCK: 'stockable_expense_no_stock',

@@ -7,18 +7,20 @@
     "dev": "vite",
     "build": "vite build",
     "lint": "eslint .",
+    "audit:design": "node scripts/audit-design-system.mjs",
+    "audit:reachability": "node scripts/audit-source-reachability.mjs",
     "preview": "vite preview",
     "pitch:generate": "node scripts/generate-pitch-assets.mjs",
-    "dossier:generate": "node scripts/generate-horizon-farm-dossier.mjs",
     "guide:generate": "node scripts/generate-guide-pdf.mjs",
     "test:e2e": "playwright test",
     "test:e2e:workflows": "PLAYWRIGHT_SKIP_WEBSERVER=1 playwright test tests/e2e/simulated-business-workflows.spec.js",
+    "test:e2e:daily-entries": "playwright test tests/e2e/daily-quick-entries.spec.js",
     "test:e2e:smoke": "playwright test tests/e2e/assistant-erp-smoke.spec.js tests/e2e/decision-center-smoke.spec.js",
     "test:e2e:headed": "playwright test --headed",
     "test:e2e:report": "playwright show-report playwright-report",
     "test:e2e:roadmap": "PLAYWRIGHT_SKIP_WEBSERVER=1 playwright test tests/e2e/roadmap-completion.spec.js",
     "test:e2e:push-business": "PLAYWRIGHT_SKIP_WEBSERVER=1 playwright test tests/e2e/push-and-business-flows.spec.js",
-    "test:unit": "node --test tests/unit/*.test.js",
+    "test:unit": "node scripts/run-unit-tests.mjs",
     "test:unit:i18n": "node --test tests/unit/i18nCharteLibelles.test.js tests/unit/i18nChainesEnDur.test.js",
     "test:unit:demo-financeur": "npx vite-node tests/unit/demoFinanceurDryRun.test.js",
     "test:unit:financements": "npx vite-node tests/unit/financementsWorkflows.test.js",
@@ -32,7 +34,7 @@
     "test:unit:commercial": "npx vite-node tests/unit/commercialSaleWorkflow.test.js && npx vite-node tests/unit/commercialV1P0.test.js && npx vite-node tests/unit/commercialV2P1.test.js && npx vite-node tests/unit/commercialV3.test.js",
     "test:unit:elevage": "npx vite-node tests/unit/elevageBroilerScenario.test.js && npx vite-node tests/unit/elevageV1.test.js && npx vite-node tests/unit/elevageV2.test.js && npx vite-node tests/unit/elevageV3.test.js",
     "test:unit:elevage-v3": "npx vite-node tests/unit/elevageV3.test.js",
-    "test:unit:cultures": "node --test tests/unit/culturesWorkflow.test.js",
+    "test:unit:cultures": "npx vite-node tests/unit/culturesWorkflow.test.js",
     "test:unit:agri-feeds": "npx vite-node tests/unit/agriFeedsStep1.test.js && npx vite-node tests/unit/agriFeedsStep2.test.js && npx vite-node tests/unit/agriFeedsStep3.test.js && npx vite-node tests/unit/agriFeedsStep4.test.js && npx vite-node tests/unit/agriFeedsStep5.test.js && npx vite-node tests/unit/agriFeedsStep6.test.js && npx vite-node tests/unit/agriFeedsReadiness.test.js && npx vite-node tests/unit/agriFeedsRenderSmoke.test.js",
     "test:unit:documents": "node --test tests/unit/documentsWorkflow.test.js",
     "test:unit:activite": "node --test tests/unit/activiteSuiviWorkflow.test.js",
@@ -44,7 +46,9 @@
     "test:unit:justified-exceptions": "node tests/unit/justifiedExceptionStore.test.js",
     "test:unit:guided-repairs": "npx vite-node tests/unit/syncGuidedRepairActions.test.js",
     "test:unit:idempotency": "node --test tests/unit/workflowIdempotency.test.js",
+    "test:unit:daily-entries": "npx vite-node tests/unit/dailyQuickEntryContract.test.js",
     "test:unit:module-smoke": "npx vite-node tests/unit/moduleImportSmoke.test.js",
+    "test:unit:business-events": "npx vite-node tests/unit/businessEventOperationalGaps.vite.js && node --test tests/unit/businessInterconnectionsCoverage.test.js tests/unit/businessEventImplementationAudit.test.js",
     "test:unit:render-smoke": "npx vite-node tests/unit/moduleRenderSmoke.test.js && npx vite-node tests/unit/moduleMissingImports.test.js && npx vite-node tests/unit/investorRoomPanels.test.js && npx vite-node tests/unit/appModuleProps.test.js && node --test tests/unit/farmAdaptationNull.test.js",
     "test:unit:commercial-simulated": "npx vite-node tests/unit/commercialSimulatedMode.test.js",
     "test:unit:commercial-subscriptions": "npx vite-node tests/unit/commercialSubscriptionsPanel.test.js",
@@ -64,7 +68,11 @@
     "test:unit:chart-explain": "node --test tests/unit/chartExplain.test.js",
     "test:unit:sales-publication": "npx vite-node tests/unit/salesPublication.test.js",
     "db:migrate": "bash scripts/apply_supabase_migrations.sh",
-    "db:migrate:verify": "node scripts/apply_supabase_migrations.mjs",
+    "db:migrate:status": "node scripts/supabase-management.mjs status",
+    "db:migrate:matrix": "node scripts/supabase-management.mjs matrix --json",
+    "db:migrate:isolation": "node scripts/supabase-management.mjs isolation",
+    "db:migrate:farm-rls": "node scripts/supabase-management.mjs apply supabase/migrations/20260713120000_farm_id_rls_all_business_tables.sql",
+    "db:migrate:verify": "node scripts/supabase-management.mjs verify supabase/verify_farm_id_rls.sql",
     "check": "npm run lint && npm run build && npm run test:e2e"
   },
   "dependencies": {
@@ -78,9 +86,10 @@
     "react-dom": "^19.2.5",
     "react-hot-toast": "^2.6.0",
     "recharts": "^3.8.1",
-    "xlsx": "^0.18.5"
+    "xlsx": "https://cdn.sheetjs.com/xlsx-0.20.3/xlsx-0.20.3.tgz"
   },
   "devDependencies": {
+    "@babel/parser": "^7.29.3",
     "@eslint/js": "^10.0.1",
     "@playwright/test": "^1.59.1",
     "@tailwindcss/vite": "^4.2.4",
@@ -91,9 +100,9 @@
     "eslint-plugin-react-hooks": "^7.1.1",
     "eslint-plugin-react-refresh": "^0.5.2",
     "globals": "^17.5.0",
-    "pg": "^8.21.0",
     "pptxgenjs": "^4.0.1",
     "tailwindcss": "^4.2.4",
-    "vite": "^8.0.10"
+    "vite": "^8.0.10",
+    "vite-node": "^6.0.0"
   }
 }

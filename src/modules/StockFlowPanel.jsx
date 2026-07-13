@@ -119,7 +119,7 @@ async function createSupplierDebt(row, amount, props) {
 }
 
 async function receiveCritical(row, props, quantityFromCaller = null, receiptModeFromCaller = null) {
-  const metrics = stockMetrics(row);
+
   const qty = quantityFromCaller;
   if (!qty) return;
   const amount = qty * unitPrice(row);
@@ -239,47 +239,47 @@ export default function StockFlowPanel(props) {
   };
 
   return (
-    <div className="rounded-2xl border border-[#d6c3a0] bg-white p-5 space-y-4">
+    <div className="rounded-2xl border border-line bg-white p-6 space-y-4">
       <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3">
         <div>
-          <p className="text-xs uppercase tracking-widest text-[#8a7456]">Flux stock</p>
-          <h3 className="font-black text-[#2f2415]">Réception, utilisation et pertes</h3>
+          <p className="text-xs uppercase tracking-normal text-slate">Flux stock</p>
+          <h3 className="font-semibold text-earth">Réception, utilisation et pertes</h3>
         </div>
         <div className="grid grid-cols-2 gap-2 text-sm">
-          <div className="rounded-xl bg-[#fffdf8] border border-[#eadcc2] px-3 py-2"><b>{fmtCurrency(totalValue)}</b><br /><span className="text-[#8a7456]">valeur stock</span></div>
-          <div className="rounded-xl bg-[#fffdf8] border border-[#eadcc2] px-3 py-2"><b>{critiques.length}</b><br /><span className="text-[#8a7456]">à commander</span></div>
+          <div className="rounded-xl bg-card border border-line px-3 py-2"><b>{fmtCurrency(totalValue)}</b><br /><span className="text-slate">valeur stock</span></div>
+          <div className="rounded-xl bg-card border border-line px-3 py-2"><b>{critiques.length}</b><br /><span className="text-slate">à commander</span></div>
         </div>
       </div>
 
       {critiques.length ? (
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-2">
           {critiques.map((row) => (
-            <div key={row.id} className="rounded-xl border border-red-200 bg-red-50/50 p-3">
-              <p className="font-black text-[#2f2415]"><AlertTriangle size={14} className="inline text-red-500" /> {row.produit}</p>
-              <p className="text-xs text-[#8a7456] mt-1">Stock {fmtNumber(row.quantite)} / seuil {fmtNumber(row.seuil)} {row.unite || ''}</p>
-              <button type="button" className="mt-3 text-sm font-bold text-emerald-700" onClick={() => startReceive(row)}><Truck size={14} className="inline" /> Réceptionner</button>
+            <div key={row.id} className="rounded-xl border border-urgent bg-urgent-bg p-3">
+              <p className="font-semibold text-earth"><AlertTriangle size={14} className="inline text-urgent" /> {row.produit}</p>
+              <p className="text-xs text-slate mt-1">Stock {fmtNumber(row.quantite)} / seuil {fmtNumber(row.seuil)} {row.unite || ''}</p>
+              <button type="button" className="mt-3 text-sm font-semibold text-positive" onClick={() => startReceive(row)}><Truck size={14} className="inline" /> Réceptionner</button>
             </div>
           ))}
         </div>
       ) : (
-        <div className="rounded-xl border border-[#eadcc2] bg-[#fffdf8] p-3 text-sm text-[#8a7456]"><CheckCircle2 size={14} className="inline" /> Aucun stock critique détecté.</div>
+        <div className="rounded-xl border border-line bg-card p-3 text-sm text-slate"><CheckCircle2 size={14} className="inline" /> Aucun stock critique détecté.</div>
       )}
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
         {rows.slice(0, 3).map((row) => (
-          <div key={row.id} className="rounded-xl border border-[#eadcc2] bg-[#fffdf8] p-3">
-            <p className="font-bold text-[#2f2415]"><ArrowDownUp size={14} className="inline" /> {row.produit}</p>
-            <p className="text-xs text-[#8a7456] mt-1">Quantité actuelle: {fmtNumber(row.quantite)} {row.unite || ''}</p>
-            <div className="flex flex-wrap gap-2 mt-3 text-xs font-bold">
-              <button type="button" className="text-emerald-700" onClick={() => doMove(row, 'entree')}><PackagePlus size={12} className="inline" /> Réception</button>
-              <button type="button" className="text-amber-700" onClick={() => doMove(row, 'sortie')}><Receipt size={12} className="inline" /> Utiliser</button>
-              <button type="button" className="text-red-600" onClick={() => doMove(row, 'perte')}><AlertTriangle size={12} className="inline" /> Perte</button>
+          <div key={row.id} className="rounded-xl border border-line bg-card p-3">
+            <p className="font-semibold text-earth"><ArrowDownUp size={14} className="inline" /> {row.produit}</p>
+            <p className="text-xs text-slate mt-1">Quantité actuelle: {fmtNumber(row.quantite)} {row.unite || ''}</p>
+            <div className="flex flex-wrap gap-2 mt-3 text-xs font-semibold">
+              <button type="button" className="text-positive" onClick={() => doMove(row, 'entree')}><PackagePlus size={12} className="inline" /> Réception</button>
+              <button type="button" className="text-horizon-dark" onClick={() => doMove(row, 'sortie')}><Receipt size={12} className="inline" /> Utiliser</button>
+              <button type="button" className="text-urgent" onClick={() => doMove(row, 'perte')}><AlertTriangle size={12} className="inline" /> Perte</button>
             </div>
           </div>
         ))}
       </div>
 
-      {lastMoves.length ? <p className="text-xs text-[#8a7456]">Derniers mouvements visibles dans les fiches stock.</p> : null}
+      {lastMoves.length ? <p className="text-xs text-slate">Derniers mouvements visibles dans les fiches stock.</p> : null}
 
       <QuickInputModal
         open={Boolean(flowModal)}

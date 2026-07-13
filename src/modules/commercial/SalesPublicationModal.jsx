@@ -28,19 +28,19 @@ const CHANNEL_LABELS = {
 
 function OutputBlock({ label, text, onCopy }) {
   return (
-    <div className="rounded-xl border border-[#eadcc2] bg-[#fffdf8] p-3 space-y-2">
+    <div className="rounded-xl border border-line bg-card p-3 space-y-2">
       <div className="flex items-center justify-between gap-2">
-        <p className="text-[11px] font-black uppercase tracking-wide text-[#9a6b12]">{label}</p>
+        <p className="text-meta font-semibold uppercase tracking-normal text-horizon-dark">{label}</p>
         <button
           type="button"
           onClick={() => onCopy(text)}
-          className="inline-flex items-center gap-1 rounded-lg border border-[#d6c3a0] bg-white px-2 py-1 text-[11px] font-bold text-[#2f2415]"
+          className="inline-flex items-center gap-1 rounded-lg border border-line bg-white px-2 py-1 text-meta font-semibold text-earth"
         >
           <Copy size={12} />
           Copier
         </button>
       </div>
-      <pre className="whitespace-pre-wrap text-sm text-[#2f2415] font-sans leading-relaxed">{text}</pre>
+      <pre className="whitespace-pre-wrap text-sm text-earth font-sans leading-relaxed">{text}</pre>
     </div>
   );
 }
@@ -59,8 +59,10 @@ export default function SalesPublicationModal({
 
   useEffect(() => {
     if (open) {
-      setClientType(defaultClientType);
-      setChannel(defaultChannel);
+      queueMicrotask(() => {
+        setClientType(defaultClientType);
+        setChannel(defaultChannel);
+      });
     }
   }, [open, defaultClientType, defaultChannel]);
 
@@ -139,17 +141,17 @@ export default function SalesPublicationModal({
       )}
     >
       <div className="space-y-4">
-        <div className="rounded-xl border border-[#d6c3a0] bg-white p-3">
-          <p className="font-black text-[#2f2415] flex items-center gap-2">
-            <Sparkles size={16} className="text-[#9a6b12]" />
+        <div className="rounded-xl border border-line bg-white p-3">
+          <p className="font-semibold text-earth flex items-center gap-2">
+            <Sparkles size={16} className="text-horizon-dark" />
             {name}
           </p>
-          <p className="mt-1 text-sm text-[#8a7456]">
+          <p className="mt-1 text-sm text-slate">
             {fmtNumber(qty)} {unit} · {fmtCurrency(price)} / {unit}
             {cost > 0 ? ` · coût ${fmtCurrency(cost)}` : ''}
           </p>
           {dlc ? (
-            <p className="mt-1 text-xs font-bold text-amber-800">
+            <p className="mt-1 text-xs font-semibold text-horizon-dark">
               DLC {dlc}{daysDlc != null ? ` (J${daysDlc >= 0 ? `-${daysDlc}` : `+${Math.abs(daysDlc)}`} ${daysDlc < 0 ? 'expiré' : 'restants'})` : ''}
             </p>
           ) : null}
@@ -157,11 +159,11 @@ export default function SalesPublicationModal({
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <label className="space-y-1">
-            <span className="text-xs font-black uppercase text-[#8a7456]">Type client</span>
+            <span className="text-xs font-semibold uppercase text-slate">Type client</span>
             <select
               value={clientType}
               onChange={(e) => setClientType(e.target.value)}
-              className="w-full rounded-xl border border-[#d6c3a0] bg-white px-3 py-2 text-sm"
+              className="w-full rounded-xl border border-line bg-white px-3 py-2 text-sm"
             >
               {CLIENT_TYPES.map((type) => (
                 <option key={type} value={type}>{CLIENT_LABELS[type]}</option>
@@ -169,11 +171,11 @@ export default function SalesPublicationModal({
             </select>
           </label>
           <label className="space-y-1">
-            <span className="text-xs font-black uppercase text-[#8a7456]">Canal</span>
+            <span className="text-xs font-semibold uppercase text-slate">Canal</span>
             <select
               value={channel}
               onChange={(e) => setChannel(e.target.value)}
-              className="w-full rounded-xl border border-[#d6c3a0] bg-white px-3 py-2 text-sm"
+              className="w-full rounded-xl border border-line bg-white px-3 py-2 text-sm"
             >
               {PUBLICATION_CHANNELS.map((ch) => (
                 <option key={ch} value={ch}>{CHANNEL_LABELS[ch]}</option>
@@ -189,12 +191,12 @@ export default function SalesPublicationModal({
             <OutputBlock label="Post social" text={publication.social_post} onCopy={copyText} />
 
             {publication.promotional_offer ? (
-              <div className={`rounded-xl border p-3 text-sm ${publication.promotional_offer.available ? 'border-amber-300 bg-amber-50' : 'border-[#eadcc2] bg-[#fffdf8]'}`}>
-                <p className="font-black text-[#2f2415]">
+              <div className={`rounded-xl border p-3 text-sm ${publication.promotional_offer.available ? 'border-vigilance bg-vigilance-bg' : 'border-line bg-card'}`}>
+                <p className="font-semibold text-earth">
                   {publication.promotional_offer.available ? publication.promotional_offer.label : 'Offre promotionnelle'}
                 </p>
                 {publication.promotional_offer.available ? (
-                  <p className="mt-1 text-[#5f4b2f]">
+                  <p className="mt-1 text-slate">
                     {fmtCurrency(publication.promotional_offer.suggested_unit_price)} / {unit}
                     {' '}
                     (−{publication.promotional_offer.discount_percent} % vs {fmtCurrency(price)})
@@ -202,19 +204,19 @@ export default function SalesPublicationModal({
                     {publication.promotional_offer.note}
                   </p>
                 ) : (
-                  <p className="mt-1 text-[#8a7456]">{publication.promotional_offer.reason}</p>
+                  <p className="mt-1 text-slate">{publication.promotional_offer.reason}</p>
                 )}
               </div>
             ) : null}
 
-            <ul className="text-[11px] text-[#8a7456] list-disc pl-4 space-y-1">
+            <ul className="text-meta text-slate list-disc pl-4 space-y-1">
               {publication.warnings?.map((w) => <li key={w}>{w}</li>)}
             </ul>
           </>
         ) : null}
 
-        <p className="text-xs text-[#8a7456] flex items-start gap-2">
-          <MessageCircle size={14} className="shrink-0 mt-0.5" />
+        <p className="text-xs text-slate flex items-start gap-2">
+          <MessageCircle size={14} className="shrink-0 mt-1" />
           Aucun envoi ni changement de prix automatique. Vous copiez ou validez l’envoi manuellement.
         </p>
       </div>

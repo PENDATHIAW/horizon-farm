@@ -6,6 +6,13 @@ const clean = (value = '') => String(value || '').trim();
 const lower = (value = '') => clean(value).toLowerCase();
 const amount = (value = 0) => Number(value || 0) || 0;
 
+function addDays(date = today(), days = 90) {
+  const value = new Date(date);
+  if (Number.isNaN(value.getTime())) return date;
+  value.setDate(value.getDate() + amount(days));
+  return value.toISOString().slice(0, 10);
+}
+
 export const equipmentLabel = (row = {}) => row.name || row.nom || row.libelle || row.id || 'Équipement';
 export const equipmentActionKey = (row = {}, action = 'maintenance') => `equipment:${action}:${clean(row.id)}`;
 
@@ -92,8 +99,6 @@ export function buildEquipmentRepairWorkflow({ equipment = {}, task = null, aler
       maintenance_status: 'termine',
       last_repair_done_at: now(),
       last_maintenance_done_at: now(),
-      repair_cost: repairCost,
-      cout_reparation: repairCost,
       last_repair_note: note,
     },
     taskPatch: task?.id ? { id: task.id, patch: { status: 'termine', statut: 'termine', completed_at: now(), resolution_notes: note } } : null,
@@ -151,6 +156,158 @@ export function buildEquipmentRepairWorkflow({ equipment = {}, task = null, aler
   };
 }
 
+export function validateEquipmentRecommission({ date = '', result = '', responsible = '', validated = false } = {}) {
+  if (!validated) return { ok: false, error: 'Validation explicite obligatoire pour la remise en service.' };
+  if (!clean(result)) return { ok: false, error: 'Résultat de réparation obligatoire.' };
+  if (!clean(date)) return { ok: false, error: 'Date de remise en service obligatoire.' };
+  if (!clean(responsible)) return { ok: false, error: 'Responsable de validation obligatoire.' };
+  return { ok: true };
+}
+
+export function buildValidatedEquipmentRepairWorkflow({ equipment = {}, task = null, alert = null, cost = 0, result = '', date = today(), responsible = '', validated = false } = {}) {
+  const validation = validateEquipmentRecommission({ date, result, responsible, validated });
+  if (!validation.ok) return validation;
+  const workflow = buildEquipmentRepairWorkflow({ equipment, task, alert, cost, note: result, date });
+  if (!workflow) return { ok: false, error: 'Équipement introuvable.' };
+  return {
+    ...workflow,
+    ok: true,
+    equipmentPatch: {
+      ...workflow.equipmentPatch,
+      recommission_validated: true,
+      recommissioned_at: date,
+      recommissioned_by: clean(responsible),
+      recommission_result: clean(result),
+    },
+  };
+}
+
+export function validateEquipmentMaintenance({ equipment = {}, date = '', maintenanceType = '', responsible = '', cost = 0 } = {}) {
+  if (!clean(equipment.id)) return { ok: false, error: 'Équipement obligatoire.' };
+  if (!clean(date)) return { ok: false, error: 'Date de maintenance obligatoire.' };
+  if (!clean(maintenanceType)) return { ok: false, error: 'Type de maintenance obligatoire.' };
+  if (!clean(responsible)) return { ok: false, error: 'Responsable de maintenance obligatoire.' };
+  if (amount(cost) < 0) return { ok: false, error: 'Le coût de maintenance ne peut pas être négatif.' };
+  return { ok: true };
+}
+
+export function buildEquipmentMaintenanceWorkflow({
+  equipment = {},
+  task = null,
+  date = today(),
+  maintenanceType = 'preventive',
+  responsible = '',
+  cost = 0,
+  notes = '',
+  nextMaintenanceDate = '',
+  intervalDays = 90,
+} = {}) {
+  const validation = validateEquipmentMaintenance({ equipment, date, maintenanceType, responsible, cost });
+  if (!validation.ok) return validation;
+
+  const maintenanceCost = amount(cost);
+  const nextDate = clean(nextMaintenanceDate) || addDays(date, intervalDays);
+  const transactionId = maintenanceCost > 0 ? makeId('TRX') : '';
+  const documentId = maintenanceCost > 0 ? makeId('DOC') : '';
+  const actionKey = equipmentActionKey(equipment, 'maintenance');
+  const taskId = task?.id || makeId('TSK');
+  const taskRecord = {
+    title: `Maintenance ${equipmentLabel(equipment)}`,
+    module_lie: 'equipements',
+    source_module: 'equipements',
+    source_record_id: equipment.id,
+    related_id: equipment.id,
+    task_dedupe_key: actionKey,
+    action_key: actionKey,
+    due_date: date,
+    priority: 'haute',
+    status: 'a_faire',
+    assigned_to: clean(responsible),
+    responsable: clean(responsible),
+    checklist: 'Préparer intervention; Effectuer maintenance; Contrôler fonctionnement; Joindre preuve; Planifier prochaine échéance',
+    notes: clean(notes),
+  };
+
+  return {
+    ok: true,
+    equipmentPatch: {
+      status: 'maintenance',
+      statut: 'maintenance',
+      maintenance_status: 'programmee',
+      maintenance_type: clean(maintenanceType),
+      maintenance_due: date,
+      maintenance_cost: maintenanceCost,
+      cout_maintenance: maintenanceCost,
+      maintenance_responsible: clean(responsible),
+      prochaine_maintenance: nextDate,
+      next_maintenance_date: nextDate,
+      notes: clean(notes) || equipment.notes || '',
+      side_effects_managed: true,
+    },
+    task: task?.id ? null : { id: taskId, ...taskRecord },
+    taskPatch: task?.id ? { id: task.id, patch: taskRecord } : null,
+    financeTransaction: maintenanceCost > 0 ? {
+      id: transactionId,
+      type: 'sortie',
+      transaction_type: 'sortie',
+      libelle: `Maintenance ${equipmentLabel(equipment)}`,
+      montant: maintenanceCost,
+      amount: maintenanceCost,
+      date,
+      categorie: 'Maintenance équipements',
+      module_lie: 'equipements',
+      related_id: equipment.id,
+      source_module: 'equipements',
+      source_record_id: equipment.id,
+      statut: 'paye',
+      status: 'paye',
+      cash_effect: true,
+      proof_document_id: documentId,
+    } : null,
+    document: maintenanceCost > 0 ? {
+      id: documentId,
+      title: `Preuve maintenance ${equipmentLabel(equipment)}`,
+      document_category: 'maintenance_equipement',
+      module_source: 'equipements',
+      entity_type: 'equipement',
+      entity_id: equipment.id,
+      related_id: equipment.id,
+      transaction_id: transactionId,
+      montant: maintenanceCost,
+      date,
+      status: 'manquant',
+      verification_status: 'preuve_manquante',
+      notes: 'Facture, reçu ou compte rendu de maintenance à joindre.',
+    } : null,
+    event: {
+      id: makeId('EVT'),
+      event_type: 'equipment_maintenance',
+      module_source: 'equipements',
+      entity_type: 'equipement',
+      entity_id: equipment.id,
+      title: `Maintenance programmée ${equipmentLabel(equipment)}`,
+      description: clean(notes) || `${clean(maintenanceType)} · prochaine échéance ${nextDate}`,
+      event_date: date,
+      severity: 'warning',
+      linked_task_id: taskId,
+      linked_transaction_id: transactionId,
+      linked_document_id: documentId,
+      amount: maintenanceCost,
+      next_maintenance_date: nextDate,
+      saisies_evitees: maintenanceCost > 0 ? 5 : 3,
+    },
+  };
+}
+
+export function equipmentFinanceCosts(transactions = [], equipmentId = '') {
+  const id = clean(equipmentId);
+  return transactions.filter((row) => {
+    const linked = clean(row.related_id || row.source_record_id || row.equipment_id) === id;
+    const expense = /sortie|depense|expense|charge/.test(lower(`${row.type || ''} ${row.transaction_type || ''} ${row.categorie || ''}`));
+    return linked && expense;
+  }).reduce((sum, row) => sum + amount(row.montant ?? row.amount), 0);
+}
+
 export function buildEquipmentPurchaseWorkflow({
   payload = {},
   supplier = {},
@@ -174,6 +331,7 @@ export function buildEquipmentPurchaseWorkflow({
   const monthlyAmortization = usefulLifeMonths > 0 ? Math.round(amountValue / usefulLifeMonths) : 0;
   const trxId = amountValue > 0 ? makeId('TRX') : '';
   const docId = makeId('DOC');
+  const maintenanceTaskId = makeId('TSK');
   const issueKey = `equipment-purchase:${equipmentId}`;
 
   return {
@@ -208,7 +366,7 @@ export function buildEquipmentPurchaseWorkflow({
     financeTransaction: amountValue > 0 ? {
       id: trxId,
       type: 'sortie',
-      transaction_type: 'sortie',
+      transaction_type: 'depense',
       libelle: `Achat équipement ${label}`,
       montant: amountValue,
       amount: amountValue,
@@ -220,9 +378,9 @@ export function buildEquipmentPurchaseWorkflow({
       source_record_id: equipmentId,
       fournisseur_id: supplierId,
       funding_source_id: fundingId,
-      statut: 'paye',
-      status: 'paye',
-      cash_effect: true,
+      statut: 'validee',
+      status: 'validee',
+      cash_effect: false,
       proof_document_id: docId,
     } : null,
     document: {
@@ -242,7 +400,7 @@ export function buildEquipmentPurchaseWorkflow({
       issue_key: issueKey,
     },
     maintenanceTask: {
-      id: makeId('TSK'),
+      id: maintenanceTaskId,
       title: `Planifier maintenance ${label}`,
       module_lie: 'equipements',
       source_module: 'equipements',
@@ -279,7 +437,7 @@ export function buildEquipmentPurchaseWorkflow({
       amount: amountValue,
       linked_transaction_id: trxId,
       linked_document_id: docId,
-      linked_task_id: '',
+      linked_task_id: maintenanceTaskId,
       saisies_evitees: 7,
     },
   };

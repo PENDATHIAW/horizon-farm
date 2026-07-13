@@ -25,9 +25,9 @@ test('navigation — module enregistré', () => {
 });
 
 test('resolveAgriFeedsTab — aliases', () => {
-  assert.equal(resolveAgriFeedsTab('benchmark'), 'Référence Phase 1');
-  assert.equal(resolveAgriFeedsTab('Production'), 'Production');
-  assert.equal(resolveAgriFeedsTab('inconnu'), 'Tableau de bord');
+  assert.equal(resolveAgriFeedsTab('benchmark'), 'AgriFeedsOverviewView');
+  assert.equal(resolveAgriFeedsTab('Production'), 'AgriFeedsProductionView');
+  assert.equal(resolveAgriFeedsTab('inconnu'), 'AgriFeedsOverviewView');
 });
 
 test('stock categories — AGRI FEEDS présentes', () => {

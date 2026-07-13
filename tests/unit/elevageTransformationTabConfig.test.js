@@ -13,14 +13,23 @@ import assert from 'node:assert/strict';
 import React from 'react';
 import { renderToString } from 'react-dom/server';
 import { MODULE_TABS_CONFIG, MODULE_TABS_LABELS } from '../../src/config/moduleTabs.config.js';
-import { MODULE_TARGET_TABS } from '../../src/config/horizonVision.config.js';
 import { ELEVAGE_TABS, resolveElevageTab } from '../../src/utils/commercialNavigation.js';
 import ModuleTabsBar from '../../src/components/module/ModuleTabsBar.jsx';
 
-test('la configuration Élevage expose Transformation et correspond au rendu réel', () => {
+test('la configuration Élevage expose Transformation dans la structure cible', () => {
   const libelles = MODULE_TABS_LABELS.elevage;
-  assert.deepEqual(libelles, ELEVAGE_TABS, 'la config doit refléter les onglets réellement rendus');
   assert.ok(libelles.includes('Transformation'), 'Transformation doit être visible');
+  assert.deepEqual(libelles, [
+    'Vue d’ensemble',
+    'Lots & animaux',
+    'Alimentation',
+    'Production',
+    'Santé & Biosécurité',
+    'Transformation',
+    'Coûts & performance',
+    'Historique',
+  ]);
+  assert.ok(ELEVAGE_TABS.includes('Transformation'));
 });
 
 test('la barre d\'onglets Élevage affiche l\'onglet Transformation', () => {
@@ -28,9 +37,12 @@ test('la barre d\'onglets Élevage affiche l\'onglet Transformation', () => {
     React.createElement(ModuleTabsBar, { moduleId: 'elevage', active: 'Lots & bandes', onChange: () => {} }),
   );
   assert.match(html, /Transformation/);
-  assert.match(html, /Lots &(amp;)? bandes/);
-  assert.match(html, /Cycles &(amp;)? Reproduction/);
-  assert.match(html, /Santé/);
+  assert.match(html, /Lots &(amp;)? animaux/);
+  assert.match(html, /Santé &(amp;)? Biosécurité/);
+  assert.match(html, /role="tablist"/);
+  assert.match(html, /role="tab"/);
+  assert.match(html, /aria-label="Transformation"/);
+  assert.match(html, /aria-selected="true"/);
 });
 
 test('les alias Transformation et transformation résolvent vers l\'onglet', () => {
@@ -46,7 +58,7 @@ test('un initialTab Transformation ne retombe pas sur Lots & bandes', () => {
 test('le composant de rendu Transformation est déclaré dans la configuration', () => {
   const entree = MODULE_TABS_CONFIG.elevage.onglets.find((o) => o.libelle === 'Transformation');
   assert.ok(entree, 'entrée Transformation présente');
-  assert.equal(entree.composant, 'ElevageRecoveredModule');
+  assert.equal(entree.composant, 'Transformation');
 });
 
 test('financeur_externe ne voit pas Transformation via un accès Élevage restreint', () => {
@@ -55,8 +67,5 @@ test('financeur_externe ne voit pas Transformation via un accès Élevage restre
   const html = renderToString(
     React.createElement(ModuleTabsBar, { moduleId: 'elevage', active: 'Lots & bandes', onChange: () => {}, role: 'financeur_externe' }),
   );
-  // La barre reste rendue si Élevage est ouvert, mais aucun onglet n'est
-  // spécifiquement réservé : le contrôle d'accès au module se fait en amont
-  // (permissions de navigation). On vérifie au minimum l'intégrité du rendu.
-  assert.ok(typeof html === 'string');
+  assert.doesNotMatch(html, /Transformation/);
 });

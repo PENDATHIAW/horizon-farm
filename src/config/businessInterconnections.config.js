@@ -7,7 +7,7 @@ export const BUSINESS_EVENT_WORKFLOWS = Object.freeze([
     label: 'Réception d’aliment',
     sourceModule: 'achats_stock',
     sourceTables: ['stock', 'fournisseurs', 'finances', 'documents'],
-    impactedModules: ['achats_stock', 'finance_pilotage', 'elevage', 'documents_rapports', 'centre_ia', 'agri_feeds'],
+    impactedModules: ['achats_stock', 'finance_pilotage', 'elevage', 'documents_rapports', 'centre_decisionnel', 'agri_feeds'],
     requiredFields: ['date', 'supplier_id', 'product_id', 'quantity', 'unit_cost', 'payment_status'],
     automaticEffects: [
       'Créer ou mettre à jour le stock aliment',
@@ -25,7 +25,7 @@ export const BUSINESS_EVENT_WORKFLOWS = Object.freeze([
     label: 'Distribution d’aliment',
     sourceModule: 'elevage',
     sourceTables: ['alimentation_logs', 'stock', 'avicole', 'animaux'],
-    impactedModules: ['elevage', 'achats_stock', 'finance_pilotage', 'centre_ia', 'documents_rapports'],
+    impactedModules: ['elevage', 'achats_stock', 'finance_pilotage', 'centre_decisionnel', 'documents_rapports'],
     requiredFields: ['date', 'target_type', 'target_id', 'quantity', 'feed_stock_id'],
     automaticEffects: [
       'Diminuer le stock aliment',
@@ -59,7 +59,7 @@ export const BUSINESS_EVENT_WORKFLOWS = Object.freeze([
     label: 'Mortalité dans un lot',
     sourceModule: 'elevage',
     sourceTables: ['avicole', 'sante', 'business_events', 'taches'],
-    impactedModules: ['elevage', 'finance_pilotage', 'activite_suivi', 'centre_ia', 'documents_rapports'],
+    impactedModules: ['elevage', 'finance_pilotage', 'activite_suivi', 'centre_decisionnel', 'documents_rapports'],
     requiredFields: ['date', 'lot_id', 'quantity', 'cause_or_observation'],
     automaticEffects: [
       'Réduire l’effectif restant',
@@ -93,7 +93,7 @@ export const BUSINESS_EVENT_WORKFLOWS = Object.freeze([
     label: 'Nettoyage box / bâtiment et collecte biosécurité',
     sourceModule: 'elevage',
     sourceTables: ['business_events', 'stock', 'taches', 'finances', 'cultures'],
-    impactedModules: ['elevage', 'achats_stock', 'cultures', 'finance_pilotage', 'activite_suivi', 'centre_ia', 'documents_rapports'],
+    impactedModules: ['elevage', 'achats_stock', 'cultures', 'finance_pilotage', 'activite_suivi', 'centre_decisionnel', 'documents_rapports'],
     requiredFields: ['date', 'building_id', 'cleaning_type', 'responsible_person', 'bags_collected', 'estimated_weight_per_bag', 'organic_material_type', 'sanitary_status', 'destination', 'next_step'],
     automaticEffects: [
       'Clôturer la tâche de nettoyage',
@@ -112,7 +112,7 @@ export const BUSINESS_EVENT_WORKFLOWS = Object.freeze([
     label: 'Ponte du jour',
     sourceModule: 'elevage',
     sourceTables: ['production_oeufs_logs', 'stock', 'avicole'],
-    impactedModules: ['elevage', 'achats_stock', 'commercial', 'dashboard', 'centre_ia', 'documents_rapports'],
+    impactedModules: ['elevage', 'achats_stock', 'commercial', 'dashboard', 'centre_decisionnel', 'documents_rapports'],
     requiredFields: ['date', 'building_id', 'trays_count'],
     automaticEffects: [
       'Créer production du jour',
@@ -129,7 +129,7 @@ export const BUSINESS_EVENT_WORKFLOWS = Object.freeze([
     label: 'Vente d’œufs',
     sourceModule: 'commercial',
     sourceTables: ['sales_orders', 'sales_order_items', 'stock', 'payments', 'clients', 'invoices'],
-    impactedModules: ['commercial', 'achats_stock', 'finance_pilotage', 'documents_rapports', 'elevage', 'centre_ia'],
+    impactedModules: ['commercial', 'achats_stock', 'finance_pilotage', 'documents_rapports', 'elevage', 'centre_decisionnel'],
     requiredFields: ['date', 'client_id', 'quantity_trays', 'unit_price', 'stock_id', 'payment_status'],
     automaticEffects: [
       'Créer vente et ligne de vente',
@@ -147,7 +147,7 @@ export const BUSINESS_EVENT_WORKFLOWS = Object.freeze([
     label: 'Vente de poulets de chair',
     sourceModule: 'commercial',
     sourceTables: ['sales_orders', 'sales_order_items', 'avicole', 'payments', 'stock'],
-    impactedModules: ['commercial', 'elevage', 'finance_pilotage', 'documents_rapports', 'centre_ia'],
+    impactedModules: ['commercial', 'elevage', 'finance_pilotage', 'documents_rapports', 'centre_decisionnel'],
     requiredFields: ['date', 'client_id', 'lot_id', 'quantity', 'weight_or_unit_price', 'payment_status'],
     automaticEffects: [
       'Créer vente liée au lot',
@@ -164,7 +164,7 @@ export const BUSINESS_EVENT_WORKFLOWS = Object.freeze([
     label: 'Pesée bovine',
     sourceModule: 'elevage',
     sourceTables: ['animaux', 'business_events', 'alimentation_logs'],
-    impactedModules: ['elevage', 'finance_pilotage', 'centre_ia', 'objectifs_croissance'],
+    impactedModules: ['elevage', 'finance_pilotage', 'centre_decisionnel', 'objectifs_croissance'],
     requiredFields: ['date', 'animal_id', 'weight_kg'],
     automaticEffects: [
       'Mettre à jour poids',
@@ -181,7 +181,7 @@ export const BUSINESS_EVENT_WORKFLOWS = Object.freeze([
     label: 'Vente bovine',
     sourceModule: 'commercial',
     sourceTables: ['sales_orders', 'sales_order_items', 'animaux', 'payments'],
-    impactedModules: ['commercial', 'elevage', 'finance_pilotage', 'documents_rapports', 'centre_ia'],
+    impactedModules: ['commercial', 'elevage', 'finance_pilotage', 'documents_rapports', 'centre_decisionnel'],
     requiredFields: ['date', 'client_id', 'animal_id', 'sale_price', 'payment_status'],
     automaticEffects: [
       'Créer vente liée à l’animal',
@@ -215,7 +215,7 @@ export const BUSINESS_EVENT_WORKFLOWS = Object.freeze([
     label: 'Irrigation',
     sourceModule: 'cultures',
     sourceTables: ['cultures', 'business_events', 'sensor_devices'],
-    impactedModules: ['cultures', 'smartfarm', 'finance_pilotage', 'centre_ia', 'equipements'],
+    impactedModules: ['cultures', 'smartfarm', 'finance_pilotage', 'centre_decisionnel', 'equipements'],
     requiredFields: ['date', 'parcel_id', 'water_volume_or_duration'],
     automaticEffects: [
       'Enregistrer consommation eau',
@@ -232,7 +232,7 @@ export const BUSINESS_EVENT_WORKFLOWS = Object.freeze([
     label: 'Transfert fientes / fumier / compost vers parcelle',
     sourceModule: 'cultures',
     sourceTables: ['business_events', 'stock', 'cultures'],
-    impactedModules: ['cultures', 'elevage', 'achats_stock', 'finance_pilotage', 'documents_rapports', 'centre_ia'],
+    impactedModules: ['cultures', 'elevage', 'achats_stock', 'finance_pilotage', 'documents_rapports', 'centre_decisionnel'],
     requiredFields: ['date', 'origin_id', 'destination_parcel_id', 'organic_material_type', 'quantity_kg', 'sanitary_status'],
     automaticEffects: [
       'Sortir stock matière organique',
@@ -266,7 +266,7 @@ export const BUSINESS_EVENT_WORKFLOWS = Object.freeze([
     label: 'Vente maraîchère',
     sourceModule: 'commercial',
     sourceTables: ['sales_orders', 'sales_order_items', 'stock', 'payments', 'cultures'],
-    impactedModules: ['commercial', 'cultures', 'achats_stock', 'finance_pilotage', 'documents_rapports', 'centre_ia'],
+    impactedModules: ['commercial', 'cultures', 'achats_stock', 'finance_pilotage', 'documents_rapports', 'centre_decisionnel'],
     requiredFields: ['date', 'client_id', 'parcel_or_stock_id', 'quantity_kg', 'unit_price', 'payment_status'],
     automaticEffects: [
       'Créer vente liée à la récolte',
@@ -279,11 +279,11 @@ export const BUSINESS_EVENT_WORKFLOWS = Object.freeze([
     nextSteps: ['Livraison', 'Encaissement', 'Prévision prochain cycle'],
   },
   {
-    id: 'client_payment',
+    id: 'customer_payment',
     label: 'Paiement client',
     sourceModule: 'commercial',
     sourceTables: ['payments', 'sales_orders', 'clients', 'finances'],
-    impactedModules: ['commercial', 'finance_pilotage', 'documents_rapports', 'centre_ia', 'dashboard'],
+    impactedModules: ['commercial', 'finance_pilotage', 'documents_rapports', 'centre_decisionnel', 'dashboard'],
     requiredFields: ['date', 'client_id', 'sales_order_id', 'amount', 'payment_method'],
     automaticEffects: [
       'Créer paiement',
@@ -300,7 +300,7 @@ export const BUSINESS_EVENT_WORKFLOWS = Object.freeze([
     label: 'Dette fournisseur / paiement fournisseur',
     sourceModule: 'achats_stock',
     sourceTables: ['finances', 'fournisseurs', 'stock', 'documents'],
-    impactedModules: ['achats_stock', 'finance_pilotage', 'documents_rapports', 'centre_ia'],
+    impactedModules: ['achats_stock', 'finance_pilotage', 'documents_rapports', 'centre_decisionnel'],
     requiredFields: ['date', 'supplier_id', 'amount', 'purchase_or_stock_id', 'payment_status'],
     automaticEffects: [
       'Créer dépense ou réduire dette',
@@ -334,7 +334,7 @@ export const BUSINESS_EVENT_WORKFLOWS = Object.freeze([
     label: 'Maintenance équipement',
     sourceModule: 'equipements',
     sourceTables: ['equipements', 'taches', 'finances', 'business_events'],
-    impactedModules: ['equipements', 'finance_pilotage', 'activite_suivi', 'smartfarm', 'centre_ia'],
+    impactedModules: ['equipements', 'finance_pilotage', 'activite_suivi', 'smartfarm', 'centre_decisionnel'],
     requiredFields: ['date', 'equipment_id', 'maintenance_type', 'status', 'cost'],
     automaticEffects: [
       'Mettre à jour statut équipement',
@@ -351,7 +351,7 @@ export const BUSINESS_EVENT_WORKFLOWS = Object.freeze([
     label: 'Tâche opérationnelle',
     sourceModule: 'activite_suivi',
     sourceTables: ['taches', 'alertes_center', 'business_events'],
-    impactedModules: ['dashboard', 'activite_suivi', 'centre_ia', 'documents_rapports'],
+    impactedModules: ['dashboard', 'activite_suivi', 'centre_decisionnel', 'documents_rapports'],
     requiredFields: ['date', 'task_type', 'responsible_person', 'status', 'linked_entity'],
     automaticEffects: [
       'Afficher priorité sur tableau de bord',
@@ -367,7 +367,7 @@ export const BUSINESS_EVENT_WORKFLOWS = Object.freeze([
     label: 'Document justificatif',
     sourceModule: 'documents_rapports',
     sourceTables: ['documents', 'finances', 'sales_orders', 'stock', 'business_events'],
-    impactedModules: ['documents_rapports', 'finance_pilotage', 'commercial', 'achats_stock', 'centre_ia', 'financements'],
+    impactedModules: ['documents_rapports', 'finance_pilotage', 'commercial', 'achats_stock', 'centre_decisionnel', 'financements'],
     requiredFields: ['date', 'document_type', 'linked_entity_type', 'linked_entity_id'],
     automaticEffects: [
       'Rattacher document à opération source',
@@ -418,7 +418,7 @@ export const BUSINESS_EVENT_WORKFLOWS = Object.freeze([
     label: 'Objectif de croissance',
     sourceModule: 'objectifs_croissance',
     sourceTables: ['business_plans', 'finances', 'stock', 'avicole', 'animaux', 'cultures', 'sales_orders'],
-    impactedModules: ['objectifs_croissance', 'finance_pilotage', 'elevage', 'cultures', 'commercial', 'achats_stock', 'centre_ia'],
+    impactedModules: ['objectifs_croissance', 'finance_pilotage', 'elevage', 'cultures', 'commercial', 'achats_stock', 'centre_decisionnel'],
     requiredFields: ['scenario', 'target_date', 'target_capacity', 'cash_required'],
     automaticEffects: [
       'Simuler besoin aliment, cash, espace, main-d’œuvre',
@@ -433,8 +433,8 @@ export const BUSINESS_EVENT_WORKFLOWS = Object.freeze([
     id: 'smartfarm_signal',
     label: 'Signal Smart Farm / capteur',
     sourceModule: 'smartfarm',
-    sourceTables: ['sensor_devices', 'camera_devices', 'business_events', 'alertes_center'],
-    impactedModules: ['smartfarm', 'cultures', 'elevage', 'equipements', 'activite_suivi', 'centre_ia', 'documents_rapports'],
+    sourceTables: ['sensor_devices', 'sensor_readings', 'business_events', 'alertes_center'],
+    impactedModules: ['smartfarm', 'cultures', 'elevage', 'equipements', 'activite_suivi', 'centre_decisionnel', 'documents_rapports'],
     requiredFields: ['timestamp', 'device_id', 'signal_type', 'value', 'status'],
     automaticEffects: [
       'Créer événement technique',
@@ -451,6 +451,7 @@ export const BUSINESS_EVENT_WORKFLOWS = Object.freeze([
 export const BUSINESS_EVENT_IDS = BUSINESS_EVENT_WORKFLOWS.map((event) => event.id);
 
 export const BUSINESS_EVENT_ALIASES = Object.freeze({
+  client_payment: 'customer_payment',
   supplier_debt_payment: 'supplier_payment',
   operational_task: 'task_lifecycle',
   supporting_document: 'support_document',

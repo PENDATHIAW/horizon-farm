@@ -9,7 +9,8 @@ test('CA commercial ne mélange pas payments', () => {
   );
   assert.equal(kpis.ca, 10000);
   assert.equal(kpis.collected, 5000);
-  assert.equal(kpis.sources.ca, 'sales_orders');
+  assert.equal(kpis.sources.ca, 'sales_orders(excl.devis)');
+  assert.equal(kpis.sources.collected, 'payments_linked');
 });
 
 test('computeCommercialKpis retourne orderCount', () => {

@@ -181,7 +181,7 @@ export const searchGeoPlaces = async ({ kind = 'veterinaires', latitude, longitu
       results,
       message: `${results.length} resultats OpenStreetMap trouves autour de la position utilisee.`,
     };
-  } catch (error) {
+  } catch {
     return fallbackResults(origin, radiusKm, 'Recherche reelle indisponible sur ce navigateur/reseau. Resultats locaux proposes a verifier.');
   }
 };

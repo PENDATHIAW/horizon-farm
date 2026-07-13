@@ -99,14 +99,14 @@ export default function CulturesSaleOpportunityBridge({ rows = [], opportunities
   };
 
   return (
-    <div className="rounded-2xl border border-[#d6c3a0] bg-white p-5 space-y-4">
+    <div className="rounded-2xl border border-line bg-white p-6 space-y-4">
       <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3">
         <div>
-          <p className="text-xs uppercase tracking-widest text-[#8a7456]">Cultures vendables</p>
-          <h3 className="font-black text-[#2f2415]">Récoltes disponibles vers Ventes</h3>
-          <p className="text-sm text-[#8a7456] mt-1">Une récolte disponible peut devenir une opportunité puis une commande sans ressaisie.</p>
+          <p className="text-xs uppercase tracking-normal text-slate">Cultures vendables</p>
+          <h3 className="font-semibold text-earth">Récoltes disponibles vers Ventes</h3>
+          <p className="text-sm text-slate mt-1">Une récolte disponible peut devenir une opportunité puis une commande sans ressaisie.</p>
         </div>
-        <div className="rounded-xl border border-[#eadcc2] bg-[#fffdf8] px-3 py-2 text-sm text-[#7d6a4a]"><Sprout size={14} className="inline" /> {candidates.length} source(s)</div>
+        <div className="rounded-xl border border-line bg-card px-3 py-2 text-sm text-slate"><Sprout size={14} className="inline" /> {candidates.length} source(s)</div>
       </div>
       {candidates.length ? (
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-2">
@@ -114,18 +114,18 @@ export default function CulturesSaleOpportunityBridge({ rows = [], opportunities
             const qty = availableQty(row);
             const unitPrice = unitPriceOf(row);
             return (
-              <div key={row.id} className="rounded-xl border border-[#eadcc2] bg-[#fffdf8] p-3">
-                <p className="font-bold text-[#2f2415]"><PackagePlus size={14} className="inline" /> {cultureName(row)}</p>
-                <p className="text-xs text-[#8a7456] mt-1">{parcelName(row)} · {fmtNumber(qty)} {unitOf(row)}</p>
-                <p className="text-xs text-[#8a7456] mt-1">Valeur estimée : <b>{fmtCurrency(qty * unitPrice)}</b></p>
-                {existing ? <p className="text-xs text-emerald-700 mt-1">Opportunité existante : mise à jour</p> : null}
-                <button type="button" disabled={savingId === row.id} className="mt-3 text-sm font-bold text-emerald-700 disabled:opacity-60" onClick={() => createOrUpdateOpportunity(row)}><CheckCircle2 size={14} className="inline" /> {savingId === row.id ? 'Création...' : 'Créer opportunité'}</button>
+              <div key={row.id} className="rounded-xl border border-line bg-card p-3">
+                <p className="font-semibold text-earth"><PackagePlus size={14} className="inline" /> {cultureName(row)}</p>
+                <p className="text-xs text-slate mt-1">{parcelName(row)} · {fmtNumber(qty)} {unitOf(row)}</p>
+                <p className="text-xs text-slate mt-1">Valeur estimée : <b>{fmtCurrency(qty * unitPrice)}</b></p>
+                {existing ? <p className="text-xs text-positive mt-1">Opportunité existante : mise à jour</p> : null}
+                <button type="button" disabled={savingId === row.id} className="mt-3 text-sm font-semibold text-positive disabled:opacity-60" onClick={() => createOrUpdateOpportunity(row)}><CheckCircle2 size={14} className="inline" /> {savingId === row.id ? 'Création...' : 'Créer opportunité'}</button>
               </div>
             );
           })}
         </div>
       ) : (
-        <div className="rounded-xl border border-[#eadcc2] bg-[#fffdf8] p-3 text-sm text-[#8a7456]"><Tag size={14} className="inline" /> Aucune récolte vendable à convertir.</div>
+        <div className="rounded-xl border border-line bg-card p-3 text-sm text-slate"><Tag size={14} className="inline" /> Aucune récolte vendable à convertir.</div>
       )}
     </div>
   );

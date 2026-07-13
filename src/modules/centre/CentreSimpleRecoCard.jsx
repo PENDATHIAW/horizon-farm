@@ -18,16 +18,16 @@ export default function CentreSimpleRecoCard({ item, onNavigate }) {
   };
 
   return (
-    <article className="rounded-2xl border border-[#eadcc2] bg-white p-4 space-y-2">
+    <article className="rounded-2xl border border-line bg-white p-4 space-y-2">
       <div className="flex items-start justify-between gap-2">
-        <p className="font-black text-[#2f2415] text-sm leading-snug">{item.title}</p>
-        <span className="shrink-0 rounded-full bg-[#fff8e8] border border-[#d6c3a0] px-2 py-0.5 text-[10px] font-black uppercase text-[#9a6b12]">
+        <p className="font-semibold text-earth text-sm leading-snug">{item.title}</p>
+        <span className="shrink-0 rounded-full bg-vigilance-bg border border-line px-2 py-1 text-meta font-semibold uppercase text-horizon-dark">
           {item.priority || 'moyenne'}
         </span>
       </div>
-      <p className="text-xs text-[#7d6a4a] leading-relaxed line-clamp-3">{item.recommendation || item.timing}</p>
+      <p className="text-xs text-slate leading-relaxed line-clamp-3">{item.recommendation || item.timing}</p>
       {!item.technical_rule && item.gap_revenue > 0 ? (
-        <p className="text-xs text-[#8a7456]">Écart CA : <b>{fmtCurrency(item.gap_revenue)}</b></p>
+        <p className="text-xs text-slate">Écart CA : <b>{fmtCurrency(item.gap_revenue)}</b></p>
       ) : null}
       <Btn
         small

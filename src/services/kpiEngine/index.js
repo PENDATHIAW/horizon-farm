@@ -16,7 +16,6 @@ import { computeRiskKpis } from './riskKpis.js';
 import { computeGrowthKpis } from './growthKpis.js';
 import { computeDashboardKpis } from './dashboardKpis.js';
 
-/** Point d'entrée unique KPI ERP — tous les modules enrichis doivent consommer ce moteur. */
 export function runKpiEngine(data = {}, { module = 'dashboard', periodScope = {} } = {}) {
   const props = {
     salesOrders: data.sales_orders || data.salesOrders,
@@ -35,7 +34,6 @@ export function runKpiEngine(data = {}, { module = 'dashboard', periodScope = {}
     taches: data.taches,
     clients: data.clients,
   };
-
   const common = {
     commercial: computeCommercialKpis(props.salesOrders, props.payments, periodScope),
     finance: computeFinanceKpis(props.payments, props.transactions, periodScope, data),
@@ -51,12 +49,7 @@ export function runKpiEngine(data = {}, { module = 'dashboard', periodScope = {}
     documents: computeDocumentKpis(props.documents, props.transactions, props.invoices),
     risks: computeRiskKpis(data),
   };
-
-  if (module === 'objectifs_croissance' || module === 'centre_ia') {
-    return { ...common, growth: computeGrowthKpis(data, periodScope) };
-  }
-  if (module === 'dashboard') {
-    return { ...common, dashboard: computeDashboardKpis(props, periodScope) };
-  }
+  if (module === 'objectifs_croissance' || module === 'centre_ia') return { ...common, growth: computeGrowthKpis(data, periodScope) };
+  if (module === 'dashboard') return { ...common, dashboard: computeDashboardKpis(props, periodScope) };
   return common;
 }

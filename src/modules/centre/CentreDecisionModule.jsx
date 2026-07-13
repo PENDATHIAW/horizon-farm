@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import ModuleTabsBar from '../../components/module/ModuleTabsBar.jsx';
 import PeriodScopeBadge from '../../components/PeriodScopeBadge.jsx';
+import ListeAlertes from '../../components/shared/ListeAlertes.jsx';
+import ListeTaches from '../../components/shared/ListeTaches.jsx';
 import { Bot } from 'lucide-react';
 import { resolveCentreTab } from '../../utils/commercialNavigation.js';
 import { buildDecisionCenterPlan } from '../../services/growthDecisionEngine.js';
@@ -9,7 +11,6 @@ import { buildVisionData } from '../vision/visionUtils';
 import CentreUrgencesTab from './CentreUrgencesTab.jsx';
 import { CentreEcartsTab, CentreRisquesTab } from './CentreCibleTabs.jsx';
 import JournalEvenements from '../../components/uniques/JournalEvenements.jsx';
-import { runKpiEngine } from '../../services/kpiEngine/index.js';
 import CentreCroissanceTab from './CentreCroissanceTab.jsx';
 import CentreSaisonsTab from './CentreSaisonsTab.jsx';
 import PilotageSettingsPanel from './PilotageSettingsPanel.jsx';
@@ -18,6 +19,12 @@ import { syncStrategicAlertsToCenter } from '../../services/strategicAlertBridge
 import Btn from '../../components/Btn.jsx';
 import toast from 'react-hot-toast';
 import { exportCentreDecisionCsv, exportCentreDecisionExcel } from '../../services/centreDecisionExport.js';
+import { createAlertResolutionTask } from '../../services/heyHorizonRecommendationActions.js';
+
+const OPEN_ALERT_STATUSES = ['nouvelle', 'ouverte', 'open', 'pending', 'a_traiter'];
+const OPEN_TASK_STATUSES = ['a_faire', 'en_cours', 'todo', 'pending', 'in_progress'];
+const arr = (value) => (Array.isArray(value) ? value : []);
+const isOpen = (row = {}) => !['traitee', 'traitée', 'resolue', 'résolue', 'fermee', 'fermée', 'closed', 'done'].includes(String(row.status || row.statut || '').toLowerCase());
 
 const EMPTY_STRATEGIC_PLAN = {
   sellNow: [],
@@ -32,7 +39,7 @@ const EMPTY_STRATEGIC_PLAN = {
   ith: null,
 };
 
-/** Centre décisionnel — onglets cibles : À traiter, Écarts, Risques, Décisions, Historique. */
+/** Centre décisionnel : traitement, écarts, risques, décisions et historique. */
 export default function CentreDecisionModule({
   dataMap = {},
   onNavigate,
@@ -55,7 +62,7 @@ export default function CentreDecisionModule({
 
   useEffect(() => {
     if (controlled || !initialTab) return;
-    setInternalTab(resolveCentreTab(initialTab));
+    queueMicrotask(() => setInternalTab(resolveCentreTab(initialTab)));
   }, [controlled, initialTab]);
 
   const visionProps = useMemo(() => ({ ...props, dataMap, moduleId: 'centre_ia', meteo }), [props, dataMap, meteo]);
@@ -67,26 +74,29 @@ export default function CentreDecisionModule({
       return { priorities: [], risks: [], predictions: [], healthScore: 0 };
     }
   }, [visionProps]);
-  const enrichedDataMap = useMemo(() => mergePilotageIntoDataMap({
-    ...dataMap,
-    animaux: props.animaux || dataMap.animaux,
-    avicole: props.lots || dataMap.avicole,
-    lots: props.lots || dataMap.avicole,
-    stocks: props.stocks || dataMap.stock || dataMap.stocks,
-    stock: props.stocks || dataMap.stock,
-    clients: props.clients || dataMap.clients,
-    sante: props.sante || dataMap.sante,
-    alimentation_logs: props.alimentationLogs || dataMap.alimentation_logs,
-    production_oeufs_logs: props.productionLogs || dataMap.production_oeufs_logs,
-    sales_orders: props.salesOrdersAll || props.salesOrders || dataMap.sales_orders,
-    payments: props.paymentsAll || props.payments || dataMap.payments,
-    finances: props.transactionsAll || props.transactions || dataMap.finances,
-    sales_opportunities: props.opportunities || dataMap.sales_opportunities,
-    business_events: props.businessEvents || dataMap.business_events,
-    market_prices: props.marketPrices || dataMap.market_prices,
-    market_calendar_events: props.marketCalendarEvents || dataMap.market_calendar_events,
-    meteo: meteo || dataMap.meteo,
-  }), [dataMap, props, meteo, pilotageVersion]);
+  const enrichedDataMap = useMemo(() => {
+    void pilotageVersion;
+    return mergePilotageIntoDataMap({
+      ...dataMap,
+      animaux: props.animaux || dataMap.animaux,
+      avicole: props.lots || dataMap.avicole,
+      lots: props.lots || dataMap.avicole,
+      stocks: props.stocks || dataMap.stock || dataMap.stocks,
+      stock: props.stocks || dataMap.stock,
+      clients: props.clients || dataMap.clients,
+      sante: props.sante || dataMap.sante,
+      alimentation_logs: props.alimentationLogs || dataMap.alimentation_logs,
+      production_oeufs_logs: props.productionLogs || dataMap.production_oeufs_logs,
+      sales_orders: props.salesOrdersAll || props.salesOrders || dataMap.sales_orders,
+      payments: props.paymentsAll || props.payments || dataMap.payments,
+      finances: props.transactionsAll || props.transactions || dataMap.finances,
+      sales_opportunities: props.opportunities || dataMap.sales_opportunities,
+      business_events: props.businessEvents || dataMap.business_events,
+      market_prices: props.marketPrices || dataMap.market_prices,
+      market_calendar_events: props.marketCalendarEvents || dataMap.market_calendar_events,
+      meteo: meteo || dataMap.meteo,
+    });
+  }, [dataMap, props, meteo, pilotageVersion]);
 
   const strategicPlan = useMemo(() => {
     try {
@@ -114,24 +124,37 @@ export default function CentreDecisionModule({
     };
   }, [enrichedDataMap, strategicPlan]);
 
-  const urgentCount = (strategicPlan.sellNow?.length || 0)
-    + (strategicPlan.stockAudit?.alerts?.length || 0)
-    + (strategicPlan.bfr?.blocked ? 1 : 0)
-    + (data.priorities?.length || 0);
+  const centralAlerts = arr(props.alertes).length ? arr(props.alertes) : arr(dataMap.alertes_center || dataMap.alertes);
+  const centralTasks = arr(props.taches || props.tasks).length ? arr(props.taches || props.tasks) : arr(dataMap.taches || dataMap.tasks);
+  const openCentralAlerts = centralAlerts.filter(isOpen);
+  const farmId = props.activeFarm?.id || props.farm?.id;
 
-  const tabBadges = useMemo(() => ({
+  const createTaskForAlert = async (alert) => {
+    try {
+      const result = await createAlertResolutionTask({
+        alertTitle: alert.title || alert.titre || alert.message,
+        alertId: alert.id,
+        actionLabel: alert.action_recommandee || alert.message,
+        handlers: {
+          onCreateTask: props.onCreateTask,
+          onCreateBusinessEvent: props.onCreateBusinessEvent,
+          existingTasks: centralTasks,
+          onNavigate,
+        },
+      });
+      if (result?.ok !== false) toast.success('Tâche créée dans Activité & Suivi');
+    } catch (error) {
+      toast.error(error?.message || 'Création de tâche impossible');
+    }
+  };
+
+  const urgentCount = openCentralAlerts.length;
+
+  const tabBadges = {
     'À traiter': urgentCount,
     'Décisions': (decisionPlan.commercialRecommendations?.length || 0)
       + (decisionPlan.recommendations?.filter((r) => r.should_recommend_investment || r.technical_rule).length || 0),
-  }), [decisionPlan, urgentCount]);
-
-  const kpisCentre = useMemo(() => {
-    try {
-      return runKpiEngine(enrichedDataMap, { module: 'dashboard' });
-    } catch {
-      return null;
-    }
-  }, [enrichedDataMap]);
+  };
 
   const risksData = useMemo(() => ({
     ...data,
@@ -140,27 +163,67 @@ export default function CentreDecisionModule({
 
   const content = tab === 'À traiter'
     ? (
-      <CentreUrgencesTab
-        data={data}
-        risksData={risksData}
-        strategicPlan={strategicPlan}
-        setTab={setTab}
-        onNavigate={onNavigate}
-        onCreateTask={props.onCreateTask}
-        onCreateAlert={props.onCreateAlert}
-        onUpdateAlert={props.onUpdateAlert}
-        onCreateBusinessEvent={props.onCreateBusinessEvent}
-        onRefreshTasks={props.onRefreshTasks}
-        onRefreshAlertes={props.onRefreshAlertes}
-        existingTasks={props.existingTasks}
-        existingAlerts={props.existingAlerts}
-        enrichedDataMap={enrichedDataMap}
-      />
+      <div className="grid gap-6 xl:grid-cols-2">
+        <ListeAlertes
+          title="Alertes à traiter"
+          alertes={centralAlerts}
+          farmId={farmId}
+          statuses={OPEN_ALERT_STATUSES}
+          period={props.periodScope}
+          onNavigate={onNavigate}
+          onAction={props.onCreateTask ? createTaskForAlert : undefined}
+        />
+        <ListeTaches
+          title="Tâches liées aux alertes"
+          tasks={centralTasks}
+          farmId={farmId}
+          alertId={openCentralAlerts.map((alert) => alert.id).filter(Boolean)}
+          statuses={OPEN_TASK_STATUSES}
+          period={props.periodScope}
+          onNavigate={onNavigate}
+        />
+      </div>
     )
     : tab === 'Écarts'
       ? <CentreEcartsTab dataMap={enrichedDataMap} onNavigate={onNavigate} />
     : tab === 'Risques'
-      ? <CentreRisquesTab alertes={props.existingAlerts || enrichedDataMap.alertes_center || []} taches={enrichedDataMap.taches || []} kpis={kpisCentre} onNavigate={onNavigate} />
+      ? (
+        <div className="space-y-4">
+          <CentreRisquesTab alertes={centralAlerts} taches={centralTasks} onNavigate={onNavigate} />
+          <CentreUrgencesTab
+            data={data}
+            risksData={risksData}
+            strategicPlan={strategicPlan}
+            setTab={setTab}
+            onNavigate={onNavigate}
+            onCreateTask={props.onCreateTask}
+            onCreateAlert={props.onCreateAlert}
+            onUpdateAlert={props.onUpdateAlert}
+            onCreateBusinessEvent={props.onCreateBusinessEvent}
+            onRefreshTasks={props.onRefreshTasks}
+            onRefreshAlertes={props.onRefreshAlertes}
+            existingTasks={props.existingTasks}
+            existingAlerts={props.existingAlerts}
+            enrichedDataMap={enrichedDataMap}
+            risksOnly
+          />
+          <CentreSaisonsTab
+            dataMap={enrichedDataMap}
+            lots={props.lots}
+            animaux={props.animaux}
+            productionLogs={props.productionLogs}
+            strategicPlan={strategicPlan}
+            onNavigate={onNavigate}
+            setTab={setTab}
+            onCreateTask={props.onCreateTask}
+            onCreateAlert={props.onCreateAlert}
+            onRefreshTasks={props.onRefreshTasks}
+            onRefreshAlertes={props.onRefreshAlertes}
+            existingTasks={props.existingTasks}
+            existingAlerts={props.existingAlerts}
+          />
+        </div>
+      )
     : tab === 'Historique'
       ? <JournalEvenements evenements={props.businessEvents || enrichedDataMap.business_events || []} filtres={{ limite: 30 }} onNavigate={onNavigate} />
     : tab === 'Décisions'
@@ -185,39 +248,23 @@ export default function CentreDecisionModule({
           marketPrices={props.marketPrices}
         />
       )
-      : (
-        <CentreSaisonsTab
-          dataMap={enrichedDataMap}
-          lots={props.lots}
-          animaux={props.animaux}
-          productionLogs={props.productionLogs}
-          strategicPlan={strategicPlan}
-          onNavigate={onNavigate}
-          setTab={setTab}
-          onCreateTask={props.onCreateTask}
-          onCreateAlert={props.onCreateAlert}
-          onRefreshTasks={props.onRefreshTasks}
-          onRefreshAlertes={props.onRefreshAlertes}
-          existingTasks={props.existingTasks}
-          existingAlerts={props.existingAlerts}
-        />
-      );
+      : null;
 
   return (
     <div className="space-y-6">
-      <section className="rounded-3xl border border-[#d6c3a0] bg-[#fffdf8] p-6 shadow-sm">
+      <section className="rounded-3xl border border-line bg-card p-6 shadow-card">
         <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
           <div>
-            <p className="text-xs uppercase tracking-[0.25em] text-[#9a6b12] font-black">Intelligence décisionnelle</p>
-            <h1 className="mt-1 text-3xl font-black text-[#2f2415]">Centre décisionnel</h1>
-            <p className="mt-2 text-sm text-[#8a7456] max-w-2xl">
+            <p className="text-xs uppercase tracking-normal text-horizon-dark font-semibold">Intelligence décisionnelle</p>
+            <h1 className="mt-1 text-3xl font-semibold text-earth">Centre décisionnel</h1>
+            <p className="mt-2 text-sm text-slate max-w-2xl">
               Décidez quoi traiter maintenant, quoi développer et quoi anticiper selon les ventes, les risques, la trésorerie, les saisons et les marchés.
             </p>
             {onOpenAssistant ? (
               <button
                 type="button"
                 onClick={() => onOpenAssistant('Comment va la ferme ?')}
-                className="mt-2 inline-flex items-center gap-1.5 text-xs font-black text-[#9a6b12] hover:underline"
+                className="mt-2 inline-flex items-center gap-2 text-xs font-semibold text-horizon-dark hover:underline"
               >
                 <Bot size={14} /> Question à Hey Horizon (vocal ou texte)
               </button>
@@ -225,15 +272,15 @@ export default function CentreDecisionModule({
             {periodLabel ? <div className="mt-2"><PeriodScopeBadge label={periodLabel} /></div> : null}
           </div>
           <div className="flex flex-wrap items-center gap-2 text-sm">
-            <span className="rounded-xl border border-[#eadcc2] bg-white px-3 py-2">
-              <span className="text-[#8a7456]">Actions critiques </span>
+            <span className="rounded-xl border border-line bg-white px-3 py-2">
+              <span className="text-slate">Actions critiques </span>
               <b>{urgentCount}</b>
             </span>
-            <span className="rounded-xl border border-[#eadcc2] bg-white px-3 py-2">
-              <span className="text-[#8a7456]">ITH </span>
+            <span className="rounded-xl border border-line bg-white px-3 py-2">
+              <span className="text-slate">ITH </span>
               <b>{strategicPlan.ith ?? '—'}</b>
             </span>
-            <button type="button" onClick={() => onNavigate?.('objectifs_croissance', { tab: 'Suivi du Business Plan' })} className="rounded-xl border border-[#d6c3a0] bg-white px-3 py-2 text-xs font-black text-[#9a6b12] hover:bg-[#dcfce7]">
+            <button type="button" onClick={() => onNavigate?.('objectifs_croissance', { tab: 'Suivi du Business Plan' })} className="rounded-xl border border-line bg-white px-3 py-2 text-xs font-semibold text-horizon-dark hover:bg-positive-bg">
               Objectifs →
             </button>
             <Btn
@@ -258,8 +305,8 @@ export default function CentreDecisionModule({
         </div>
       </section>
 
-      <details className="rounded-2xl border border-[#d6c3a0] bg-[#fffdf8] px-4 py-3">
-        <summary className="cursor-pointer text-sm font-black text-[#2f2415]">Paramètres de pilotage (clients, fêtes)</summary>
+      <details className="rounded-2xl border border-line bg-card px-4 py-3">
+        <summary className="cursor-pointer text-sm font-semibold text-earth">Paramètres de pilotage (clients, fêtes)</summary>
         <div className="mt-3 flex flex-col gap-3 lg:flex-row lg:items-start">
           <div className="flex-1">
             <PilotageSettingsPanel clients={props.clients || dataMap.clients} onChange={() => setPilotageVersion((v) => v + 1)} />
@@ -268,7 +315,7 @@ export default function CentreDecisionModule({
             <button
               type="button"
               onClick={() => syncStrategicAlertsToCenter({ strategicPlan, existingAlerts: props.existingAlerts, onCreateAlert: props.onCreateAlert, onRefreshAlertes: props.onRefreshAlertes }).catch(() => undefined)}
-              className="shrink-0 rounded-xl border border-[#d6c3a0] bg-white px-4 py-2 text-xs font-black text-[#2f2415] hover:bg-[#dcfce7]"
+              className="shrink-0 rounded-xl border border-line bg-white px-4 py-2 text-xs font-semibold text-earth hover:bg-positive-bg"
             >
               Synchroniser alertes critiques
             </button>

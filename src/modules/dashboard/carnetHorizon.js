@@ -631,6 +631,7 @@ export function buildCarnetConseil(summary = {}, priorities = [], props = {}) {
 }
 
 export function buildCarnetAttentionItems(summary = {}, _priorities = [], props = {}) {
+  void _priorities;
   const cards = buildCarnetDomainCards(summary, props);
   return cards
     .flatMap((card) => card.alerts.map((alert) => ({ text: alert.text })))
@@ -643,8 +644,7 @@ export function buildCarnetExploitationState(summary = {}, props = {}) {
 
 export function buildCarnetSensorStrip(props = {}) {
   const sensors = arr(props.sensorDevices || props.sensors);
-  const cameras = arr(props.cameraDevices || props.cameras);
-  const summary = buildSensorDashboardSummary(sensors, cameras, props.meteo || props.weather);
+  const summary = buildSensorDashboardSummary(sensors, props.meteo || props.weather);
   return {
     id: 'capteurs',
     title: 'CAPTEURS & TERRAIN',
@@ -666,7 +666,6 @@ export function buildCarnetHorizonView({ summary = {}, priorities = [], investor
     priorities: arr(priorities).slice(0, 5),
     investorReadiness,
     conseil: buildCarnetConseil(summary, priorities, props),
-    journal: buildCarnetTodayJournal(props),
     startupMode: Boolean(summary.startupMode),
   };
 }

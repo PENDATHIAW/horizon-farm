@@ -71,7 +71,15 @@ export async function assertNoBadUiText(page, contextLabel) {
 }
 
 export async function goToModule(page, label) {
-  const item = page.getByText(label, { exact: false }).first();
+  const navigation = page.getByRole('navigation', { name: /Navigation principale/i });
+  const item = navigation.getByRole('button', { name: label, exact: true });
+
+  for (let attempt = 0; attempt < 8 && !(await item.isVisible().catch(() => false)); attempt += 1) {
+    const collapsedSection = navigation.locator('button[aria-expanded="false"]').first();
+    if (await collapsedSection.count() === 0) break;
+    await collapsedSection.click();
+  }
+
   await expect(item, `Module introuvable: ${label}`).toBeVisible({ timeout: 15_000 });
   await item.click();
   await waitForAppReady(page);

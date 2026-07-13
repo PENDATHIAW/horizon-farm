@@ -4,13 +4,13 @@ import { fmtCurrency } from '../../utils/format';
 function Highlight({ icon: Icon, label, farmName, value }) {
   if (!farmName) return null;
   return (
-    <div className="rounded-xl border border-[#eadcc2] bg-[#fffdf8] px-3 py-2 text-sm">
-      <p className="flex items-center gap-1 text-[10px] font-black uppercase tracking-wide text-[#8a7456]">
+    <div className="rounded-xl border border-line bg-card px-3 py-2 text-sm">
+      <p className="flex items-center gap-1 text-meta font-semibold uppercase tracking-normal text-slate">
         <Icon size={12} />
         {label}
       </p>
-      <p className="mt-1 font-black text-[#2f2415]">{farmName}</p>
-      {value != null ? <p className="text-xs text-[#8a7456]">{value}</p> : null}
+      <p className="mt-1 font-semibold text-earth">{farmName}</p>
+      {value != null ? <p className="text-xs text-slate">{value}</p> : null}
     </div>
   );
 }
@@ -21,12 +21,12 @@ export default function FinanceMultiFarmPanel({ multiFarm = null }) {
   const highlights = multiFarm.advanced?.highlights;
 
   return (
-    <section className="rounded-3xl border border-[#d6c3a0] bg-white p-5 shadow-sm">
+    <section className="rounded-3xl border border-line bg-white p-6 shadow-card">
       <div className="flex items-center gap-2">
-        <Building2 size={20} className="text-[#9a6b12]" />
+        <Building2 size={20} className="text-horizon-dark" />
         <div>
-          <h2 className="text-lg font-black text-[#2f2415]">Vue multi-fermes</h2>
-          <p className="text-sm text-[#8a7456]">Comparaison consolidée — repères et actions prioritaires.</p>
+          <h2 className="text-lg font-semibold text-earth">Vue multi-fermes</h2>
+          <p className="text-sm text-slate">Comparaison consolidée — repères et actions prioritaires.</p>
         </div>
       </div>
 
@@ -44,7 +44,7 @@ export default function FinanceMultiFarmPanel({ multiFarm = null }) {
       <div className="mt-4 overflow-x-auto">
         <table className="min-w-full text-sm">
           <thead>
-            <tr className="border-b border-[#eadcc2] text-left text-xs uppercase tracking-wide text-[#8a7456]">
+            <tr className="border-b border-line text-left text-xs uppercase tracking-normal text-slate">
               <th className="py-2 pr-4">Ferme</th>
               <th className="py-2 pr-4">Trésorerie</th>
               <th className="py-2 pr-4">Créances</th>
@@ -57,25 +57,25 @@ export default function FinanceMultiFarmPanel({ multiFarm = null }) {
           </thead>
           <tbody>
             {multiFarm.comparison.map((row) => (
-              <tr key={row.farmId} className="border-b border-[#eadcc2]/60">
-                <td className="py-3 pr-4 font-black text-[#2f2415]">{row.farmName}</td>
-                <td className={`py-3 pr-4 font-bold ${row.treasury >= 0 ? 'text-emerald-700' : 'text-red-600'}`}>
+              <tr key={row.farmId} className="border-b border-line/60">
+                <td className="py-3 pr-4 font-semibold text-earth">{row.farmName}</td>
+                <td className={`py-3 pr-4 font-semibold ${row.treasury >= 0 ? 'text-positive' : 'text-urgent'}`}>
                   {row.dataComplete === false ? 'Données à compléter' : fmtCurrency(row.treasury)}
                 </td>
                 <td className="py-3 pr-4">{row.dataComplete === false ? '—' : fmtCurrency(row.receivables)}</td>
                 <td className="py-3 pr-4">{row.dataComplete === false ? '—' : fmtCurrency(row.payables)}</td>
-                <td className={`py-3 pr-4 font-bold ${row.margin >= 0 ? 'text-emerald-700' : 'text-red-600'}`}>
+                <td className={`py-3 pr-4 font-semibold ${row.margin >= 0 ? 'text-positive' : 'text-urgent'}`}>
                   {row.dataComplete === false ? '—' : fmtCurrency(row.margin)}
                 </td>
                 <td className="py-3 pr-4">
                   {row.cashFlow30 != null ? fmtCurrency(row.cashFlow30) : '—'}
                 </td>
                 <td className="py-3 pr-4">
-                  <span className={`rounded-full px-2 py-0.5 text-[10px] font-black ${row.risk === 'Élevé' ? 'bg-red-100 text-red-700' : row.risk === 'Moyen' ? 'bg-amber-100 text-amber-800' : 'bg-emerald-100 text-emerald-800'}`}>
+                  <span className={`rounded-full px-2 py-1 text-meta font-semibold ${row.risk === 'Élevé' ? 'bg-urgent-bg text-urgent' : row.risk === 'Moyen' ? 'bg-vigilance-bg text-horizon-dark' : 'bg-positive-bg text-positive'}`}>
                     {row.risk}
                   </span>
                 </td>
-                <td className="py-3 text-[#8a7456]">{row.priorityAction || row.nextAction}</td>
+                <td className="py-3 text-slate">{row.priorityAction || row.nextAction}</td>
               </tr>
             ))}
           </tbody>

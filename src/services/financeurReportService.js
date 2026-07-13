@@ -37,7 +37,7 @@ function buildFinanceurKpis(data = {}, periodScope = {}) {
 
 /** Construit le contenu KPI officiel pour dossier financeur. */
 export function buildFinanceurReportData(data = {}, options = {}) {
-  const kpis = buildFinanceurKpis(data, options.periodScope || {});
+  const baseKpis = buildFinanceurKpis(data, options.periodScope || {});
   const documents = computeDocumentKpis(
     arr(data.documents),
     arr(data.finances || data.transactions),
@@ -45,6 +45,14 @@ export function buildFinanceurReportData(data = {}, options = {}) {
   );
   const cultures = arr(data.cultures);
   const harvested = cultures.reduce((sum, row) => sum + Number(row.quantite_recoltee || row.recolte || 0), 0);
+  const proofRows = arr(data.documents).slice(0, 15).map((doc) => ({
+    title: doc.title || doc.nom || doc.id,
+    module: doc.source_module || doc.module_module || doc.module_source || '—',
+    linked: Boolean(doc.source_record_id || doc.related_id || doc.entity_id || doc.transaction_id || doc.order_id),
+  }));
+  const linkedProofs = proofRows.filter((row) => row.linked).length;
+  const proofs = Object.assign(proofRows, { linkedCount: linkedProofs, rows: [...proofRows] });
+  const kpis = { ...baseKpis, linkedProofs };
 
   return {
     financier: options.financier || 'Partenaire',
@@ -63,11 +71,7 @@ export function buildFinanceurReportData(data = {}, options = {}) {
       { item: 'Documents orphelins', ok: documents.orphanDocs === 0, value: String(documents.orphanDocs) },
       { item: 'Transactions sans preuve', ok: documents.missingProof === 0, value: String(documents.missingProof) },
     ],
-    proofs: arr(data.documents).slice(0, 15).map((doc) => ({
-      title: doc.title || doc.nom || doc.id,
-      module: doc.source_module || doc.module_module || doc.module_source || '—',
-      linked: Boolean(doc.source_record_id || doc.related_id),
-    })),
+    proofs,
   };
 }
 

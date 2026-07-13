@@ -78,26 +78,26 @@ export default function DocumentsLinkPanel({
 
   if (!orphans.length && !preselectedDocumentId) {
     return compact ? null : (
-      <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-800">
+      <div className="rounded-2xl border border-positive bg-positive-bg p-4 text-sm text-positive">
         Aucun document orphelin — les preuves sont rattachées depuis les formulaires source.
       </div>
     );
   }
 
   return (
-    <section className={`rounded-3xl border border-[#d6c3a0] bg-white shadow-sm ${compact ? 'p-4' : 'p-5'}`}>
+    <section className={`rounded-3xl border border-line bg-white shadow-card ${compact ? 'p-4' : 'p-6'}`}>
       <div className="mb-4 flex items-start justify-between gap-3">
         <div>
-          <p className="flex items-center gap-2 text-xs font-black uppercase tracking-widest text-[#8a7456]">
+          <p className="flex items-center gap-2 text-xs font-semibold uppercase tracking-normal text-slate">
             <Link2 size={15} /> Lier document
           </p>
-          <h3 className="mt-1 text-lg font-black text-[#2f2415]">Rattacher une preuve orpheline</h3>
-          <p className="mt-1 text-sm text-[#8a7456]">
+          <h3 className="mt-1 text-lg font-semibold text-earth">Rattacher une preuve orpheline</h3>
+          <p className="mt-1 text-sm text-slate">
             Documents sert à la bibliothèque et aux réparations — les opérations métier restent le point de départ normal.
           </p>
         </div>
         {!compact ? (
-          <span className="rounded-full border border-amber-200 bg-amber-50 px-3 py-1 text-xs font-black text-amber-800">
+          <span className="rounded-full border border-vigilance bg-vigilance-bg px-3 py-1 text-xs font-semibold text-horizon-dark">
             {orphans.length} orphelin(s)
           </span>
         ) : null}
@@ -105,11 +105,11 @@ export default function DocumentsLinkPanel({
 
       <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
         <label className="space-y-1">
-          <span className="text-xs font-bold text-[#8a7456]">Document orphelin</span>
+          <span className="text-xs font-semibold text-slate">Document orphelin</span>
           <select
             value={documentId}
             onChange={(e) => setDocumentId(e.target.value)}
-            className="w-full min-h-[44px] rounded-xl border border-[#d6c3a0] bg-[#fffdf8] px-3 py-2 text-sm"
+            className="w-full min-h-[44px] rounded-xl border border-line bg-card px-3 py-2 text-sm"
           >
             {arr(documents).filter((doc) => isDocumentOrphan(doc) || String(doc.id) === String(documentId)).map((doc) => (
               <option key={doc.id} value={doc.id}>{labelOf(doc)}</option>
@@ -118,11 +118,11 @@ export default function DocumentsLinkPanel({
         </label>
 
         <label className="space-y-1">
-          <span className="text-xs font-bold text-[#8a7456]">Opération source</span>
+          <span className="text-xs font-semibold text-slate">Opération source</span>
           <select
             value={targetType}
             onChange={(e) => { setTargetType(e.target.value); setTargetId(''); }}
-            className="w-full min-h-[44px] rounded-xl border border-[#d6c3a0] bg-[#fffdf8] px-3 py-2 text-sm"
+            className="w-full min-h-[44px] rounded-xl border border-line bg-card px-3 py-2 text-sm"
           >
             {targetTypeOptions().map((opt) => (
               <option key={opt.value} value={opt.value}>{opt.label}</option>
@@ -131,11 +131,11 @@ export default function DocumentsLinkPanel({
         </label>
 
         <label className="space-y-1">
-          <span className="text-xs font-bold text-[#8a7456]">Enregistrement</span>
+          <span className="text-xs font-semibold text-slate">Enregistrement</span>
           <select
             value={targetId || targetOptions[0]?.value || ''}
             onChange={(e) => setTargetId(e.target.value)}
-            className="w-full min-h-[44px] rounded-xl border border-[#d6c3a0] bg-[#fffdf8] px-3 py-2 text-sm"
+            className="w-full min-h-[44px] rounded-xl border border-line bg-card px-3 py-2 text-sm"
           >
             {targetOptions.length ? targetOptions.map((opt) => (
               <option key={opt.value} value={opt.value}>
@@ -147,7 +147,7 @@ export default function DocumentsLinkPanel({
       </div>
 
       {selectedDoc ? (
-        <p className="mt-3 text-xs text-[#8a7456]">
+        <p className="mt-3 text-xs text-slate">
           Fichier : {selectedDoc.file_url || selectedDoc.url || '—'} · Montant doc : {fmtCurrency(selectedDoc.montant ?? selectedDoc.amount)}
         </p>
       ) : null}
@@ -157,7 +157,7 @@ export default function DocumentsLinkPanel({
           type="button"
           disabled={busy || !documentId || !targetOptions.length}
           onClick={submit}
-          className="inline-flex items-center gap-2 rounded-xl bg-[#22c55e] px-4 py-2 text-sm font-black text-[#052e16] disabled:opacity-50"
+          className="inline-flex items-center gap-2 rounded-xl bg-leaf px-4 py-2 text-sm font-semibold text-earth disabled:opacity-50"
         >
           {busy ? <Loader2 size={16} className="animate-spin" /> : <Link2 size={16} />}
           {busy ? 'Liaison…' : 'Lier le document'}

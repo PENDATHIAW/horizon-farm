@@ -46,7 +46,15 @@ const FICHIERS_EXCLUS = {
 };
 
 /** Chemins dont les chaînes visibles sont migrées vers src/i18n/fr/. */
-const CHEMINS_MIGRES = ['i18n/'];
+const CHEMINS_MIGRES = [
+  'i18n/',
+  'components/shared/',
+  'modules/commercial/DailySaleModal.jsx',
+  'modules/cultures/CulturesHarvestPanel.jsx',
+  'modules/cultures/CulturesIrrigationQuickForm.jsx',
+  'modules/elevage/ElevageWorkflowPanels.jsx',
+  'utils/dailyQuickEntryContract.js',
+];
 
 const listerFichiers = (dossier) => {
   const resultat = [];

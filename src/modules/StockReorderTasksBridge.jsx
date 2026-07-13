@@ -88,27 +88,27 @@ export default function StockReorderTasksBridge({ rows = [], taches = [], fourni
 
   if (!critical.length) return null;
   return (
-    <div className="rounded-2xl border border-[#d6c3a0] bg-white p-5 space-y-4">
+    <div className="rounded-2xl border border-line bg-white p-6 space-y-4">
       <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3">
         <div>
-          <p className="text-xs uppercase tracking-widest text-[#8a7456]">Réapprovisionnement</p>
-          <h3 className="font-black text-[#2f2415]">Stocks critiques à traiter</h3>
-          <p className="text-sm text-[#8a7456] mt-1">Un stock sous seuil peut générer une tâche, une alerte et une trace sans ressaisie.</p>
+          <p className="text-xs uppercase tracking-normal text-slate">Réapprovisionnement</p>
+          <h3 className="font-semibold text-earth">Stocks critiques à traiter</h3>
+          <p className="text-sm text-slate mt-1">Un stock sous seuil peut générer une tâche, une alerte et une trace sans ressaisie.</p>
         </div>
-        <div className="rounded-xl border border-[#eadcc2] bg-[#fffdf8] px-3 py-2 text-sm text-[#7d6a4a]"><AlertTriangle size={14} className="inline" /> {critical.length} critique(s)</div>
+        <div className="rounded-xl border border-line bg-card px-3 py-2 text-sm text-slate"><AlertTriangle size={14} className="inline" /> {critical.length} critique(s)</div>
       </div>
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-2">
         {critical.map(({ row, task }) => {
           const qty = reorderQty(row);
           return (
-            <div key={row.id} className="rounded-xl border border-[#eadcc2] bg-[#fffdf8] p-3">
-              <p className="font-bold text-[#2f2415]"><Truck size={14} className="inline" /> {productName(row)}</p>
-              <p className="text-xs text-[#8a7456] mt-1">Stock: {fmtNumber(quantityOf(row))} / seuil {fmtNumber(thresholdOf(row))} {row.unite || ''}</p>
-              <p className="text-xs text-[#8a7456] mt-1">À commander: <b>{fmtNumber(qty)} {row.unite || ''}</b> · {fmtCurrency(qty * unitPriceOf(row))}</p>
+            <div key={row.id} className="rounded-xl border border-line bg-card p-3">
+              <p className="font-semibold text-earth"><Truck size={14} className="inline" /> {productName(row)}</p>
+              <p className="text-xs text-slate mt-1">Stock: {fmtNumber(quantityOf(row))} / seuil {fmtNumber(thresholdOf(row))} {row.unite || ''}</p>
+              <p className="text-xs text-slate mt-1">À commander: <b>{fmtNumber(qty)} {row.unite || ''}</b> · {fmtCurrency(qty * unitPriceOf(row))}</p>
               {task ? (
-                <div className="mt-3 flex gap-3 items-center"><span className="text-xs font-bold text-emerald-700"><ListChecks size={13} className="inline" /> Tâche ouverte</span><button type="button" disabled={savingId === row.id} className="text-xs font-bold text-amber-700 disabled:opacity-60" onClick={() => markDone(row, task)}>Clôturer</button></div>
+                <div className="mt-3 flex gap-3 items-center"><span className="text-xs font-semibold text-positive"><ListChecks size={13} className="inline" /> Tâche ouverte</span><button type="button" disabled={savingId === row.id} className="text-xs font-semibold text-horizon-dark disabled:opacity-60" onClick={() => markDone(row, task)}>Clôturer</button></div>
               ) : (
-                <button type="button" disabled={savingId === row.id} className="mt-3 text-sm font-bold text-emerald-700 disabled:opacity-60" onClick={() => createTask(row)}><CheckCircle2 size={14} className="inline" /> {savingId === row.id ? 'Création...' : 'Créer tâche'}</button>
+                <button type="button" disabled={savingId === row.id} className="mt-3 text-sm font-semibold text-positive disabled:opacity-60" onClick={() => createTask(row)}><CheckCircle2 size={14} className="inline" /> {savingId === row.id ? 'Création...' : 'Créer tâche'}</button>
               )}
             </div>
           );

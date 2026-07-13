@@ -22,30 +22,30 @@ export const stockThreshold = (r = {}) => n(r.seuil ?? r.threshold ?? r.stock_mi
 export const score = (good, total) => (total ? Math.round((good / total) * 100) : 100);
 
 export function Stat({ label: statLabel, value, tone = 'neutral' }) {
-  const cls = tone === 'good' ? 'text-emerald-600' : tone === 'warn' ? 'text-amber-600' : tone === 'bad' ? 'text-red-600' : 'text-[#2f2415]';
-  return <div className="rounded-2xl border border-[#eadcc2] bg-[#fffdf8] p-4"><p className="text-xs text-[#8a7456]">{statLabel}</p><p className={`mt-1 text-xl font-black ${cls}`}>{value}</p></div>;
+  const cls = tone === 'good' ? 'text-positive' : tone === 'warn' ? 'text-horizon-dark' : tone === 'bad' ? 'text-urgent' : 'text-earth';
+  return <div className="rounded-2xl border border-line bg-card p-4"><p className="text-xs text-slate">{statLabel}</p><p className={`mt-1 text-xl font-semibold ${cls}`}>{value}</p></div>;
 }
 export function Section({ icon: Icon, title, children, action }) {
-  return <section className="rounded-3xl border border-[#d6c3a0] bg-white p-5 shadow-sm"><div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between"><h2 className="flex items-center gap-2 text-lg font-black text-[#2f2415]"><Icon size={20} /> {title}</h2>{action}</div>{children}</section>;
+  return <section className="rounded-3xl border border-line bg-white p-6 shadow-card"><div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between"><h2 className="flex items-center gap-2 text-lg font-semibold text-earth"><Icon size={20} /> {title}</h2>{action}</div>{children}</section>;
 }
 export function Pill({ children, tone = 'neutral' }) {
-  const cls = tone === 'good' ? 'border-emerald-200 bg-emerald-50 text-emerald-700' : tone === 'warn' ? 'border-amber-200 bg-amber-50 text-amber-700' : tone === 'bad' ? 'border-red-200 bg-red-50 text-red-700' : 'border-[#eadcc2] bg-[#fffdf8] text-[#8a7456]';
-  return <span className={`rounded-full border px-3 py-1 text-xs font-black ${cls}`}>{children}</span>;
+  const cls = tone === 'good' ? 'border-positive bg-positive-bg text-positive' : tone === 'warn' ? 'border-vigilance bg-vigilance-bg text-horizon-dark' : tone === 'bad' ? 'border-urgent bg-urgent-bg text-urgent' : 'border-line bg-card text-slate';
+  return <span className={`rounded-full border px-3 py-1 text-xs font-semibold ${cls}`}>{children}</span>;
 }
 export function Row({ title, detail, value, tone = 'neutral', onClick, actions }) {
   return (
-    <div className="grid w-full grid-cols-1 gap-2 border-b border-[#eadcc2]/70 py-4 last:border-b-0 md:grid-cols-[260px_1fr_auto] md:items-center">
-      <button type="button" onClick={onClick} className="text-left font-black text-[#2f2415] hover:text-emerald-700">{title}</button>
-      <span className="text-sm text-[#8a7456]">{detail}</span>
+    <div className="grid w-full grid-cols-1 gap-2 border-b border-line/70 py-4 last:border-b-0 md:grid-cols-[260px_1fr_auto] md:items-center">
+      <button type="button" onClick={onClick} className="text-left font-semibold text-earth hover:text-positive">{title}</button>
+      <span className="text-sm text-slate">{detail}</span>
       <div className="flex flex-wrap items-center gap-2">{actions || <Pill tone={tone}>{value}</Pill>}</div>
     </div>
   );
 }
 export function Empty({ children }) {
-  return <div className="rounded-2xl border border-[#eadcc2] bg-[#fffdf8] p-5 text-sm text-[#8a7456]">{children}</div>;
+  return <div className="rounded-2xl border border-line bg-card p-6 text-sm text-slate">{children}</div>;
 }
 export function Btn({ children, onClick }) {
-  return <button type="button" onClick={onClick} className="rounded-xl border border-[#d6c3a0] bg-[#fffdf8] px-3 py-2 text-xs font-black text-[#2f2415] hover:bg-[#dcfce7]">{children}</button>;
+  return <button type="button" onClick={onClick} className="rounded-xl border border-line bg-card px-3 py-2 text-xs font-semibold text-earth hover:bg-positive-bg">{children}</button>;
 }
 
 export const VISION_TABLE_COLS = ['Sujet', 'Détail', 'Statut', 'Actions'];
@@ -57,20 +57,20 @@ const TABLE_GRID_3 = 'md:grid-cols-[minmax(160px,1.2fr)_minmax(200px,2fr)_auto]'
 export function TableHeader({ columns = VISION_TABLE_COLS }) {
   const gridCls = columns.length === 3 ? TABLE_GRID_3 : TABLE_GRID_4;
   return (
-    <div className={`hidden md:grid gap-3 border-b-2 border-[#d6c3a0] bg-[#fffdf8] px-4 py-2.5 text-[10px] font-black uppercase tracking-[0.14em] text-[#8a7456] ${gridCls}`}>
+    <div className={`hidden md:grid gap-3 border-b-2 border-line bg-card px-4 py-3 text-meta font-semibold uppercase tracking-normal text-slate ${gridCls}`}>
       {columns.map((col) => <span key={col}>{col}</span>)}
     </div>
   );
 }
 
 export function VisionKpi({ label, value, tone = 'neutral', detail, onClick }) {
-  const toneCls = tone === 'good' ? 'text-emerald-700' : tone === 'warn' ? 'text-amber-700' : tone === 'bad' ? 'text-red-600' : 'text-[#2f2415]';
+  const toneCls = tone === 'good' ? 'text-positive' : tone === 'warn' ? 'text-horizon-dark' : tone === 'bad' ? 'text-urgent' : 'text-earth';
   const Tag = onClick ? 'button' : 'div';
   return (
-    <Tag type={onClick ? 'button' : undefined} onClick={onClick} className={`rounded-2xl border border-[#eadcc2] bg-[#fffdf8] p-4 text-left ${onClick ? 'transition hover:border-[#c9a96a] hover:bg-white' : ''}`}>
-      <p className="text-[11px] font-bold uppercase tracking-wide text-[#8a7456]">{label}</p>
-      <p className={`mt-1 text-xl font-black ${toneCls}`}>{value}</p>
-      {detail ? <p className="mt-1 text-[10px] leading-snug text-[#8a7456]">{detail}</p> : null}
+    <Tag type={onClick ? 'button' : undefined} onClick={onClick} className={`rounded-2xl border border-line bg-card p-4 text-left ${onClick ? 'transition hover:border-horizon hover:bg-white' : ''}`}>
+      <p className="text-meta font-semibold uppercase tracking-normal text-slate">{label}</p>
+      <p className={`mt-1 text-xl font-semibold ${toneCls}`}>{value}</p>
+      {detail ? <p className="mt-1 text-meta leading-snug text-slate">{detail}</p> : null}
     </Tag>
   );
 }
@@ -78,11 +78,11 @@ export function VisionKpi({ label, value, tone = 'neutral', detail, onClick }) {
 export function DataRow({ title, detail, status, tone = 'neutral', onClick, actions, columns = 4 }) {
   const gridCls = columns === 3 ? TABLE_GRID_3 : TABLE_GRID_4;
   return (
-    <div className={`grid grid-cols-1 gap-2 border-b border-[#eadcc2]/70 px-4 py-3 last:border-b-0 ${gridCls} md:items-center`}>
-      <button type="button" onClick={onClick} className="text-left font-black text-[#2f2415] hover:text-emerald-700">{title}</button>
-      <span className="text-sm text-[#8a7456]">{detail}</span>
+    <div className={`grid grid-cols-1 gap-2 border-b border-line/70 px-4 py-3 last:border-b-0 ${gridCls} md:items-center`}>
+      <button type="button" onClick={onClick} className="text-left font-semibold text-earth hover:text-positive">{title}</button>
+      <span className="text-sm text-slate">{detail}</span>
       {columns === 4 ? (
-        <div className="flex items-center">{status ? <Pill tone={tone}>{status}</Pill> : <span className="text-xs text-[#8a7456]">—</span>}</div>
+        <div className="flex items-center">{status ? <Pill tone={tone}>{status}</Pill> : <span className="text-xs text-slate">—</span>}</div>
       ) : null}
       <div className="flex flex-wrap items-center gap-2">{actions || (columns === 3 && status ? <Pill tone={tone}>{status}</Pill> : null)}</div>
     </div>
@@ -91,7 +91,7 @@ export function DataRow({ title, detail, status, tone = 'neutral', onClick, acti
 
 export function DataTable({ columns = VISION_TABLE_COLS, children }) {
   return (
-    <div className="overflow-hidden rounded-2xl border border-[#eadcc2] bg-white">
+    <div className="overflow-hidden rounded-2xl border border-line bg-white">
       <TableHeader columns={columns} />
       <div>{children}</div>
     </div>
@@ -100,10 +100,10 @@ export function DataTable({ columns = VISION_TABLE_COLS, children }) {
 
 export function TabIntro({ title, detail, action }) {
   return (
-    <div className="flex flex-col gap-2 rounded-2xl border border-[#eadcc2] bg-[#fffdf8] px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
+    <div className="flex flex-col gap-2 rounded-2xl border border-line bg-card px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
       <div>
-        <p className="text-sm font-black text-[#2f2415]">{title}</p>
-        {detail ? <p className="mt-0.5 text-xs text-[#8a7456]">{detail}</p> : null}
+        <p className="text-sm font-semibold text-earth">{title}</p>
+        {detail ? <p className="mt-1 text-xs text-slate">{detail}</p> : null}
       </div>
       {action || null}
     </div>

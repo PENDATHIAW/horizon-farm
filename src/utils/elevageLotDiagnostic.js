@@ -19,7 +19,7 @@ function isChairLot(row = {}) {
 export function diagnoseElevageEntity(entity = {}, { lots = [], marginContext = {} } = {}) {
   const isLot = entity.initial_count != null || entity.effectif_actuel != null || isChairLot(entity) || isPondeuseLot(entity);
   let kpi;
-  let peers = [];
+  let peers;
 
   if (isLot && isChairLot(entity)) {
     kpi = buildChairKpis(entity, marginContext);

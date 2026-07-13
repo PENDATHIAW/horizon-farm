@@ -3,7 +3,11 @@ import { useMemo, useState } from 'react';
 import toast from 'react-hot-toast';
 import { fmtCurrency, toNumber } from '../utils/format';
 import { makeId } from '../utils/ids';
-import { runEquipmentBreakdownSideEffects, runEquipmentRepairSideEffects } from '../utils/equipmentSideEffects';
+import {
+  runEquipmentBreakdownSideEffects,
+  runEquipmentMaintenanceSideEffects,
+  runEquipmentRepairSideEffects,
+} from '../utils/equipmentSideEffects.js';
 import { financeIds } from '../utils/sideEffectIds';
 import { syncFinanceSideEffects } from '../services/erpInterconnectionEngine';
 import useWorkflowSubmit from '../hooks/useWorkflowSubmit';
@@ -19,22 +23,22 @@ function Modal({ title, action, rows, form, setForm, onClose, onSubmit, saving }
   const equipment = rows.find((row) => row.id === form.equipment_id);
   const set = (key, value) => setForm((prev) => ({ ...prev, [key]: value }));
   return (
-    <div className="fixed inset-0 z-[80] bg-black/40 p-4 flex items-center justify-center">
-      <div className="w-full max-w-xl rounded-2xl bg-[#fffdf8] border border-[#d6c3a0] shadow-2xl overflow-hidden">
-        <div className="p-5 border-b border-[#eadcc2] flex items-start justify-between gap-3"><div><p className="text-xs uppercase tracking-widest text-[#8a7456]">Équipements</p><h3 className="text-xl font-black text-[#2f2415]">{title}</h3>{equipment ? <p className="text-sm text-[#8a7456] mt-1">{equipmentName(equipment)} · {equipment.status || equipment.statut || 'statut non renseigné'}</p> : null}</div><button type="button" onClick={onClose} className="text-[#8a7456]"><X size={18} /></button></div>
-        <div className="p-5 grid grid-cols-1 md:grid-cols-2 gap-3"><label className="space-y-1 md:col-span-2"><span className="text-xs text-[#8a7456]">Équipement</span><select className="w-full rounded-lg border border-[#d6c3a0] bg-white px-3 py-2 text-sm" value={form.equipment_id || ''} onChange={(e) => set('equipment_id', e.target.value)}><option value="">Choisir un équipement</option>{rows.map((row) => <option key={row.id} value={row.id}>{equipmentName(row)} · {row.type || 'type non renseigné'}</option>)}</select></label>{action !== 'panne' ? <label className="space-y-1"><span className="text-xs text-[#8a7456]">Date</span><input type="date" className="w-full rounded-lg border border-[#d6c3a0] bg-white px-3 py-2 text-sm" value={form.date || today()} onChange={(e) => set('date', e.target.value)} /></label> : null}{action === 'panne' ? <label className="space-y-1"><span className="text-xs text-[#8a7456]">Priorité</span><select className="w-full rounded-lg border border-[#d6c3a0] bg-white px-3 py-2 text-sm" value={form.priority || 'critique'} onChange={(e) => set('priority', e.target.value)}><option value="critique">Critique</option><option value="haute">Haute</option><option value="moyenne">Moyenne</option></select></label> : null}{['maintenance', 'fuel', 'repair'].includes(action) ? <label className="space-y-1"><span className="text-xs text-[#8a7456]">{action === 'repair' ? 'Coût réparation' : 'Montant'}</span><input type="number" className="w-full rounded-lg border border-[#d6c3a0] bg-white px-3 py-2 text-sm" value={form.amount || ''} onChange={(e) => set('amount', e.target.value)} /></label> : null}{action === 'fuel' ? <label className="space-y-1"><span className="text-xs text-[#8a7456]">Quantité carburant</span><input type="number" className="w-full rounded-lg border border-[#d6c3a0] bg-white px-3 py-2 text-sm" value={form.quantity || ''} onChange={(e) => set('quantity', e.target.value)} /></label> : null}<label className="space-y-1 md:col-span-2"><span className="text-xs text-[#8a7456]">Notes</span><textarea rows={3} className="w-full rounded-lg border border-[#d6c3a0] bg-white px-3 py-2 text-sm" value={form.notes || ''} onChange={(e) => set('notes', e.target.value)} /></label></div>
-        <div className="p-4 border-t border-[#eadcc2] flex justify-end gap-2"><button type="button" className="px-4 py-2 rounded-xl border border-[#d6c3a0]" onClick={onClose}>Annuler</button><button type="button" disabled={saving} className="px-4 py-2 rounded-xl bg-[#c9a96a] text-white font-bold disabled:opacity-60" onClick={onSubmit}>{saving ? 'Enregistrement...' : 'Enregistrer'}</button></div>
+    <div className="fixed inset-0 z-[80] bg-earth/30 p-4 flex items-center justify-center">
+      <div className="w-full max-w-xl rounded-2xl bg-card border border-line shadow-float overflow-hidden">
+        <div className="p-6 border-b border-line flex items-start justify-between gap-3"><div><p className="text-xs uppercase tracking-normal text-slate">Équipements</p><h3 className="text-xl font-semibold text-earth">{title}</h3>{equipment ? <p className="text-sm text-slate mt-1">{equipmentName(equipment)} · {equipment.status || equipment.statut || 'statut non renseigné'}</p> : null}</div><button type="button" onClick={onClose} className="text-slate"><X size={18} /></button></div>
+        <div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-3"><label className="space-y-1 md:col-span-2"><span className="text-xs text-slate">Équipement</span><select className="w-full rounded-lg border border-line bg-white px-3 py-2 text-sm" value={form.equipment_id || ''} onChange={(e) => set('equipment_id', e.target.value)}><option value="">Choisir un équipement</option>{rows.map((row) => <option key={row.id} value={row.id}>{equipmentName(row)} · {row.type || 'type non renseigné'}</option>)}</select></label>{action !== 'panne' ? <label className="space-y-1"><span className="text-xs text-slate">Date</span><input required type="date" className="w-full rounded-lg border border-line bg-white px-3 py-2 text-sm" value={form.date || today()} onChange={(e) => set('date', e.target.value)} /></label> : null}{action === 'panne' ? <label className="space-y-1"><span className="text-xs text-slate">Priorité</span><select className="w-full rounded-lg border border-line bg-white px-3 py-2 text-sm" value={form.priority || 'critique'} onChange={(e) => set('priority', e.target.value)}><option value="critique">Critique</option><option value="haute">Haute</option><option value="moyenne">Moyenne</option></select></label> : null}{action === 'maintenance' ? <label className="space-y-1"><span className="text-xs text-slate">Type de maintenance</span><select required className="w-full rounded-lg border border-line bg-white px-3 py-2 text-sm" value={form.maintenance_type || 'preventive'} onChange={(e) => set('maintenance_type', e.target.value)}><option value="preventive">Préventive</option><option value="corrective">Corrective</option><option value="inspection">Inspection</option></select></label> : null}{['maintenance', 'fuel', 'repair'].includes(action) ? <label className="space-y-1"><span className="text-xs text-slate">{action === 'repair' ? 'Coût lu dans Finance' : 'Montant'}</span><input type="number" min="0" className="w-full rounded-lg border border-line bg-white px-3 py-2 text-sm" value={form.amount || ''} onChange={(e) => set('amount', e.target.value)} /></label> : null}{['maintenance', 'repair'].includes(action) ? <label className="space-y-1"><span className="text-xs text-slate">Responsable</span><input required className="w-full rounded-lg border border-line bg-white px-3 py-2 text-sm" value={form.responsible || ''} onChange={(e) => set('responsible', e.target.value)} /></label> : null}{action === 'maintenance' ? <label className="space-y-1"><span className="text-xs text-slate">Prochaine maintenance</span><input type="date" className="w-full rounded-lg border border-line bg-white px-3 py-2 text-sm" value={form.next_maintenance_date || ''} onChange={(e) => set('next_maintenance_date', e.target.value)} /></label> : null}{action === 'fuel' ? <label className="space-y-1"><span className="text-xs text-slate">Quantité carburant</span><input type="number" className="w-full rounded-lg border border-line bg-white px-3 py-2 text-sm" value={form.quantity || ''} onChange={(e) => set('quantity', e.target.value)} /></label> : null}<label className="space-y-1 md:col-span-2"><span className="text-xs text-slate">{action === 'repair' ? 'Résultat de la réparation' : 'Notes'}</span><textarea rows={3} className="w-full rounded-lg border border-line bg-white px-3 py-2 text-sm" value={action === 'repair' ? form.result || '' : form.notes || ''} onChange={(e) => set(action === 'repair' ? 'result' : 'notes', e.target.value)} /></label>{action === 'repair' ? <label className="flex items-center gap-2 md:col-span-2 text-sm font-semibold text-earth"><input type="checkbox" checked={Boolean(form.validated)} onChange={(e) => set('validated', e.target.checked)} /> Je valide la remise en service après contrôle</label> : null}</div>
+        <div className="p-4 border-t border-line flex justify-end gap-2"><button type="button" className="px-4 py-2 rounded-xl border border-line" onClick={onClose}>Annuler</button><button type="button" disabled={saving} className="px-4 py-2 rounded-xl bg-horizon text-white font-semibold disabled:opacity-60" onClick={onSubmit}>{saving ? 'Enregistrement...' : 'Enregistrer'}</button></div>
       </div>
     </div>
   );
 }
 
-export default function EquipementsQuickActionsBridge({ rows = [], tasks = [], alertes = [], onUpdate, onRefresh, onCreateTask, onUpdateTask, onRefreshTasks, onCreateAlert, onUpdateAlert, onRefreshAlertes, onCreateFinanceTransaction, onRefreshFinances, onCreateDocument, onRefreshDocuments, onCreateBusinessEvent, onRefreshBusinessEvents }) {
+export default function EquipementsQuickActionsBridge({ rows = [], tasks = [], alertes = [], transactions = [], documents = [], businessEvents = [], allowedActions = ['panne', 'maintenance', 'repair', 'fuel'], onUpdate, onRefresh, onCreateTask, onUpdateTask, onRefreshTasks, onCreateAlert, onUpdateAlert, onRefreshAlertes, onCreateFinanceTransaction, onRefreshFinances, onCreateDocument, onRefreshDocuments, onCreateBusinessEvent, onRefreshBusinessEvents }) {
   const [action, setAction] = useState('');
   const [form, setForm] = useState({});
   const { submit: workflowSubmit, busy: workflowBusy } = useWorkflowSubmit();
   const usableRows = useMemo(() => arr(rows).filter((row) => row?.id && (activeStatuses.has(clean(row.status || row.statut)) || !row.status)), [rows]);
-  const open = (kind) => { setAction(kind); setForm({ equipment_id: usableRows[0]?.id || '', date: today(), priority: kind === 'panne' ? 'critique' : 'haute' }); };
+  const open = (kind) => { setAction(kind); setForm({ equipment_id: usableRows[0]?.id || '', date: today(), priority: kind === 'panne' ? 'critique' : 'haute', maintenance_type: 'preventive' }); };
   const close = () => { setAction(''); setForm({}); };
   const selected = usableRows.find((row) => row.id === form.equipment_id);
 
@@ -55,14 +59,27 @@ export default function EquipementsQuickActionsBridge({ rows = [], tasks = [], a
         toast.success('Panne déclarée');
       }
       if (action === 'maintenance') {
-        const trxId = amount > 0 ? financeIds.equipment(selected.id, 'maint') : '';
-        await onUpdate?.(selected.id, { status: 'maintenance', statut: 'maintenance', maintenance_due: form.date || today(), maintenance_cost: amount, cout_maintenance: amount, maintenance_status: 'a_preparer', last_maintenance_transaction_id: trxId, notes: form.notes || selected.notes || '', side_effects_managed: true });
-        if (amount > 0) {
-          const financeRow = { id: trxId, type: 'sortie', libelle: `Maintenance ${equipmentName(selected)}`, montant: amount, date: form.date || today(), categorie: 'Maintenance équipements', module_lie: 'equipements', related_id: selected.id, source_module: 'equipements', source_record_id: selected.id, statut: 'paye', side_effects_managed: true, created_from: 'equipment_side_effects' };
-          await onCreateFinanceTransaction?.(financeRow);
-          await syncFinanceSideEffects(financeRow, { handlers: { onCreateFinanceTransaction } });
-        }
-        await onCreateBusinessEvent?.({ id: makeId('EVT'), event_type: 'maintenance_equipement_programmee', module_source: 'equipements', entity_type: 'equipement', entity_id: selected.id, title: `Maintenance ${equipmentName(selected)}`, description: amount > 0 ? fmtCurrency(amount) : form.notes || '', event_date: form.date || today(), severity: 'warning', linked_transaction_id: trxId, saisies_evitees: amount > 0 ? 2 : 1, side_effects_managed: true });
+        await runEquipmentMaintenanceSideEffects({
+          equipment: selected,
+          date: form.date || today(),
+          maintenanceType: form.maintenance_type || 'preventive',
+          responsible: form.responsible || '',
+          cost: amount,
+          notes: form.notes || '',
+          nextMaintenanceDate: form.next_maintenance_date || '',
+          tasks,
+          transactions,
+          handlers: {
+            onUpdateEquipment: onUpdate,
+            onCreateTask,
+            onUpdateTask,
+            onCreateFinanceTransaction,
+            onCreateDocument,
+            onCreateBusinessEvent,
+            existingDocuments: documents,
+            existingBusinessEvents: businessEvents,
+          },
+        });
         toast.success(amount > 0 ? 'Maintenance enregistrée en Finance' : 'Maintenance programmée');
       }
       if (action === 'fuel') {
@@ -78,12 +95,14 @@ export default function EquipementsQuickActionsBridge({ rows = [], tasks = [], a
         await runEquipmentRepairSideEffects({
           equipment: selected,
           cost: amount,
-          note: form.notes || '',
+          result: form.result || '',
+          responsible: form.responsible || '',
+          validated: Boolean(form.validated),
           date: form.date || today(),
           tasks,
           alertes,
-          transactions: [],
-          handlers: { onUpdateEquipment: onUpdate, onUpdateTask, onUpdateAlert, onCreateFinanceTransaction, onCreateDocument, onCreateBusinessEvent },
+          transactions,
+          handlers: { onUpdateEquipment: onUpdate, onUpdateTask, onUpdateAlert, onCreateFinanceTransaction, onCreateDocument, onCreateBusinessEvent, existingDocuments: documents },
         });
         toast.success('Réparation clôturée');
       }
@@ -93,10 +112,10 @@ export default function EquipementsQuickActionsBridge({ rows = [], tasks = [], a
   };
 
   return (
-    <div className="rounded-2xl border border-[#d6c3a0] bg-white p-5 space-y-4">
+    <div className="rounded-2xl border border-line bg-white p-6 space-y-4">
       {action ? <Modal title={action === 'panne' ? 'Déclarer une panne' : action === 'maintenance' ? 'Programmer une maintenance' : action === 'repair' ? 'Marquer réparé' : 'Saisir carburant'} action={action} rows={usableRows} form={form} setForm={setForm} onClose={close} onSubmit={submit} saving={workflowBusy} /> : null}
-      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3"><div><p className="text-xs uppercase tracking-widest text-[#8a7456]">Actions rapides</p><h3 className="font-black text-[#2f2415]">Équipements</h3><p className="text-sm text-[#8a7456] mt-1">Déclarer un événement sans modifier toute la fiche.</p></div><div className="rounded-xl border border-[#eadcc2] bg-[#fffdf8] px-3 py-2 text-sm text-[#7d6a4a]">{usableRows.length} équipement(s)</div></div>
-      {usableRows.length ? <div className="grid grid-cols-1 md:grid-cols-4 gap-2"><button type="button" className="rounded-xl border border-red-200 bg-red-50 p-3 text-left text-red-700" onClick={() => open('panne')}><AlertTriangle size={16} /> <b className="block mt-1">Déclarer panne</b><span className="text-xs">Tâche + alerte + trace</span></button><button type="button" className="rounded-xl border border-amber-200 bg-amber-50 p-3 text-left text-amber-700" onClick={() => open('maintenance')}><Wrench size={16} /> <b className="block mt-1">Programmer maintenance</b><span className="text-xs">Date + coût + Finance</span></button><button type="button" className="rounded-xl border border-emerald-200 bg-emerald-50 p-3 text-left text-emerald-700" onClick={() => open('repair')}><Wrench size={16} /> <b className="block mt-1">Marquer réparé</b><span className="text-xs">Clôture + preuve</span></button><button type="button" className="rounded-xl border border-emerald-200 bg-emerald-50 p-3 text-left text-emerald-700" onClick={() => open('fuel')}><Fuel size={16} /> <b className="block mt-1">Saisir carburant</b><span className="text-xs">Finance + coût équipement</span></button></div> : <div className="rounded-xl border border-[#eadcc2] bg-[#fffdf8] p-3 text-sm text-[#8a7456]">Aucun équipement disponible.</div>}
+      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3"><div><p className="text-xs uppercase tracking-normal text-slate">Actions rapides</p><h3 className="font-semibold text-earth">Équipements</h3><p className="text-sm text-slate mt-1">Déclarer un événement sans modifier toute la fiche.</p></div><div className="rounded-xl border border-line bg-card px-3 py-2 text-sm text-slate">{usableRows.length} équipement(s)</div></div>
+      {usableRows.length ? <div className="grid grid-cols-1 md:grid-cols-4 gap-2">{allowedActions.includes('panne') ? <button type="button" className="rounded-xl border border-urgent bg-urgent-bg p-3 text-left text-urgent" onClick={() => open('panne')}><AlertTriangle size={16} /> <b className="block mt-1">Déclarer panne</b><span className="text-xs">Tâche + alerte + indisponibilité</span></button> : null}{allowedActions.includes('maintenance') ? <button type="button" className="rounded-xl border border-vigilance bg-vigilance-bg p-3 text-left text-horizon-dark" onClick={() => open('maintenance')}><Wrench size={16} /> <b className="block mt-1">Programmer maintenance</b><span className="text-xs">Date + dépense Finance</span></button> : null}{allowedActions.includes('repair') ? <button type="button" className="rounded-xl border border-positive bg-positive-bg p-3 text-left text-positive" onClick={() => open('repair')}><Wrench size={16} /> <b className="block mt-1">Remettre en service</b><span className="text-xs">Validation + résultat + responsable</span></button> : null}{allowedActions.includes('fuel') ? <button type="button" className="rounded-xl border border-positive bg-positive-bg p-3 text-left text-positive" onClick={() => open('fuel')}><Fuel size={16} /> <b className="block mt-1">Saisir carburant</b><span className="text-xs">Dépense dans Finance</span></button> : null}</div> : <div className="rounded-xl border border-line bg-card p-3 text-sm text-slate">Aucun équipement disponible.</div>}
     </div>
   );
 }

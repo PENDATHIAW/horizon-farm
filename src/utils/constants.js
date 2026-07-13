@@ -56,6 +56,7 @@
   sensor_readings: { label: 'Mesures capteurs', table: 'sensor_readings', idField: 'id', idPrefix: 'READ' },
   camera_devices: { label: 'Cameras', table: 'camera_devices', idField: 'id', idPrefix: 'CAM' },
   smartfarm_events: { label: 'Evenements Smart Farm', table: 'smartfarm_events', idField: 'id', idPrefix: 'SFEV' },
+  planning_simulations: { label: 'Simulations de planification', table: 'planning_simulations', idField: 'id', idPrefix: 'PLAN' },
 };
 
 export const MODULE_FORM_FIELDS = {

@@ -263,7 +263,6 @@ function buildFounderJourney(profile) {
 
 function buildWhyHorizonFarm(profile) {
   const probleme = whyCard(profile, 'probleme')?.body;
-  const marche = whyCard(profile, 'marche')?.body;
   const diff = whyCard(profile, 'differentiation')?.body;
   const location = pick(profile.projectSummary?.location, 'Sénégal');
   return sanitizeInstitutionalText([
@@ -291,9 +290,9 @@ function buildWhyFinance(profile, audience) {
     'Pourquoi le projet est crédible',
     'Horizon Farm s\'appuie sur un business plan structuré, des cycles de production connus (pondeuses, chair ~40 jours, bovins ~90 jours) et une stratégie commerciale orientée marchés locaux. Les besoins de financement sont ventilés par poste et alignés sur des devis ou hypothèses documentées.',
     'Pourquoi la fondatrice est crédible',
-    `${founder} a quitté un parcours professionnel solide pour se consacrer pleinement à ce projet. Elle en est la porteuse, la coordinatrice et la garante de l\'exécution. Son sérieux et sa capacité de reporting sont des atouts directs pour un financeur.`,
+    `${founder} a quitté un parcours professionnel solide pour se consacrer pleinement à ce projet. Elle en est la porteuse, la coordinatrice et la garante de l'exécution. Son sérieux et sa capacité de reporting sont des atouts directs pour un financeur.`,
     'Pourquoi le marché existe',
-    marche || 'La consommation d\'œufs, de volaille et de viande bovine progresse avec l\'urbanisation et la restauration locale. Les débouchés ne sont pas théoriques : ménages, revendeurs, restaurants et marchés de proximité constituent un réservoir de demande régulier.',
+    marche || "La consommation d'œufs, de volaille et de viande bovine progresse avec l'urbanisation et la restauration locale. Les débouchés ne sont pas théoriques : ménages, revendeurs, restaurants et marchés de proximité constituent un réservoir de demande régulier.",
     'Pourquoi le projet mérite un accompagnement',
     amount
       ? `Un financement de ${amount} permettrait de sécuriser les actifs productifs, le stock de démarrage et la trésorerie nécessaire aux premiers cycles — phase où le risque est le plus élevé sans apui externe.`

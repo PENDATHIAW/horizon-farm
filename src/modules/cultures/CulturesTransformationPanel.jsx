@@ -15,9 +15,9 @@ const isHarvestStock = (row = {}) => {
 };
 
 function Field({ label, children }) {
-  return <label className="block text-sm"><span className="mb-1 block text-xs font-bold text-[#8a7456]">{label}</span>{children}</label>;
+  return <label className="block text-sm"><span className="mb-1 block text-xs font-semibold text-slate">{label}</span>{children}</label>;
 }
-const inputCls = 'w-full rounded-xl border border-[#eadcc2] bg-white px-3 py-2 text-sm text-[#2f2415]';
+const inputCls = 'w-full rounded-xl border border-line bg-white px-3 py-2 text-sm text-earth';
 
 export default function CulturesTransformationPanel({ stocks = [], context, handlers, onSuccess }) {
   const sourceStocks = useMemo(() => stocks.filter((row) => stockQty(row) > 0 && isHarvestStock(row)), [stocks]);
@@ -63,17 +63,17 @@ export default function CulturesTransformationPanel({ stocks = [], context, hand
   };
 
   return (
-    <section className="rounded-3xl border border-[#d6c3a0] bg-white p-5 shadow-sm space-y-4">
+    <section className="rounded-3xl border border-line bg-white p-6 shadow-card space-y-4">
       <div>
-        <p className="flex items-center gap-2 text-lg font-black text-[#2f2415]"><Factory size={20} /> Transformation</p>
-        <p className="mt-1 text-sm text-[#8a7456]">Sortie matière première récoltée, entrée produit transformé, coût transformation → Finance.</p>
+        <p className="flex items-center gap-2 text-lg font-semibold text-earth"><Factory size={20} /> Transformation</p>
+        <p className="mt-1 text-sm text-slate">Sortie matière première récoltée, entrée produit transformé, coût transformation → Finance.</p>
       </div>
       {!sourceStocks.length ? (
-        <p className="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
+        <p className="rounded-2xl border border-vigilance bg-vigilance-bg p-4 text-sm text-horizon-dark">
           Aucun stock récolte disponible. Enregistrez d&apos;abord une récolte dans le panneau ci-dessus.
         </p>
       ) : (
-        <form onSubmit={submit} className="grid grid-cols-1 gap-3 md:grid-cols-6 xl:grid-cols-12 rounded-2xl border border-[#eadcc2] bg-[#fffdf8] p-4">
+        <form onSubmit={submit} className="grid grid-cols-1 gap-3 md:grid-cols-6 xl:grid-cols-12 rounded-2xl border border-line bg-card p-4">
           <div className="md:col-span-2">
             <Field label="Matière première (stock)">
               <select className={inputCls} value={form.source_stock_id} onChange={(e) => update('source_stock_id', e.target.value)} required>
@@ -91,11 +91,11 @@ export default function CulturesTransformationPanel({ stocks = [], context, hand
           <div className="md:col-span-1"><Field label="Coût transformation"><input type="number" className={inputCls} value={form.cout_transformation} onChange={(e) => update('cout_transformation', e.target.value)} /></Field></div>
           <div className="md:col-span-1"><Field label="Prix vente / u."><input type="number" className={inputCls} value={form.prix_vente_unitaire} onChange={(e) => update('prix_vente_unitaire', e.target.value)} /></Field></div>
           <div className="md:col-span-1"><Field label="Date"><input type="date" className={inputCls} value={form.date} onChange={(e) => update('date', e.target.value)} /></Field></div>
-          <div className="md:col-span-2 flex items-end"><button type="submit" disabled={busy} className="w-full rounded-xl bg-[#2f2415] px-4 py-2 text-sm font-bold text-white disabled:opacity-50">{busy ? '…' : 'Transformer'}</button></div>
+          <div className="md:col-span-2 flex items-end"><button type="submit" disabled={busy} className="w-full rounded-xl bg-earth px-4 py-2 text-sm font-semibold text-white disabled:opacity-50">{busy ? '…' : 'Transformer'}</button></div>
         </form>
       )}
       {sourceStocks.length ? (
-        <p className="text-sm text-[#7d6a4a]">Coût de revient estimé produit fini : <b>{unitCost ? fmtCurrency(unitCost) : '—'}</b> / {form.unite_produit_fini || 'kg'}</p>
+        <p className="text-sm text-slate">Coût de revient estimé produit fini : <b>{unitCost ? fmtCurrency(unitCost) : '—'}</b> / {form.unite_produit_fini || 'kg'}</p>
       ) : null}
     </section>
   );

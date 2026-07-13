@@ -3,13 +3,13 @@
  */
 
 import { buildConsolidatedCommercialKpis } from '../utils/commercialKpiConsolidated.js';
-import { receivableFromOrders, collectedFromOrders, enrichCommercialOrders } from '../modules/commercial/commercialMetrics.js';
+import {  enrichCommercialOrders } from '../modules/commercial/commercialMetrics.js';
 import { remainingForOrder } from '../utils/salesStatuses.js';
 import { summarizeSalesMargins } from '../utils/salesMarginEngine.js';
 import { buildCommercialRelanceRows } from '../utils/commercialRelances.js';
 import { buildAutoCommercialOpportunities } from '../utils/commercialAutoOpportunities.js';
 import { buildCommercialPilotageBundle } from '../utils/commercialPilotageMetrics.js';
-import { buildClientSegment } from './clientSegmentationEngine.js';
+
 import { fmtCurrency } from '../utils/format.js';
 import {
   buildCommercialAnswerPayload,

@@ -6,6 +6,7 @@ import {
   TREASURY_ACCOUNTS_SEED,
   buildDraftEntryFromTransaction,
 } from '../utils/accounting';
+import { withFarmId } from '../utils/farmScopePayload.js';
 
 const arr = (value) => Array.isArray(value) ? value : [];
 const now = () => new Date().toISOString();
@@ -29,7 +30,7 @@ const safeSelect = async (table) => {
 
 const safeUpsertMany = async (table, rows) => {
   if (!rows?.length) return [];
-  const { data, error } = await supabase.from(table).upsert(rows, { onConflict: 'id' }).select('*');
+  const { data, error } = await supabase.from(table).upsert(withFarmId(table, rows), { onConflict: 'id' }).select('*');
   if (error) {
     console.warn(`Initialisation ${table} ignorée`, error.message);
     return [];
@@ -39,7 +40,7 @@ const safeUpsertMany = async (table, rows) => {
 
 const safeInsertMany = async (table, rows, message = 'Création comptable impossible') => {
   if (!rows?.length) return [];
-  const { data, error } = await supabase.from(table).insert(rows).select('*');
+  const { data, error } = await supabase.from(table).insert(withFarmId(table, rows)).select('*');
   if (error) throw businessError(message, error);
   return data || [];
 };
@@ -177,8 +178,8 @@ export const comptabiliteService = {
       return { entry: existing, lines: await findEntryLines(existing.id), reused: true };
     }
 
-    const entryPayload = existing?.id ? { ...draft.entry, id: existing.id, status: existing.status || 'brouillon' } : draft.entry;
-    const linesPayload = draft.lines.map((line) => ({ ...line, entry_id: entryPayload.id, id: line.id.replace(draft.entry.id, entryPayload.id) }));
+    const entryPayload = withFarmId('accounting_entries', existing?.id ? { ...draft.entry, id: existing.id, status: existing.status || 'brouillon' } : draft.entry);
+    const linesPayload = withFarmId('accounting_entry_lines', draft.lines.map((line) => ({ ...line, entry_id: entryPayload.id, id: line.id.replace(draft.entry.id, entryPayload.id) })));
 
     const { data: entry, error: entryError } = await supabase
       .from('accounting_entries')
@@ -236,9 +237,10 @@ export const comptabiliteService = {
   },
 
   async createBudget(payload) {
-    const { data, error } = await supabase.from('accounting_budgets').insert(payload).select('*').limit(1);
+    const scopedPayload = withFarmId('accounting_budgets', payload);
+    const { data, error } = await supabase.from('accounting_budgets').insert(scopedPayload).select('*').limit(1);
     if (error) throw businessError('Budget impossible', error);
-    return arr(data)[0] || payload;
+    return arr(data)[0] || scopedPayload;
   },
 
   async updateBudget(id, payload) {
@@ -248,14 +250,16 @@ export const comptabiliteService = {
   },
 
   async createClosure(payload) {
-    const { data, error } = await supabase.from('accounting_closures').insert(payload).select('*').limit(1);
+    const scopedPayload = withFarmId('accounting_closures', payload);
+    const { data, error } = await supabase.from('accounting_closures').insert(scopedPayload).select('*').limit(1);
     if (error) throw businessError('Clôture impossible', error);
-    return arr(data)[0] || payload;
+    return arr(data)[0] || scopedPayload;
   },
 
   async uploadDocument(payload) {
-    const { data, error } = await supabase.from('accounting_documents').insert(payload).select('*').limit(1);
+    const scopedPayload = withFarmId('accounting_documents', payload);
+    const { data, error } = await supabase.from('accounting_documents').insert(scopedPayload).select('*').limit(1);
     if (error) throw businessError('Justificatif impossible', error);
-    return arr(data)[0] || payload;
+    return arr(data)[0] || scopedPayload;
   },
 };

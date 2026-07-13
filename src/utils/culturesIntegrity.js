@@ -3,7 +3,7 @@
  */
 
 import { toNumber } from './format.js';
-import { cultureStockKey, findCultureStock } from './cultureWorkflows.js';
+
 import { buildCultureIssueKey, CULTURE_DOMAINS } from './culturesWorkflow.js';
 
 const arr = (value) => (Array.isArray(value) ? value : []);
@@ -26,7 +26,6 @@ export function buildCulturesGapRows({
   businessEvents = [],
   transactions = [],
   salesOrders = [],
-  payments = [],
 } = {}) {
   const gaps = [];
   const push = (row) => gaps.push({ severity: 'warning', ...row });

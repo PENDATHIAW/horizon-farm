@@ -9,7 +9,7 @@ import {
   buildCycleAlertsForPanel,
   buildCycleV1Kpis,
 } from '../../utils/cycleMetrics.js';
-import { buildCycleOverview, daysUntil, mortalityRate } from './cycleSummary.js';
+import {  daysUntil, mortalityRate } from './cycleSummary.js';
 import { ELEVAGE_ACTION_GRID, ELEVAGE_STAT_GRID, ElevageActionCard, ElevageSection, ElevageStatCard } from './elevageUi.jsx';
 import { isAllFarmsScope } from '../../utils/farmScope.js';
 
@@ -23,26 +23,26 @@ const TYPE_META = {
 
 function CycleStatusBadge({ targetDate }) {
   const days = daysUntil(targetDate);
-  if (days == null) return <span className="rounded-full bg-sky-100 px-2 py-0.5 text-xs font-black text-sky-800">À planifier</span>;
-  if (days < 0) return <span className="rounded-full bg-red-100 px-2 py-0.5 text-xs font-black text-red-800">En retard ({Math.abs(days)} j)</span>;
-  if (days <= 10) return <span className="rounded-full bg-amber-100 px-2 py-0.5 text-xs font-black text-amber-800">Dans {days} j</span>;
-  return <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-xs font-black text-emerald-700">Dans {days} j</span>;
+  if (days == null) return <span className="rounded-full bg-neutral-bg px-2 py-1 text-xs font-semibold text-neutral">À planifier</span>;
+  if (days < 0) return <span className="rounded-full bg-urgent-bg px-2 py-1 text-xs font-semibold text-urgent">En retard ({Math.abs(days)} j)</span>;
+  if (days <= 10) return <span className="rounded-full bg-vigilance-bg px-2 py-1 text-xs font-semibold text-horizon-dark">Dans {days} j</span>;
+  return <span className="rounded-full bg-positive-bg px-2 py-1 text-xs font-semibold text-positive">Dans {days} j</span>;
 }
 
 function FarmScopeBadge({ farmScopeLabel = '', farmScope = {}, farmFiltered = false }) {
   const allFarms = isAllFarmsScope(farmScope);
   return (
     <div className="flex flex-wrap items-center gap-2">
-      <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-300 bg-emerald-50 px-3 py-1 text-xs font-black text-emerald-900">
+      <span className="inline-flex items-center gap-2 rounded-full border border-positive bg-positive-bg px-3 py-1 text-xs font-semibold text-positive">
         <Building2 size={13} aria-hidden="true" />
         {farmScopeLabel || (allFarms ? 'Toutes les fermes' : 'Ferme active')}
       </span>
       {allFarms ? (
-        <span className="text-xs text-[#8a7456]">Vue consolidée — stratégie groupe via Centre décisionnel.</span>
+        <span className="text-xs text-slate">Vue consolidée — stratégie groupe via Centre décisionnel.</span>
       ) : farmFiltered ? (
-        <span className="text-xs text-[#8a7456]">Données filtrées pour la ferme sélectionnée.</span>
+        <span className="text-xs text-slate">Données filtrées pour la ferme sélectionnée.</span>
       ) : (
-        <span className="text-xs text-amber-800">Filtre ferme non actif — vérifiez le sélecteur global.</span>
+        <span className="text-xs text-horizon-dark">Filtre ferme non actif — vérifiez le sélecteur global.</span>
       )}
     </div>
   );
@@ -51,23 +51,23 @@ function FarmScopeBadge({ farmScopeLabel = '', farmScope = {}, farmFiltered = fa
 function PriorityTable({ rows, setTab }) {
   if (!rows.length) {
     return (
-      <div className="rounded-2xl border border-dashed border-[#d6c3a0] bg-[#fffdf8] p-6 text-center text-sm text-[#8a7456]">
+      <div className="rounded-2xl border border-dashed border-line bg-card p-6 text-center text-sm text-slate">
         Aucun cycle calculé pour l&apos;instant. Ajoutez des lots ou animaux avec une <b>date d&apos;entrée</b> pour voir les ventes J+40 / J+90 et la surveillance pondeuse.
       </div>
     );
   }
 
   return (
-    <div className="overflow-x-auto rounded-2xl border border-[#eadcc2] bg-[#fffdf8]">
+    <div className="overflow-x-auto rounded-2xl border border-line bg-card">
       <table className="min-w-full text-sm">
-        <thead className="bg-[#2f2415] text-white">
+        <thead className="bg-earth text-white">
           <tr>
-            <th className="px-3 py-2.5 text-left font-black">Entité / cycle</th>
-            <th className="px-3 py-2.5 text-left font-black">Entrée</th>
-            <th className="px-3 py-2.5 text-left font-black">Date cible</th>
-            <th className="px-3 py-2.5 text-right font-black">Qté</th>
-            <th className="px-3 py-2.5 text-left font-black">Action</th>
-            <th className="px-3 py-2.5 text-left font-black">Statut</th>
+            <th className="px-3 py-3 text-left font-semibold">Entité / cycle</th>
+            <th className="px-3 py-3 text-left font-semibold">Entrée</th>
+            <th className="px-3 py-3 text-left font-semibold">Date cible</th>
+            <th className="px-3 py-3 text-right font-semibold">Qté</th>
+            <th className="px-3 py-3 text-left font-semibold">Action</th>
+            <th className="px-3 py-3 text-left font-semibold">Statut</th>
           </tr>
         </thead>
         <tbody>
@@ -75,24 +75,24 @@ function PriorityTable({ rows, setTab }) {
             const meta = TYPE_META[row.type] || TYPE_META.chair;
             const Icon = meta.icon;
             return (
-              <tr key={`${row.id || row.label}-${row.targetDate}-${idx}`} className="border-t border-[#eadcc2]">
-                <td className="px-3 py-2.5 min-w-0">
+              <tr key={`${row.id || row.label}-${row.targetDate}-${idx}`} className="border-t border-line">
+                <td className="px-3 py-3 min-w-0">
                   <div className="flex items-start gap-2 min-w-0">
-                    <Icon size={15} className="mt-0.5 shrink-0 text-[#9a6b12]" aria-hidden="true" />
+                    <Icon size={15} className="mt-1 shrink-0 text-horizon-dark" aria-hidden="true" />
                     <div className="min-w-0">
-                      <b className="block text-[#2f2415] break-words">{row.label}</b>
-                      <p className="text-xs text-[#8a7456]">{meta.label} · J+{row.cycleDays}</p>
+                      <b className="block text-earth break-words">{row.label}</b>
+                      <p className="text-xs text-slate">{meta.label} · J+{row.cycleDays}</p>
                     </div>
                   </div>
                 </td>
-                <td className="px-3 py-2.5 text-[#7d6a4a] whitespace-nowrap">{row.startDate || '—'}</td>
-                <td className="px-3 py-2.5 font-black text-[#9a6b12] whitespace-nowrap">{row.targetDate || '—'}</td>
-                <td className="px-3 py-2.5 text-right font-black text-[#2f2415] whitespace-nowrap">{fmtNumber(row.quantity || 0)}</td>
-                <td className="px-3 py-2.5 text-xs text-[#7d6a4a] break-words max-w-[12rem]">{meta.action}</td>
-                <td className="px-3 py-2.5 whitespace-nowrap">
+                <td className="px-3 py-3 text-slate whitespace-nowrap">{row.startDate || '—'}</td>
+                <td className="px-3 py-3 font-semibold text-horizon-dark whitespace-nowrap">{row.targetDate || '—'}</td>
+                <td className="px-3 py-3 text-right font-semibold text-earth whitespace-nowrap">{fmtNumber(row.quantity || 0)}</td>
+                <td className="px-3 py-3 text-xs text-slate break-words max-w-[12rem]">{meta.action}</td>
+                <td className="px-3 py-3 whitespace-nowrap">
                   <CycleStatusBadge targetDate={row.targetDate} />
                   {setTab ? (
-                    <button type="button" onClick={() => setTab(meta.tab)} className="ml-2 text-[11px] font-black text-[#9a6b12] underline">
+                    <button type="button" onClick={() => setTab(meta.tab)} className="ml-2 text-meta font-semibold text-horizon-dark underline">
                       Ouvrir
                     </button>
                   ) : null}
@@ -109,7 +109,7 @@ function PriorityTable({ rows, setTab }) {
 function CycleAlertsList({ alerts = [], onNavigate }) {
   if (!alerts.length) {
     return (
-      <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-800">
+      <div className="rounded-2xl border border-positive bg-positive-bg p-4 text-sm text-positive">
         <CheckCircle2 size={15} className="inline mr-1" aria-hidden="true" />
         Aucune alerte cycle urgente — les rappels J+40 / J+90 sont synchronisés avec le centre Alertes.
       </div>
@@ -120,9 +120,9 @@ function CycleAlertsList({ alerts = [], onNavigate }) {
       {alerts.slice(0, 8).map((alert) => (
         <div
           key={alert.id || alert.title}
-          className={`rounded-xl border p-3 text-sm ${alert.severity === 'critique' ? 'border-red-200 bg-red-50 text-red-900' : 'border-amber-200 bg-amber-50 text-amber-900'}`}
+          className={`rounded-xl border p-3 text-sm ${alert.severity === 'critique' ? 'border-urgent bg-urgent-bg text-urgent' : 'border-vigilance bg-vigilance-bg text-horizon-dark'}`}
         >
-          <p className="font-black">{alert.title}</p>
+          <p className="font-semibold">{alert.title}</p>
           <p className="mt-1 text-xs leading-relaxed">{alert.message}</p>
         </div>
       ))}
@@ -130,7 +130,7 @@ function CycleAlertsList({ alerts = [], onNavigate }) {
         <button
           type="button"
           onClick={() => onNavigate('activite_suivi', { tab: 'Alertes' })}
-          className="text-xs font-black text-[#9a6b12] underline"
+          className="text-xs font-semibold text-horizon-dark underline"
         >
           Ouvrir toutes les alertes ERP →
         </button>
@@ -181,8 +181,6 @@ export default function ElevageCyclesPanel({
   const {
     activeAnimals,
     activeLots,
-    layers,
-    broilers,
     priorityRows,
     mortalityAlerts,
     warningCount,
@@ -224,7 +222,7 @@ export default function ElevageCyclesPanel({
   }, [initialProductionQuestion]);
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-6">
       <ElevageSection
         title="Cycles & bandes"
         subtitle={`Centre opérationnel — chair J+${cycleDays.chair}, bovins J+${cycleDays.bovins}, réforme pondeuses J+${cycleDays.pondeusesReformWatch}. Stratégie marché : Centre décisionnel.`}
@@ -233,12 +231,12 @@ export default function ElevageCyclesPanel({
 
         <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between mt-3">
           {warningCount ? (
-            <div className="rounded-2xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800">
+            <div className="rounded-2xl border border-vigilance bg-vigilance-bg p-3 text-sm text-horizon-dark">
               <AlertTriangle size={15} className="inline mr-1" aria-hidden="true" />
               {warningCount} point(s) cycle à traiter (retards, échéances ≤10 j, mortalité élevée).
             </div>
           ) : (
-            <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-800">
+            <div className="rounded-2xl border border-positive bg-positive-bg p-3 text-sm text-positive">
               <CheckCircle2 size={15} className="inline mr-1" aria-hidden="true" />
               Calendrier maîtrisé — aucune échéance urgente.
             </div>
@@ -247,7 +245,7 @@ export default function ElevageCyclesPanel({
             <button
               type="button"
               onClick={() => onNavigate('centre_ia', { tab: 'Saisons & marchés' })}
-              className="shrink-0 rounded-xl border border-[#d6c3a0] bg-[#fffdf8] px-3 py-2 text-xs font-black text-[#2f2415] hover:bg-[#dcfce7]"
+              className="shrink-0 rounded-xl border border-line bg-card px-3 py-2 text-xs font-semibold text-earth hover:bg-positive-bg"
             >
               Centre décisionnel → Saisons & marchés
             </button>
@@ -275,8 +273,8 @@ export default function ElevageCyclesPanel({
           />
         </div>
         {v1Kpis.nextExitLabel !== '—' ? (
-          <p className="text-xs text-[#8a7456] mt-2">
-            Prochaine sortie : <b className="text-[#2f2415]">{v1Kpis.nextExitLabel}</b>
+          <p className="text-xs text-slate mt-2">
+            Prochaine sortie : <b className="text-earth">{v1Kpis.nextExitLabel}</b>
           </p>
         ) : null}
       </ElevageSection>
@@ -285,14 +283,14 @@ export default function ElevageCyclesPanel({
         <CycleAlertsList alerts={cycleAlerts} onNavigate={onNavigate} />
       </ElevageSection>
 
-      <details className="rounded-2xl border border-[#eadcc2] bg-[#fffdf8] p-4">
-        <summary className="cursor-pointer font-black text-[#2f2415] text-sm flex items-center gap-2">
-          <CalendarRange size={16} className="text-[#9a6b12]" />
+      <details className="rounded-2xl border border-line bg-card p-4">
+        <summary className="cursor-pointer font-semibold text-earth text-sm flex items-center gap-2">
+          <CalendarRange size={16} className="text-horizon-dark" />
           Stratégie lancement (synthèse) — fêtes : {festivalLine}
         </summary>
-        <div className="mt-3 space-y-2 text-sm text-[#7d6a4a]">
+        <div className="mt-3 space-y-2 text-sm text-slate">
           {v1Kpis.launchBlocked ? (
-            <div className="rounded-xl border border-red-200 bg-red-50 p-3 text-red-900">
+            <div className="rounded-xl border border-urgent bg-urgent-bg p-3 text-urgent">
               <b>Lancement suspendu ou à risque :</b>
               <ul className="mt-1 list-disc pl-4 text-xs">
                 {v1Kpis.launch.messages.map((msg) => (
@@ -301,7 +299,7 @@ export default function ElevageCyclesPanel({
               </ul>
             </div>
           ) : (
-            <p className="rounded-xl border border-emerald-200 bg-emerald-50 p-3 text-emerald-900 text-xs">
+            <p className="rounded-xl border border-positive bg-positive-bg p-3 text-positive text-xs">
               Aucun blocage BFR ou vide sanitaire détecté pour ce scope. Calendrier marché complet → Centre décisionnel.
             </p>
           )}
@@ -309,7 +307,7 @@ export default function ElevageCyclesPanel({
             <button
               type="button"
               onClick={() => onNavigate('centre_ia', { tab: 'Saisons & marchés' })}
-              className="rounded-xl bg-[#2f2415] px-3 py-2 text-xs font-black text-white"
+              className="rounded-xl bg-earth px-3 py-2 text-xs font-semibold text-white"
             >
               Ouvrir Saisons & marchés (Centre décisionnel)
             </button>
@@ -355,15 +353,15 @@ export default function ElevageCyclesPanel({
           <ElevageActionCard icon={ShoppingCart} title="Préparer vente" text="Commercial pré-rempli — à confirmer avant enregistrement." onClick={() => onNavigate?.('commercial', { tab: 'Ventes' })} />
         </div>
         {v1Kpis.lateCount > 0 ? (
-          <p className="mt-3 rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-900">
+          <p className="mt-3 rounded-xl border border-urgent bg-urgent-bg px-3 py-2 text-sm text-urgent">
             <b>{v1Kpis.lateCount} lot(s)/cycle(s) en retard</b> — prioriser les lignes en retard dans le tableau ci-dessous.
           </p>
         ) : null}
       </ElevageSection>
 
-      <details className="rounded-2xl border border-[#eadcc2] bg-[#fffdf8] p-4">
-        <summary className="cursor-pointer font-black text-sm text-[#2f2415]">Météo & croissance (prévision)</summary>
-        <div className="mt-3 text-sm text-[#7d6a4a]">
+      <details className="rounded-2xl border border-line bg-card p-4">
+        <summary className="cursor-pointer font-semibold text-sm text-earth">Météo & croissance (prévision)</summary>
+        <div className="mt-3 text-sm text-slate">
           {meteo?.temperature != null || meteo?.temp != null ? (
             <p>
               Température actuelle : <b>{meteo.temperature ?? meteo.temp}°</b>
@@ -371,7 +369,7 @@ export default function ElevageCyclesPanel({
               {meteo.conditions ? ` · ${meteo.conditions}` : ''}
             </p>
           ) : (
-            <p className="rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-amber-900">
+            <p className="rounded-xl border border-vigilance bg-vigilance-bg px-3 py-2 text-horizon-dark">
               Données météo non disponibles pour cette ferme — connectez Smart Farm ou vérifiez le module Centre décisionnel.
             </p>
           )}
@@ -383,15 +381,15 @@ export default function ElevageCyclesPanel({
       </ElevageSection>
 
       {mortalityAlerts.length ? (
-        <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
+        <div className="rounded-2xl border border-vigilance bg-vigilance-bg p-4 text-sm text-horizon-dark">
           <b>Mortalité élevée sur lot(s) :</b>{' '}
           {mortalityAlerts.map((lot) => `${lot.name || lot.nom || lot.id} (${mortalityRate(lot)} %)`).join(' · ')}
           {' — '}
-          <button type="button" onClick={() => setTab?.('Transformation')} className="font-black underline">
+          <button type="button" onClick={() => setTab?.('Transformation')} className="font-semibold underline">
             Voir Transformation
           </button>
           {' · '}
-          <button type="button" onClick={() => setTab?.('Santé')} className="font-black underline">
+          <button type="button" onClick={() => setTab?.('Santé')} className="font-semibold underline">
             Santé
           </button>
         </div>

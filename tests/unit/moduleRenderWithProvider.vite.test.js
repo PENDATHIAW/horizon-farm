@@ -101,3 +101,17 @@ for (const moduleId of ['assistant_erp', 'commercial', 'achats_stock', 'finance_
     assert.doesNotMatch(html, /ERREUR MODULE|useAppData must be used/i);
   });
 }
+
+test('render with AppProvider: elevage transformation', async () => {
+  const mod = await MODULE_ENTRY_POINTS.elevage();
+  const Component = mod.default;
+  const html = renderWithProvider(Component, {
+    initialTab: 'Transformation',
+    role: 'promotrice_direction',
+  });
+
+  assert.ok(html.length > 50, 'elevage transformation rendered empty');
+  assert.match(html, /Vivant.*produit fini/i);
+  assert.match(html, /Transformation/);
+  assert.doesNotMatch(html, /ERREUR MODULE|useAppData must be used/i);
+});

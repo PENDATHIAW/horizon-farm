@@ -5,8 +5,6 @@ import { buildFinanceFromPayment } from './erpInterconnectionRules.js';
 const arr = (value) => (Array.isArray(value) ? value : []);
 const clean = (value = '') => String(value || '').trim().toLowerCase();
 const num = (value) => toNumber(value);
-const today = () => new Date().toISOString().slice(0, 10);
-
 function paymentAmount(row = {}) {
   return num(row.montant ?? row.amount ?? row.total);
 }

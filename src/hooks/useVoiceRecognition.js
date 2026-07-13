@@ -46,8 +46,10 @@ export default function useVoiceRecognition({
 
   useEffect(() => {
     const message = supportMessage();
-    setSupported(!message);
-    setHint(message || 'Micro prêt. Clique puis parle clairement en français.');
+    queueMicrotask(() => {
+      setSupported(!message);
+      setHint(message || 'Micro prêt. Clique puis parle clairement en français.');
+    });
     return () => {
       shouldRestartRef.current = false;
       try { recognitionRef.current?.stop?.(); } catch { /* ignore cleanup */ }

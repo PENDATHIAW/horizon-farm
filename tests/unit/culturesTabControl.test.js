@@ -17,10 +17,10 @@ test('CulturesRecoveredModule — sections repliables avec refs deep-link', () =
 });
 
 test('resolveCulturesTab — alias legacy vers canonique', () => {
-  assert.equal(resolveCulturesTab('Pilotage'), 'Parcelles & campagnes');
-  assert.equal(resolveCulturesTab('Parcelles & campagnes'), 'Parcelles & campagnes');
-  assert.equal(resolveCulturesTab('Transformation'), 'Récoltes');
-  assert.equal(resolveCulturesTab('Intrants & Météo'), 'Parcelles & campagnes');
+  assert.equal(resolveCulturesTab('Pilotage'), 'Parcelles cultures');
+  assert.equal(resolveCulturesTab('Parcelles & campagnes'), 'Parcelles cultures');
+  assert.equal(resolveCulturesTab('Transformation'), 'Récoltes cultures');
+  assert.equal(resolveCulturesTab('Intrants & Météo'), 'Intrants & fertilisation cultures');
 });
 
 test('resolveCulturesSectionIntent — Intrants ouvre section intrants', () => {

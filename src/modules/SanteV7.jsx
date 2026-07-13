@@ -7,23 +7,23 @@ import SanteSmartInterventions from './SanteV6.jsx';
 import SanteEvolution from './SanteEvolution.jsx';
 
 function ModuleSection({ icon: Icon, title, subtitle, children }) {
-  return <section className="rounded-3xl border border-[#d6c3a0] bg-white p-5 shadow-sm space-y-4"><div><p className="flex items-center gap-2 text-lg font-black text-[#2f2415]"><Icon size={20} aria-hidden="true" /> {title}</p>{subtitle ? <p className="mt-1 text-sm text-[#8a7456]">{subtitle}</p> : null}</div>{children}</section>;
+  return <section className="rounded-3xl border border-line bg-white p-6 shadow-card space-y-4"><div><p className="flex items-center gap-2 text-lg font-semibold text-earth"><Icon size={20} aria-hidden="true" /> {title}</p>{subtitle ? <p className="mt-1 text-sm text-slate">{subtitle}</p> : null}</div>{children}</section>;
 }
 function CollapsibleSection({ icon: Icon, title, subtitle, defaultOpen = false, children }) {
   const [open, setOpen] = useState(defaultOpen);
-  return <section className="rounded-3xl border border-[#d6c3a0] bg-white shadow-sm overflow-hidden"><button type="button" onClick={() => setOpen((value) => !value)} className="flex min-h-[64px] w-full items-center justify-between gap-3 px-5 py-4 text-left hover:bg-[#fffdf8]"><span><span className="flex items-center gap-2 text-lg font-black text-[#2f2415]"><Icon size={20} aria-hidden="true" /> {title}</span>{subtitle ? <span className="mt-1 block text-sm text-[#8a7456]">{subtitle}</span> : null}</span><ChevronDown size={20} className={`shrink-0 text-[#8a7456] transition-transform ${open ? 'rotate-180' : ''}`} aria-hidden="true" /></button>{open ? <div className="border-t border-[#eadcc2] p-5">{children}</div> : null}</section>;
+  return <section className="rounded-3xl border border-line bg-white shadow-card overflow-hidden"><button type="button" onClick={() => setOpen((value) => !value)} className="flex min-h-[64px] w-full items-center justify-between gap-3 px-6 py-4 text-left hover:bg-card"><span><span className="flex items-center gap-2 text-lg font-semibold text-earth"><Icon size={20} aria-hidden="true" /> {title}</span>{subtitle ? <span className="mt-1 block text-sm text-slate">{subtitle}</span> : null}</span><ChevronDown size={20} className={`shrink-0 text-slate transition-transform ${open ? 'rotate-180' : ''}`} aria-hidden="true" /></button>{open ? <div className="border-t border-line p-6">{children}</div> : null}</section>;
 }
 
 function HealthBlockError({ title, message, onRetry }) {
   return (
-    <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-amber-900">
+    <div className="rounded-2xl border border-vigilance bg-vigilance-bg p-4 text-horizon-dark">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div>
-          <p className="flex items-center gap-2 font-black"><AlertTriangle size={17} aria-hidden="true" /> Bloc santé indisponible</p>
+          <p className="flex items-center gap-2 font-semibold"><AlertTriangle size={17} aria-hidden="true" /> Bloc santé indisponible</p>
           <p className="mt-1 text-sm leading-relaxed">La section <b>{title}</b> n’a pas pu être chargée. Les autres parties du module restent utilisables.</p>
-          {message ? <p className="mt-2 rounded-xl border border-amber-200 bg-white/70 px-3 py-2 text-xs text-amber-800">Message utile pour le support : {message}</p> : null}
+          {message ? <p className="mt-2 rounded-xl border border-vigilance bg-white/70 px-3 py-2 text-xs text-horizon-dark">Message utile pour le support : {message}</p> : null}
         </div>
-        <button type="button" onClick={onRetry} className="inline-flex min-h-[44px] items-center justify-center gap-2 rounded-xl border border-amber-300 bg-white px-4 py-2 text-sm font-black text-amber-800 hover:bg-amber-100 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-amber-500/25">
+        <button type="button" onClick={onRetry} className="inline-flex min-h-[44px] items-center justify-center gap-2 rounded-xl border border-vigilance bg-white px-4 py-2 text-sm font-semibold text-horizon-dark hover:bg-vigilance-bg focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-vigilance">
           <RefreshCw size={15} aria-hidden="true" /> Réessayer
         </button>
       </div>

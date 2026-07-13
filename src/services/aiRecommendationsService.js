@@ -1,6 +1,7 @@
-import { computeErpAuditFindings } from './erpRules/index.js';
+
 import { runErpHealthEngine } from './erpHealthEngine.js';
 import { supabase } from '../lib/supabase.js';
+import { withFarmId } from '../utils/farmScopePayload.js';
 import { buildIssueKey } from './issueLinkingService.js';
 
 const STORAGE_KEY = 'horizon-ai-recommendations-journal';
@@ -121,10 +122,10 @@ export async function syncRecommendationsToSupabase(data = {}) {
   const recommendations = buildRecommendationsFromData(data);
   if (!recommendations.length) return { ok: true, synced: 0 };
   const { error } = await supabase.from('ai_recommendations').upsert(
-    recommendations.map((row) => ({
+    withFarmId('ai_recommendations', recommendations.map((row) => ({
       ...row,
       updated_at: new Date().toISOString(),
-    })),
+    }))),
     { onConflict: 'id' },
   );
   if (error) return { ok: false, synced: 0, error: error.message };

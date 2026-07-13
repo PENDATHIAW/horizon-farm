@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react';
 import toast from 'react-hot-toast';
 import useCrudModule from '../../hooks/useCrudModule';
-import { rowsOf } from '../../utils/moduleRows';
+
 import {
   buildProblemFiches,
   completeActiviteTask,
@@ -85,23 +85,7 @@ export default function ActiviteWorkflowBridge({
     }
   };
 
-  const completeTask = async (taskId, resolveAlert = false) => {
-    const task = arr(tasks).find((row) => String(row.id) === String(taskId));
-    if (!task) throw new Error('Tâche introuvable');
-    setBusyId(taskId);
-    try {
-      const result = await completeActiviteTask({ task, resolveAlert, handlers });
-      await refreshAll();
-      if (result.proposeResolveAlert && !resolveAlert) {
-        toast.success('Tâche terminée — résoudre l’alerte liée ?', { duration: 5000 });
-      } else {
-        toast.success('Tâche terminée');
-      }
-      return result;
-    } finally {
-      setBusyId(null);
-    }
-  };
+
 
   const repairGap = async (gap) => {
     setBusyId(gap.record_id);

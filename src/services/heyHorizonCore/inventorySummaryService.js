@@ -1,5 +1,5 @@
 import { computeStockSummary } from '../../modules/dashboard/dashboardMetrics.js';
-import { arr, low, metaBase, money, pickRows } from './coreUtils.js';
+import {  low, metaBase, money, pickRows } from './coreUtils.js';
 
 const stockQty = (row = {}) => Number(row.quantite ?? row.quantity ?? row.stock ?? 0) || 0;
 const stockThreshold = (row = {}) => Number(row.seuil ?? row.threshold ?? row.stock_min ?? row.minimum_stock ?? 0) || 0;

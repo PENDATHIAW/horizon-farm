@@ -49,17 +49,17 @@ export function deriverRisquesStructurels({ alertes = [], taches = [], kpis = nu
 }
 
 const STYLE_STATUT = {
-  'critique': 'border-red-200 bg-red-50 text-red-700',
-  'sous surveillance': 'border-amber-200 bg-amber-50 text-amber-800',
-  'maîtrisé': 'border-emerald-200 bg-emerald-50 text-emerald-800',
+  'critique': 'border-urgent bg-urgent-bg text-urgent',
+  'sous surveillance': 'border-vigilance bg-vigilance-bg text-horizon-dark',
+  'maîtrisé': 'border-positive bg-positive-bg text-positive',
 };
 
 export function CentreRisquesTab({ alertes = [], taches = [], kpis = null, onNavigate }) {
   const risques = useMemo(() => deriverRisquesStructurels({ alertes, taches, kpis }), [alertes, taches, kpis]);
   return (
-    <section className="rounded-3xl border border-[#d6c3a0] bg-white p-5 shadow-sm">
-      <p className="text-xs font-black uppercase tracking-[0.2em] text-[#9a6b12]">Registre des risques structurels</p>
-      <p className="mt-1 text-sm text-[#8a7456]">
+    <section className="rounded-3xl border border-line bg-white p-6 shadow-card">
+      <p className="text-xs font-semibold uppercase tracking-normal text-horizon-dark">Registre des risques structurels</p>
+      <p className="mt-1 text-sm text-slate">
         Statuts calculés depuis les alertes et indicateurs existants. Ce registre alimente la
         section risques du rapport financeur ; aucune fiche manuelle.
       </p>
@@ -69,14 +69,14 @@ export function CentreRisquesTab({ alertes = [], taches = [], kpis = null, onNav
             key={risque.id}
             type="button"
             onClick={() => onNavigate?.(risque.module)}
-            className="rounded-2xl border border-[#eadcc2] bg-[#fffdf8] p-4 text-left"
+            className="rounded-2xl border border-line bg-card p-4 text-left"
           >
             <div className="flex items-center justify-between gap-2">
-              <p className="text-sm font-black text-[#2f2415]">{risque.libelle}</p>
-              <span className={`rounded-full border px-2 py-0.5 text-[11px] font-black ${STYLE_STATUT[risque.statut]}`}>{risque.statut}</span>
+              <p className="text-sm font-semibold text-earth">{risque.libelle}</p>
+              <span className={`rounded-full border px-2 py-1 text-meta font-semibold ${STYLE_STATUT[risque.statut]}`}>{risque.statut}</span>
             </div>
-            <p className="mt-2 text-xs text-[#8a7456]">Sources : {risque.sources}</p>
-            <p className="mt-1 text-xs text-[#8a7456]">{risque.signaux} signal(aux) actif(s)</p>
+            <p className="mt-2 text-xs text-slate">Sources : {risque.sources}</p>
+            <p className="mt-1 text-xs text-slate">{risque.signaux} signal(aux) actif(s)</p>
           </button>
         ))}
       </div>
@@ -94,27 +94,27 @@ export function CentreEcartsTab({ dataMap = {}, periodScope = {}, onNavigate }) 
   }, [dataMap, periodScope]);
   const lignes = plan?.rows || plan?.lines || [];
   return (
-    <section className="rounded-3xl border border-[#d6c3a0] bg-white p-5 shadow-sm">
-      <p className="text-xs font-black uppercase tracking-[0.2em] text-[#9a6b12]">Écarts prévisionnel / réel</p>
-      <p className="mt-1 text-sm text-[#8a7456]">
+    <section className="rounded-3xl border border-line bg-white p-6 shadow-card">
+      <p className="text-xs font-semibold uppercase tracking-normal text-horizon-dark">Écarts prévisionnel / réel</p>
+      <p className="mt-1 text-sm text-slate">
         Lecture des écarts calculés par Finance et Objectifs. Rien n'est recalculé ici.
       </p>
       {plan == null || (!lignes.length && plan.revenueAttainment == null && plan.annualAttainment == null) ? (
-        <p className="mt-3 text-sm text-[#8a7456]">Rien à afficher pour l'instant. Renseigner le plan dans Objectifs & Croissance.</p>
+        <p className="mt-3 text-sm text-slate">Rien à afficher pour l'instant. Renseigner le plan dans Objectifs & Croissance.</p>
       ) : (
-        <div className="mt-3 space-y-2 text-sm text-[#2f2415]">
+        <div className="mt-3 space-y-2 text-sm text-earth">
           {plan.revenueAttainment != null ? <p>Atteinte du plan de recettes : <b>{Math.round(plan.revenueAttainment)}%</b></p> : null}
           {plan.annualAttainment != null ? <p>Atteinte annuelle : <b>{Math.round(plan.annualAttainment)}%</b></p> : null}
           {lignes.slice(0, 8).map((ligne, index) => (
-            <p key={ligne.id || index} className="text-xs text-[#8a7456]">
+            <p key={ligne.id || index} className="text-xs text-slate">
               {ligne.label || ligne.libelle || ligne.name} : prévu {ligne.planned ?? ligne.prevu ?? '·'} / réel {ligne.actual ?? ligne.reel ?? '·'}
             </p>
           ))}
         </div>
       )}
       <div className="mt-4 flex flex-wrap gap-2">
-        <button type="button" onClick={() => onNavigate?.('finance_pilotage', { tab: 'Écarts budget' })} className="rounded-xl border border-[#d6c3a0] bg-white px-3 py-1.5 text-xs font-black text-[#2f2415]">Ouvrir Finance & Pilotage</button>
-        <button type="button" onClick={() => onNavigate?.('objectifs_croissance', { tab: 'Prévisionnel vs réel' })} className="rounded-xl border border-[#d6c3a0] bg-white px-3 py-1.5 text-xs font-black text-[#2f2415]">Ouvrir Objectifs & Croissance</button>
+        <button type="button" onClick={() => onNavigate?.('finance_pilotage', { tab: 'Écarts budget' })} className="rounded-xl border border-line bg-white px-3 py-2 text-xs font-semibold text-earth">Ouvrir Finance & Pilotage</button>
+        <button type="button" onClick={() => onNavigate?.('objectifs_croissance', { tab: 'Prévisionnel vs réel' })} className="rounded-xl border border-line bg-white px-3 py-2 text-xs font-semibold text-earth">Ouvrir Objectifs & Croissance</button>
       </div>
     </section>
   );

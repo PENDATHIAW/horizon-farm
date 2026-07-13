@@ -1,16 +1,28 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { readFileSync, existsSync } from 'node:fs';
+import { existsSync, readFileSync, readdirSync } from 'node:fs';
+import path from 'node:path';
 
-test('BOVINIA/Tallow — no operational module or centre action is exposed', () => {
+const sourceFiles = (directory) => readdirSync(directory, { withFileTypes: true }).flatMap((entry) => {
+  const target = path.join(directory, entry.name);
+  if (entry.isDirectory()) return sourceFiles(target);
+  return /\.(?:js|jsx|mjs|html|json)$/.test(entry.name) ? [target] : [];
+});
+
+test('les anciennes marques ne sont présentes dans aucun chemin opérationnel', () => {
   assert.equal(existsSync('src/modules/BoviniaModule.jsx'), false);
   assert.equal(existsSync('src/modules/TallowModule.jsx'), false);
+  assert.equal(existsSync('src/services/greenpreneurs/valorisationReadinessEngine.js'), false);
+  assert.equal(existsSync('src/services/greenpreneurs/bovinCoproductWorkflow.js'), false);
+  assert.equal(existsSync('src/components/greenpreneurs/ValorisationPhaseAdvisor.jsx'), false);
 
-  const greenpreneursMetrics = readFileSync('src/services/greenpreneurs/greenpreneursMetrics.js', 'utf8');
-  assert.doesNotMatch(greenpreneursMetrics, /gp-tallow/);
-  assert.doesNotMatch(greenpreneursMetrics, /phase3_bovinia.*alerts\.push/s);
-
-  const readiness = readFileSync('src/services/greenpreneurs/valorisationReadinessEngine.js', 'utf8');
-  assert.doesNotMatch(readiness, /Créer tâche|Créer opportunité|Créer document/);
-  assert.match(readiness, /Critère futur/);
+  const operationalFiles = [
+    ...sourceFiles('src'),
+    ...sourceFiles('scripts'),
+    ...sourceFiles('public/demo'),
+    'package.json',
+  ];
+  const forbidden = /\b(?:BOVINIA|Tallow(?:\s*&\s*Go)?)\b/i;
+  const matches = operationalFiles.filter((file) => forbidden.test(readFileSync(file, 'utf8')));
+  assert.deepEqual(matches, []);
 });

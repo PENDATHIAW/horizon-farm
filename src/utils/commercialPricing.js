@@ -5,7 +5,7 @@
 import { toNumber } from './format.js';
 import { unitCostOf, unitPriceOf } from './sellableStock.js';
 
-const arr = (value) => (Array.isArray(value) ? value : []);
+
 const num = (value) => toNumber(value);
 const clean = (value) => String(value || '').trim();
 

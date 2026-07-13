@@ -52,8 +52,8 @@ export const CRUD_KEYS = [
   'business_plans', 'bp_investment_lines', 'bp_recurring_costs', 'bp_revenue_projections',
   'bp_funding_sources', 'bp_links', 'bp_risks', 'stock', 'clients', 'fournisseurs',
   'tracabilite', 'cultures', 'documents', 'taches', 'rapports', 'equipements',
-  'audit_logs', 'alimentation_logs', 'production_oeufs_logs', 'sensor_devices',
-  'camera_devices', 'business_events', 'alertes_center', 'whatsapp_templates',
+  'audit_logs', 'alimentation_logs', 'production_oeufs_logs', 'sensor_devices', 'smartfarm_events',
+  'business_events', 'alertes_center', 'whatsapp_templates',
   'whatsapp_logs', 'sales_orders', 'sales_order_items', 'deliveries', 'invoices',
   'payments', 'sales_opportunities', 'stock_movements',
   'feed_raw_materials', 'feed_raw_batches', 'feed_formulas', 'feed_formula_versions',
@@ -63,6 +63,7 @@ export const CRUD_KEYS = [
   'funding_opportunities', 'funding_contacts', 'funding_applications',
   'funding_document_library', 'funding_agreements', 'funding_expense_allocations',
   'funding_reports', 'funding_project_journal', 'funder_accounts', 'funder_access_logs',
+  'planning_simulations',
 ];
 
 export const SALES_WORKFLOW_KEYS = [

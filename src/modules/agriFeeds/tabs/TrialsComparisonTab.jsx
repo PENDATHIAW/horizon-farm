@@ -16,10 +16,10 @@ const arr = (v) => (Array.isArray(v) ? v : []);
 const norm = (v = '') => String(v || '').toLowerCase();
 
 const RESULT_STYLES = {
-  favorable: 'text-emerald-800 bg-emerald-50 border-emerald-200',
-  moins_performant: 'text-rose-800 bg-rose-50 border-rose-200',
-  equivalent: 'text-[#2f2415] bg-white border-[#eadcc2]',
-  donnees_insuffisantes: 'text-[#8a7456] bg-[#fffdf8] border-[#eadcc2]',
+  favorable: 'text-positive bg-positive-bg border-positive',
+  moins_performant: 'text-urgent bg-urgent-bg border-urgent',
+  equivalent: 'text-earth bg-white border-line',
+  donnees_insuffisantes: 'text-slate bg-card border-line',
 };
 
 const STATUS_LABEL = {
@@ -206,27 +206,27 @@ export default function TrialsComparisonTab({
 
   return (
     <div className="space-y-4">
-      <section className="rounded-3xl border border-[#d6c3a0] bg-white p-5 space-y-2">
-        <p className="text-lg font-black text-[#2f2415]">Tests & comparaison</p>
-        <p className="text-sm text-[#8a7456] leading-relaxed max-w-3xl">
+      <section className="rounded-3xl border border-line bg-white p-6 space-y-2">
+        <p className="text-lg font-semibold text-earth">Tests & comparaison</p>
+        <p className="text-sm text-slate leading-relaxed max-w-3xl">
           Essais internes sur animaux Horizon Farm, comparaison formalisée avec la référence
           Phase 1, et confirmation explicite. Une décision est suggérée ; la décision
           finale reste à l’exploitant.
         </p>
         {message ? (
-          <p className="text-sm rounded-xl border border-[#eadcc2] bg-[#fffdf8] px-3 py-2">{message}</p>
+          <p className="text-sm rounded-xl border border-line bg-card px-3 py-2">{message}</p>
         ) : null}
       </section>
 
       <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
-        <form onSubmit={openTrial} className="rounded-3xl border border-[#d6c3a0] bg-white p-5 space-y-3">
-          <p className="font-black text-[#2f2415]">Ouvrir un essai</p>
+        <form onSubmit={openTrial} className="rounded-3xl border border-line bg-white p-6 space-y-3">
+          <p className="font-semibold text-earth">Ouvrir un essai</p>
           <label className="block space-y-1">
-            <span className="text-xs font-bold text-[#8a7456]">Version de formule</span>
+            <span className="text-xs font-semibold text-slate">Version de formule</span>
             <select
               value={openForm.formula_version_id}
               onChange={(e) => setOpenForm((p) => ({ ...p, formula_version_id: e.target.value }))}
-              className="w-full min-h-[44px] rounded-xl border border-[#d6c3a0] px-3 text-sm"
+              className="w-full min-h-[44px] rounded-xl border border-line px-3 text-sm"
               required
             >
               <option value="">Choisir…</option>
@@ -237,11 +237,11 @@ export default function TrialsComparisonTab({
           </label>
           <div className="grid grid-cols-2 gap-3">
             <label className="block space-y-1">
-              <span className="text-xs font-bold text-[#8a7456]">Lot / animal cible</span>
+              <span className="text-xs font-semibold text-slate">Lot / animal cible</span>
               <select
                 value={openForm.animal_lot_id}
                 onChange={(e) => setOpenForm((p) => ({ ...p, animal_lot_id: e.target.value }))}
-                className="w-full min-h-[44px] rounded-xl border border-[#d6c3a0] px-3 text-sm"
+                className="w-full min-h-[44px] rounded-xl border border-line px-3 text-sm"
                 required
               >
                 <option value="">Choisir…</option>
@@ -253,11 +253,11 @@ export default function TrialsComparisonTab({
               </select>
             </label>
             <label className="block space-y-1">
-              <span className="text-xs font-bold text-[#8a7456]">Lot fini utilisé (optionnel)</span>
+              <span className="text-xs font-semibold text-slate">Lot fini utilisé (optionnel)</span>
               <select
                 value={openForm.finished_batch_id}
                 onChange={(e) => setOpenForm((p) => ({ ...p, finished_batch_id: e.target.value }))}
-                className="w-full min-h-[44px] rounded-xl border border-[#d6c3a0] px-3 text-sm"
+                className="w-full min-h-[44px] rounded-xl border border-line px-3 text-sm"
               >
                 <option value="">—</option>
                 {finished.map((b) => (
@@ -268,66 +268,66 @@ export default function TrialsComparisonTab({
           </div>
           <div className="grid grid-cols-3 gap-3">
             <label className="block space-y-1">
-              <span className="text-xs font-bold text-[#8a7456]">Date début</span>
+              <span className="text-xs font-semibold text-slate">Date début</span>
               <input
                 type="date"
                 value={openForm.start_date}
                 onChange={(e) => setOpenForm((p) => ({ ...p, start_date: e.target.value }))}
-                className="w-full min-h-[44px] rounded-xl border border-[#d6c3a0] px-3 text-sm"
+                className="w-full min-h-[44px] rounded-xl border border-line px-3 text-sm"
               />
             </label>
             <label className="block space-y-1">
-              <span className="text-xs font-bold text-[#8a7456]">Effectif initial</span>
+              <span className="text-xs font-semibold text-slate">Effectif initial</span>
               <input
                 type="number"
                 min="0"
                 value={openForm.starting_count}
                 onChange={(e) => setOpenForm((p) => ({ ...p, starting_count: e.target.value }))}
-                className="w-full min-h-[44px] rounded-xl border border-[#d6c3a0] px-3 text-sm"
+                className="w-full min-h-[44px] rounded-xl border border-line px-3 text-sm"
               />
             </label>
             <label className="block space-y-1">
-              <span className="text-xs font-bold text-[#8a7456]">Poids moyen initial</span>
+              <span className="text-xs font-semibold text-slate">Poids moyen initial</span>
               <input
                 type="number"
                 step="0.01"
                 min="0"
                 value={openForm.starting_weight_avg}
                 onChange={(e) => setOpenForm((p) => ({ ...p, starting_weight_avg: e.target.value }))}
-                className="w-full min-h-[44px] rounded-xl border border-[#d6c3a0] px-3 text-sm"
+                className="w-full min-h-[44px] rounded-xl border border-line px-3 text-sm"
               />
             </label>
           </div>
           <label className="block space-y-1">
-            <span className="text-xs font-bold text-[#8a7456]">Notes</span>
+            <span className="text-xs font-semibold text-slate">Notes</span>
             <textarea
               value={openForm.notes}
               onChange={(e) => setOpenForm((p) => ({ ...p, notes: e.target.value }))}
-              className="w-full min-h-[72px] rounded-xl border border-[#d6c3a0] px-3 py-2 text-sm"
+              className="w-full min-h-[72px] rounded-xl border border-line px-3 py-2 text-sm"
             />
           </label>
           {livePreview?.market ? (
-            <div className="rounded-2xl border border-[#eadcc2] bg-[#fffdf8] p-3 text-xs text-[#2f2415]">
-              <p className="font-bold">Référence Phase 1 disponible pour ce lot :</p>
+            <div className="rounded-2xl border border-line bg-card p-3 text-xs text-earth">
+              <p className="font-semibold">Référence Phase 1 disponible pour ce lot :</p>
               <p>{livePreview.market.feed_type} — {fmtNumber(livePreview.market.quantity_consumed)} kg · {fmtCurrency(livePreview.market.price_per_kg)}/kg</p>
               <p>Mortalité {livePreview.market.mortality_rate?.toFixed?.(1) || '—'} % · Coût / sujet {fmtCurrency(livePreview.market.cost_feed_per_subject)}</p>
             </div>
           ) : (
-            <p className="text-xs text-[#8a7456]">Aucune référence Phase 1 pour ce lot — la comparaison sera partielle.</p>
+            <p className="text-xs text-slate">Aucune référence Phase 1 pour ce lot — la comparaison sera partielle.</p>
           )}
           <button
             type="submit"
             disabled={busy || !versionOptions.length || !lots.length}
-            className="min-h-[44px] rounded-xl bg-[#2f2415] px-4 text-sm font-bold text-white disabled:opacity-50"
+            className="min-h-[44px] rounded-xl bg-earth px-4 text-sm font-semibold text-white disabled:opacity-50"
           >
             Ouvrir l’essai
           </button>
         </form>
 
-        <form onSubmit={closeTrial} className="rounded-3xl border border-[#d6c3a0] bg-white p-5 space-y-3">
-          <p className="font-black text-[#2f2415]">Clôturer un essai</p>
+        <form onSubmit={closeTrial} className="rounded-3xl border border-line bg-white p-6 space-y-3">
+          <p className="font-semibold text-earth">Clôturer un essai</p>
           <label className="block space-y-1">
-            <span className="text-xs font-bold text-[#8a7456]">Essai en cours</span>
+            <span className="text-xs font-semibold text-slate">Essai en cours</span>
             <select
               value={closeForm.trial_id}
               onChange={(e) => {
@@ -339,7 +339,7 @@ export default function TrialsComparisonTab({
                   ending_count: tr?.starting_count ? String(tr.starting_count) : p.ending_count,
                 }));
               }}
-              className="w-full min-h-[44px] rounded-xl border border-[#d6c3a0] px-3 text-sm"
+              className="w-full min-h-[44px] rounded-xl border border-line px-3 text-sm"
               required
             >
               <option value="">Choisir…</option>
@@ -352,96 +352,96 @@ export default function TrialsComparisonTab({
           </label>
           <div className="grid grid-cols-3 gap-3">
             <label className="block space-y-1">
-              <span className="text-xs font-bold text-[#8a7456]">Date fin</span>
+              <span className="text-xs font-semibold text-slate">Date fin</span>
               <input
                 type="date"
                 value={closeForm.end_date}
                 onChange={(e) => setCloseForm((p) => ({ ...p, end_date: e.target.value }))}
-                className="w-full min-h-[44px] rounded-xl border border-[#d6c3a0] px-3 text-sm"
+                className="w-full min-h-[44px] rounded-xl border border-line px-3 text-sm"
               />
             </label>
             <label className="block space-y-1">
-              <span className="text-xs font-bold text-[#8a7456]">Effectif final</span>
+              <span className="text-xs font-semibold text-slate">Effectif final</span>
               <input
                 type="number"
                 min="0"
                 value={closeForm.ending_count}
                 onChange={(e) => setCloseForm((p) => ({ ...p, ending_count: e.target.value }))}
-                className="w-full min-h-[44px] rounded-xl border border-[#d6c3a0] px-3 text-sm"
+                className="w-full min-h-[44px] rounded-xl border border-line px-3 text-sm"
               />
             </label>
             <label className="block space-y-1">
-              <span className="text-xs font-bold text-[#8a7456]">Mortalité (unités)</span>
+              <span className="text-xs font-semibold text-slate">Mortalité (unités)</span>
               <input
                 type="number"
                 min="0"
                 value={closeForm.mortality_count}
                 onChange={(e) => setCloseForm((p) => ({ ...p, mortality_count: e.target.value }))}
-                className="w-full min-h-[44px] rounded-xl border border-[#d6c3a0] px-3 text-sm"
+                className="w-full min-h-[44px] rounded-xl border border-line px-3 text-sm"
               />
             </label>
           </div>
           <div className="grid grid-cols-3 gap-3">
             <label className="block space-y-1">
-              <span className="text-xs font-bold text-[#8a7456]">Poids moyen final</span>
+              <span className="text-xs font-semibold text-slate">Poids moyen final</span>
               <input
                 type="number"
                 step="0.01"
                 min="0"
                 value={closeForm.ending_weight_avg}
                 onChange={(e) => setCloseForm((p) => ({ ...p, ending_weight_avg: e.target.value }))}
-                className="w-full min-h-[44px] rounded-xl border border-[#d6c3a0] px-3 text-sm"
+                className="w-full min-h-[44px] rounded-xl border border-line px-3 text-sm"
               />
             </label>
             <label className="block space-y-1">
-              <span className="text-xs font-bold text-[#8a7456]">Aliment consommé (kg)</span>
+              <span className="text-xs font-semibold text-slate">Aliment consommé (kg)</span>
               <input
                 type="number"
                 min="0"
                 step="0.1"
                 value={closeForm.total_feed_consumed}
                 onChange={(e) => setCloseForm((p) => ({ ...p, total_feed_consumed: e.target.value }))}
-                className="w-full min-h-[44px] rounded-xl border border-[#d6c3a0] px-3 text-sm"
+                className="w-full min-h-[44px] rounded-xl border border-line px-3 text-sm"
                 required
               />
             </label>
             <label className="block space-y-1">
-              <span className="text-xs font-bold text-[#8a7456]">Coût aliment (FCFA)</span>
+              <span className="text-xs font-semibold text-slate">Coût aliment (FCFA)</span>
               <input
                 type="number"
                 min="0"
                 value={closeForm.total_feed_cost}
                 onChange={(e) => setCloseForm((p) => ({ ...p, total_feed_cost: e.target.value }))}
-                className="w-full min-h-[44px] rounded-xl border border-[#d6c3a0] px-3 text-sm"
+                className="w-full min-h-[44px] rounded-xl border border-line px-3 text-sm"
               />
             </label>
           </div>
           <div className="grid grid-cols-2 gap-3">
             <label className="block space-y-1">
-              <span className="text-xs font-bold text-[#8a7456]">Œufs produits (si pondeuse)</span>
+              <span className="text-xs font-semibold text-slate">Œufs produits (si pondeuse)</span>
               <input
                 type="number"
                 min="0"
                 value={closeForm.egg_production_total}
                 onChange={(e) => setCloseForm((p) => ({ ...p, egg_production_total: e.target.value }))}
-                className="w-full min-h-[44px] rounded-xl border border-[#d6c3a0] px-3 text-sm"
+                className="w-full min-h-[44px] rounded-xl border border-line px-3 text-sm"
               />
             </label>
             <label className="block space-y-1">
-              <span className="text-xs font-bold text-[#8a7456]">CA / revenu essai</span>
+              <span className="text-xs font-semibold text-slate">CA / revenu essai</span>
               <input
                 type="number"
                 min="0"
                 value={closeForm.revenue}
                 onChange={(e) => setCloseForm((p) => ({ ...p, revenue: e.target.value }))}
-                className="w-full min-h-[44px] rounded-xl border border-[#d6c3a0] px-3 text-sm"
+                className="w-full min-h-[44px] rounded-xl border border-line px-3 text-sm"
               />
             </label>
           </div>
           <button
             type="submit"
             disabled={busy || !openTrials.length}
-            className="min-h-[44px] rounded-xl bg-[#2f2415] px-4 text-sm font-bold text-white disabled:opacity-50"
+            className="min-h-[44px] rounded-xl bg-earth px-4 text-sm font-semibold text-white disabled:opacity-50"
           >
             Clôturer → KPI + comparaison + décision proposée
           </button>
@@ -449,17 +449,17 @@ export default function TrialsComparisonTab({
       </div>
 
       {awaitingHuman.length ? (
-        <section className="rounded-3xl border border-amber-300 bg-amber-50/60 p-5 space-y-3">
-          <p className="font-black text-amber-950">Confirmation requise ({awaitingHuman.length})</p>
+        <section className="rounded-3xl border border-vigilance bg-vigilance-bg p-6 space-y-3">
+          <p className="font-semibold text-horizon-dark">Confirmation requise ({awaitingHuman.length})</p>
           {awaitingHuman.map((t) => {
             const comp = comparisons.find((c) => String(c.trial_id) === String(t.id));
             const proposal = proposeTrialDecision({ trial: t, comparison: comp ? { status: comp.overall_status, comparison: comp.metrics } : null });
             return (
-              <div key={t.id} className="rounded-2xl border border-amber-200 bg-white p-3 space-y-1">
-                <p className="text-sm font-bold text-[#2f2415]">
+              <div key={t.id} className="rounded-2xl border border-vigilance bg-white p-3 space-y-1">
+                <p className="text-sm font-semibold text-earth">
                   {t.trial_code} — {t.animal_lot_id}
                 </p>
-                <p className="text-xs text-[#8a7456]">
+                <p className="text-xs text-slate">
                   Suggestion : <b>{proposal.label}</b> ({proposal.confidence}) · {proposal.reasons.join(' · ')}
                 </p>
                 <button
@@ -470,7 +470,7 @@ export default function TrialsComparisonTab({
                     reviewed_by: '',
                     decision_notes: proposal.reasons.join(' · '),
                   })}
-                  className="text-xs font-bold text-[#2f2415] underline"
+                  className="text-xs font-semibold text-earth underline"
                 >
                   Renseigner la confirmation
                 </button>
@@ -480,19 +480,19 @@ export default function TrialsComparisonTab({
         </section>
       ) : null}
 
-      <form onSubmit={validateTrial} className="rounded-3xl border border-[#d6c3a0] bg-white p-5 space-y-3">
-        <p className="font-black text-[#2f2415]">Confirmation</p>
-        <p className="text-xs text-[#8a7456] leading-relaxed max-w-2xl">
+      <form onSubmit={validateTrial} className="rounded-3xl border border-line bg-white p-6 space-y-3">
+        <p className="font-semibold text-earth">Confirmation</p>
+        <p className="text-xs text-slate leading-relaxed max-w-2xl">
           Une décision est suggérée à partir des indicateurs et de la comparaison Phase 1.
           Vous devez la confirmer, la corriger et signer.
         </p>
         <div className="grid grid-cols-2 gap-3">
           <label className="block space-y-1">
-            <span className="text-xs font-bold text-[#8a7456]">Essai clôturé</span>
+            <span className="text-xs font-semibold text-slate">Essai clôturé</span>
             <select
               value={validationForm.trial_id}
               onChange={(e) => setValidationForm((p) => ({ ...p, trial_id: e.target.value }))}
-              className="w-full min-h-[44px] rounded-xl border border-[#d6c3a0] px-3 text-sm"
+              className="w-full min-h-[44px] rounded-xl border border-line px-3 text-sm"
               required
             >
               <option value="">Choisir…</option>
@@ -504,11 +504,11 @@ export default function TrialsComparisonTab({
             </select>
           </label>
           <label className="block space-y-1">
-            <span className="text-xs font-bold text-[#8a7456]">Décision humaine</span>
+            <span className="text-xs font-semibold text-slate">Décision humaine</span>
             <select
               value={validationForm.decision}
               onChange={(e) => setValidationForm((p) => ({ ...p, decision: e.target.value }))}
-              className="w-full min-h-[44px] rounded-xl border border-[#d6c3a0] px-3 text-sm"
+              className="w-full min-h-[44px] rounded-xl border border-line px-3 text-sm"
               required
             >
               <option value="">Choisir…</option>
@@ -520,34 +520,34 @@ export default function TrialsComparisonTab({
         </div>
         <div className="grid grid-cols-2 gap-3">
           <label className="block space-y-1">
-            <span className="text-xs font-bold text-[#8a7456]">Nom du validateur</span>
+            <span className="text-xs font-semibold text-slate">Nom du validateur</span>
             <input
               value={validationForm.reviewed_by}
               onChange={(e) => setValidationForm((p) => ({ ...p, reviewed_by: e.target.value }))}
-              className="w-full min-h-[44px] rounded-xl border border-[#d6c3a0] px-3 text-sm"
+              className="w-full min-h-[44px] rounded-xl border border-line px-3 text-sm"
               required
             />
           </label>
           <label className="block space-y-1">
-            <span className="text-xs font-bold text-[#8a7456]">Justification</span>
+            <span className="text-xs font-semibold text-slate">Justification</span>
             <input
               value={validationForm.decision_notes}
               onChange={(e) => setValidationForm((p) => ({ ...p, decision_notes: e.target.value }))}
-              className="w-full min-h-[44px] rounded-xl border border-[#d6c3a0] px-3 text-sm"
+              className="w-full min-h-[44px] rounded-xl border border-line px-3 text-sm"
             />
           </label>
         </div>
         <button
           type="submit"
           disabled={busy || !closedTrials.length}
-          className="min-h-[44px] rounded-xl bg-[#2f2415] px-4 text-sm font-bold text-white disabled:opacity-50"
+          className="min-h-[44px] rounded-xl bg-earth px-4 text-sm font-semibold text-white disabled:opacity-50"
         >
           Enregistrer la confirmation
         </button>
       </form>
 
-      <section className="rounded-3xl border border-[#d6c3a0] bg-white p-5 space-y-3">
-        <p className="font-black text-[#2f2415]">Essais ({trials.length})</p>
+      <section className="rounded-3xl border border-line bg-white p-6 space-y-3">
+        <p className="font-semibold text-earth">Essais ({trials.length})</p>
         {trials.length ? (
           <div className="space-y-2">
             {trials
@@ -559,7 +559,7 @@ export default function TrialsComparisonTab({
                 return (
                   <article key={t.id} className={`rounded-2xl border p-3 text-sm ${style}`}>
                     <div className="flex flex-wrap justify-between gap-2">
-                      <p className="font-bold">{t.trial_code} · {t.animal_lot_id}</p>
+                      <p className="font-semibold">{t.trial_code} · {t.animal_lot_id}</p>
                       <p className="text-xs">{STATUS_LABEL[t.status] || t.status}</p>
                     </div>
                     <p className="text-xs">
@@ -583,7 +583,7 @@ export default function TrialsComparisonTab({
               })}
           </div>
         ) : (
-          <p className="text-sm text-[#8a7456]">Aucun essai encore ouvert.</p>
+          <p className="text-sm text-slate">Aucun essai encore ouvert.</p>
         )}
       </section>
     </div>

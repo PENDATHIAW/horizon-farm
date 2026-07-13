@@ -6,8 +6,8 @@ import { evaluateSurveillanceUxRules } from './erpRules/surveillanceUxRules.js';
 import { evaluateErpUxAuditRules } from './erpRules/erpUxAuditRules.js';
 import { syncRecommendationsToSupabase } from './aiRecommendationsService.js';
 import { applyErpHealthAutoActions } from './erpHealthAutoActions.js';
-import { filterJustifiedIssues } from '../utils/justifiedExceptionStore.js';
-import { buildHealthFindingIssueKey } from '../utils/justifiedExceptionRules.js';
+
+
 
 const STORAGE_KEY = 'horizon-erp-health-engine-last';
 

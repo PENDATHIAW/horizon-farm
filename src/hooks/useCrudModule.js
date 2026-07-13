@@ -87,7 +87,7 @@ export default function useCrudModule(moduleKey) {
         error,
         create: async (payload) => {
           if (payload?.__restoreDeleted && payload?.id) forgetDeletedId(moduleKey, payload.id);
-          const { __restoreDeleted, ...safePayload } = payload || {};
+          const {  ...safePayload } = payload || {};
           return createRecord(moduleKey, safePayload);
         },
         update: (id, payload) => updateRecord(moduleKey, id, payload),
@@ -103,9 +103,10 @@ export default function useCrudModule(moduleKey) {
       moduleRows,
       loading,
       error,
-      moduleKey === 'animaux' || moduleKey === 'avicole' ? alimentationLogs : null,
-      moduleKey === 'avicole' ? productionLogs : null,
-      moduleKey === 'animaux' ? santeRows : null,
+      alimentationLogs,
+      productionLogs,
+      santeRows,
+      dataMap.animaux,
       createRecord,
       updateRecord,
       deleteRecord,

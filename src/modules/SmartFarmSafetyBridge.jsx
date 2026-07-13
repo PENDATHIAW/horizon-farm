@@ -21,14 +21,10 @@ function weatherRisks(meteo = {}) {
   return risks;
 }
 
-function deviceRisks(sensors = [], cameras = []) {
-  const sensorRisks = arr(sensors)
+function deviceRisks(sensors = []) {
+  return arr(sensors)
     .filter((row) => ['alerte', 'offline', 'hors_ligne', 'batterie_faible', 'maintenance'].includes(clean(row.status || row.statut)) || Number(row.battery_level || 100) <= 20)
     .map((row) => ({ id: row.id, type: 'capteur', title: `Capteur à vérifier: ${deviceName(row)}`, message: `${row.zone || row.location || ''} · ${row.status || row.statut || ''}`, priority: Number(row.battery_level || 100) <= 10 ? 'haute' : 'moyenne' }));
-  const cameraRisks = arr(cameras)
-    .filter((row) => ['alerte', 'offline', 'hors_ligne', 'maintenance'].includes(clean(row.status || row.statut)))
-    .map((row) => ({ id: row.id, type: 'camera', title: `Caméra à vérifier: ${deviceName(row)}`, message: `${row.zone || ''} · ${row.status || row.statut || ''}`, priority: 'moyenne' }));
-  return [...sensorRisks, ...cameraRisks];
 }
 
 function existingTaskFor(risk, tasks = []) {
@@ -36,9 +32,9 @@ function existingTaskFor(risk, tasks = []) {
   return arr(tasks).find((task) => !isDone(task) && (task.task_dedupe_key === key || task.action_key === key));
 }
 
-export default function SmartFarmSafetyBridge({ meteo, sensors = [], cameras = [], tasks = [], onCreateAlert, onRefreshAlertes, onCreateTask, onRefreshTasks, onCreateBusinessEvent, onRefreshBusinessEvents }) {
+export default function SmartFarmSafetyBridge({ meteo, sensors = [], tasks = [], onCreateAlert, onRefreshAlertes, onCreateTask, onRefreshTasks, onCreateBusinessEvent, onRefreshBusinessEvents }) {
   const [savingKey, setSavingKey] = useState('');
-  const risks = useMemo(() => [...weatherRisks(meteo), ...deviceRisks(sensors, cameras)].map((risk) => ({ ...risk, task: existingTaskFor(risk, tasks) })).slice(0, 8), [meteo, sensors, cameras, tasks]);
+  const risks = useMemo(() => [...weatherRisks(meteo), ...deviceRisks(sensors)].map((risk) => ({ ...risk, task: existingTaskFor(risk, tasks) })).slice(0, 8), [meteo, sensors, tasks]);
 
   const createAction = async (risk) => {
     const key = dedupeKey(risk.type, risk.id);
@@ -85,23 +81,23 @@ export default function SmartFarmSafetyBridge({ meteo, sensors = [], cameras = [
 
   if (!risks.length) return null;
   return (
-    <div className="rounded-2xl border border-[#d6c3a0] bg-white p-5 space-y-4">
+    <div className="rounded-2xl border border-line bg-white p-6 space-y-4">
       <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3">
         <div>
-          <p className="text-xs uppercase tracking-widest text-[#8a7456]">Surveillance terrain</p>
-          <h3 className="font-black text-[#2f2415]">Points à vérifier</h3>
+          <p className="text-xs uppercase tracking-normal text-slate">Surveillance terrain</p>
+          <h3 className="font-semibold text-earth">Points à vérifier</h3>
         </div>
-        <div className="rounded-xl border border-[#eadcc2] bg-[#fffdf8] px-3 py-2 text-sm text-[#7d6a4a]"><AlertTriangle size={14} className="inline" /> {risks.length} signalement(s)</div>
+        <div className="rounded-xl border border-line bg-card px-3 py-2 text-sm text-slate"><AlertTriangle size={14} className="inline" /> {risks.length} signalement(s)</div>
       </div>
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-2">
         {risks.map((risk) => {
           const key = dedupeKey(risk.type, risk.id);
           const Icon = risk.type.startsWith('meteo') ? CloudRain : Radio;
           return (
-            <div key={key} className="rounded-xl border border-[#eadcc2] bg-[#fffdf8] p-3">
-              <p className="font-bold text-[#2f2415]"><Icon size={14} className="inline" /> {risk.title}</p>
-              <p className="text-xs text-[#8a7456] mt-1">{risk.message}</p>
-              {risk.task ? <p className="mt-3 text-xs font-bold text-emerald-700"><ListChecks size={13} className="inline" /> En suivi</p> : <button type="button" disabled={savingKey === key} className="mt-3 text-sm font-bold text-emerald-700 disabled:opacity-60" onClick={() => createAction(risk)}><CheckCircle2 size={14} className="inline" /> {savingKey === key ? 'Création...' : 'Créer action'}</button>}
+            <div key={key} className="rounded-xl border border-line bg-card p-3">
+              <p className="font-semibold text-earth"><Icon size={14} className="inline" /> {risk.title}</p>
+              <p className="text-xs text-slate mt-1">{risk.message}</p>
+              {risk.task ? <p className="mt-3 text-xs font-semibold text-positive"><ListChecks size={13} className="inline" /> En suivi</p> : <button type="button" disabled={savingKey === key} className="mt-3 text-sm font-semibold text-positive disabled:opacity-60" onClick={() => createAction(risk)}><CheckCircle2 size={14} className="inline" /> {savingKey === key ? 'Création...' : 'Créer action'}</button>}
             </div>
           );
         })}

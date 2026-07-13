@@ -9,9 +9,8 @@ import { exportObjectifsAnalyticsExcel, exportObjectifsAnalyticsCsv } from '../.
 import { buildDecisionCenterPlan } from '../../services/growthDecisionEngine.js';
 import { buildGrowthObjectiveWorkflow } from '../../utils/objectivesWorkflows.js';
 import ObjectifsBpSuiviTab from './ObjectifsBpSuiviTab.jsx';
-import ObjectifsTechniqueTab from './ObjectifsTechniqueTab.jsx';
-import ObjectifsSandboxTab from './ObjectifsSandboxTab.jsx';
-import ObjectifsFluxTab from './ObjectifsFluxTab.jsx';
+import ObjectifsScenariosTab from './ObjectifsScenariosTab.jsx';
+import ObjectifsHistoryTab from './ObjectifsHistoryTab.jsx';
 import { buildObjectifsDecisionPlan } from '../../services/objectifsDecision/objectifsDecisionEngine.js';
 
 const arr = (value) => (Array.isArray(value) ? value : []);
@@ -26,9 +25,8 @@ const EMPTY_ANALYTICS = {
 };
 
 function csvKeyForTab(tab) {
-  if (tab === 'Efficacité Technique & Zootechnique') return 'technique';
-  if (tab === 'Sécurisation des Flux') return 'flux';
-  if (tab === 'Simulateur Sandbox') return 'maraichage';
+  if (tab === 'Scénarios') return 'maraichage';
+  if (tab === 'Historique objectifs') return 'flux';
   return 'rentabilite';
 }
 
@@ -39,8 +37,6 @@ export default function ObjectifsDecisionModule({
   onTabChange,
   periodLabel = '',
   meteo,
-  onCreateCulture,
-  onRefreshCultures,
   ...props
 }) {
   const controlled = Boolean(onTabChange);
@@ -119,6 +115,24 @@ export default function ObjectifsDecisionModule({
     [growthPlan, growthObjectiveContext],
   );
 
+  const scenarioContext = useMemo(() => {
+    const capacities = props.activeFarm?.settings?.capacities || {};
+    const equipmentRows = arr(props.equipements || dataMap.equipment);
+    const teamRows = arr(props.team || dataMap.farm_rh_directory);
+    const feedRows = arr(enrichedDataMap.stock || enrichedDataMap.stocks).filter((row) => /aliment|feed/i.test(`${row.categorie || ''} ${row.nom || row.name || ''}`));
+    const feedPriceKg = feedRows.length
+      ? feedRows.reduce((sum, row) => sum + n(row.cout_moyen ?? row.prix_unitaire ?? row.unit_price), 0) / feedRows.length
+      : n(props.activeFarm?.settings?.feed_price_kg);
+    return {
+      availableCash: growthObjectiveContext.availableCash,
+      feedPriceKg,
+      buildingCapacity: n(capacities.buildings || capacities.batiments || growthObjectiveContext.availableCapacity),
+      teamCapacity: n(capacities.team || capacities.equipe || teamRows.length * 100),
+      equipmentCapacity: n(capacities.equipment || capacities.equipements || equipmentRows.filter((row) => !/panne|indisponible/i.test(row.status || row.statut || '')).length * 100),
+      minimumCash: n(props.activeFarm?.settings?.minimum_cash || props.activeFarm?.settings?.seuil_tresorerie),
+    };
+  }, [dataMap, enrichedDataMap, growthObjectiveContext, props.activeFarm, props.equipements, props.team]);
+
   const emittedGrowthObjectiveKeys = useRef(new Set());
 
   useEffect(() => {
@@ -160,7 +174,7 @@ export default function ObjectifsDecisionModule({
     'Sécurisation des Flux': (analytics.flux?.sanitaryAlerts?.length || 0) + (analytics.flux?.feedAlert ? 1 : 0),
   }), [analytics]);
 
-  const content = tab === 'Suivi du Business Plan'
+  const content = tab === 'Objectifs'
     ? (
       <ObjectifsBpSuiviTab
         plan={growthPlan}
@@ -170,28 +184,28 @@ export default function ObjectifsDecisionModule({
         onNavigate={onNavigate}
       />
     )
-    : tab === 'Efficacité Technique & Zootechnique'
-      ? <ObjectifsTechniqueTab analytics={analytics} onNavigate={onNavigate} />
-      : tab === 'Simulateur Sandbox'
-        ? (
-          <ObjectifsSandboxTab
-            analytics={analytics}
-            onNavigate={onNavigate}
-            onCreateCulture={onCreateCulture}
-            onRefreshCultures={onRefreshCultures}
-          />
-        )
-        : <ObjectifsFluxTab dataMap={enrichedDataMap} analytics={analytics} onNavigate={onNavigate} />;
+    : tab === 'Scénarios'
+      ? (
+        <ObjectifsScenariosTab
+          scenarioContext={scenarioContext}
+          simulations={props.planningSimulations}
+          activeFarm={props.activeFarm}
+          user={props.user}
+          onCreateSimulation={props.onCreatePlanningSimulation}
+          onRefreshSimulations={props.onRefreshPlanningSimulations}
+        />
+      )
+      : <ObjectifsHistoryTab simulations={props.planningSimulations} />;
 
   return (
     <div className="space-y-6">
-      <section className="rounded-3xl border border-[#d6c3a0] bg-[#fffdf8] p-6 shadow-sm">
+      <section className="rounded-3xl border border-line bg-card p-6 shadow-card">
         <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
           <div>
-            <p className="text-xs uppercase tracking-[0.25em] text-[#9a6b12] font-black">Stratégie long terme</p>
-            <h1 className="mt-1 text-3xl font-black text-[#2f2415]">Objectifs & Croissance</h1>
-            <p className="mt-2 text-sm text-[#8a7456] max-w-3xl">
-              Business Plan, efficacité zootechnique, économie circulaire et sécurisation des flux — 4 vues analytiques sans doublon avec le Centre décisionnel.
+            <p className="text-xs uppercase tracking-normal text-horizon-dark font-semibold">Stratégie long terme</p>
+            <h1 className="mt-1 text-3xl font-semibold text-earth">Objectifs & Croissance</h1>
+            <p className="mt-2 text-sm text-slate max-w-3xl">
+              Objectifs calculés, scénarios versionnés et historique des hypothèses de croissance.
             </p>
             {periodLabel ? <div className="mt-2"><PeriodScopeBadge label={periodLabel} /></div> : null}
           </div>
@@ -202,10 +216,10 @@ export default function ObjectifsDecisionModule({
             </div>
             <button
               type="button"
-              onClick={() => onNavigate?.('centre_ia', { tab: 'Croissance & opportunités' })}
-              className="rounded-2xl border border-[#d6c3a0] bg-white px-4 py-3 text-left text-sm hover:bg-[#dcfce7]"
+              onClick={() => onNavigate?.('centre_decisionnel', { tab: 'Décisions' })}
+              className="rounded-2xl border border-line bg-white px-4 py-3 text-left text-sm hover:bg-positive-bg"
             >
-              <span className="text-[#8a7456]">Actions du jour → </span><b>Centre décisionnel</b>
+              <span className="text-slate">Actions du jour → </span><b>Centre décisionnel</b>
             </button>
           </div>
         </div>

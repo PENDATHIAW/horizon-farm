@@ -10,15 +10,9 @@ import { remainingForOrder } from './salesStatuses.js';
 const arr = (v) => (Array.isArray(v) ? v : []);
 const clean = (v) => String(v || '').trim();
 const lower = (v) => clean(v).toLowerCase();
-const n = (v) => Number(v || 0);
-
 function eventKey(event = {}) {
   return clean(event.issue_key)
     || `${lower(event.event_type)}:${lower(event.module_source)}:${clean(event.entity_id)}:${clean(event.source_record_id)}`;
-}
-
-function amountOf(row = {}) {
-  return n(row.montant ?? row.amount ?? row.montant_total ?? row.total);
 }
 
 /** Doublons business_events (issue_key ou clé composite). */

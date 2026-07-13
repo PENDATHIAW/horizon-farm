@@ -45,30 +45,30 @@ export default function ModuleGraphiquesTab({ moduleId, periodFiltered, ...props
     case 'centre_ia':
       return withChartPeriod((
         <div className="space-y-6">
-          <section className="rounded-2xl border border-[#d6c3a0] bg-white p-4 shadow-sm">
-            <h2 className="text-sm font-black text-[#2f2415]">Trésorerie & encaissements</h2>
-            <p className="mt-1 text-xs text-[#8a7456]">Flux financiers — cliquez sur un point pour ouvrir Finance & Pilotage.</p>
+          <section className="rounded-2xl border border-line bg-white p-4 shadow-card">
+            <h2 className="text-sm font-semibold text-earth">Trésorerie & encaissements</h2>
+            <p className="mt-1 text-xs text-slate">Flux financiers — cliquez sur un point pour ouvrir Finance & Pilotage.</p>
             <div className="mt-3">
               <FinanceEvolution rows={arr(props.transactions || props.finances)} payments={arr(props.payments)} salesOrders={arr(props.salesOrders)} onNavigate={onNavigate} />
             </div>
           </section>
-          <section className="rounded-2xl border border-[#d6c3a0] bg-white p-4 shadow-sm">
-            <h2 className="text-sm font-black text-[#2f2415]">Ventes & créances</h2>
-            <p className="mt-1 text-xs text-[#8a7456]">Évolution commerciale — relier aux relances clients et opportunités.</p>
+          <section className="rounded-2xl border border-line bg-white p-4 shadow-card">
+            <h2 className="text-sm font-semibold text-earth">Ventes & créances</h2>
+            <p className="mt-1 text-xs text-slate">Évolution commerciale — relier aux relances clients et opportunités.</p>
             <div className="mt-3">
               <SalesEvolution rows={arr(props.salesOrders)} payments={arr(props.payments)} opportunities={arr(props.opportunities)} onNavigate={onNavigate} />
             </div>
           </section>
-          <section className="rounded-2xl border border-[#d6c3a0] bg-white p-4 shadow-sm">
-            <h2 className="text-sm font-black text-[#2f2415]">Stock & alertes</h2>
-            <p className="mt-1 text-xs text-[#8a7456]">Ruptures et tension inventaire — croiser avec l'onglet Risques.</p>
+          <section className="rounded-2xl border border-line bg-white p-4 shadow-card">
+            <h2 className="text-sm font-semibold text-earth">Stock & alertes</h2>
+            <p className="mt-1 text-xs text-slate">Ruptures et tension inventaire — croiser avec l'onglet Risques.</p>
             <div className="mt-3">
               <StockEvolution rows={arr(props.stocks || props.stock)} onNavigate={onNavigate} />
             </div>
           </section>
-          <section className="rounded-2xl border border-[#d6c3a0] bg-white p-4 shadow-sm">
-            <h2 className="text-sm font-black text-[#2f2415]">Production avicole</h2>
-            <p className="mt-1 text-xs text-[#8a7456]">Lots et pontes — compléter l'onglet Cycles pour les décisions J+40.</p>
+          <section className="rounded-2xl border border-line bg-white p-4 shadow-card">
+            <h2 className="text-sm font-semibold text-earth">Production avicole</h2>
+            <p className="mt-1 text-xs text-slate">Lots et pontes — compléter l'onglet Cycles pour les décisions J+40.</p>
             <div className="mt-3">
               <AvicoleEvolution rows={arr(props.lots)} productionLogs={arr(props.productionLogs)} alimentationLogs={arr(props.alimentationLogs)} transactions={arr(props.transactions)} onNavigate={onNavigate} />
             </div>
@@ -82,7 +82,7 @@ export default function ModuleGraphiquesTab({ moduleId, periodFiltered, ...props
           <SalesEvolution rows={arr(props.salesOrders)} payments={arr(props.payments)} opportunities={arr(props.opportunities)} onNavigate={onNavigate} />
         </div>
       ), periodFiltered);
-    case 'elevage':
+    case 'elevage': {
       const chartNarratives = buildElevageChartNarratives({
         lots: arr(props.lots),
         animaux: arr(props.animaux),
@@ -92,10 +92,10 @@ export default function ModuleGraphiquesTab({ moduleId, periodFiltered, ...props
       return withChartPeriod((
         <div className="space-y-4">
           {chartNarratives.length ? (
-            <section className="rounded-2xl border border-[#d6c3a0] bg-[#fffdf8] p-4 space-y-2">
-              <h2 className="text-sm font-black text-[#2f2415]">Lecture des courbes</h2>
+            <section className="rounded-2xl border border-line bg-card p-4 space-y-2">
+              <h2 className="text-sm font-semibold text-earth">Lecture des courbes</h2>
               {chartNarratives.map((line) => (
-                <p key={line} className="text-sm text-[#7d6a4a]">{line}</p>
+                <p key={line} className="text-sm text-slate">{line}</p>
               ))}
             </section>
           ) : null}
@@ -103,6 +103,7 @@ export default function ModuleGraphiquesTab({ moduleId, periodFiltered, ...props
           <AnimauxEvolution rows={arr(props.animaux)} alimentationLogs={arr(props.alimentationLogs)} salesOrders={arr(props.salesOrders)} payments={arr(props.payments)} onNavigate={onNavigate} />
         </div>
       ), periodFiltered);
+    }
     case 'commercial':
       return withChartPeriod((
         <CommercialEvolution
@@ -156,7 +157,7 @@ export default function ModuleGraphiquesTab({ moduleId, periodFiltered, ...props
       return withChartPeriod(<CulturesEvolution rows={arr(props.cultures)} onNavigate={onNavigate} />, periodFiltered);
     default:
       return (
-        <div className="rounded-2xl border border-[#eadcc2] bg-[#fffdf8] p-5 text-sm text-[#8a7456]">
+        <div className="rounded-2xl border border-line bg-card p-6 text-sm text-slate">
           Graphiques en cours de branchement pour ce module.
         </div>
       );

@@ -30,78 +30,78 @@ export default function SalePricingSummaryCard({
 
   return (
     <section
-      className={`rounded-2xl border ${hasPrice ? 'border-emerald-300 bg-emerald-50' : 'border-amber-300 bg-amber-50'} p-4`}
+      className={`rounded-2xl border ${hasPrice ? 'border-positive bg-positive-bg' : 'border-vigilance bg-vigilance-bg'} p-4`}
       aria-label="Prix de vente proposé"
     >
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <p className="text-xs uppercase tracking-widest font-black text-emerald-900 flex items-center gap-2">
+          <p className="text-xs uppercase tracking-normal font-semibold text-positive flex items-center gap-2">
             <Tag size={14} />
             Prix de vente proposé
           </p>
-          <p className="mt-1 text-2xl font-black text-[#2f2415]">
+          <p className="mt-1 text-2xl font-semibold text-earth">
             {hasPrice ? fmtCurrency(recommended) : 'À calculer'}
           </p>
           {isLot && hasPrice && unitPrice > 0 ? (
-            <p className="text-sm text-[#7d6a4a]">
+            <p className="text-sm text-slate">
               {fmtCurrency(unitPrice)} / sujet · effectif pris en compte par le moteur
             </p>
           ) : null}
           {!isLot && salePricing.configuredPricePerKg > 0 ? (
-            <p className="text-sm text-[#7d6a4a]">
+            <p className="text-sm text-slate">
               Base Annexe : {fmtCurrency(salePricing.configuredPricePerKg)} / kg
               {salePricing.speciesKey ? ` (${salePricing.speciesKey})` : ''}
             </p>
           ) : null}
           {basis ? (
-            <p className="text-xs text-[#7d6a4a] mt-1">Calcul : {basis}</p>
+            <p className="text-xs text-slate mt-1">Calcul : {basis}</p>
           ) : null}
         </div>
         {!compact ? (
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 text-sm min-w-[200px]">
-            <div className="rounded-xl bg-white/80 border border-emerald-200/60 px-3 py-2">
-              <p className="text-[10px] uppercase text-[#8a7456]">Plancher</p>
-              <p className="font-black text-[#2f2415]">{minimum > 0 ? fmtCurrency(minimum) : '—'}</p>
+            <div className="rounded-xl bg-white/80 border border-positive px-3 py-2">
+              <p className="text-meta uppercase text-slate">Plancher</p>
+              <p className="font-semibold text-earth">{minimum > 0 ? fmtCurrency(minimum) : '—'}</p>
             </div>
-            <div className="rounded-xl bg-white/80 border border-emerald-200/60 px-3 py-2">
-              <p className="text-[10px] uppercase text-[#8a7456]">Coût unifié</p>
-              <p className="font-black text-[#2f2415]">{fmtCurrency(salePricing.totalCost || 0)}</p>
+            <div className="rounded-xl bg-white/80 border border-positive px-3 py-2">
+              <p className="text-meta uppercase text-slate">Coût unifié</p>
+              <p className="font-semibold text-earth">{fmtCurrency(salePricing.totalCost || 0)}</p>
             </div>
-            <div className="rounded-xl bg-white/80 border border-emerald-200/60 px-3 py-2">
-              <p className="text-[10px] uppercase text-[#8a7456]">{PROPOSED_PRICE_MARGIN_LABEL}</p>
-              <p className={`font-black ${Number(marginValue) < 0 ? 'text-red-600' : 'text-emerald-800'}`}>
+            <div className="rounded-xl bg-white/80 border border-positive px-3 py-2">
+              <p className="text-meta uppercase text-slate">{PROPOSED_PRICE_MARGIN_LABEL}</p>
+              <p className={`font-semibold ${Number(marginValue) < 0 ? 'text-urgent' : 'text-positive'}`}>
                 {hasPrice && marginValue != null ? fmtCurrency(marginValue) : '—'}
               </p>
               {hasPrice ? (
-                <p className="text-[10px] text-[#8a7456] mt-0.5">{marginLabel}</p>
+                <p className="text-meta text-slate mt-1">{marginLabel}</p>
               ) : null}
             </div>
           </div>
         ) : null}
       </div>
       {ficheDivergeNote ? (
-        <p className="mt-3 text-sm text-amber-900 rounded-xl border border-amber-200 bg-amber-100/80 px-3 py-2">
+        <p className="mt-3 text-sm text-horizon-dark rounded-xl border border-vigilance bg-vigilance-bg px-3 py-2">
           {ficheDivergeNote}
         </p>
       ) : null}
       {salePricing.alerts?.length ? (
-        <p className="mt-3 text-sm text-amber-900 rounded-xl border border-amber-200 bg-amber-100/80 px-3 py-2">
+        <p className="mt-3 text-sm text-horizon-dark rounded-xl border border-vigilance bg-vigilance-bg px-3 py-2">
           {salePricing.alerts.join(' ')}
         </p>
       ) : null}
       {!hasPrice ? (
-        <p className="mt-2 text-xs text-amber-900">
+        <p className="mt-2 text-xs text-horizon-dark">
           Complétez poids, achat/alimentation ou les prix/kg dans l’onglet Annexe. Détail dans Finances.
         </p>
       ) : null}
       {!compact ? (
-        <p className="mt-2 text-[11px] text-[#7d6a4a] leading-snug">{helpText}</p>
+        <p className="mt-2 text-meta text-slate leading-snug">{helpText}</p>
       ) : null}
       {onOpenFinances ? (
         <button
           type="button"
           onClick={onOpenFinances}
-          className="mt-3 text-xs font-bold text-emerald-800 underline underline-offset-2"
+          className="mt-3 text-xs font-semibold text-positive underline underline-offset-2"
         >
           Voir le détail coûts & marge
         </button>

@@ -7,10 +7,10 @@ const num = (value = 0) => Number(value || 0) || 0;
 
 const problemStatuses = ['alerte', 'offline', 'hors_ligne', 'hors ligne', 'maintenance', 'panne', 'batterie_faible'];
 
-export const smartDeviceLabel = (device = {}, kind = 'capteur') => device.name || device.nom || device.label || device.id || (kind === 'camera' ? 'Caméra' : 'Capteur');
+export const smartDeviceLabel = (device = {}) => device.name || device.nom || device.label || device.id || 'Capteur';
 export const smartDeviceZone = (device = {}) => device.zone || device.location || device.emplacement || 'Zone non renseignée';
 export const smartDeviceSource = (device = {}) => (norm(device.source_type || device.source || device.type) === 'simulation' || norm(device.status || device.statut) === 'simulation' ? 'simulation' : 'reel');
-export const smartFarmActionKey = (device = {}, kind = 'capteur') => `smartfarm:${kind}:${clean(device.id)}`;
+export const smartFarmActionKey = (device = {}) => `smartfarm:capteur:${clean(device.id)}`;
 
 export function isSmartFarmDeviceCritical(device = {}) {
   const status = norm(device.status || device.statut);
@@ -23,7 +23,7 @@ export function isSmartFarmDeviceCritical(device = {}) {
   return problemStatuses.includes(status) || (battery > 0 && battery <= 20) || thresholdCritical;
 }
 
-export function smartFarmDeviceReason(device = {}, kind = 'capteur') {
+export function smartFarmDeviceReason(device = {}) {
   const status = clean(device.status || device.statut);
   const battery = num(device.battery_level ?? device.batterie);
   const value = num(device.value ?? device.valeur ?? device.last_value ?? device.derniere_valeur);
@@ -33,21 +33,21 @@ export function smartFarmDeviceReason(device = {}, kind = 'capteur') {
   if (battery > 0 && battery <= 20) return `Batterie ${battery}% · ${smartDeviceZone(device)}`;
   if (max > 0 && value > max) return `Mesure ${value} au-dessus du seuil ${max} · ${smartDeviceZone(device)}`;
   if (min > 0 && value < min) return `Mesure ${value} sous le seuil ${min} · ${smartDeviceZone(device)}`;
-  return `${kind === 'camera' ? 'Caméra' : 'Capteur'} à vérifier · ${smartDeviceZone(device)}`;
+  return `Capteur à vérifier · ${smartDeviceZone(device)}`;
 }
 
-export function buildSmartFarmDeviceFollowUp({ device = {}, kind = 'capteur', date = today(), source = smartDeviceSource(device) } = {}) {
+export function buildSmartFarmDeviceFollowUp({ device = {}, date = today(), source = smartDeviceSource(device) } = {}) {
   if (!device?.id || !isSmartFarmDeviceCritical(device)) return null;
-  const key = smartFarmActionKey(device, kind);
+  const key = smartFarmActionKey(device);
   const taskId = makeId('TSK');
   const alertId = makeId('ALT');
-  const label = smartDeviceLabel(device, kind);
-  const reason = smartFarmDeviceReason(device, kind);
+  const label = smartDeviceLabel(device);
+  const reason = smartFarmDeviceReason(device);
   const priority = norm(device.status || device.statut).includes('panne') || num(device.battery_level ?? device.batterie) <= 10 ? 'haute' : 'moyenne';
   return {
     task: {
       id: taskId,
-      title: `Vérifier ${kind === 'camera' ? 'caméra' : 'capteur'} · ${label}`,
+      title: `Vérifier capteur · ${label}`,
       module_lie: 'smartfarm',
       source_module: 'smartfarm',
       source_record_id: device.id,
@@ -65,7 +65,7 @@ export function buildSmartFarmDeviceFollowUp({ device = {}, kind = 'capteur', da
       title: `Smart Farm à traiter: ${label}`,
       message: reason,
       module_source: 'smartfarm',
-      entity_type: kind,
+      entity_type: 'capteur',
       entity_id: device.id,
       severity: priority === 'haute' ? 'warning' : 'info',
       status: 'nouvelle',
@@ -77,7 +77,7 @@ export function buildSmartFarmDeviceFollowUp({ device = {}, kind = 'capteur', da
       id: makeId('EVT'),
       event_type: 'smartfarm_signal_critique',
       module_source: 'smartfarm',
-      entity_type: kind,
+      entity_type: 'capteur',
       entity_id: device.id,
       title: `Signal Smart Farm · ${label}`,
       description: reason,

@@ -55,18 +55,12 @@ function detectRealData(events, stocks, cultures) {
 }
 
 function buildSimulationEstimates() {
-  const targets = DERFJ_GREENPRENEURS_PROFILE.targetProduction;
   return {
     fientesPondeuses: { availableKg: CIRCULAR_SIMULATION_MONTHLY_KG.fientes_pondeuses, unit: 'kg', sourceType: 'simulation' },
     litiereChair: { availableKg: CIRCULAR_SIMULATION_MONTHLY_KG.litiere_chair, unit: 'kg', sourceType: 'simulation' },
     fumierBovin: { availableKg: CIRCULAR_SIMULATION_MONTHLY_KG.fumier_bovin, unit: 'kg', sourceType: 'simulation' },
     compost: { availableKg: Math.round(CIRCULAR_SIMULATION_MONTHLY_KG.litiere_chair * 0.6), unit: 'kg', sourceType: 'simulation' },
-    coproduits: {
-      suifKg: targets.bovinsPerMonth * CIRCULAR_SIMULATION_MONTHLY_KG.suif_par_bovin,
-      osKg: targets.bovinsPerMonth * CIRCULAR_SIMULATION_MONTHLY_KG.os_par_bovin,
-      sourceType: 'simulation',
-    },
-    targets,
+    targets: DERFJ_GREENPRENEURS_PROFILE.targetProduction,
   };
 }
 
@@ -121,14 +115,6 @@ export function computeCircularEconomyMetrics(dataMap = {}, options = {}) {
 
   const fertilisantStockKg = stockQtyByCategory(stocks, ['fertilisant_naturel', 'compost', 'fumier', 'fiente']);
 
-  const suifKg = hasRealData
-    ? stockQtyByCategory(stocks, ['suif', 'coproduit_bovin']) + sumEventQty(eventsByTypes(events, ['suif_collecte', 'coproduit_bovin_collecte']))
-    : sim.coproduits.suifKg;
-
-  const osKg = hasRealData
-    ? stockQtyByCategory(stocks, ['os']) + sumEventQty(eventsByTypes(events, ['os_collectes']))
-    : sim.coproduits.osKg;
-
   const orgaloop = computeOrgaloopEffluentMetrics(dataMap);
   const orgaloopHybrid = isOrgaloopHybridStrategy();
   const orgaloopPrimary = !orgaloopHybrid && orgaloop.isPrimaryChannel;
@@ -165,7 +151,6 @@ export function computeCircularEconomyMetrics(dataMap = {}, options = {}) {
     parcellesFertilisees,
     engraisSavingsFcfa,
     fertilisantStockKg,
-    coproduits: { suifKg, osKg, sourceType },
     orgaloop,
     orgaloopHybrid,
     orgaloopPrimary,

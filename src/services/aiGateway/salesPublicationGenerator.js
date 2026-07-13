@@ -64,9 +64,8 @@ function channelHint(channel = 'whatsapp') {
 }
 
 function buildPromotionalOffer({
-  productName,
+
   quantity,
-  unit,
   unitPrice,
   unitCost,
   minMarginPct,

@@ -15,15 +15,15 @@ export default function AnnualCommercialCalendarPanel({ dataMap = {}, compact = 
   const strategyLimit = compact ? 3 : 6;
 
   return (
-    <div className={compact ? 'space-y-3' : 'rounded-3xl border border-[#d6c3a0] bg-white p-5 shadow-sm space-y-4'}>
+    <div className={compact ? 'space-y-3' : 'rounded-3xl border border-line bg-white p-6 shadow-card space-y-4'}>
       {!compact ? (
         <div className="flex flex-col lg:flex-row lg:items-start justify-between gap-4">
           <div>
-            <p className="text-xs uppercase tracking-widest text-[#8a7456] font-black flex items-center gap-2"><CalendarDays size={15} /> Calendrier commercial annuel</p>
-            <h3 className="text-xl font-black text-[#2f2415] mt-1">Référence saisonnière</h3>
+            <p className="text-xs uppercase tracking-normal text-slate font-semibold flex items-center gap-2"><CalendarDays size={15} /> Calendrier commercial annuel</p>
+            <h3 className="text-xl font-semibold text-earth mt-1">Référence saisonnière</h3>
           </div>
           {!hideUpcoming && upcoming.length ? (
-            <p className="text-xs text-[#9a6b12] font-black">
+            <p className="text-xs text-horizon-dark font-semibold">
               Prochaines fenêtres : {upcoming.slice(0, 4).map((event) => event.label).join(' · ')}
             </p>
           ) : null}
@@ -35,36 +35,36 @@ export default function AnnualCommercialCalendarPanel({ dataMap = {}, compact = 
           .sort((a, b) => Math.abs(a.month - currentMonth) - Math.abs(b.month - currentMonth))
           .slice(0, monthLimit)
           .map((month) => (
-          <div key={month.month} className="rounded-2xl border border-[#eadcc2] bg-[#fffdf8] p-4 min-w-0">
+          <div key={month.month} className="rounded-2xl border border-line bg-card p-4 min-w-0">
             <div className="flex justify-between gap-2 items-start">
               <div>
-                <p className="text-[11px] uppercase tracking-wider text-[#8a7456] font-black">{month.label}</p>
-                <p className="text-xs text-[#7d6a4a] mt-1">{month.season?.replaceAll('_', ' ')}</p>
+                <p className="text-meta uppercase tracking-normal text-slate font-semibold">{month.label}</p>
+                <p className="text-xs text-slate mt-1">{month.season?.replaceAll('_', ' ')}</p>
               </div>
-              <span className="rounded-full bg-[#2f2415] px-2 py-0.5 text-[10px] font-black text-white">M{month.month}</span>
+              <span className="rounded-full bg-earth px-2 py-1 text-meta font-semibold text-white">M{month.month}</span>
             </div>
 
-            <div className="mt-3 rounded-xl bg-white border border-[#eadcc2] p-3">
-              <p className="text-xs font-black text-[#2f2415] flex items-center gap-1"><Target size={13} /> Forte demande</p>
-              <p className="text-xs text-[#7d6a4a] mt-1">{demandText(month)}</p>
+            <div className="mt-3 rounded-xl bg-white border border-line p-3">
+              <p className="text-xs font-semibold text-earth flex items-center gap-1"><Target size={13} /> Forte demande</p>
+              <p className="text-xs text-slate mt-1">{demandText(month)}</p>
             </div>
 
-            <div className="mt-2 rounded-xl bg-white border border-[#eadcc2] p-3">
-              <p className="text-xs font-black text-[#2f2415] flex items-center gap-1"><Leaf size={13} /> Cultures / focus</p>
-              <p className="text-xs text-[#7d6a4a] mt-1">{month.crops?.slice(0, 4).join(' · ') || month.focus?.join(' · ')}</p>
+            <div className="mt-2 rounded-xl bg-white border border-line p-3">
+              <p className="text-xs font-semibold text-earth flex items-center gap-1"><Leaf size={13} /> Cultures / focus</p>
+              <p className="text-xs text-slate mt-1">{month.crops?.slice(0, 4).join(' · ') || month.focus?.join(' · ')}</p>
             </div>
 
             <div className="mt-2 space-y-1">
               {month.actions?.slice(0, 2).map((action) => (
-                <p key={action} className="text-[11px] text-[#7d6a4a] leading-snug">
+                <p key={action} className="text-meta text-slate leading-snug">
                   • {contextualizeSeasonalText(action, upcoming, refDate)}
                 </p>
               ))}
             </div>
 
             {month.risks?.length ? (
-              <p className="mt-2 text-[11px] text-amber-700 flex items-start gap-1">
-                <ShieldAlert size={12} className="mt-0.5 shrink-0" />
+              <p className="mt-2 text-meta text-horizon-dark flex items-start gap-1">
+                <ShieldAlert size={12} className="mt-1 shrink-0" />
                 {contextualizeSeasonalText(month.risks.slice(0, 2).join(' · '), upcoming, refDate)}
               </p>
             ) : null}
@@ -73,11 +73,11 @@ export default function AnnualCommercialCalendarPanel({ dataMap = {}, compact = 
       </div>
 
       {!compact ? (
-        <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-4">
-          <p className="font-black text-emerald-800">Stratégies transversales</p>
+        <div className="rounded-2xl border border-positive bg-positive-bg p-4">
+          <p className="font-semibold text-positive">Stratégies transversales</p>
           <div className="mt-2 grid grid-cols-1 md:grid-cols-2 gap-2">
             {HORIZON_TRANSVERSAL_STRATEGIES.slice(0, strategyLimit).map((strategy) => (
-              <p key={strategy} className="text-xs text-emerald-800">• {strategy}</p>
+              <p key={strategy} className="text-xs text-positive">• {strategy}</p>
             ))}
           </div>
         </div>

@@ -7,11 +7,11 @@ export default function CulturesIntrantsHub(props) {
   const meteo = props.meteo || liveMeteo;
 
   return (
-    <div className="space-y-5">
-      <section className="rounded-3xl border border-[#d6c3a0] bg-white p-5 shadow-sm space-y-4">
+    <div className="space-y-6">
+      <section className="rounded-3xl border border-line bg-white p-6 shadow-card space-y-4">
         <div>
-          <h2 className="text-lg font-black text-[#2f2415]">Intrants & météo</h2>
-          <p className="mt-1 text-sm text-[#8a7456]">
+          <h2 className="text-lg font-semibold text-earth">Intrants & météo</h2>
+          <p className="mt-1 text-sm text-slate">
             Utilisation terrain uniquement — chaque intrant validé décrémente le stock et met à jour le coût culture (Finance).
           </p>
         </div>

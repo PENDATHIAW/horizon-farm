@@ -222,7 +222,7 @@ export function auditTraceabilityGaps({
 
 function scoreFromCounts(base, penalties) {
   let score = base;
-  Object.entries(penalties).forEach(([weight, count]) => {
+  penalties.forEach(([weight, count]) => {
     score -= Math.min(Number(weight), n(count) * (Number(weight) / 10));
   });
   return Math.max(0, Math.round(score));
@@ -261,39 +261,39 @@ export function runCanonicalExecutionAudit(data = {}) {
   const staticBypass = WORKFLOW_ENFORCEMENT_REPORT.filter((r) => r.kind === 'bypass').length;
   const staticLegacy = WORKFLOW_ENFORCEMENT_REPORT.filter((r) => r.kind === 'legacy').length;
 
-  const workflowScore = scoreFromCounts(100, {
-    25: saleBypass.bypassCount,
-    15: stockPurchaseBypass.bypassCount,
-    15: paymentBypass.bypassCount,
-    10: staticBypass,
-  });
+  const workflowScore = scoreFromCounts(100, [
+    [25, saleBypass.bypassCount],
+    [15, stockPurchaseBypass.bypassCount],
+    [15, paymentBypass.bypassCount],
+    [10, staticBypass],
+  ]);
 
-  const eventsScore = scoreFromCounts(100, {
-    20: eventDup.duplicateCount,
-    15: eventsMissingKey.missingCount,
-    20: saleEventDouble.doubleCount,
-    10: EVENT_ENFORCEMENT_REPORT.filter((r) => r.risque === 'haute' || r.risque === 'élevé').length,
-  });
+  const eventsScore = scoreFromCounts(100, [
+    [20, eventDup.duplicateCount],
+    [15, eventsMissingKey.missingCount],
+    [20, saleEventDouble.doubleCount],
+    [10, EVENT_ENFORCEMENT_REPORT.filter((r) => r.risque === 'haute' || r.risque === 'élevé').length],
+  ]);
 
   const kpiSecondaryPanels = CRITICAL_PANELS_SECONDARY_KPI.length;
-  const kpiScore = scoreFromCounts(100, { 8: kpiSecondaryPanels });
+  const kpiScore = scoreFromCounts(100, [[8, kpiSecondaryPanels]]);
 
-  const financeScore = scoreFromCounts(erpAudit.score, {
-    5: financeDouble.doubleReceivableCount,
-    5: financeDouble.doublePaidCount,
-  });
+  const financeScore = scoreFromCounts(erpAudit.score, [
+    [5, financeDouble.doubleReceivableCount],
+    [5, financeDouble.doublePaidCount],
+  ]);
 
-  const stockScore = scoreFromCounts(100, {
-    30: stockDup.duplicateMovementCount,
-    15: stockPurchaseBypass.bypassCount,
-  });
+  const stockScore = scoreFromCounts(100, [
+    [30, stockDup.duplicateMovementCount],
+    [15, stockPurchaseBypass.bypassCount],
+  ]);
 
-  const traceScore = scoreFromCounts(100, {
-    12: traceAudit.gaps.incomplete,
-    8: traceAudit.gaps.venteSansFacture,
-    8: traceAudit.gaps.factureSansCreance,
-    5: traceAudit.gaps.paiementSansCommande,
-  });
+  const traceScore = scoreFromCounts(100, [
+    [12, traceAudit.gaps.incomplete],
+    [8, traceAudit.gaps.venteSansFacture],
+    [8, traceAudit.gaps.factureSansCreance],
+    [5, traceAudit.gaps.paiementSansCommande],
+  ]);
 
   const domainScores = {
     workflow: workflowScore,
@@ -354,6 +354,7 @@ export function runCanonicalExecutionAudit(data = {}) {
       transactions: transactions.length,
       events: events.length,
       movements: stockMovements.length,
+      workflowBypasses: workflowBypassTotal,
     },
   };
 }

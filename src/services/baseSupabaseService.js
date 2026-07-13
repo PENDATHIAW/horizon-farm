@@ -3,6 +3,7 @@ import { getModuleSeedRows } from '../utils/mockData.js';
 import { normalizeByModule, normalizePayloadBeforeSave } from '../utils/normalize.js';
 import { safeLocalStorageSetJson } from '../utils/safeLocalStorage.js';
 import { isSimulatedDataModeEnabled } from '../utils/uiPreferences.js';
+import { withFarmId } from '../utils/farmScopePayload.js';
 import { enrichLinkedFields } from './issueLinkingService.js';
 
 import {
@@ -143,7 +144,7 @@ const selectExistingByPrimaryKey = async ({ table, id, idField, fallback }) => {
 const updateExistingByPrimaryKey = async ({ table, payload, idField }) => { const id = payload?.[idField]; if (!id) return payload; const { data, error } = await supabase.from(table).update(payload).eq(idField, id).select('*').limit(1); if (error) { if (isSingleObjectCoercionError(error)) return selectExistingByPrimaryKey({ table, id, idField, fallback: payload }); throw error; } return firstRow(data, payload); };
 const executeMutation = async ({ table, action, payload, id, idField }) => action === 'insert' ? supabase.from(table).insert(payload).select('*').limit(1) : supabase.from(table).update(payload).eq(idField, id).select('*').limit(1);
 const runMutationWithSchemaRetry = async ({ table, action, payload, id, idField }) => {
-  let nextPayload = toDbPayload(payload, table);
+  let nextPayload = toDbPayload(action === 'insert' ? withFarmId(table, payload) : payload, table);
   const removedColumns = [];
   for (let attempt = 0; attempt < 40; attempt += 1) {
     const { data, error } = await executeMutation({ table, action, payload: nextPayload, id, idField });
@@ -194,7 +195,7 @@ const linkSalesOrderToOpportunity = async (createdOrder = {}, originalPayload = 
     const match = originalPayload.opportunity_id ? { id: originalPayload.opportunity_id } : await findMatchingOpportunity({ ...originalPayload, ...createdOrder });
     if (!match?.id) return createdOrder;
     await safePatchOpportunitySchema(match.id, { status: 'converti', statut: 'converti', converted_sale_id: createdOrder.id, converted_at: new Date().toISOString() });
-    await supabase.from('business_events').insert({ id: `EVT-${createdOrder.id}-${match.id}`.slice(0, 80), event_type: 'opportunite_convertie', module_source: 'ventes', entity_type: 'opportunite_vente', entity_id: match.id, title: `Opportunité convertie en commande ${createdOrder.id}`, description: createdOrder.source_label || originalPayload.source_label || 'Opportunité convertie en vente.', amount: Number(createdOrder.montant_total || originalPayload.montant_total || 0), event_date: new Date().toISOString(), linked_sale_id: createdOrder.id, severity: 'info' }).catch(() => {});
+    await supabase.from('business_events').insert(withFarmId('business_events', { id: `EVT-${createdOrder.id}-${match.id}`.slice(0, 80), farm_id: createdOrder.farm_id || originalPayload.farm_id, event_type: 'opportunite_convertie', module_source: 'ventes', entity_type: 'opportunite_vente', entity_id: match.id, title: `Opportunité convertie en commande ${createdOrder.id}`, description: createdOrder.source_label || originalPayload.source_label || 'Opportunité convertie en vente.', amount: Number(createdOrder.montant_total || originalPayload.montant_total || 0), event_date: new Date().toISOString(), linked_sale_id: createdOrder.id, severity: 'info' })).catch(() => {});
     return { ...createdOrder, opportunity_id: createdOrder.opportunity_id || match.id, decision_origin: createdOrder.decision_origin || originalPayload.decision_origin || 'opportunite_vente', attributable_to_decision_center: true };
   } catch { return createdOrder; }
 };

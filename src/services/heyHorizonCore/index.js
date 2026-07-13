@@ -9,7 +9,7 @@
 
 import { composeDecisionDataMap, composeReportData } from '../moduleDataComposer.js';
 import { AI_DRAFT_SOURCES, TARGET_WORKFLOWS } from '../aiGateway/aiActionDrafts.js';
-import { HEY_HORIZON_CORE_SOURCE, HEY_HORIZON_CORE_VERSION, metaBase } from './coreUtils.js';
+import {  metaBase } from './coreUtils.js';
 import { getFarmSummary } from './farmSummaryService.js';
 import { getFinancialSummary } from './financeSummaryService.js';
 import { getPoultrySummary } from './poultrySummaryService.js';

@@ -83,6 +83,12 @@ test('flag désactivé = aucune requête pour les tables du module', () => {
   assert.equal(isDataKeyEnabled('taches', flags), true);
 });
 
+test('les caméras restent retirées même lorsque Smart Farm est actif', () => {
+  const flags = resolveModuleFlags({ settings: { modules: { smartfarm: true } } }, {});
+  assert.equal(isDataKeyEnabled('sensor_devices', flags), true);
+  assert.equal(isDataKeyEnabled('camera_devices', flags), false);
+});
+
 test('un module hors flag reste toujours actif', () => {
   const flags = resolveModuleFlags(null, {});
   for (const id of ['dashboard', 'elevage', 'commercial', 'finance_pilotage', 'gestion_systeme']) {

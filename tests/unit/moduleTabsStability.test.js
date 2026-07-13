@@ -100,12 +100,13 @@ test('Centre décisionnel — onglets critiques', async () => {
 });
 
 test('Matrice modules couverte', () => {
-  assert.ok(criticalModuleIds().length >= 14);
-  assert.equal(MODULE_TAB_MATRIX.commercial.length, 6);
-  assert.equal(MODULE_TAB_MATRIX.achats_stock.length, 3);
-  assert.equal(MODULE_TAB_MATRIX.elevage.length, 4);
-  assert.equal(MODULE_TAB_MATRIX.cultures.length, 3);
-  assert.equal(MODULE_TAB_MATRIX.objectifs_croissance.length, 4);
+  assert.ok(criticalModuleIds().length >= 17);
+  assert.equal(MODULE_TAB_MATRIX.commercial.length, 7);
+  assert.equal(MODULE_TAB_MATRIX.achats_stock.length, 7);
+  assert.equal(MODULE_TAB_MATRIX.elevage.length, 8);
+  assert.equal(MODULE_TAB_MATRIX.cultures.length, 7);
+  assert.equal(MODULE_TAB_MATRIX.objectifs_croissance.length, 3);
   assert.equal(MODULE_TAB_MATRIX.centre_ia.length, 5);
   assert.equal(MODULE_TAB_MATRIX.sync_activity.length, 3);
+  assert.equal(MODULE_TAB_MATRIX.financements.length, 13);
 });

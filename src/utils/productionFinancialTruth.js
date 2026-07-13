@@ -1,7 +1,7 @@
-import { fmtCurrency, fmtNumber, fmtPercent } from './format.js';
+import { fmtCurrency } from './format.js';
 
 /** Une seule vérité financière Élevage — moteur unifiedCostService (aligné Finance). */
-export const PRODUCTION_FINANCE_SOURCE = 'Coût unifié ERP (alimentation + santé + achat) — même moteur que Finance & Rentabilité.';
+export const PRODUCTION_FINANCE_SOURCE = 'Achats, alimentation et santé enregistrés — même calcul que Finance & Rentabilité.';
 
 export const MARGIN_GROSS_DEFINITION_SHORT = 'Revenus − coût de production unifié ERP';
 export const MARGIN_GROSS_DEFINITION = `Marge brute technique = ${MARGIN_GROSS_DEFINITION_SHORT}`;
@@ -33,7 +33,7 @@ export function formatTechnicalMargin({ margin, reliable, missing = [] } = {}) {
 }
 
 export function buildFinancialSnapshot(kpi = {}, kind = 'lot') {
-  const cost = kpi.totalCost ?? kpi.costPerKg ?? kpi.costPerAnimal ?? kpi.costPerEgg;
+
   return {
     costLabel: PRODUCTION_FINANCE_LABELS.costTotal,
     costValue: kpi.unifiedTotal != null ? formatUnifiedCost(kpi.unifiedTotal) : '—',

@@ -26,9 +26,11 @@ export default function ClientContactModal({
 
   useEffect(() => {
     if (open) {
-      setMessage(defaultMessage);
-      setLastLogId('');
-      setLastStatus('');
+      queueMicrotask(() => {
+        setMessage(defaultMessage);
+        setLastLogId('');
+        setLastStatus('');
+      });
     }
   }, [open, defaultMessage]);
 
@@ -84,11 +86,11 @@ export default function ClientContactModal({
       )}
     >
       <div className="space-y-4">
-        <div className="rounded-xl border border-[#eadcc2] bg-[#fffdf8] p-3">
-          <p className="font-black text-[#2f2415]">{nameOf(client)}</p>
-          <p className="text-sm text-[#8a7456] mt-1">{phone || 'Numéro non renseigné'}</p>
+        <div className="rounded-xl border border-line bg-card p-3">
+          <p className="font-semibold text-earth">{nameOf(client)}</p>
+          <p className="text-sm text-slate mt-1">{phone || 'Numéro non renseigné'}</p>
           {lastStatus ? (
-            <p className="mt-2 text-xs font-bold text-[#9a6b12]">
+            <p className="mt-2 text-xs font-semibold text-horizon-dark">
               Statut :
               {' '}
               {whatsAppStatusLabel(lastStatus)}
@@ -96,16 +98,16 @@ export default function ClientContactModal({
           ) : null}
         </div>
         <label className="block space-y-2">
-          <span className="text-xs font-black uppercase text-[#8a7456]">Message</span>
+          <span className="text-xs font-semibold uppercase text-slate">Message</span>
           <textarea
             value={message}
             onChange={(e) => setMessage(e.target.value)}
             rows={5}
-            className="w-full rounded-xl border border-[#d6c3a0] bg-white px-3 py-2 text-sm text-[#2f2415] focus:outline-none focus:ring-2 focus:ring-emerald-400/40"
+            className="w-full rounded-xl border border-line bg-white px-3 py-2 text-sm text-earth focus:outline-none focus:ring-2 focus:ring-positive"
             placeholder="Votre message au client…"
           />
         </label>
-        <p className="text-xs text-[#8a7456]">
+        <p className="text-xs text-slate">
           WhatsApp ouvre l&apos;application avec le texte prérempli — l&apos;envoi n&apos;est confirmé que si vous cliquez sur &ldquo;Marquer envoyé manuellement&rdquo;.
         </p>
       </div>

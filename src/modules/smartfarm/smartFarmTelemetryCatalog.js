@@ -41,15 +41,6 @@ export const SMART_DEVICE_FAMILIES = [
     modules: ['cultures', 'dashboard'],
   },
   {
-    key: 'camera_surveillance',
-    label: 'Caméra / détection',
-    sensorType: 'camera',
-    zones: ['entree', 'magasin', 'enclos'],
-    protocols: ['ONVIF', 'RTSP', 'IP'],
-    alertExamples: ['Humain détecté', 'Mouvement nocturne', 'Caméra offline'],
-    modules: ['smartfarm', 'stock', 'elevage'],
-  },
-  {
     key: 'vanne_irrigation',
     label: 'Vanne / irrigation connectée',
     sensorType: 'porte',
@@ -127,15 +118,6 @@ export const SMART_ALERT_RULE_CATALOG = [
     targetModule: 'smartfarm',
   },
   {
-    id: 'camera_offline',
-    label: 'Caméra hors ligne',
-    trigger: 'event_type camera_offline ou status offline',
-    triggerLabel: 'caméra hors ligne',
-    severity: 'warning',
-    actions: ['alerte_center', 'tache_maintenance'],
-    targetModule: 'smartfarm',
-  },
-  {
     id: 'door_open_stock',
     label: 'Porte magasin ouverte',
     trigger: 'capteur porte OPEN hors plage horaire',
@@ -204,6 +186,6 @@ export const SMART_AUTOMATION_TEMPLATES = [
 
 export const SMARTFARM_EVENT_TYPES = [
   'temperature', 'humidite', 'humidite_sol', 'intrusion', 'mouvement',
-  'humain_detecte', 'camera_offline', 'capteur_offline', 'batterie_faible',
+  'humain_detecte', 'capteur_offline', 'batterie_faible',
   'vanne_ouverte', 'vanne_fermee', 'fuite_eau', 'signal_faible',
 ];

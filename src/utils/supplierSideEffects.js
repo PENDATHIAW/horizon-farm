@@ -1,20 +1,20 @@
-import { syncFinanceSideEffects } from '../services/erpInterconnectionEngine';
+import { syncFinanceSideEffects } from '../services/erpInterconnectionEngine.js';
 import {
   buildSupplierDebtFollowUp,
   buildSupplierPaymentWorkflow,
   buildSupplierReceptionWorkflow,
   stockProductName,
   supplierDebtKey,
-} from './supplierWorkflows';
+} from './supplierWorkflows.js';
 import {
   commitStockPurchaseWorkflow,
   ENTRY_KINDS,
   PAYMENT_STATUS,
   prepareStockPurchaseWorkflow,
 } from './stockPurchaseWorkflow.js';
-import { documentIds, financeIds } from './sideEffectIds';
-import { runPurchaseSideEffects } from './purchaseSideEffects';
-import { toNumber } from './format';
+import { documentIds, financeIds } from './sideEffectIds.js';
+import { runPurchaseSideEffects } from './purchaseSideEffects.js';
+import { toNumber } from './format.js';
 
 const arr = (value) => (Array.isArray(value) ? value : []);
 const clean = (value) => String(value || '').trim();
@@ -164,19 +164,37 @@ export async function runSupplierReceptionSideEffects({
 export async function runSupplierPaymentSideEffects({
   supplier = {},
   debtAmount = 0,
+  paymentAmount = debtAmount,
   date = '',
   openDebtTransactions = [],
+  sourceTransactionId = '',
+  paymentMethod = '',
+  proofUrl = '',
   paymentRef = '',
   transactions = [],
   tasks = [],
   alertes = [],
   handlers = {},
 } = {}) {
+  if (!clean(supplier.id)) throw new Error('Fournisseur obligatoire pour enregistrer le paiement.');
+  const amount = num(paymentAmount);
+  if (amount <= 0) throw new Error('Montant de paiement fournisseur obligatoire.');
+  const sourceDebt = arr(openDebtTransactions).find((row) => clean(row.id) === clean(sourceTransactionId)) || arr(openDebtTransactions)[0];
+  if (!sourceDebt?.id) throw new Error('Dette fournisseur source obligatoire.');
+  const sourceRemaining = num(sourceDebt.reste_a_payer ?? sourceDebt.amount ?? sourceDebt.montant);
+  if (amount > sourceRemaining) throw new Error('Le paiement dépasse le reste dû sur la dette sélectionnée.');
+  if (!clean(paymentMethod)) throw new Error('Mode de paiement fournisseur obligatoire.');
+  if (!clean(proofUrl)) throw new Error('Preuve du paiement fournisseur obligatoire.');
+
   const raw = buildSupplierPaymentWorkflow({
     supplier,
-    debtAmount,
+    debtAmount: amount,
+    totalDebt: debtAmount,
     date: date || today(),
-    openDebtTransactions,
+    paymentMethod,
+    proofUrl,
+    sourceTransactionId: sourceDebt.id,
+    openDebtTransactions: [sourceDebt],
   });
   const workflow = applyDeterministicSupplierPayment(raw, supplier, paymentRef);
 
@@ -193,7 +211,7 @@ export async function runSupplierPaymentSideEffects({
 
   if (handlers.onCreateBusinessEvent) await handlers.onCreateBusinessEvent(workflow.event);
 
-  if (handlers.onUpdateTask && handlers.onUpdateAlert) {
+  if (num(workflow.supplierPatch.dettes) <= 0 && handlers.onUpdateTask && handlers.onUpdateAlert) {
     const key = supplierDebtKey(supplier);
     for (const task of arr(tasks).filter((row) => clean(row.task_dedupe_key) === key)) {
       await handlers.onUpdateTask(task.id, { status: 'termine', statut: 'termine' });

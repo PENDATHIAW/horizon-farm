@@ -8,6 +8,7 @@ import { shouldHandleProductionQuestionEvent } from '../utils/elevageCyclesNavig
 import PeriodScopeBadge from '../components/PeriodScopeBadge.jsx';
 import HeyHorizonQuickAsk from '../components/HeyHorizonQuickAsk.jsx';
 import ModuleProjectionsStrip from '../components/module/ModuleProjectionsStrip.jsx';
+import JournalEvenements from '../components/shared/JournalEvenements.jsx';
 import { buildElevageModuleProjections } from '../utils/moduleProjections.js';
 import {
   resolveElevageTab,
@@ -16,12 +17,13 @@ import {
 import { buildElevageHealthSnapshot } from './elevage/elevageVisionHelpers.js';
 import { buildElevageStartupProgress, isElevageStartupMode } from './elevage/elevageStartupHelpers.js';
 import ElevageWorkflowPanels, { buildElevageHandlers, useElevageWorkflowContext } from './elevage/ElevageWorkflowPanels.jsx';
-import ElevageMobileToolbar from './elevage/ElevageMobileToolbar.jsx';
+import ElevageMobileToolbar, { shouldShowElevageMobileToolbar } from './elevage/ElevageMobileToolbar.jsx';
 import { buildProductionHubSnapshot } from '../utils/productionHubMetrics.js';
 import { buildElevageActivityPnl, isBovinAnimal, isChairLot, isPondeuseLot } from '../utils/elevageActivityPnl.js';
 import { buildElevageCostAwareInsights } from '../utils/elevageIaInsights.js';
 import ElevageTransformationTab from './elevage/ElevageTransformationTab.jsx';
 import {
+  buildTransformationDraft,
   openElevageTransformationForm,
   scrollToTransformationForm,
 } from '../utils/elevageTransformationNavigation.js';
@@ -43,9 +45,13 @@ import {
 import { buildReproductionKpis } from '../utils/reproductionMetrics.js';
 import { evaluateElevageHealthBlocks, buildSanitaryAlertsPanel } from '../utils/elevageHealthBlocks.js';
 import { buildElevageTransformationRows } from '../utils/elevageTransformationJournal.js';
+import { getTransformationPermissions, normalizeTransformationRole } from '../utils/elevageTransformationPermissions.js';
 import ElevageLotsBandesTab from './elevage/ElevageLotsBandesTab.jsx';
 import ElevageCyclesReproductionTab from './elevage/ElevageCyclesReproductionTab.jsx';
 import { commitElevageEggProduction } from '../utils/elevageWorkflow.js';
+import ElevageOverviewTab from './elevage/ElevageOverviewTab.jsx';
+import ElevageAlimentationTab from './elevage/ElevageAlimentationTab.jsx';
+import ProductionHub from './elevage/ProductionHub.jsx';
 
 const lower = (value) => String(value || '').toLowerCase();
 const isClosedAnimal = (row = {}) => ['vendu', 'mort', 'vole', 'volé', 'perdu', 'abattu', 'cloture', 'clôture', 'sorti'].some((word) => lower(row.status || row.statut).includes(word));
@@ -54,23 +60,33 @@ const isPondeuse = (row = {}) => lotName(row).includes('pondeuse') || lotName(ro
 const isChair = (row = {}) => lotName(row).includes('chair') || lotName(row).includes('broiler');
 const isHealthLate = (row = {}) => ['retard', 'en_retard', 'a_faire_retard', 'overdue'].includes(lower(row.statut || row.status || row.etat));
 const isBirthLikeEvent = (row = {}) => /naissance|mise bas|veau|agneau|chevreau/.test(lower(`${row.event_type || ''} ${row.title || ''} ${row.description || ''}`));
+const DAILY_ELEVAGE_FORMS = Object.freeze({
+  daily_feeding: 'feeding',
+  daily_eggs: 'eggs',
+  daily_mortality: 'mortality',
+  daily_weighing: 'weighing',
+});
 const isGestanteAnimal = (row = {}) =>
   /gestante|gestation|mise bas prevue|saillie confirm|en gestation/.test(
     lower(`${row.statut_reproduction || ''} ${row.reproduction_status || ''} ${row.statut || ''} ${row.notes || ''}`),
   );
-function Tabs({ active, onChange, activeFarm }) {
+function Tabs({ active, onChange, activeFarm, role }) {
   return (
     <div className="space-y-2">
-      <ModuleTabsBar moduleId="elevage" active={active} onChange={onChange} activeFarm={activeFarm} />
+      <ModuleTabsBar moduleId="elevage" active={active} onChange={onChange} activeFarm={activeFarm} role={role} />
     </div>
   );
 }
 
 export default function ElevageRecoveredModule(props) {
+  const transformationRole = normalizeTransformationRole(
+    props.role || props.user?.user_metadata?.role || props.user?.role,
+  );
+  const transformationPermissions = getTransformationPermissions(transformationRole);
   const controlled = Boolean(props.onTabChange);
-  const [internalTab, setInternalTab] = useState(() => resolveElevageTab(props.initialTab || 'Lots & bandes'));
+  const [internalTab, setInternalTab] = useState(() => resolveElevageTab(props.initialTab || 'Vue d’ensemble'));
   const tab = controlled
-    ? resolveElevageTab(props.initialTab || 'Lots & bandes')
+    ? resolveElevageTab(props.initialTab || 'Vue d’ensemble')
     : internalTab;
   const [lotsSubview, setLotsSubview] = useState(() => resolveElevageLotsSubview(props.initialTab) || 'avicole');
   const [activeModal, setActiveModal] = useState(null);
@@ -86,6 +102,14 @@ export default function ElevageRecoveredModule(props) {
     if (sub) {
       setLotsSubview(sub);
       setWorkflowScope(sub);
+    }
+    if (value === 'Lots & animaux') {
+      setLotsSubview('animaux');
+      setWorkflowScope('animaux');
+    }
+    if (value === 'Production élevage') {
+      setLotsSubview('avicole');
+      setWorkflowScope('avicole');
     }
     const resolved = resolveElevageTab(value);
     if (controlled) props.onTabChange?.(resolved);
@@ -127,6 +151,34 @@ export default function ElevageRecoveredModule(props) {
       const draft = detail.draft;
       const moduleKey = String(detail.module || draft?.primary_module || '').toLowerCase();
       const formType = draft?.form_type || '';
+      const dailyModal = DAILY_ELEVAGE_FORMS[formType];
+      if (moduleKey === 'elevage' && dailyModal) {
+        setWorkflowScope(draft?.draft_fields?.scope || 'avicole');
+        setTab('Production élevage');
+        setActiveModal(dailyModal);
+        return;
+      }
+      const requestedTab = String(detail.tab || detail.initialTab || '').toLowerCase();
+      const isTransformationDraft = moduleKey === 'transformation'
+        || requestedTab === 'transformation'
+        || ['transformation', 'animal_transformation', 'lot_transformation', 'slaughter'].includes(formType);
+      if (isTransformationDraft) {
+        const fields = draft?.draft_fields || draft || detail.context || detail;
+        setTransformationDraft({
+          ...buildTransformationDraft({
+            animalId: fields.animal_id || fields.animalId,
+            lotId: fields.lot_id || fields.lotId,
+            transformType: fields.transform_type || fields.transformType,
+            date: fields.date || fields.event_date,
+            notes: fields.notes,
+            activity: fields.activity,
+          }),
+          ...fields,
+        });
+        setTab('Transformation');
+        window.setTimeout(scrollToTransformationForm, 120);
+        return;
+      }
       const birthModes = ['naissance_ferme', 'reproduction_interne'];
       const mode = String(draft?.draft_fields?.mode_acquisition || '').toLowerCase();
       const isReproModule = moduleKey === 'elevage' || moduleKey === 'reproduction';
@@ -288,6 +340,9 @@ export default function ElevageRecoveredModule(props) {
     productionLogs,
     sante: health,
     stockMovements,
+    user: props.user,
+    activeFarm: props.activeFarm,
+    farm: props.farm,
   });
 
   const elevageHandlers = buildElevageHandlers({
@@ -490,6 +545,9 @@ export default function ElevageRecoveredModule(props) {
     businessEvents,
     opportunities,
     transactions: rowsOf(props.transactions, financesCrud, periodFiltered),
+    stockMovements,
+    documents: rowsOf(props.documents, documentsCrud, periodFiltered),
+    permissions: transformationPermissions,
     handlers: transformationHandlers,
     onNavigate: guardedNavigate,
     onSuccess: refreshAfterWorkflow,
@@ -539,68 +597,9 @@ export default function ElevageRecoveredModule(props) {
     },
   };
 
-  const content = tab === 'Lots & bandes' ? (
+  const lotsContent = (initialSubview = lotsSubview) => (
     <ElevageLotsBandesTab
-      initialSubview={lotsSubview}
-      avicoleProps={avicoleProps}
-      animalProps={animalProps}
-      productionHubProps={{
-        snapshot: data.productionSnapshot,
-        lots,
-        animaux: animals,
-        marginContext: data.marginContext,
-        onNavigate: guardedNavigate,
-        onOpenWorkflow: openWorkflow,
-      }}
-      showStartup={showStartup}
-      startupProgress={startupProgress}
-      onNavigate={guardedNavigate}
-      onOpenWorkflow={openWorkflow}
-      onSetTab={setTab}
-      onLotsSubviewChange={(sub) => {
-        setLotsSubview(sub);
-        setWorkflowScope(sub);
-      }}
-    />
-  ) : tab === 'Cycles & Reproduction' ? (
-    <ElevageCyclesReproductionTab
-      cyclesPanelProps={{
-        dataMap: cyclesDataMap,
-        lots,
-        animaux: animals,
-        productionLogs,
-        alertes: rowsOf(props.alertes, alertsCrud, false),
-        onNavigate: guardedNavigate,
-        setTab,
-        farmScopeLabel: props.farmScopeLabel,
-        farmScope: props.farmScope,
-        farmFiltered: props.farmFiltered,
-        initialProductionQuestion: cyclesProductionQuestion,
-        meteo: props.meteo,
-      }}
-      reproductionData={data}
-      reproductionFormProps={reproductionFormProps}
-      onOpenReproductionWorkflow={onOpenReproductionWorkflow}
-      onNavigate={guardedNavigate}
-    />
-  ) : tab === 'Santé' ? (
-    <SanteV8 {...healthProps} healthBlocks={evaluateElevageHealthBlocks({ healthRows: health })} sanitaryAlerts={buildSanitaryAlertsPanel(health)} />
-  ) : tab === 'Transformation' ? (
-    <ElevageTransformationTab
-      data={data}
-      setTab={setTab}
-      onNavigate={guardedNavigate}
-      onOpenWorkflow={openWorkflow}
-      onPrepareTransformation={onPrepareTransformation}
-      transformationFormProps={transformationFormProps}
-      animalBridgeProps={animalProps}
-      avicoleBridgeProps={avicoleProps}
-      healthBlocks={evaluateElevageHealthBlocks({ healthRows: health })}
-      hasTransformationDraft={Boolean(transformationDraft)}
-    />
-  ) : (
-    <ElevageLotsBandesTab
-      initialSubview={lotsSubview}
+      initialSubview={initialSubview}
       avicoleProps={avicoleProps}
       animalProps={animalProps}
       productionHubProps={{
@@ -622,14 +621,104 @@ export default function ElevageRecoveredModule(props) {
       }}
     />
   );
+
+  const productionContent = (
+    <div className="space-y-4">
+      {lotsContent('avicole')}
+      <details className="border-t border-line pt-4">
+        <summary className="cursor-pointer text-sm font-semibold text-earth">Cycles et reproduction</summary>
+        <div className="mt-4 space-y-4">
+          <ElevageCyclesReproductionTab
+            cyclesPanelProps={{
+              dataMap: cyclesDataMap,
+              lots,
+              animaux: animals,
+              productionLogs,
+              alertes: rowsOf(props.alertes, alertsCrud, false),
+              onNavigate: guardedNavigate,
+              setTab,
+              farmScopeLabel: props.farmScopeLabel,
+              farmScope: props.farmScope,
+              farmFiltered: props.farmFiltered,
+              initialProductionQuestion: cyclesProductionQuestion,
+              meteo: props.meteo,
+            }}
+            reproductionData={data}
+            reproductionFormProps={reproductionFormProps}
+            onOpenReproductionWorkflow={onOpenReproductionWorkflow}
+            onNavigate={guardedNavigate}
+          />
+        </div>
+      </details>
+    </div>
+  );
+
+  const transformationContent = (
+    <ElevageTransformationTab
+      data={data}
+      setTab={setTab}
+      onNavigate={guardedNavigate}
+      onOpenWorkflow={openWorkflow}
+      onPrepareTransformation={onPrepareTransformation}
+      transformationFormProps={transformationFormProps}
+      animalBridgeProps={animalProps}
+      avicoleBridgeProps={avicoleProps}
+      healthBlocks={evaluateElevageHealthBlocks({ healthRows: health })}
+      hasTransformationDraft={Boolean(transformationDraft)}
+    />
+  );
+
+  const overviewContent = (
+    <ElevageOverviewTab
+      data={data}
+      showStartup={showStartup}
+      startupProgress={startupProgress}
+      onSetTab={setTab}
+      onNavigate={guardedNavigate}
+      onOpenWorkflow={openWorkflow}
+    />
+  );
+
+  const alimentationContent = (
+    <ElevageAlimentationTab
+      data={data}
+      onOpenWorkflow={openWorkflow}
+      onNavigate={guardedNavigate}
+    />
+  );
+
+  const performanceContent = (
+    <ProductionHub
+      snapshot={data.productionSnapshot}
+      lots={lots}
+      animaux={animals}
+      marginContext={data.marginContext}
+      setTab={setTab}
+      onNavigate={guardedNavigate}
+      onOpenWorkflow={openWorkflow}
+      contextView="all"
+      placement="inline"
+    />
+  );
+
+  const content = tab === 'Vue élevage' ? overviewContent
+    : tab === 'Alimentation élevage' ? alimentationContent
+      : tab === 'Coûts & performance élevage' ? performanceContent
+        : tab === 'Santé & Biosécurité' ? (
+    <SanteV8 {...healthProps} healthBlocks={evaluateElevageHealthBlocks({ healthRows: health })} sanitaryAlerts={buildSanitaryAlertsPanel(health)} />
+        ) : tab === 'Production élevage' ? productionContent
+          : tab === 'Transformation' ? transformationContent
+            : tab === 'Historique élevage' ? <JournalEvenements events={businessEvents} farmId={props.activeFarm?.id || props.farm?.id} module="elevage" recordType={props.recordType} recordId={props.recordId} period={props.periodScope} limit={150} onNavigate={props.onNavigate} />
+              : lotsContent('animaux');
   return (
     <div className="space-y-6">
-      <section className="rounded-3xl border border-[#d6c3a0] bg-white p-5 shadow-sm"><div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between"><div><p className="text-xs uppercase tracking-[0.25em] text-[#9a6b12] font-black">Production</p><h1 className="mt-1 text-2xl font-black text-[#2f2415]">Élevage</h1><p className="mt-1 text-sm text-[#8a7456]">Lots & bandes, cycles & reproduction, santé et transformation — 4 onglets métier.</p>{props.periodLabel ? <div className="mt-2"><PeriodScopeBadge label={props.periodLabel} /></div> : null}<HeyHorizonQuickAsk moduleKey="elevage" onNavigate={guardedNavigate} onOpenAssistant={props.onOpenAssistant} className="mt-2" /></div><div className="rounded-2xl border border-[#eadcc2] bg-[#fffdf8] px-4 py-3 text-sm"><span className="text-[#8a7456]">Santé module </span><b className={data.healthScore >= 75 ? 'text-emerald-700' : 'text-amber-700'}>{data.healthScore}/100</b></div></div></section>
+      <section className="rounded-3xl border border-line bg-white p-6 shadow-card"><div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between"><div><p className="text-xs uppercase tracking-normal text-horizon-dark font-semibold">Production</p><h1 className="mt-1 text-2xl font-semibold text-earth">Élevage</h1><p className="mt-1 text-sm text-slate">Lots, alimentation, production, santé, coûts et historique de l’élevage.</p>{props.periodLabel ? <div className="mt-2"><PeriodScopeBadge label={props.periodLabel} /></div> : null}<HeyHorizonQuickAsk moduleKey="elevage" onNavigate={guardedNavigate} onOpenAssistant={props.onOpenAssistant} className="mt-2" /></div><div className="rounded-2xl border border-line bg-card px-4 py-3 text-sm"><span className="text-slate">Santé module </span><b className={data.healthScore >= 75 ? 'text-positive' : 'text-horizon-dark'}>{data.healthScore}/100</b></div></div></section>
       <ModuleProjectionsStrip projections={data.moduleProjections} onNavigate={guardedNavigate} />
-      <Tabs active={tab} onChange={setTab} activeFarm={props.activeFarm} />
+      <Tabs active={tab} onChange={setTab} activeFarm={props.activeFarm} role={transformationRole} />
       {findActiveWithdrawals(health).length ? <SanitaryWithdrawalBanner healthRows={health} /> : null}
       {content}
       <ElevageWorkflowPanels
+        key={`${activeModal || 'closed'}:${workflowScope}`}
         activeModal={activeModal}
         onClose={closeWorkflow}
         context={workflowContext}
@@ -641,7 +730,9 @@ export default function ElevageRecoveredModule(props) {
         scope={workflowScope}
         onSuccess={refreshAfterWorkflow}
       />
-      <ElevageMobileToolbar scope={lotsSubview} onOpenWorkflow={openWorkflow} onNavigate={guardedNavigate} />
+      {shouldShowElevageMobileToolbar(tab) ? (
+        <ElevageMobileToolbar scope={lotsSubview} onOpenWorkflow={openWorkflow} onNavigate={guardedNavigate} />
+      ) : null}
     </div>
   );
 }

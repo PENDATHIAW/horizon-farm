@@ -11,7 +11,7 @@ function QuickAction({ icon: Icon, label, onClick, primary }) {
     <button
       type="button"
       onClick={onClick}
-      className={`flex min-h-[44px] flex-col items-center justify-center rounded-xl px-2 py-1.5 text-[10px] font-black ${primary ? 'bg-[#2f2415] text-white' : 'border border-[#eadcc2] bg-[#fffdf8] text-[#2f2415]'}`}
+      className={`flex min-h-[44px] flex-col items-center justify-center rounded-xl px-2 py-2 text-meta font-semibold ${primary ? 'bg-earth text-white' : 'border border-line bg-card text-earth'}`}
     >
       <Icon size={15} aria-hidden="true" />
       {label}
@@ -46,7 +46,7 @@ export default function ElevageLotsBandesTab({
 
   useEffect(() => {
     const sub = resolveElevageLotsSubview(initialSubview);
-    if (sub) setView(sub);
+    if (sub) queueMicrotask(() => setView(sub));
   }, [initialSubview]);
 
   const navigateSubview = (target) => {
@@ -92,13 +92,13 @@ export default function ElevageLotsBandesTab({
         />
       ) : null}
 
-      <div className="rounded-3xl border border-[#d6c3a0] bg-white p-4 shadow-sm space-y-3">
-        <p className="text-xs font-black uppercase tracking-widest text-[#9a6b12]">Registre terrain</p>
+      <div className="rounded-3xl border border-line bg-white p-4 shadow-card space-y-3">
+        <p className="text-xs font-semibold uppercase tracking-normal text-horizon-dark">Registre terrain</p>
         <div className="flex flex-wrap gap-2">
           <button
             type="button"
             onClick={() => changeView('avicole')}
-            className={`flex flex-1 min-w-[140px] items-center justify-center gap-2 rounded-xl px-4 py-3 text-sm font-black sm:flex-none ${view === 'avicole' ? 'bg-[#2f2415] text-white' : 'border border-[#eadcc2] bg-[#fffdf8] text-[#2f2415]'}`}
+            className={`flex flex-1 min-w-[140px] items-center justify-center gap-2 rounded-xl px-4 py-3 text-sm font-semibold sm:flex-none ${view === 'avicole' ? 'bg-earth text-white' : 'border border-line bg-card text-earth'}`}
           >
             <Drumstick size={18} aria-hidden="true" />
             Avicole & lots
@@ -106,13 +106,13 @@ export default function ElevageLotsBandesTab({
           <button
             type="button"
             onClick={() => changeView('animaux')}
-            className={`flex flex-1 min-w-[140px] items-center justify-center gap-2 rounded-xl px-4 py-3 text-sm font-black sm:flex-none ${view === 'animaux' ? 'bg-[#2f2415] text-white' : 'border border-[#eadcc2] bg-[#fffdf8] text-[#2f2415]'}`}
+            className={`flex flex-1 min-w-[140px] items-center justify-center gap-2 rounded-xl px-4 py-3 text-sm font-semibold sm:flex-none ${view === 'animaux' ? 'bg-earth text-white' : 'border border-line bg-card text-earth'}`}
           >
             <Beef size={18} aria-hidden="true" />
             Animaux & cheptel
           </button>
         </div>
-        <p className="text-xs text-[#8a7456]">
+        <p className="text-xs text-slate">
           {view === 'avicole'
             ? 'Pondeuses, chair, ramassages et lots — le reste de la page s’adapte à l’avicole.'
             : 'Bovins, ovins, caprins et reproduction — performances filtrées pour le cheptel.'}

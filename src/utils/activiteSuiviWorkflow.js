@@ -22,7 +22,7 @@ export const ACTIVITE_DOMAINS = {
   PUSH: 'push',
 };
 
-const closedAlertStatuses = ['traitee', 'traitée', 'resolue', 'résolue', 'fermee', 'fermée', 'done', 'closed'];
+
 const isCritical = (row = {}) => ['urgence', 'critique', 'critical'].includes(lower(row.severity || row.gravite || row.priority || row.priorite));
 
 export function buildActiviteIssueKey(sourceModule = '', sourceRecordId = '', suffix = '') {
@@ -80,7 +80,7 @@ function docLinksIssue(doc = {}, issueKey = '', sourceModule = '', sourceRecordI
     || (clean(doc.source_record_id) === clean(sourceRecordId) && clean(doc.source_module || doc.module_source) === clean(sourceModule));
 }
 
-function trxLinksIssue(trx = {}, issueKey = '', sourceModule = '', sourceRecordId = '') {
+function trxLinksIssue(trx = {}, issueKey = '', _sourceModule = '', sourceRecordId = '') {
   return linksRecord(trx, issueKey)
     || clean(trx.source_record_id) === clean(sourceRecordId)
     || clean(trx.related_id) === clean(sourceRecordId);

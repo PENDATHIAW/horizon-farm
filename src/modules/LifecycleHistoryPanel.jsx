@@ -39,9 +39,9 @@ function hasTargetLink(row = {}, targets = []) {
 }
 
 function Mini({ icon: Icon, label, value, danger = false }) {
-  return <div className={`rounded-2xl border p-4 ${danger ? 'border-red-200 bg-red-50' : 'border-[#eadcc2] bg-[#fffdf8]'}`}>
-    <p className="flex items-center gap-2 text-xs uppercase tracking-wide text-[#8a7456]"><Icon size={14} /> {label}</p>
-    <p className={`mt-2 text-xl font-black ${danger ? 'text-red-600' : 'text-[#2f2415]'}`}>{value}</p>
+  return <div className={`rounded-2xl border p-4 ${danger ? 'border-urgent bg-urgent-bg' : 'border-line bg-card'}`}>
+    <p className="flex items-center gap-2 text-xs uppercase tracking-normal text-slate"><Icon size={14} /> {label}</p>
+    <p className={`mt-2 text-xl font-semibold ${danger ? 'text-urgent' : 'text-earth'}`}>{value}</p>
   </div>;
 }
 
@@ -64,13 +64,13 @@ export default function LifecycleHistoryPanel({ mode = 'avicole', rows = [], sal
   const title = mode === 'cultures' ? 'Historique cycle cultures' : mode === 'animaux' ? 'Historique cheptel' : 'Historique effectif lots';
   const hasIssues = toClose || toQualify;
 
-  return <section className="rounded-3xl border border-[#d6c3a0] bg-white p-5 shadow-sm space-y-4">
+  return <section className="rounded-3xl border border-line bg-white p-6 shadow-card space-y-4">
     <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-3">
       <div>
-        <p className="flex items-center gap-2 text-lg font-black text-[#2f2415]"><History size={20} /> {title}</p>
-        <p className="mt-1 text-sm text-[#8a7456]">Retrace les entrées, ventes, sorties, pertes, transformations et clôtures pour vérifier que l’effectif restant est réellement justifié.</p>
+        <p className="flex items-center gap-2 text-lg font-semibold text-earth"><History size={20} /> {title}</p>
+        <p className="mt-1 text-sm text-slate">Retrace les entrées, ventes, sorties, pertes, transformations et clôtures pour vérifier que l’effectif restant est réellement justifié.</p>
       </div>
-      <div className={`${hasIssues ? 'bg-amber-50 text-amber-800 border-amber-200' : 'bg-emerald-50 text-emerald-800 border-emerald-200'} rounded-2xl border px-4 py-3 text-sm font-bold`}>
+      <div className={`${hasIssues ? 'bg-vigilance-bg text-horizon-dark border-vigilance' : 'bg-positive-bg text-positive border-positive'} rounded-2xl border px-4 py-3 text-sm font-semibold`}>
         {hasIssues ? `${toClose + toQualify} point(s) à traiter` : 'Cycles cohérents'}
       </div>
     </div>
@@ -85,28 +85,28 @@ export default function LifecycleHistoryPanel({ mode = 'avicole', rows = [], sal
       <Mini icon={AlertTriangle} label="À qualifier" value={toQualify} danger={toQualify > 0} />
     </div>
 
-    {!histories.length ? <div className="rounded-2xl border border-[#eadcc2] bg-[#fffdf8] p-4 text-sm text-[#8a7456]">Aucune fiche active dans ce module. Les anciens mouvements sans fiche liée ne sont pas repris dans les calculs.</div> : null}
+    {!histories.length ? <div className="rounded-2xl border border-line bg-card p-4 text-sm text-slate">Aucune fiche active dans ce module. Les anciens mouvements sans fiche liée ne sont pas repris dans les calculs.</div> : null}
 
     <div className="space-y-3">
       {histories.slice(0, 8).map(({ target, history }, index) => {
         const needsQualify = hasReconciliation(history);
-        return <div key={`${target.id || 'cycle'}-${index}`} className={`rounded-2xl border overflow-hidden ${needsQualify ? 'border-amber-200 bg-amber-50/40' : 'border-[#eadcc2] bg-[#fffdf8]'}`}>
-          <div className="flex flex-col md:flex-row md:items-center justify-between gap-2 p-4 border-b border-[#eadcc2]">
+        return <div key={`${target.id || 'cycle'}-${index}`} className={`rounded-2xl border overflow-hidden ${needsQualify ? 'border-vigilance bg-vigilance-bg' : 'border-line bg-card'}`}>
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-2 p-4 border-b border-line">
             <div>
-              <p className="font-black text-[#2f2415]">{labelOf(target)}</p>
-              <p className="text-xs text-[#8a7456]">Initial {fmtNumber(history.initial)} · sorties {fmtNumber(history.exited)} · morts {fmtNumber(history.morts)} · malades {fmtNumber(history.malades)} · vendus {fmtNumber(history.vendus)} · actif {fmtNumber(history.active)}</p>
-              {needsQualify || history.needsClosure ? <p className="mt-2 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs font-bold text-amber-800">{history.recommendation}</p> : null}
+              <p className="font-semibold text-earth">{labelOf(target)}</p>
+              <p className="text-xs text-slate">Initial {fmtNumber(history.initial)} · sorties {fmtNumber(history.exited)} · morts {fmtNumber(history.morts)} · malades {fmtNumber(history.malades)} · vendus {fmtNumber(history.vendus)} · actif {fmtNumber(history.active)}</p>
+              {needsQualify || history.needsClosure ? <p className="mt-2 rounded-xl border border-vigilance bg-vigilance-bg px-3 py-2 text-xs font-semibold text-horizon-dark">{history.recommendation}</p> : null}
             </div>
             <div className="flex flex-wrap gap-2">
-              {history.needsClosure ? <span className="rounded-full bg-purple-50 px-3 py-1 text-xs font-bold text-purple-700">À clôturer</span> : null}
-              {needsQualify ? <span className="rounded-full bg-amber-100 px-3 py-1 text-xs font-bold text-amber-800">Mouvement à qualifier</span> : null}
-              {!history.needsClosure && !needsQualify ? <span className="rounded-full bg-emerald-50 px-3 py-1 text-xs font-bold text-emerald-700"><CheckCircle2 size={13} className="inline" /> OK</span> : null}
+              {history.needsClosure ? <span className="rounded-full bg-neutral-bg px-3 py-1 text-xs font-semibold text-neutral">À clôturer</span> : null}
+              {needsQualify ? <span className="rounded-full bg-vigilance-bg px-3 py-1 text-xs font-semibold text-horizon-dark">Mouvement à qualifier</span> : null}
+              {!history.needsClosure && !needsQualify ? <span className="rounded-full bg-positive-bg px-3 py-1 text-xs font-semibold text-positive"><CheckCircle2 size={13} className="inline" /> OK</span> : null}
             </div>
           </div>
           <div className="overflow-x-auto">
             <table className="min-w-full text-sm">
-              <thead><tr className="border-b border-[#eadcc2] bg-white text-left text-xs uppercase text-[#8a7456]"><th className="py-2 px-3">Date</th><th className="py-2 px-3">Mouvement</th><th className="py-2 px-3">Variation</th><th className="py-2 px-3">Reste</th><th className="py-2 px-3">Montant</th><th className="py-2 px-3">Source</th><th className="py-2 px-3">Statut</th></tr></thead>
-              <tbody>{history.events.length ? history.events.slice(-8).map((event) => <tr key={`${target.id}-${event.id}-${event.type}`} className={`border-b border-[#f0e5d0] ${event.type === 'ajustement_à_valider' ? 'bg-amber-50' : ''}`}><td className="py-2 px-3">{event.date || '—'}</td><td className="py-2 px-3 font-bold text-[#2f2415]">{typeLabel(event.type)}<p className="text-xs text-[#8a7456]">{event.label}</p></td><td className={`py-2 px-3 font-bold ${toNumber(event.delta) < 0 ? 'text-red-600' : 'text-emerald-700'}`}>{toNumber(event.delta) > 0 ? '+' : ''}{fmtNumber(event.delta)}</td><td className="py-2 px-3">{fmtNumber(event.remaining)}</td><td className="py-2 px-3">{event.amount ? fmtCurrency(event.amount) : '—'}</td><td className="py-2 px-3 text-[#8a7456]">{event.source}</td><td className="py-2 px-3"><span className={`rounded-full px-2 py-1 text-xs font-bold ${event.status === 'à valider' ? 'bg-amber-100 text-amber-800' : 'bg-emerald-50 text-emerald-700'}`}>{event.status || 'validé'}</span></td></tr>) : <tr><td colSpan="7" className="py-4 px-3 text-center text-[#8a7456]">Aucun mouvement historique détecté.</td></tr>}</tbody>
+              <thead><tr className="border-b border-line bg-white text-left text-xs uppercase text-slate"><th className="py-2 px-3">Date</th><th className="py-2 px-3">Mouvement</th><th className="py-2 px-3">Variation</th><th className="py-2 px-3">Reste</th><th className="py-2 px-3">Montant</th><th className="py-2 px-3">Source</th><th className="py-2 px-3">Statut</th></tr></thead>
+              <tbody>{history.events.length ? history.events.slice(-8).map((event) => <tr key={`${target.id}-${event.id}-${event.type}`} className={`border-b border-line ${event.type === 'ajustement_à_valider' ? 'bg-vigilance-bg' : ''}`}><td className="py-2 px-3">{event.date || '—'}</td><td className="py-2 px-3 font-semibold text-earth">{typeLabel(event.type)}<p className="text-xs text-slate">{event.label}</p></td><td className={`py-2 px-3 font-semibold ${toNumber(event.delta) < 0 ? 'text-urgent' : 'text-positive'}`}>{toNumber(event.delta) > 0 ? '+' : ''}{fmtNumber(event.delta)}</td><td className="py-2 px-3">{fmtNumber(event.remaining)}</td><td className="py-2 px-3">{event.amount ? fmtCurrency(event.amount) : '—'}</td><td className="py-2 px-3 text-slate">{event.source}</td><td className="py-2 px-3"><span className={`rounded-full px-2 py-1 text-xs font-semibold ${event.status === 'à valider' ? 'bg-vigilance-bg text-horizon-dark' : 'bg-positive-bg text-positive'}`}>{event.status || 'validé'}</span></td></tr>) : <tr><td colSpan="7" className="py-4 px-3 text-center text-slate">Aucun mouvement historique détecté.</td></tr>}</tbody>
             </table>
           </div>
         </div>;

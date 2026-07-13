@@ -10,7 +10,7 @@ const sizeMap = {
     src: '/brand-logo-transparent.png',
   },
   header: {
-    wrapper: 'w-32 h-12 rounded-xl px-1 py-0.5',
+    wrapper: 'w-32 h-12 rounded-xl px-1 py-1',
     image: 'w-full h-full object-contain',
     src: '/brand-logo-transparent.png',
   },
@@ -21,18 +21,18 @@ const sizeMap = {
   },
 };
 
-export default function BrandLogo({ variant = 'sidebar', showText = false, className = '' }) {
+export default function BrandLogo({ variant = 'sidebar', showText = false, inverse = false, className = '' }) {
   const styles = sizeMap[variant] || sizeMap.sidebar;
 
   return (
     <div className={`flex items-center gap-3 ${className}`}>
-      <div className={`${styles.wrapper} flex items-center justify-center overflow-hidden shrink-0`}>
+      <div className={`${styles.wrapper} ${inverse ? 'bg-pure' : ''} flex items-center justify-center overflow-hidden shrink-0`}>
         <img src={styles.src} alt="Horizon Farm" className={styles.image} />
       </div>
       {showText ? (
         <div className="min-w-0">
-          <div className="font-black text-[#052e16] text-sm leading-tight truncate">HORIZON FARM</div>
-          <div className="text-[10px] text-[#15803d] font-semibold tracking-widest truncate">DE LA TERRE A L&apos;HORIZON</div>
+          <div className={`truncate font-display text-sm font-semibold leading-tight ${inverse ? 'text-pure' : 'text-earth'}`}>HORIZON FARM</div>
+          <div className={`truncate text-meta font-medium ${inverse ? 'text-line' : 'text-leaf'}`}>DE LA TERRE A L&apos;HORIZON</div>
         </div>
       ) : null}
     </div>

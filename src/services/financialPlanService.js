@@ -17,7 +17,7 @@ export const monthlyRevenueTargets = HORIZON_FARM_OFFICIAL_BP.revenue.monthly.ma
 
 const monthlyArray = (activity) => HORIZON_FARM_OFFICIAL_BP.revenue.monthly.map((row) => Number(row[activity] || 0));
 const monthlyQtyFromRevenue = (activity, unitPrice) => monthlyArray(activity).map((amount) => unitPrice > 0 ? Math.round(amount / unitPrice) : 0);
-const officialActivity = (activity) => HORIZON_FARM_OFFICIAL_BP.revenue.byActivity.find((row) => row.activity === activity) || {};
+
 const activityKeyMap = { oeufs: 'oeufs', poulets_chair: 'chair', bovins: 'bovins', fumier_pondeuses: 'fumierPondeuses', fumier_chair: 'fumierChair', fumier_bovins: 'fumierBovins' };
 const activityLabelFallback = { oeufs: 'Tablettes 30 œufs', poulets_chair: 'Poulets de chair', bovins: 'Bœufs / embouche', fumier_pondeuses: 'Fumier pondeuses', fumier_chair: 'Fumier chair', fumier_bovins: 'Fumier bœufs' };
 const mapActivityName = (category = '') => {

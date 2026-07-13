@@ -4,7 +4,7 @@
 
 import { toNumber } from './format.js';
 import { isDocumentOrphan, buildDocumentsIssueKey, DOCUMENT_DOMAINS } from './documentsWorkflow.js';
-import { documentNeedsProof } from './documentWorkflows.js';
+
 import { findOrphanDocuments } from '../services/documentsOrphanSyncService.js';
 
 const arr = (value) => (Array.isArray(value) ? value : []);
@@ -25,7 +25,6 @@ export function buildDocumentsGapRows({
   documents = [],
   transactions = [],
   salesOrders = [],
-  payments = [],
   invoices = [],
 } = {}) {
   const gaps = [];

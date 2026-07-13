@@ -2,7 +2,6 @@
  * Parse les questions projet Horizon Forecast en scénarios structurés.
  */
 
-const arr = (v) => (Array.isArray(v) ? v : []);
 const low = (v) => String(v || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
 
 export const FORECAST_SCENARIO_TYPES = {

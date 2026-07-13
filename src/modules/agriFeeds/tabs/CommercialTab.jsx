@@ -149,52 +149,52 @@ export default function CommercialTab({
 
   return (
     <div className="space-y-4">
-      <section className="rounded-3xl border border-[#d6c3a0] bg-white p-5 space-y-2">
-        <p className="text-lg font-black text-[#2f2415]">Commercial AGRI FEEDS</p>
-        <p className="text-sm text-[#8a7456] leading-relaxed max-w-3xl">
+      <section className="rounded-3xl border border-line bg-white p-6 space-y-2">
+        <p className="text-lg font-semibold text-earth">Commercial AGRI FEEDS</p>
+        <p className="text-sm text-slate leading-relaxed max-w-3xl">
           Vente progressive uniquement sur lots issus de formules commercialisables, avec QC minimum,
           traçabilité, sortie stock, mouvement financier, suivi client et signaux de réachat.
         </p>
         {message ? (
-          <p className="text-sm rounded-xl border border-[#eadcc2] bg-[#fffdf8] px-3 py-2">{message}</p>
+          <p className="text-sm rounded-xl border border-line bg-card px-3 py-2">{message}</p>
         ) : null}
       </section>
 
       <section className="grid grid-cols-2 lg:grid-cols-5 gap-3">
-        <div className="rounded-2xl border border-[#eadcc2] bg-[#fffdf8] p-4">
-          <p className="text-xs font-bold text-[#8a7456]">CA du mois</p>
-          <p className="text-lg font-black text-[#2f2415]">{fmtCurrency(kpis.revenue_month)}</p>
+        <div className="rounded-2xl border border-line bg-card p-4">
+          <p className="text-xs font-semibold text-slate">CA du mois</p>
+          <p className="text-lg font-semibold text-earth">{fmtCurrency(kpis.revenue_month)}</p>
         </div>
-        <div className="rounded-2xl border border-[#eadcc2] bg-[#fffdf8] p-4">
-          <p className="text-xs font-bold text-[#8a7456]">Marge estimée</p>
-          <p className="text-lg font-black text-[#2f2415]">{fmtCurrency(kpis.margin_month)}</p>
+        <div className="rounded-2xl border border-line bg-card p-4">
+          <p className="text-xs font-semibold text-slate">Marge estimée</p>
+          <p className="text-lg font-semibold text-earth">{fmtCurrency(kpis.margin_month)}</p>
         </div>
-        <div className="rounded-2xl border border-[#eadcc2] bg-[#fffdf8] p-4">
-          <p className="text-xs font-bold text-[#8a7456]">Clients AGRI FEEDS</p>
-          <p className="text-lg font-black text-[#2f2415]">{fmtNumber(kpis.agri_clients_count)}</p>
+        <div className="rounded-2xl border border-line bg-card p-4">
+          <p className="text-xs font-semibold text-slate">Clients AGRI FEEDS</p>
+          <p className="text-lg font-semibold text-earth">{fmtNumber(kpis.agri_clients_count)}</p>
         </div>
-        <div className="rounded-2xl border border-[#eadcc2] bg-[#fffdf8] p-4">
-          <p className="text-xs font-bold text-[#8a7456]">Taux réachat</p>
-          <p className="text-lg font-black text-[#2f2415]">{fmtPercent(kpis.repeat_rate, 0)}</p>
+        <div className="rounded-2xl border border-line bg-card p-4">
+          <p className="text-xs font-semibold text-slate">Taux réachat</p>
+          <p className="text-lg font-semibold text-earth">{fmtPercent(kpis.repeat_rate, 0)}</p>
         </div>
-        <div className="rounded-2xl border border-[#eadcc2] bg-[#fffdf8] p-4">
-          <p className="text-xs font-bold text-[#8a7456]">Créances</p>
-          <p className="text-lg font-black text-[#2f2415]">{fmtCurrency(kpis.receivables)}</p>
+        <div className="rounded-2xl border border-line bg-card p-4">
+          <p className="text-xs font-semibold text-slate">Créances</p>
+          <p className="text-lg font-semibold text-earth">{fmtCurrency(kpis.receivables)}</p>
         </div>
       </section>
 
       <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
-        <form onSubmit={submitSale} className="rounded-3xl border border-[#d6c3a0] bg-white p-5 space-y-3">
-          <p className="font-black text-[#2f2415]">Enregistrer une vente validée</p>
+        <form onSubmit={submitSale} className="rounded-3xl border border-line bg-white p-6 space-y-3">
+          <p className="font-semibold text-earth">Enregistrer une vente validée</p>
           <label className="block space-y-1">
-            <span className="text-xs font-bold text-[#8a7456]">Client éleveur</span>
+            <span className="text-xs font-semibold text-slate">Client éleveur</span>
             <select
               value={saleForm.client_id}
               onChange={(e) => {
                 setSaleForm((p) => ({ ...p, client_id: e.target.value }));
                 setFeedbackForm((p) => ({ ...p, client_id: e.target.value }));
               }}
-              className="w-full min-h-[44px] rounded-xl border border-[#d6c3a0] px-3 text-sm"
+              className="w-full min-h-[44px] rounded-xl border border-line px-3 text-sm"
               required
             >
               <option value="">Choisir…</option>
@@ -204,11 +204,11 @@ export default function CommercialTab({
             </select>
           </label>
           <label className="block space-y-1">
-            <span className="text-xs font-bold text-[#8a7456]">Lot commercialisable</span>
+            <span className="text-xs font-semibold text-slate">Lot commercialisable</span>
             <select
               value={saleForm.feed_finished_batch_id}
               onChange={(e) => selectBatch(e.target.value)}
-              className="w-full min-h-[44px] rounded-xl border border-[#d6c3a0] px-3 text-sm"
+              className="w-full min-h-[44px] rounded-xl border border-line px-3 text-sm"
               required
             >
               <option value="">Choisir…</option>
@@ -221,103 +221,103 @@ export default function CommercialTab({
           </label>
           <div className="grid grid-cols-2 gap-3">
             <label className="block space-y-1">
-              <span className="text-xs font-bold text-[#8a7456]">Quantité (kg)</span>
+              <span className="text-xs font-semibold text-slate">Quantité (kg)</span>
               <input
                 type="number"
                 min="1"
                 step="0.1"
                 value={saleForm.quantity_kg}
                 onChange={(e) => setSaleForm((p) => ({ ...p, quantity_kg: e.target.value }))}
-                className="w-full min-h-[44px] rounded-xl border border-[#d6c3a0] px-3 text-sm"
+                className="w-full min-h-[44px] rounded-xl border border-line px-3 text-sm"
                 required
               />
             </label>
             <label className="block space-y-1">
-              <span className="text-xs font-bold text-[#8a7456]">Prix / kg</span>
+              <span className="text-xs font-semibold text-slate">Prix / kg</span>
               <input
                 type="number"
                 min="1"
                 value={saleForm.unit_price}
                 onChange={(e) => setSaleForm((p) => ({ ...p, unit_price: e.target.value }))}
-                className="w-full min-h-[44px] rounded-xl border border-[#d6c3a0] px-3 text-sm"
+                className="w-full min-h-[44px] rounded-xl border border-line px-3 text-sm"
                 required
               />
             </label>
           </div>
           <div className="grid grid-cols-2 gap-3">
             <label className="block space-y-1">
-              <span className="text-xs font-bold text-[#8a7456]">Montant encaissé</span>
+              <span className="text-xs font-semibold text-slate">Montant encaissé</span>
               <input
                 type="number"
                 min="0"
                 value={saleForm.paid_amount}
                 onChange={(e) => setSaleForm((p) => ({ ...p, paid_amount: e.target.value }))}
-                className="w-full min-h-[44px] rounded-xl border border-[#d6c3a0] px-3 text-sm"
+                className="w-full min-h-[44px] rounded-xl border border-line px-3 text-sm"
               />
             </label>
             <label className="block space-y-1">
-              <span className="text-xs font-bold text-[#8a7456]">Date vente</span>
+              <span className="text-xs font-semibold text-slate">Date vente</span>
               <input
                 type="date"
                 value={saleForm.order_date}
                 onChange={(e) => setSaleForm((p) => ({ ...p, order_date: e.target.value }))}
-                className="w-full min-h-[44px] rounded-xl border border-[#d6c3a0] px-3 text-sm"
+                className="w-full min-h-[44px] rounded-xl border border-line px-3 text-sm"
               />
             </label>
           </div>
           {salePreview?.ok ? (
-            <div className="rounded-2xl bg-[#fffdf8] border border-[#eadcc2] p-3 text-sm text-[#2f2415]">
+            <div className="rounded-2xl bg-card border border-line p-3 text-sm text-earth">
               Total : <b>{fmtCurrency(salePreview.metrics.total)}</b> · Marge estimée : <b>{fmtCurrency(salePreview.metrics.margin)}</b> · Reste : <b>{fmtCurrency(salePreview.metrics.remaining)}</b>
             </div>
           ) : salePreview?.error ? (
-            <div className="rounded-2xl bg-[#fff7f7] border border-red-200 p-3 text-sm text-red-700">{salePreview.error}</div>
+            <div className="rounded-2xl bg-urgent-bg border border-urgent p-3 text-sm text-urgent">{salePreview.error}</div>
           ) : null}
           <button
             type="submit"
             disabled={busy || !sellableBatches.length}
-            className="rounded-xl bg-[#2f2415] text-white px-4 py-2 text-sm font-bold disabled:opacity-50"
+            className="rounded-xl bg-earth text-white px-4 py-2 text-sm font-semibold disabled:opacity-50"
           >
             Enregistrer la vente
           </button>
         </form>
 
-        <form onSubmit={submitFeedback} className="rounded-3xl border border-[#d6c3a0] bg-white p-5 space-y-3">
-          <p className="font-black text-[#2f2415]">Retour client / réclamation</p>
+        <form onSubmit={submitFeedback} className="rounded-3xl border border-line bg-white p-6 space-y-3">
+          <p className="font-semibold text-earth">Retour client / réclamation</p>
           <div className="grid grid-cols-2 gap-3">
             <label className="block space-y-1">
-              <span className="text-xs font-bold text-[#8a7456]">Satisfaction / 5</span>
+              <span className="text-xs font-semibold text-slate">Satisfaction / 5</span>
               <input
                 type="number"
                 min="1"
                 max="5"
                 value={feedbackForm.satisfaction_score}
                 onChange={(e) => setFeedbackForm((p) => ({ ...p, satisfaction_score: e.target.value }))}
-                className="w-full min-h-[44px] rounded-xl border border-[#d6c3a0] px-3 text-sm"
+                className="w-full min-h-[44px] rounded-xl border border-line px-3 text-sm"
               />
             </label>
             <label className="block space-y-1">
-              <span className="text-xs font-bold text-[#8a7456]">Type réclamation</span>
+              <span className="text-xs font-semibold text-slate">Type réclamation</span>
               <input
                 value={feedbackForm.complaint_type}
                 onChange={(e) => setFeedbackForm((p) => ({ ...p, complaint_type: e.target.value }))}
                 placeholder="optionnel"
-                className="w-full min-h-[44px] rounded-xl border border-[#d6c3a0] px-3 text-sm"
+                className="w-full min-h-[44px] rounded-xl border border-line px-3 text-sm"
               />
             </label>
           </div>
           <label className="block space-y-1">
-            <span className="text-xs font-bold text-[#8a7456]">Observation</span>
+            <span className="text-xs font-semibold text-slate">Observation</span>
             <textarea
               value={feedbackForm.notes}
               onChange={(e) => setFeedbackForm((p) => ({ ...p, notes: e.target.value }))}
-              className="w-full min-h-[86px] rounded-xl border border-[#d6c3a0] px-3 py-2 text-sm"
+              className="w-full min-h-[86px] rounded-xl border border-line px-3 py-2 text-sm"
               placeholder="Performance perçue, livraison, qualité, prochaine commande…"
             />
           </label>
           <button
             type="submit"
             disabled={busy || !feedbackForm.client_id || !feedbackForm.feed_finished_batch_id}
-            className="rounded-xl border border-[#2f2415] text-[#2f2415] px-4 py-2 text-sm font-bold disabled:opacity-50"
+            className="rounded-xl border border-earth text-earth px-4 py-2 text-sm font-semibold disabled:opacity-50"
           >
             Enregistrer le retour
           </button>
@@ -325,25 +325,25 @@ export default function CommercialTab({
       </div>
 
       <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
-        <section className="rounded-3xl border border-[#d6c3a0] bg-white p-5 space-y-3">
-          <p className="font-black text-[#2f2415]">Réachats à suivre</p>
+        <section className="rounded-3xl border border-line bg-white p-6 space-y-3">
+          <p className="font-semibold text-earth">Réachats à suivre</p>
           {relances.length ? relances.map((row) => (
-            <div key={row.client.id} className="rounded-2xl border border-[#eadcc2] bg-[#fffdf8] p-3 text-sm">
-              <p className="font-bold text-[#2f2415]">{clientLabel(row.client)}</p>
-              <p className="text-[#8a7456]">{row.reason}</p>
+            <div key={row.client.id} className="rounded-2xl border border-line bg-card p-3 text-sm">
+              <p className="font-semibold text-earth">{clientLabel(row.client)}</p>
+              <p className="text-slate">{row.reason}</p>
             </div>
-          )) : <p className="text-sm text-[#8a7456]">Aucun réachat en retard selon les données disponibles.</p>}
+          )) : <p className="text-sm text-slate">Aucun réachat en retard selon les données disponibles.</p>}
         </section>
 
-        <section className="rounded-3xl border border-[#d6c3a0] bg-white p-5 space-y-3">
-          <p className="font-black text-[#2f2415]">Centre & assistant</p>
+        <section className="rounded-3xl border border-line bg-white p-6 space-y-3">
+          <p className="font-semibold text-earth">Centre & assistant</p>
           {decisionCards.length ? decisionCards.map((card) => (
-            <div key={card.title} className="rounded-2xl border border-[#eadcc2] bg-[#fffdf8] p-3 text-sm">
-              <p className="font-bold text-[#2f2415]">{card.title}</p>
-              <p className="text-[#8a7456]">{card.message}</p>
-              <p className="text-xs font-bold text-[#2f2415] mt-1">Action : {card.action}</p>
+            <div key={card.title} className="rounded-2xl border border-line bg-card p-3 text-sm">
+              <p className="font-semibold text-earth">{card.title}</p>
+              <p className="text-slate">{card.message}</p>
+              <p className="text-xs font-semibold text-earth mt-1">Action : {card.action}</p>
             </div>
-          )) : <p className="text-sm text-[#8a7456]">Aucun point d’attention commercial majeur.</p>}
+          )) : <p className="text-sm text-slate">Aucun point d’attention commercial majeur.</p>}
         </section>
       </div>
     </div>

@@ -87,7 +87,7 @@ test('resolves vas y after bonjour with receivable offer in memory', () => {
       },
     },
   });
-  assert.equal(ctx.pendingFollowUp, 'receivable_detail');
+  assert.equal(ctx.pendingFollowUp?.intent, 'receivable_follow_up');
   const follow = resolveFollowUp('vas y', ctx);
   assert.equal(follow?.forcedIntent, 'receivable_follow_up');
 });

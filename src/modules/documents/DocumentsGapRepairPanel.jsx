@@ -1,7 +1,7 @@
 import { AlertTriangle, Link2 } from 'lucide-react';
 import { buildDocumentsGapRows } from '../../utils/documentsIntegrity.js';
 
-const arr = (value) => (Array.isArray(value) ? value : []);
+
 
 export default function DocumentsGapRepairPanel({
   documents = [],
@@ -16,26 +16,26 @@ export default function DocumentsGapRepairPanel({
 
   if (!gaps.length) {
     return (
-      <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-800">
+      <div className="rounded-2xl border border-positive bg-positive-bg p-4 text-sm text-positive">
         Aucun écart documentaire détecté (orphelins, preuves, factures, doublons).
       </div>
     );
   }
 
   return (
-    <section className="rounded-3xl border border-amber-200 bg-white p-5 shadow-sm">
+    <section className="rounded-3xl border border-vigilance bg-white p-6 shadow-card">
       <div className="mb-4">
-        <p className="flex items-center gap-2 text-xs font-black uppercase tracking-widest text-amber-700">
+        <p className="flex items-center gap-2 text-xs font-semibold uppercase tracking-normal text-horizon-dark">
           <AlertTriangle size={15} /> Écarts documents
         </p>
-        <h3 className="mt-1 text-lg font-black text-[#2f2415]">Réparations prioritaires</h3>
+        <h3 className="mt-1 text-lg font-semibold text-earth">Réparations prioritaires</h3>
       </div>
       <div className="space-y-2">
         {gaps.slice(0, 12).map((gap) => (
-          <div key={gap.issue_key} className="flex flex-col gap-2 rounded-2xl border border-[#eadcc2] bg-[#fffdf8] p-3 sm:flex-row sm:items-center sm:justify-between">
+          <div key={gap.issue_key} className="flex flex-col gap-2 rounded-2xl border border-line bg-card p-3 sm:flex-row sm:items-center sm:justify-between">
             <div>
-              <b className="text-sm text-[#2f2415]">{gap.title}</b>
-              <p className="text-xs text-[#8a7456]">{gap.detail}</p>
+              <b className="text-sm text-earth">{gap.title}</b>
+              <p className="text-xs text-slate">{gap.detail}</p>
             </div>
             {gap.repair === 'link_document' || gap.repair === 'link_proof' || gap.repair === 'link_invoice' ? (
               <button
@@ -44,12 +44,12 @@ export default function DocumentsGapRepairPanel({
                   onSelectOrphan?.(gap.record_id);
                   onOpenLink?.(gap);
                 }}
-                className="inline-flex items-center gap-1 rounded-lg border border-emerald-300 px-2 py-1 text-xs font-black text-emerald-700"
+                className="inline-flex items-center gap-1 rounded-lg border border-positive px-2 py-1 text-xs font-semibold text-positive"
               >
                 <Link2 size={14} /> Lier
               </button>
             ) : (
-              <span className="rounded-full border border-[#eadcc2] px-2 py-0.5 text-xs font-black text-[#8a7456]">À vérifier</span>
+              <span className="rounded-full border border-line px-2 py-1 text-xs font-semibold text-slate">À vérifier</span>
             )}
           </div>
         ))}

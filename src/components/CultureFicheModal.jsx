@@ -8,16 +8,16 @@ import { calculateCultureMetricsWithLoss } from '../utils/lossAdjustedMetrics';
 import { buildCultureDecisionProfile } from '../services/cultureDecisionEngine';
 
 const Field = ({ label, value, children }) => (
-  <div className="rounded-xl border border-[#eadcc2] bg-white px-3 py-2">
-    <p className="text-[11px] uppercase tracking-wide text-[#8a7456]">{label}</p>
-    <div className="mt-1 text-sm font-semibold text-[#2f2415] break-words">{children || value || '-'}</div>
+  <div className="rounded-xl border border-line bg-white px-3 py-2">
+    <p className="text-meta uppercase tracking-normal text-slate">{label}</p>
+    <div className="mt-1 text-sm font-semibold text-earth break-words">{children || value || '-'}</div>
   </div>
 );
 
 const Section = ({ title, children, note }) => (
-  <section className="rounded-2xl border border-[#d6c3a0] bg-[#fffdf8] p-4">
-    <h3 className="text-sm font-black text-[#2f2415] mb-1">{title}</h3>
-    {note ? <p className="mb-3 text-xs text-[#8a7456]">{note}</p> : null}
+  <section className="rounded-2xl border border-line bg-card p-4">
+    <h3 className="text-sm font-semibold text-earth mb-1">{title}</h3>
+    {note ? <p className="mb-3 text-xs text-slate">{note}</p> : null}
     <div className="grid grid-cols-1 md:grid-cols-2 gap-3">{children}</div>
   </section>
 );
@@ -47,13 +47,13 @@ export default function CultureFicheModal({ open, onClose, culture }) {
   const [tab, setTab] = useState('identite');
 
   useEffect(() => {
-    if (open) setTab('identite');
+    if (open) queueMicrotask(() => setTab('identite'));
   }, [open, culture?.id]);
 
   if (!culture) {
     return (
       <BaseModal open={open} onClose={onClose} title="Fiche culture">
-        <p className="text-[#8a7456]">Aucune culture sélectionnée.</p>
+        <p className="text-slate">Aucune culture sélectionnée.</p>
       </BaseModal>
     );
   }
@@ -70,20 +70,20 @@ export default function CultureFicheModal({ open, onClose, culture }) {
     <BaseModal open={open} onClose={onClose} title={`Fiche culture · ${culture.nom || culture.name || culture.id}`} size="5xl">
       <div className="space-y-4">
         {locked ? (
-          <div className="rounded-2xl border border-slate-300 bg-slate-50 px-4 py-3 text-sm text-slate-800 flex items-center gap-2">
+          <div className="rounded-2xl border border-line bg-neutral-bg px-4 py-3 text-sm text-ink flex items-center gap-2">
             <Lock size={16} />
             Fiche verrouillée — culture {culture.statut || culture.status}. Modification métier limitée.
           </div>
         ) : null}
 
-        <div className="rounded-2xl border border-[#d6c3a0] bg-[#2f2415] p-4 text-white">
-          <p className="text-xs uppercase tracking-[0.2em] text-[#c9a96a]">Culture · {culture.type || culture.cultures || 'Parcelle'}</p>
-          <h2 className="mt-1 text-2xl font-black">{culture.nom || culture.name || culture.id}</h2>
-          <p className="mt-1 text-sm text-[#f4e6c8]">{culture.parcelle || culture.localisation || 'Localisation non renseignée'} · {fmtNumber(culture.surface || 0)} m²</p>
+        <div className="rounded-2xl border border-line bg-earth p-4 text-white">
+          <p className="text-xs uppercase tracking-normal text-horizon">Culture · {culture.type || culture.cultures || 'Parcelle'}</p>
+          <h2 className="mt-1 text-2xl font-semibold">{culture.nom || culture.name || culture.id}</h2>
+          <p className="mt-1 text-sm text-line">{culture.parcelle || culture.localisation || 'Localisation non renseignée'} · {fmtNumber(culture.surface || 0)} m²</p>
           <div className="mt-3 flex flex-wrap gap-2">
             <Badge status={culture.statut || culture.status || 'planifiee'} />
-            <span className="rounded-full bg-white/10 border border-white/10 px-3 py-1 text-xs text-[#f4e6c8]">Santé {metrics.health}%</span>
-            <span className="rounded-full bg-white/10 border border-white/10 px-3 py-1 text-xs text-[#f4e6c8]">Récolte {progress}%</span>
+            <span className="rounded-full bg-white/10 border border-white/10 px-3 py-1 text-xs text-line">Santé {metrics.health}%</span>
+            <span className="rounded-full bg-white/10 border border-white/10 px-3 py-1 text-xs text-line">Récolte {progress}%</span>
           </div>
         </div>
 

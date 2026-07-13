@@ -63,7 +63,7 @@ export function enhanceManureWorkflowForOrgaloop(workflow, { profileMeta } = {})
   const meta = profileMeta?.profile ? profileMeta : workflow.profile || {};
   const profile = meta.profile || 'mixte';
   const stockId = workflow.stockId;
-  const qty = toNumber(workflow.event?.fumier_sacs) || Math.max(0, toNumber(workflow.stock?.quantite) - toNumber(workflow.stock?.last_movement_qty) + toNumber(workflow.event?.fumier_sacs));
+
   const sacsCollected = toNumber(workflow.event?.fumier_sacs) || toNumber(workflow.stock?.last_movement_qty);
   const nextQty = toNumber(workflow.stock?.quantite);
   const unitPrice = toNumber(workflow.stock?.prix_unitaire ?? workflow.stock?.prixUnit) || toNumber(meta.unitPrice);

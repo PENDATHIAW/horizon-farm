@@ -92,10 +92,6 @@ const normalizeAnomalies = (anomalies = {}) => ({
 
 export const buildStrategicInsights = ({
   avicoleLots = [],
-  animaux = [],
-  opportunities = [],
-  cultures = [],
-  vaccins = [],
   productionLogs = [],
   alimentationLogs = [],
   stocks = [],

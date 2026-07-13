@@ -2,13 +2,13 @@ import { useCallback, useMemo, useState } from 'react';
 import ModuleTabsBar from '../components/module/ModuleTabsBar.jsx';
 import { resolveAgriFeedsTab } from '../utils/agriFeedsNavigation.js';
 import AgriFeedsDashboardTab from './agriFeeds/tabs/AgriFeedsDashboardTab.jsx';
-import Phase1BenchmarkTab from './agriFeeds/tabs/Phase1BenchmarkTab.jsx';
 import MaterialsSuppliersTab from './agriFeeds/tabs/MaterialsSuppliersTab.jsx';
 import FormulationsTab from './agriFeeds/tabs/FormulationsTab.jsx';
 import ProductionTab from './agriFeeds/tabs/ProductionTab.jsx';
 import TrialsComparisonTab from './agriFeeds/tabs/TrialsComparisonTab.jsx';
 import CommercialTab from './agriFeeds/tabs/CommercialTab.jsx';
 import QualityReportingTab from './agriFeeds/tabs/QualityReportingTab.jsx';
+import CostsDecisionsTab from './agriFeeds/tabs/CostsDecisionsTab.jsx';
 import useAgriFeedsData from './agriFeeds/hooks/useAgriFeedsData.js';
 
 const arr = (value) => (Array.isArray(value) ? value : []);
@@ -18,9 +18,9 @@ export default function AgriFeedsModule(props) {
   const { initialTab, onTabChange } = props;
   const agriFeedsCrud = useAgriFeedsData({ activeFarm: props.activeFarm });
   const controlled = Boolean(onTabChange);
-  const [internalTab, setInternalTab] = useState(() => resolveAgriFeedsTab(initialTab || 'Tableau de bord'));
+  const [internalTab, setInternalTab] = useState(() => resolveAgriFeedsTab(initialTab || 'Vue d’ensemble'));
   const tab = controlled
-    ? resolveAgriFeedsTab(initialTab || 'Tableau de bord')
+    ? resolveAgriFeedsTab(initialTab || 'Vue d’ensemble')
     : internalTab;
 
   const setTab = useCallback((value) => {
@@ -101,36 +101,35 @@ export default function AgriFeedsModule(props) {
 
   return (
     <div className="space-y-4">
-      <header className="rounded-3xl border border-[#d6c3a0] bg-[#fffdf8] p-5">
-        <p className="text-xl font-black text-[#2f2415]">AGRI FEEDS</p>
-        <p className="text-sm text-[#8a7456] mt-1 max-w-3xl leading-relaxed">
-          Production d’aliments animaux pilotée par la donnée — Phase 2 de Horizon Farm.
-          La Phase 1 construit d’abord la référence à partir des aliments du marché.
+      <header className="rounded-3xl border border-line bg-card p-6">
+        <p className="text-xl font-semibold text-earth">AGRI FEEDS</p>
+        <p className="text-sm text-slate mt-1 max-w-3xl leading-relaxed">
+          Production d’aliments animaux pilotée par les coûts, les essais, la qualité et les performances réelles.
         </p>
       </header>
 
       <ModuleTabsBar moduleId="agri_feeds" active={tab} onChange={setTab} wrap activeFarm={props.activeFarm} />
 
-      {tab === 'Tableau de bord' ? (
+      {tab === 'AgriFeedsOverviewView' ? (
         <AgriFeedsDashboardTab dataMap={dataMap} onNavigateTab={setTab} />
       ) : null}
-      {tab === 'Référence Phase 1' ? <Phase1BenchmarkTab dataMap={dataMap} /> : null}
-      {tab === 'Matières & fournisseurs' ? (
+      {tab === 'AgriFeedsMaterialsView' ? (
         <MaterialsSuppliersTab dataMap={dataMap} {...workflowHandlers} />
       ) : null}
-      {tab === 'Formulations' ? (
+      {tab === 'AgriFeedsFormulationsView' ? (
         <FormulationsTab dataMap={dataMap} {...workflowHandlers} />
       ) : null}
-      {tab === 'Production' ? (
+      {tab === 'AgriFeedsProductionView' ? (
         <ProductionTab dataMap={dataMap} {...workflowHandlers} />
       ) : null}
-      {tab === 'Tests & comparaison' ? (
+      {tab === 'AgriFeedsTrialsView' ? (
         <TrialsComparisonTab dataMap={dataMap} {...workflowHandlers} />
       ) : null}
-      {tab === 'Commercial' ? <CommercialTab dataMap={dataMap} {...workflowHandlers} /> : null}
-      {tab === 'Qualité & reporting' ? (
+      {tab === 'AgriFeedsCommercialView' ? <CommercialTab dataMap={dataMap} {...workflowHandlers} /> : null}
+      {tab === 'AgriFeedsQualityView' ? (
         <QualityReportingTab dataMap={dataMap} {...workflowHandlers} userRole={props.userRole || props.role || 'manager'} />
       ) : null}
+      {tab === 'AgriFeedsCostsView' ? <CostsDecisionsTab dataMap={dataMap} /> : null}
     </div>
   );
 }

@@ -44,7 +44,7 @@ function asDate(value) { const parsed = new Date(value); return Number.isNaN(par
 function monthKey(value) { const date = asDate(value); if (!date) return 'Sans date'; return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`; }
 function monthLabel(key) { if (key === 'Sans date') return key; const [year, month] = key.split('-'); return `${month}/${String(year).slice(-2)}`; }
 function ensure(map, key) { if (!map.has(key)) map.set(key, { key, mois: monthLabel(key), charges_aliments: 0, charges_soins: 0, charges_autres: 0, charges_emballages: 0, ca: 0, encaisse: 0, marge: 0, poids_moyen: 0, taux_mortalite: 0, effectif: 0, morts: 0, malades: 0, vendus: 0, vendables: 0, prets: 0, oeufs: 0, vendables_oeufs: 0, casses: 0, tablettes: 0, reliquat_oeufs: 0, taux_ponte: 0, taux_casse: 0, pondeuses: 0, dates: new Set(), sales_real: 0, cost_incomplete: false, cost_rows: 0 }); return map.get(key); }
-function SmallMetric({ label, value, hint, danger = false }) { return <div className={`border rounded-xl p-3 ${danger ? 'bg-red-50 border-red-200' : 'bg-[#fffdf8] border-[#d6c3a0]'}`}><p className="text-xs text-[#8a7456]">{label}</p><p className={`text-xl font-black mt-1 ${danger ? 'text-red-600' : 'text-[#2f2415]'}`}>{value}</p>{hint ? <p className="text-xs text-[#8a7456] mt-1">{hint}</p> : null}</div>; }
+
 function addRealSalesToMonthly({ map, salesOrders = [], payments = [], transactions = [], lotIds = new Set(), keywords = [] }) {
   const realOrders = arr(salesOrders).filter((order) => !isCancelled(order) && orderMatchesActivity(order, lotIds, keywords));
   const orderIds = new Set(realOrders.map((order) => String(order.id || '')).filter(Boolean));
@@ -144,10 +144,10 @@ function buildPonteMonthly({ rows = [], productionLogs = [], alimentationLogs = 
 }
 const values = (rows, key) => rows.map((row) => toNumber(row[key]));
 const labels = (rows) => rows.map((row) => row.mois);
-function average(list, key) { const valuesList = arr(list).map((row) => toNumber(row[key])).filter((value) => value > 0); return valuesList.length ? valuesList.reduce((sum, value) => sum + value, 0) / valuesList.length : 0; }
-function costLabel(value, incomplete) { return incomplete ? 'Coût incomplet' : fmtCurrency(value); }
 
-export default function AvicoleEvolution({ rows = [], productionLogs = [], alimentationLogs = [], businessEvents = [], salesOrders = [], payments = [], transactions = [], onNavigate }) {
+
+
+export default function AvicoleEvolution({ rows = [], productionLogs = [], alimentationLogs = [], businessEvents = [], salesOrders = [], payments = [], transactions = [] }) {
   const activeRows = arr(rows).filter((row) => row?.id);
   const activeLotIds = new Set(activeRows.map((row) => String(row.id)));
   const chairRows = filterLotsByActivity(activeRows, 'Chair');
@@ -165,24 +165,24 @@ export default function AvicoleEvolution({ rows = [], productionLogs = [], alime
   const pondeuseCosts = buildPondeuseCostContext({ lots: ponteRows, costDetails: pondeuseCostDetails, packagingCost, sellableEggs: totalSellableFromLogs });
   const chair = showChair ? buildChairMonthly({ rows: activeRows, alimentationLogs: linkedAlimentationLogs, businessEvents: linkedBusinessEvents, salesOrders, payments, transactions, chairCostDetails }) : [];
   const ponte = showPonte ? buildPonteMonthly({ rows: activeRows, productionLogs, alimentationLogs: linkedAlimentationLogs, businessEvents: linkedBusinessEvents, salesOrders, payments, transactions, pondeuseCosts }) : [];
-  const lastChair = [...chair].reverse().find((row) => row.effectif || row.ca || row.poids_moyen) || chair[chair.length - 1] || {};
-  const lastPonte = [...ponte].reverse().find((row) => row.pondeuses || row.oeufs || row.vendables) || ponte[ponte.length - 1] || {};
-  const readyLots = chair.reduce((sum, row) => sum + row.prets, 0);
-  const healthIssues = activeRows.reduce((sum, lot) => sum + deadCount(lot) + sickCount(lot), 0);
-  const totalEggs = ponte.reduce((sum, row) => sum + row.oeufs, 0);
-  const totalSellable = ponte.reduce((sum, row) => sum + row.vendables, 0);
-  const totalTabletsData = tabletsFromEggs(totalSellable);
-  const totalSalesReal = [...chair, ...ponte].reduce((sum, row) => sum + toNumber(row.sales_real), 0);
-  const totalEncaisse = [...chair, ...ponte].reduce((sum, row) => sum + toNumber(row.encaisse), 0);
-  const totalRealCharges = [...chair, ...ponte].reduce((sum, row) => sum + row.charges_aliments + row.charges_soins + row.charges_autres + row.charges_emballages, 0);
-  const totalPackaging = ponte.reduce((sum, row) => sum + toNumber(row.charges_emballages), 0);
-  const costIncomplete = [...chair, ...ponte].some((row) => row.cost_incomplete);
-  const priority = !activeRows.length ? null : costIncomplete ? { module: 'stock', label: 'Compléter les coûts réels' } : healthIssues > 0 ? { module: 'sante', label: 'Traiter santé avicole' } : readyLots > 0 ? { module: 'ventes', label: 'Confirmer les ventes chair' } : { module: 'avicole', label: showPonte ? 'Mettre à jour pontes' : 'Mettre à jour pesées chair' };
-  const avgChairCostLive = average(chair, 'cout_poulet') || average(chairCostDetails, 'costPerSellableSubject') || average(chairCostDetails, 'costPerLiveSubject');
-  const avgPonteCostEgg = average(ponte, 'cout_oeuf');
-  const avgPonteCostTablet = average(ponte, 'cout_tablette');
 
-  if (!activeRows.length) return <div className="rounded-2xl border border-[#eadcc2] bg-[#fffdf8] p-4 text-sm text-[#8a7456]">Aucun lot avicole — graphiques indisponibles.</div>;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  if (!activeRows.length) return <div className="rounded-2xl border border-line bg-card p-4 text-sm text-slate">Aucun lot avicole — graphiques indisponibles.</div>;
 
   const chargePieChair = showChair ? [
     { name: 'Coût bande', value: chair.reduce((s, r) => s + toNumber(r.charges_aliments), 0) },

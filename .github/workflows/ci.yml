@@ -38,7 +38,8 @@ jobs:
         run: PLAYWRIGHT_SKIP_WEBSERVER=1 npx playwright test tests/e2e/simulated-business-workflows.spec.js --reporter=line
 
       - name: Install Playwright browsers
-        run: npx playwright install --with-deps chromium
+        timeout-minutes: 5
+        run: npx playwright install chromium
 
       - name: Run Assistant ERP smoke tests
         env:

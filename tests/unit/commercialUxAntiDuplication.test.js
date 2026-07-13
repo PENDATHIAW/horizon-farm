@@ -35,6 +35,6 @@ test('navigation commercial — 6 onglets canoniques', () => {
 
 test('alias reconciliation détecté — redirect Finance géré par App', () => {
   assert.equal(isCommercialReconciliationAlias('reconciliation'), true);
-  assert.equal(resolveCommercialTab('Pilotage'), 'Pilotage');
-  assert.equal(resolveCommercialTab('Clients & créances'), 'Clients & créances');
+  assert.equal(resolveCommercialTab('Pilotage'), 'Tableau de bord commercial');
+  assert.equal(resolveCommercialTab('Clients & créances'), 'Créances & relances commercial');
 });

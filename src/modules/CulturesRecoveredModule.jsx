@@ -1,12 +1,14 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import ModuleGraphiquesTab from '../components/module/ModuleGraphiquesTab.jsx';
 import ModuleTabsBar from '../components/module/ModuleTabsBar.jsx';
+import JournalEvenements from '../components/shared/JournalEvenements.jsx';
 import useCrudModule from '../hooks/useCrudModule';
 import useLiveWeather from '../hooks/useLiveWeather';
 import { rowsOf } from '../utils/moduleRows';
 import { resolveCulturesSectionIntent, resolveCulturesTab } from '../utils/culturesNavigation.js';
 import { buildCulturesChartNarratives } from '../utils/culturesChartNarratives.js';
-import { buildCropCampaignStartWorkflow, buildIrrigationEventWorkflow } from '../utils/cultureWorkflows.js';
+import { buildCropCampaignStartWorkflow } from '../utils/cultureWorkflows.js';
+import { commitCultureIrrigation } from '../utils/culturesWorkflow.js';
 import { runCultureHarvestSideEffects } from '../utils/cultureSideEffects';
 import { buildOrganicTransferWorkflow } from '../utils/manureWorkflows.js';
 import { dispatchBpLineCompleted } from '../utils/bpLineConcretization.js';
@@ -16,6 +18,7 @@ import CulturesAnnexeTab from './cultures/CulturesAnnexeTab.jsx';
 import CulturesCyclesHub from './cultures/CulturesCyclesHub.jsx';
 import CulturesEconomieHub from './cultures/CulturesEconomieHub.jsx';
 import CulturesIntrantsHub from './cultures/CulturesIntrantsHub.jsx';
+import CulturesIrrigationQuickForm from './cultures/CulturesIrrigationQuickForm.jsx';
 import CulturesParcellesHub from './cultures/CulturesParcellesHub.jsx';
 import CulturesPilotageHub from './cultures/CulturesPilotageHub.jsx';
 import CulturesRecoltesHub from './cultures/CulturesRecoltesHub.jsx';
@@ -35,6 +38,10 @@ const isOrganicTransferPayload = (payload = {}) => hasAnyKey(payload, ['organic_
   || (clean(payload.stock_id) && hasAnyKey(payload, ['sacs', 'quantite', 'qty', 'poids_total_kg']))
   || ['organic_transfer', 'transfert_organique'].includes(norm(payload.type_evenement || payload.event_type));
 const isParcelRow = (row = {}) => ['parcelle', 'plot'].includes(norm(row.record_type || row.type_fiche || row.type));
+const DAILY_CULTURE_TABS = Object.freeze({
+  daily_irrigation: { tab: 'Irrigation cultures', testId: 'daily-irrigation-panel' },
+  daily_harvest: { tab: 'Récoltes cultures', testId: 'daily-harvest-panel' },
+});
 
 export default function CulturesRecoveredModule(props) {
   const controlled = Boolean(props.onTabChange);
@@ -78,6 +85,19 @@ export default function CulturesRecoveredModule(props) {
   }, [props.initialTab, rememberSection]);
 
   useEffect(() => {
+    const handler = (event) => {
+      const detail = event.detail || {};
+      const moduleKey = String(detail.module || detail.draft?.primary_module || '').toLowerCase();
+      const target = DAILY_CULTURE_TABS[detail.draft?.form_type];
+      if (moduleKey !== 'cultures' || !target) return;
+      setTab(target.tab);
+      window.setTimeout(() => document.querySelector(`[data-testid="${target.testId}"]`)?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 120);
+    };
+    window.addEventListener('horizon-open-form', handler);
+    return () => window.removeEventListener('horizon-open-form', handler);
+  }, [setTab]);
+
+  useEffect(() => {
     const refBySection = {
       intrants: intrantsDetailsRef,
       sante: santeDetailsRef,
@@ -117,6 +137,8 @@ export default function CulturesRecoveredModule(props) {
   const deliveriesList = rowsOf(props.deliveriesList || props.deliveries, deliveriesCrud, periodFiltered);
   const documents = rowsOf(props.documents, documentsCrud, periodFiltered);
   const stockMovements = rowsOf(props.stockMovements, movementsCrud, false);
+  const tasks = rowsOf(props.tasks, tasksCrud, false);
+  const alertes = rowsOf(props.alertes, alertsCrud, false);
   const meteo = props.meteo || liveMeteo;
 
   const workflowContext = {
@@ -128,6 +150,12 @@ export default function CulturesRecoveredModule(props) {
     salesOrders,
     payments: payments,
     clients: arr(props.clients),
+    tasks,
+    alertes,
+    smartReadings: arr(props.smartfarmEvents),
+    userId: props.user?.id || props.user?.email || 'system',
+    farmId: props.activeFarm?.id || props.farm?.id || '',
+    activeFarm: props.activeFarm || props.farm || null,
   };
 
   const refreshWorkflow = async () => {
@@ -227,17 +255,11 @@ export default function CulturesRecoveredModule(props) {
   const onUpdate = async (id, payload) => {
     const before = rows.find((row) => String(row.id) === String(id)) || {};
     if (isIrrigationPayload(payload)) {
-      const irrigation = buildIrrigationEventWorkflow({
-        culture: before,
-        payload: { ...payload, culture_id: id },
-        smartReadings: arr(props.smartfarmEvents),
-        date: payload.date || today(),
+      await commitCultureIrrigation({
+        form: { ...payload, culture_id: id },
+        context: workflowContext,
+        handlers: workflowHandlers,
       });
-      await onUpdateCultureOnly(id, { ...payload, ...(irrigation.culturePatch || {}) });
-      if (irrigation.task) await workflowHandlers.onCreateTask?.(irrigation.task);
-      if (irrigation.alert) await workflowHandlers.onCreateAlert?.(irrigation.alert);
-      if (irrigation.financeTransaction) await workflowHandlers.onCreateFinanceTransaction?.(irrigation.financeTransaction);
-      await workflowHandlers.onCreateBusinessEvent?.(irrigation.event);
       await refreshWorkflow();
       return;
     }
@@ -351,7 +373,7 @@ export default function CulturesRecoveredModule(props) {
     [rows],
   );
 
-  const content = tab === 'Parcelles & campagnes' ? (
+  const content = tab === 'Parcelles cultures' ? (
     <div className="space-y-4">
       <ModuleProjectionsStrip projections={culturesModuleProjections} onNavigate={props.onNavigate} />
       <CulturesPilotageHub
@@ -370,32 +392,22 @@ export default function CulturesRecoveredModule(props) {
         onRefresh={refreshWorkflow}
       />
       <CulturesParcellesHub {...sharedV3Props} />
-      <details ref={intrantsDetailsRef} className="rounded-2xl border border-[#eadcc2] bg-[#fffdf8] p-4">
-        <summary className="cursor-pointer font-black text-sm text-[#2f2415]">Intrants & météo</summary>
-        <div className="mt-3">
-          <CulturesIntrantsHub {...sharedV3Props} />
-        </div>
-      </details>
-      <details ref={santeDetailsRef} className="rounded-2xl border border-[#eadcc2] bg-[#fffdf8] p-4">
-        <summary className="cursor-pointer font-black text-sm text-[#2f2415]">Santé & protection</summary>
-        <div className="mt-3">
-          <CulturesSanteHub {...sharedV3Props} />
-        </div>
-      </details>
-      <details ref={cyclesDetailsRef} className="rounded-2xl border border-[#eadcc2] bg-[#fffdf8] p-4">
-        <summary className="cursor-pointer font-black text-sm text-[#2f2415]">Cycles & campagnes</summary>
-        <div className="mt-3">
-          <CulturesCyclesHub rows={rows} salesOrders={salesOrders} deliveries={deliveriesList} businessEvents={businessEvents} onNavigate={props.onNavigate} />
-        </div>
-      </details>
-      <details ref={annexeDetailsRef} className="rounded-2xl border border-[#eadcc2] bg-[#fffdf8] p-4">
-        <summary className="cursor-pointer font-black text-sm text-[#2f2415]">Annexe documents</summary>
-        <div className="mt-3">
-          <CulturesAnnexeTab documents={documents} onNavigate={props.onNavigate} />
-        </div>
-      </details>
     </div>
-  ) : tab === 'Récoltes' ? (
+  ) : tab === 'Campagnes cultures' ? (
+    <div ref={cyclesDetailsRef}>
+      <CulturesCyclesHub rows={rows} salesOrders={salesOrders} deliveries={deliveriesList} businessEvents={businessEvents} onNavigate={props.onNavigate} />
+    </div>
+  ) : tab === 'Irrigation cultures' ? (
+    <div className="space-y-4" ref={intrantsDetailsRef}>
+      <CulturesIrrigationQuickForm rows={rows} context={workflowContext} handlers={workflowHandlers} onSuccess={refreshWorkflow} />
+      <CulturesIntrantsHub {...sharedV3Props} />
+    </div>
+  ) : tab === 'Intrants & fertilisation cultures' ? (
+    <div className="space-y-4">
+      <div ref={intrantsDetailsRef}><CulturesIntrantsHub {...sharedV3Props} /></div>
+      <div ref={santeDetailsRef}><CulturesSanteHub {...sharedV3Props} /></div>
+    </div>
+  ) : tab === 'Récoltes cultures' ? (
     <div className="space-y-4">
       <CulturesRecoltesHub
         rows={rows}
@@ -413,8 +425,8 @@ export default function CulturesRecoveredModule(props) {
         onRefreshBusinessEvents={sharedV3Props.onRefreshBusinessEvents}
         onNavigate={props.onNavigate}
       />
-      <details ref={transformationDetailsRef} className="rounded-2xl border border-[#eadcc2] bg-[#fffdf8] p-4">
-        <summary className="cursor-pointer font-black text-sm text-[#2f2415]">Transformation cultures</summary>
+      <details ref={transformationDetailsRef} className="rounded-2xl border border-line bg-card p-4">
+        <summary className="cursor-pointer font-semibold text-sm text-earth">Transformation cultures</summary>
         <div className="mt-3">
           <CulturesTransformationHub
             rows={rows}
@@ -427,30 +439,22 @@ export default function CulturesRecoveredModule(props) {
         </div>
       </details>
     </div>
-  ) : (
+  ) : tab === 'Coûts & marge cultures' ? (
     <div className="space-y-4">
       <CulturesEconomieHub stocks={stocks} salesOrders={salesOrders} rows={rows} businessEvents={businessEvents} dataMap={dataMap} onNavigate={props.onNavigate} />
-      <details ref={graphiquesDetailsRef} className="rounded-2xl border border-[#eadcc2] bg-[#fffdf8] p-4">
-        <summary className="cursor-pointer font-black text-sm text-[#2f2415]">Graphiques & courbes</summary>
+    </div>
+  ) : (
+    <div className="space-y-4">
+      <JournalEvenements events={businessEvents} farmId={props.activeFarm?.id || props.farm?.id} module="cultures" recordType={props.recordType} recordId={props.recordId} period={props.periodScope} limit={150} onNavigate={props.onNavigate} />
+      <details ref={annexeDetailsRef} className="border-t border-line pt-4">
+        <summary className="cursor-pointer text-sm font-semibold text-earth">Documents liés</summary>
+        <div className="mt-3"><CulturesAnnexeTab documents={documents} onNavigate={props.onNavigate} /></div>
+      </details>
+      <details ref={graphiquesDetailsRef} className="border-t border-line pt-4">
+        <summary className="cursor-pointer text-sm font-semibold text-earth">Courbes historiques</summary>
         <div className="mt-3 space-y-4">
-          {chartNarratives.length ? (
-            <section className="rounded-2xl border border-[#eadcc2] bg-[#fffdf8] p-4 space-y-2">
-              <h2 className="text-sm font-black text-[#2f2415]">Lecture des courbes</h2>
-              {chartNarratives.map((line) => <p key={line} className="text-sm text-[#7d6a4a]">{line}</p>)}
-            </section>
-          ) : null}
-          <ModuleGraphiquesTab
-            moduleId="cultures"
-            periodFiltered={periodFiltered}
-            periodScope={props.periodScope}
-            periodLabel={props.periodLabel}
-            cultures={rows}
-            salesOrders={salesOrders}
-            payments={payments}
-            transactions={transactions}
-            stocks={stocks}
-            onNavigate={props.onNavigate}
-          />
+          {chartNarratives.map((line) => <p key={line} className="text-sm text-slate">{line}</p>)}
+          <ModuleGraphiquesTab moduleId="cultures" periodFiltered={periodFiltered} periodScope={props.periodScope} periodLabel={props.periodLabel} cultures={rows} salesOrders={salesOrders} payments={payments} transactions={transactions} stocks={stocks} onNavigate={props.onNavigate} />
         </div>
       </details>
     </div>
@@ -458,10 +462,10 @@ export default function CulturesRecoveredModule(props) {
 
   return (
     <div className="space-y-6 cultures-v1-root">
-      <section className="rounded-3xl border border-[#d6c3a0] bg-white p-5 shadow-sm">
-        <p className="text-xs uppercase tracking-[0.25em] text-[#9a6b12] font-black">Production</p>
-        <h1 className="mt-1 text-2xl font-black text-[#2f2415]">Cultures</h1>
-        <p className="mt-1 text-sm text-[#8a7456]">Parcelles, intrants, récoltes, transformation et rentabilité — centre métier sans double saisie Stock / Commercial / Finance.</p>
+      <section className="rounded-3xl border border-line bg-white p-6 shadow-card">
+        <p className="text-xs uppercase tracking-normal text-horizon-dark font-semibold">Production</p>
+        <h1 className="mt-1 text-2xl font-semibold text-earth">Cultures</h1>
+        <p className="mt-1 text-sm text-slate">Parcelles, campagnes, irrigation, intrants, récoltes, coûts et historique.</p>
         {props.periodLabel ? <div className="mt-2"><PeriodScopeBadge label={props.periodLabel} /></div> : null}
       </section>
       <ModuleTabsBar moduleId="cultures" active={tab} onChange={setTab} activeFarm={props.activeFarm} />

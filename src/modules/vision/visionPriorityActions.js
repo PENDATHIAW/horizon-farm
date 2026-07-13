@@ -3,6 +3,7 @@ import { generateSequentialId } from '../../utils/ids.js';
 import { resolveRouteModule } from '../../utils/commercialNavigation.js';
 import { buildTaskFromAlert, isAlertClosed, isTaskClosed, taskDedupeKey } from '../../utils/taskWorkflows.js';
 import { applyOneClickRecommendation } from '../../services/heyHorizonRecommendationActions.js';
+import { dismissPriorityItem } from '../../services/centrePriorityDismissService.js';
 import { openVisionPriority } from './visionMetrics.js';
 import { navigateVisionFinding, navigateVisionPriority } from './visionNavigation.js';
 
@@ -294,7 +295,6 @@ export async function runPriorityDismissAction(item, handlers = {}) {
     if (typeof onDismissPriority === 'function') {
       onDismissPriority(item);
     } else {
-      const { dismissPriorityItem } = await import('../../services/centrePriorityDismissService.js');
       dismissPriorityItem(item);
     }
     toast.success('Masqué pour aujourd\'hui');
@@ -304,4 +304,3 @@ export async function runPriorityDismissAction(item, handlers = {}) {
     return false;
   }
 }
-

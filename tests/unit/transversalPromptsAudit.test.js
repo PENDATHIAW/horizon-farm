@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { readFileSync, readdirSync, statSync } from 'node:fs';
+import { existsSync, readFileSync, readdirSync, statSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -38,7 +38,6 @@ test('CommercialDeliveriesPanel — utilise QuickInputModal', () => {
   assert.doesNotMatch(source, /window\.prompt/);
 });
 
-test('BpWizard — documenté comme orphelin', () => {
-  const source = readFileSync(path.join(srcRoot, 'modules/BpWizard.jsx'), 'utf8');
-  assert.match(source, /non monté/);
+test('BpWizard — ancien composant orphelin supprimé', () => {
+  assert.equal(existsSync(path.join(srcRoot, 'modules/BpWizard.jsx')), false);
 });

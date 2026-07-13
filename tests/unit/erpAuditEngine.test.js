@@ -34,3 +34,22 @@ test('signale document orphelin', () => {
   });
   assert.ok(report.findings.some((f) => f.id.includes('doc-orphan')));
 });
+
+test('ne duplique pas les alertes de justificatif financier', () => {
+  const report = runErpAuditEngine({
+    finances: [{ id: 'TRX-1', libelle: 'Achat aliment', montant: 75000 }],
+    sales_orders: [],
+    payments: [],
+    stock: [],
+    animaux: [],
+    avicole: [],
+    sante: [],
+    taches: [],
+    alertes_center: [],
+    documents: [],
+  });
+  const ids = report.findings.map((finding) => finding.id);
+
+  assert.equal(ids.filter((id) => id === 'finance-no-proof-TRX-1').length, 1);
+  assert.equal(new Set(ids).size, ids.length);
+});

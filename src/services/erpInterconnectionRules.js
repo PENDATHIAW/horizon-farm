@@ -149,7 +149,7 @@ export function buildStructuredFarmImpact(payload = {}) {
   };
 }
 
-export function buildInterconnectionAudit({ orders = [], payments = [], finances = [], invoices = [], documents = [], opportunities = [], sante = [], stocks = [], alimentationLogs = [] } = {}) {
+export function buildInterconnectionAudit({ orders = [], payments = [], finances = [], invoices = [], documents = [], opportunities = [], sante = [], alimentationLogs = [] } = {}) {
   const paymentsWithoutFinance = arr(payments).map((payment) => ({ payment, order: findOrderForPayment(payment, orders) })).filter(({ payment, order }) => amountOf(payment) > 0 && !financeExistsForPayment(payment, order, finances));
   const opportunitiesToClose = arr(opportunities).map((opp) => ({ opp, order: findOrderForOpportunity(opp, orders) })).filter(({ opp, order }) => order && !isOpportunityClosed(opp));
   const invoicesWithoutDocument = arr(invoices).map((invoice) => ({ invoice, order: arr(orders).find((order) => String(order.id) === String(invoice.order_id || invoice.sale_id || invoice.related_id || '')) || {} })).filter(({ invoice }) => !documentExistsForInvoice(invoice, documents));

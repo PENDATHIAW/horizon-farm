@@ -5,7 +5,7 @@ export default function AnimalWeightCurve({ history = [], target = 0, title = "C
   const points = history.filter((row) => toNumber(row.poids) > 0);
   if (points.length < 2) {
     return (
-      <div className="rounded-2xl border border-[#eadcc2] bg-[#fffdf8] p-6 text-center text-sm text-[#8a7456]">
+      <div className="rounded-2xl border border-line bg-card p-6 text-center text-sm text-slate">
         Ajoute au moins deux pesées pour afficher une courbe fiable.
       </div>
     );
@@ -23,29 +23,29 @@ export default function AnimalWeightCurve({ history = [], target = 0, title = "C
   const targetY = target > 0 ? y(target) : null;
 
   return (
-    <div className="rounded-2xl border border-[#eadcc2] bg-white p-4">
-      <p className="font-black text-[#2f2415] flex items-center gap-2 mb-3">
+    <div className="rounded-2xl border border-line bg-white p-4">
+      <p className="font-semibold text-earth flex items-center gap-2 mb-3">
         <LineChart size={16} />
         {title}
       </p>
       <svg viewBox={`0 0 ${w} ${h}`} className="w-full h-56" role="img" aria-label={title}>
-        <line x1={pad} y1={h - pad} x2={w - pad} y2={h - pad} stroke="#eadcc2" />
-        <line x1={pad} y1={pad} x2={pad} y2={h - pad} stroke="#eadcc2" />
-        {targetY ? <line x1={pad} y1={targetY} x2={w - pad} y2={targetY} stroke="#c9a96a" strokeDasharray="6 6" /> : null}
-        <path d={path} fill="none" stroke="#2f2415" strokeWidth="4" strokeLinecap="round" />
+        <line x1={pad} y1={h - pad} x2={w - pad} y2={h - pad} stroke="var(--hf-line)" />
+        <line x1={pad} y1={pad} x2={pad} y2={h - pad} stroke="var(--hf-line)" />
+        {targetY ? <line x1={pad} y1={targetY} x2={w - pad} y2={targetY} stroke="var(--hf-horizon)" strokeDasharray="6 6" /> : null}
+        <path d={path} fill="none" stroke="var(--hf-ink)" strokeWidth="4" strokeLinecap="round" />
         {points.map((row, index) => (
           <g key={`${row.date}-${index}`}>
-            <circle cx={x(index)} cy={y(toNumber(row.poids))} r="5" fill="#2f2415" />
-            <text x={x(index)} y={y(toNumber(row.poids)) - 10} textAnchor="middle" fontSize="12" fill="#2f2415">
+            <circle cx={x(index)} cy={y(toNumber(row.poids))} r="5" fill="var(--hf-ink)" />
+            <text x={x(index)} y={y(toNumber(row.poids)) - 10} textAnchor="middle" fontSize="12" fill="var(--hf-ink)">
               {toNumber(row.poids)}kg
             </text>
-            <text x={x(index)} y={h - 10} textAnchor="middle" fontSize="11" fill="#8a7456">
+            <text x={x(index)} y={h - 10} textAnchor="middle" fontSize="11" fill="var(--hf-slate)">
               {String(row.date).slice(5)}
             </text>
           </g>
         ))}
       </svg>
-      {target > 0 ? <p className="mt-2 text-xs text-[#8a7456]">Ligne pointillée : objectif {target} kg</p> : null}
+      {target > 0 ? <p className="mt-2 text-xs text-slate">Ligne pointillée : objectif {target} kg</p> : null}
     </div>
   );
 }

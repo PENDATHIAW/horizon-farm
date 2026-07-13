@@ -367,10 +367,10 @@ describe('Commercial V3 — navigation & Hey Horizon', () => {
     assert.ok(COMMERCIAL_TABS.includes('Abonnements'));
     assert.ok(COMMERCIAL_TABS.includes('Clients & créances'));
     assert.ok(COMMERCIAL_TABS.includes('Pilotage'));
-    assert.equal(resolveCommercialTab('devis'), 'Ventes');
-    assert.equal(resolveCommercialTab('prospects'), 'Clients & créances');
-    assert.equal(resolveCommercialTab('reconciliation'), 'Ventes');
-    assert.equal(resolveCommercialTab('livraisons'), 'Livraisons');
+    assert.equal(resolveCommercialTab('devis'), 'Ventes & commandes commercial');
+    assert.equal(resolveCommercialTab('prospects'), 'Clients commercial');
+    assert.equal(resolveCommercialTab('reconciliation'), 'Factures & paiements commercial');
+    assert.equal(resolveCommercialTab('livraisons'), 'Livraisons commercial');
   });
 
   it('Hey Horizon commercial presets et navigation', () => {
