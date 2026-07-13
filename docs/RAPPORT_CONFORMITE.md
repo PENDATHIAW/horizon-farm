@@ -217,86 +217,76 @@ publiés, chronométrage automatisé des 7 formulaires et test humain sur télé
 
 ### Cause exacte
 
-La barre d'onglets (`src/components/module/ModuleTabsBar.jsx`) affichait la liste
-d'onglets *cible* (aspirationnelle) au lieu des onglets réellement rendus par
-chaque module. Pour Élevage, la liste affichée était « Lots & bandes · Pondeuses ·
-Embouche bovine · Santé & biosécurité · Alimentation · Performances », alors que
-`ElevageRecoveredModule` ne rend que « Lots & bandes · Cycles & Reproduction ·
-Santé · Transformation » (constante `ELEVAGE_TABS`). Résultat : l'onglet
-Transformation n'apparaissait pas, et les libellés affichés que le module ne sait
-pas rendre ne déclenchaient rien au clic. Le module Transformation n'a jamais été
-supprimé : `ElevageTransformationTab.jsx`, le rendu conditionnel
-`tab === 'Transformation'` (ElevageRecoveredModule ligne 588), les utilitaires
-`elevageTransformation{Navigation,Journal,Cost,Workflow}.js` et la reconnaissance
-de `Transformation`/`transformation` par `resolveElevageTab` sont tous intacts.
-
-Ce défaut touchait toute la famille de modules pilotés par `ModuleTabsBar`, d'où
-les onglets « qui ne font rien » signalés dans plusieurs modules.
+Le module n'avait pas été supprimé. `ElevageTransformationTab`, le rendu
+conditionnel `tab === 'Transformation'`, les handlers et les utilitaires de
+navigation, journal et workflow existaient encore. Le masquage venait d'une
+configuration d'onglets visible contradictoire avec le rendu réel. La
+configuration canonique par module est désormais `src/config/moduleTabs/` ;
+`ModuleTabsBar`, le résolveur d'alias et les deep-links lisent cette même source.
 
 ### Correction appliquée
 
-`src/config/moduleTabs.config.js` devient la source unique des onglets : pour
-chaque module, `onglets` est construit à partir des constantes de navigation qui
-sont la vérité du rendu (`ELEVAGE_TABS`, `COMMERCIAL_TABS`, `ACHATS_STOCK_TABS`,
-`FINANCE_TABS`, `ACTIVITE_SUIVI_TABS`, `DOCUMENTS_RAPPORTS_TABS`, `RH_TABS`,
-`OBJECTIFS_TABS`, `CENTRE_IA_TABS`, `SMARTFARM_TABS`, `SYNC_ACTIVITY_TABS`,
-`GESTION_SYSTEME_TABS`, `AGRI_FEEDS_TABS`, `DASHBOARD_TABS`). `MODULE_TARGET_TABS`
-est dérivé de cette configuration, si bien que barre d'onglets, rendu et
-deep-links lisent désormais la même liste. La structure cible reste documentée
-dans le champ `cible` de chaque module. Aucun ancien alias n'a été retiré ;
-`Transformation` et `transformation` continuent de résoudre vers l'onglet.
-
-Transformation reste conforme à la décision métier : création du produit fini et
-de la traçabilité, rattachement des coûts lus depuis Finance, aucune vente saisie
-dans Élevage, aucun stock ni calcul financier parallèle. Aucune table locale
-`alerts`, `tasks`, `stock`, `sales`, `finance` ou `kpi` n'a été créée.
+- La barre Élevage expose les huit onglets cibles dans l'ordre demandé : Vue
+  d'ensemble, Lots & animaux, Alimentation, Production, Santé & Biosécurité,
+  Transformation, Coûts & performance, Historique.
+- Les alias historiques `Transformation` et `transformation`, `initialTab`, les
+  deep-links, les actions Transformer animal/lot et `horizon-open-form` convergent
+  vers le même rendu.
+- Le formulaire conserve l'animal ou le lot, le type, la date réelle, le statut
+  sanitaire, les poids, pertes, preuves et la destination du produit fini.
+- La validation produit une seule sortie vivant, une entrée de stock et son
+  mouvement, une allocation de coût sans effet de trésorerie, un document et un
+  événement métier. Elle ne crée aucune vente.
+- Les identifiants et `event_key` des effets sont déterministes ; un rejeu déjà
+  présent dans `business_events` est reconnu et ne recrée aucun effet.
+- Les capacités sont explicites pour les sept profils concernés : direction et
+  responsable complets, terrain sans coûts sensibles, vétérinaire en lecture
+  sanitaire, finance en lecture des coûts, financeur externe sans accès et support
+  administrateur tracé.
+- Aucune table locale `alerts`, `tasks`, `stock`, `sales`, `finance` ou `kpi` n'a
+  été créée.
 
 ### Fichiers modifiés
 
-- `src/config/moduleTabs.config.js` (onglets sourcés des constantes réelles).
-- `src/components/module/ModuleTabsBar.jsx` (lecture de la configuration unique).
-- `src/config/horizonVision.config.js` (`MODULE_TARGET_TABS` dérivé).
-- `tests/unit/elevageTransformationTabConfig.test.js` (nouveau, preuve du correctif).
-- `tests/unit/achatsStockTabControl.test.js` (assertion alignée sur le rendu réel).
+- `src/config/moduleTabs/elevage.config.js`
+- `src/modules/ElevageRecoveredModule.jsx`
+- `src/modules/elevage/TransformationOfficialForm.jsx`
+- `src/utils/elevageTransformationWorkflow.js`
+- `src/utils/elevageTransformationPermissions.js`
+- `tests/unit/elevageTransformationOfficial.test.js`
+- `tests/unit/elevageTransformationTabConfig.test.js`
+- `tests/unit/moduleRenderWithProvider.vite.test.js`
 
 ### Comportement avant / après
 
-- Avant : onglet Transformation absent de la barre Élevage ; onglets aspirationnels
-  affichés sans effet au clic sur plusieurs modules.
-- Après : la barre Élevage affiche « Lots & bandes · Cycles & Reproduction · Santé ·
-  Transformation » ; chaque onglet de chaque module correspond à une vue rendue.
+- Avant : le code Transformation existait mais sa configuration visible pouvait
+  l'écarter ; certains alias retombaient sur la vue Lots & bandes.
+- Après : Transformation occupe la sixième position de la structure à huit
+  onglets et rend `ElevageTransformationTab` dans le module réel, y compris par
+  deep-link et formulaire prérempli.
 
 ### Tests exécutés et résultats
 
-- `tests/unit/elevageTransformationTabConfig.test.js` : 6 tests, 0 échec (config
-  Élevage = rendu réel, Transformation visible dans le rendu SSR de la barre,
-  alias `Transformation`/`transformation`, non-repli sur « Lots & bandes »,
-  composant de rendu déclaré).
-- `tests/unit/elevageTransformationOfficial.test.js` : 10 tests, 0 échec.
-- `tests/unit/elevageDecisionTabs.test.js` : 4 tests, 0 échec.
-- `moduleTabsStability` : 340 tests, 0 échec ; render smoke, tab-control et
-  navigation de tous les modules : 0 échec.
-- `npm run build` : succès.
-- Rendu SSR des 4 onglets Élevage, des 3 onglets Accueil et des 5 onglets du
-  Centre décisionnel : aucun crash.
+- `elevageTransformationTabConfig.test.js` : 6 réussites, 0 échec.
+- `elevageTransformationOfficial.test.js` : 14 réussites, 0 échec.
+- `moduleRenderWithProvider.vite.test.js` : 5 modules rendus, dont Élevage ouvert
+  directement sur Transformation ; 5 réussites, 0 échec.
+- `npm run lint` : succès, 0 erreur.
+- `npm run build` : succès, 3 519 modules transformés ; avertissements de taille
+  de chunks et d'imports dynamiques inefficaces déjà connus, sans échec.
 
 ### Navigation, formulaire, idempotence, permissions
 
-- Navigation : `resolveElevageTab('Transformation')` et `('transformation')`
-  renvoient « Transformation » ; `initialTab` et les deep-links ouvrent l'onglet
-  sans repli silencieux sur « Lots & bandes ». Les actions métier « Transformer »
-  et l'événement `horizon-open-form` restent gérés par les utilitaires existants
-  (`elevageTransformationNavigation.js`, `elevageTransformationWorkflow.js`).
-- Formulaire et idempotence : couverts par `elevageTransformationOfficial.test.js`
-  (écriture unique, entrée de stock unique, pas de doublon au rejeu, pas de vente
-  créée dans Élevage), inchangés par ce correctif.
-- Permissions : Élevage n'est pas exposé au rôle `financeur_externe` (contrôle en
-  amont de la navigation) ; l'onglet Transformation suit l'accès du module.
+- Navigation : opérationnelle pour clic, alias, `initialTab`, deep-link, actions
+  animal/lot et événement d'ouverture de formulaire.
+- Formulaire : opérationnel avec validation sanitaire, sortie vivant, stock,
+  mouvement, coûts, preuve et événement métier ; aucune vente automatique.
+- Idempotence : prouvée par un double appel avec la même `event_key`, sans doublon.
+- Permissions : appliquées dans la visibilité de l'onglet et dans le formulaire ;
+  les coûts, la saisie, la validation et la dérogation sanitaire sont séparés.
 
 ### Éléments encore partiels
 
-La restructuration *complète* d'Élevage vers la structure cible à 8 onglets
-(Vue d'ensemble · Lots & animaux · Alimentation · Production · Santé & Biosécurité ·
-Transformation · Coûts & performance · Historique) reste à mener ; le champ `cible`
-la documente. Ce correctif restaure Transformation dans la liste réellement
-consommée, sans casser les vues existantes, et prépare la configuration unique.
+Le contrôle navigateur de tous les onglets, le responsive et la validation
+Supabase font partie de la batterie finale du chantier global et sont consignés
+séparément après exécution.

@@ -45,6 +45,7 @@ import {
 import { buildReproductionKpis } from '../utils/reproductionMetrics.js';
 import { evaluateElevageHealthBlocks, buildSanitaryAlertsPanel } from '../utils/elevageHealthBlocks.js';
 import { buildElevageTransformationRows } from '../utils/elevageTransformationJournal.js';
+import { getTransformationPermissions, normalizeTransformationRole } from '../utils/elevageTransformationPermissions.js';
 import ElevageLotsBandesTab from './elevage/ElevageLotsBandesTab.jsx';
 import ElevageCyclesReproductionTab from './elevage/ElevageCyclesReproductionTab.jsx';
 import { commitElevageEggProduction } from '../utils/elevageWorkflow.js';
@@ -66,15 +67,19 @@ const isGestanteAnimal = (row = {}) =>
   /gestante|gestation|mise bas prevue|saillie confirm|en gestation/.test(
     lower(`${row.statut_reproduction || ''} ${row.reproduction_status || ''} ${row.statut || ''} ${row.notes || ''}`),
   );
-function Tabs({ active, onChange, activeFarm }) {
+function Tabs({ active, onChange, activeFarm, role }) {
   return (
     <div className="space-y-2">
-      <ModuleTabsBar moduleId="elevage" active={active} onChange={onChange} activeFarm={activeFarm} />
+      <ModuleTabsBar moduleId="elevage" active={active} onChange={onChange} activeFarm={activeFarm} role={role} />
     </div>
   );
 }
 
 export default function ElevageRecoveredModule(props) {
+  const transformationRole = normalizeTransformationRole(
+    props.role || props.user?.user_metadata?.role || props.user?.role,
+  );
+  const transformationPermissions = getTransformationPermissions(transformationRole);
   const controlled = Boolean(props.onTabChange);
   const [internalTab, setInternalTab] = useState(() => resolveElevageTab(props.initialTab || 'Vue d’ensemble'));
   const tab = controlled
@@ -537,6 +542,9 @@ export default function ElevageRecoveredModule(props) {
     businessEvents,
     opportunities,
     transactions: rowsOf(props.transactions, financesCrud, periodFiltered),
+    stockMovements,
+    documents: rowsOf(props.documents, documentsCrud, periodFiltered),
+    permissions: transformationPermissions,
     handlers: transformationHandlers,
     onNavigate: guardedNavigate,
     onSuccess: refreshAfterWorkflow,
@@ -668,7 +676,7 @@ export default function ElevageRecoveredModule(props) {
     <div className="space-y-6">
       <section className="rounded-3xl border border-[#d6c3a0] bg-white p-5 shadow-sm"><div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between"><div><p className="text-xs uppercase tracking-[0.25em] text-[#9a6b12] font-black">Production</p><h1 className="mt-1 text-2xl font-black text-[#2f2415]">Élevage</h1><p className="mt-1 text-sm text-[#8a7456]">Lots, alimentation, production, santé, coûts et historique de l’élevage.</p>{props.periodLabel ? <div className="mt-2"><PeriodScopeBadge label={props.periodLabel} /></div> : null}<HeyHorizonQuickAsk moduleKey="elevage" onNavigate={guardedNavigate} onOpenAssistant={props.onOpenAssistant} className="mt-2" /></div><div className="rounded-2xl border border-[#eadcc2] bg-[#fffdf8] px-4 py-3 text-sm"><span className="text-[#8a7456]">Santé module </span><b className={data.healthScore >= 75 ? 'text-emerald-700' : 'text-amber-700'}>{data.healthScore}/100</b></div></div></section>
       <ModuleProjectionsStrip projections={data.moduleProjections} onNavigate={guardedNavigate} />
-      <Tabs active={tab} onChange={setTab} activeFarm={props.activeFarm} />
+      <Tabs active={tab} onChange={setTab} activeFarm={props.activeFarm} role={transformationRole} />
       {findActiveWithdrawals(health).length ? <SanitaryWithdrawalBanner healthRows={health} /> : null}
       {content}
       <ElevageWorkflowPanels

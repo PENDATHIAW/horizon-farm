@@ -74,6 +74,14 @@ function ProofInput({ form, onChange }) {
 }
 
 export default function TransformationOfficialForm(props) {
+  const permissions = props.permissions || {
+    canView: true,
+    canWrite: true,
+    canValidate: true,
+    canViewCosts: true,
+    canOverrideSanitary: true,
+  };
+  const readOnly = !permissions.canWrite;
   const animals = arr(props.animaux).filter((a) => a.id && !isClosedAnimal(a));
   const lots = arr(props.lots).filter((l) => l.id && avicoleActiveCount(l) > 0);
   const chairLots = lots.filter(isChairLot);
@@ -258,14 +266,18 @@ export default function TransformationOfficialForm(props) {
           {activeWithdrawals.map((w) => (
             <p key={w.id} className="text-xs mt-1">{formatWithdrawalLabel(w)}</p>
           ))}
-          <button type="button" className="mt-2 text-xs font-black underline" onClick={requestOverride}>
-            Dérogation exceptionnelle (justification obligatoire)
-          </button>
+          {permissions.canOverrideSanitary ? (
+            <button type="button" className="mt-2 text-xs font-black underline" onClick={requestOverride}>
+              Dérogation exceptionnelle (justification obligatoire)
+            </button>
+          ) : null}
         </div>
       ) : null}
 
       <p className="rounded-xl border border-[#eadcc2] bg-[#fffdf8] px-3 py-2 text-sm text-[#7d6a4a]">{profile.hint}</p>
 
+      {readOnly ? <p className="rounded-xl border border-[#eadcc2] bg-[#fffdf8] px-3 py-2 text-sm text-[#7d6a4a]">Consultation uniquement pour ce rôle.</p> : null}
+      <fieldset disabled={readOnly} className="space-y-4 border-0 p-0">
       <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
         <Field label="Date"><Input type="date" value={form.date} onChange={(v) => update('date', v)} /></Field>
         <Field label="Type">
@@ -308,22 +320,22 @@ export default function TransformationOfficialForm(props) {
         {profile.show.rendement ? (
           <Field label="Rendement carcasse"><div className="rounded-lg border border-[#eadcc2] bg-[#fffdf8] px-3 py-2 text-sm">{rendement != null ? `${rendement} %` : '—'}</div></Field>
         ) : null}
-        {profile.show.pertes ? (
+        {profile.show.pertes && permissions.canViewCosts ? (
           <Field label="Pertes (F)"><Input type="number" value={form.pertes} onChange={(v) => update('pertes', v)} /></Field>
         ) : null}
-        {profile.show.frais_abattage ? (
+        {profile.show.frais_abattage && permissions.canViewCosts ? (
           <Field label="Frais abattage"><Input type="number" value={form.frais_abattage} onChange={(v) => update('frais_abattage', v)} /></Field>
         ) : null}
-        {profile.show.frais_decoupe ? (
+        {profile.show.frais_decoupe && permissions.canViewCosts ? (
           <Field label="Frais découpe"><Input type="number" value={form.frais_decoupe} onChange={(v) => update('frais_decoupe', v)} /></Field>
         ) : null}
-        {profile.show.frais_emballage ? (
+        {profile.show.frais_emballage && permissions.canViewCosts ? (
           <Field label="Emballage"><Input type="number" value={form.frais_emballage} onChange={(v) => update('frais_emballage', v)} /></Field>
         ) : null}
-        {profile.show.frais_transport ? (
+        {profile.show.frais_transport && permissions.canViewCosts ? (
           <Field label="Transport"><Input type="number" value={form.frais_transport} onChange={(v) => update('frais_transport', v)} /></Field>
         ) : null}
-        {profile.show.autres_frais ? (
+        {profile.show.autres_frais && permissions.canViewCosts ? (
           <Field label="Autres frais"><Input type="number" value={form.autres_frais} onChange={(v) => update('autres_frais', v)} /></Field>
         ) : null}
         {profile.show.produit_fini ? (
@@ -355,7 +367,7 @@ export default function TransformationOfficialForm(props) {
         ) : null}
       </div>
 
-      <div className="rounded-xl border border-[#eadcc2] bg-[#fffdf8] p-3 text-sm text-[#7d6a4a] space-y-1">
+      {permissions.canViewCosts ? <div className="rounded-xl border border-[#eadcc2] bg-[#fffdf8] p-3 text-sm text-[#7d6a4a] space-y-1">
         <p><b>Coût de revient total :</b> {fmtCurrency(costing.totalCost)} · <b>/kg :</b> {costing.costPerKg ? fmtCurrency(costing.costPerKg) : '—'}</p>
         {costing.marginEstimee != null ? <p><b>Marge estimée :</b> {fmtCurrency(costing.marginEstimee)}</p> : null}
         {costing.incomplete ? (
@@ -365,7 +377,7 @@ export default function TransformationOfficialForm(props) {
         )}
         {animal ? <p><b>Animal :</b> {animal.name || animal.tag} · {animal.type}</p> : null}
         {lot ? <p><b>Lot :</b> {lot.name || lot.nom} · {avicoleActiveCount(lot)} actifs</p> : null}
-      </div>
+      </div> : null}
 
       <label className="flex items-start gap-2 text-sm">
         <input type="checkbox" checked={form.create_stock} onChange={(e) => update('create_stock', e.target.checked)} className="mt-1" disabled={!profile.show.stock_fields} />
@@ -375,6 +387,7 @@ export default function TransformationOfficialForm(props) {
         <input type="checkbox" checked={form.confirmed} onChange={(e) => update('confirmed', e.target.checked)} className="mt-1" />
         <span>Je confirme la sortie vivant et la conversion vers produit fini (action irréversible).</span>
       </label>
+      </fieldset>
 
       <div className="flex flex-wrap gap-2 justify-end">
         {lastResult?.stockId ? (
@@ -393,9 +406,11 @@ export default function TransformationOfficialForm(props) {
             Préparer vente (Commercial)
           </button>
         ) : null}
-        <Btn icon={ShieldCheck} onClick={submit} disabled={saving || (sanitaryBlock.blocked && !form.sanitary_override)}>
-          {saving ? 'Validation…' : 'Valider transformation'}
-        </Btn>
+        {permissions.canValidate ? (
+          <Btn icon={ShieldCheck} onClick={submit} disabled={saving || (sanitaryBlock.blocked && !form.sanitary_override)}>
+            {saving ? 'Validation…' : 'Valider transformation'}
+          </Btn>
+        ) : null}
       </div>
       <QuickInputModal
         open={overrideOpen}

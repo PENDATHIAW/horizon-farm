@@ -6,6 +6,7 @@ const TRANSFORMATION_ROLES = [
   'responsable_filiere',
   'terrain',
   'veterinaire',
+  'finance',
   'admin_support',
 ];
 
