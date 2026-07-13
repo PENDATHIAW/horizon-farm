@@ -1,5 +1,5 @@
 /**
- * Générateur de publications commerciales — contenus uniquement, pas d'envoi ni de prix auto.
+ * Générateur de publications commerciales - contenus uniquement, pas d'envoi ni de prix auto.
  */
 
 import {
@@ -77,7 +77,7 @@ function buildPromotionalOffer({
   if (maxDisc <= 0) {
     return {
       available: false,
-      reason: 'Marge minimale atteinte — pas de réduction automatique proposée.',
+      reason: 'Marge minimale atteinte - pas de réduction automatique proposée.',
       requires_validation: true,
     };
   }
@@ -120,7 +120,7 @@ function buildMessages({
   const hint = channelHint(channel);
   const priceLine = `${fmtMoney(unitPrice)} / ${unit}`;
   const stockLine = `${fmtQty(quantity, unit)} disponibles`;
-  const dlcLine = dlc ? (urgency !== 'normal' ? `DLC ${dlc} — priorité écoulement.` : `DLC ${dlc}.`) : '';
+  const dlcLine = dlc ? (urgency !== 'normal' ? `DLC ${dlc} - priorité écoulement.` : `DLC ${dlc}.`) : '';
 
   const shortParts = [
     `${tone.greeting},`,
@@ -134,7 +134,7 @@ function buildMessages({
 
   const b2b_message = [
     `${tone.greeting},`,
-    `Horizon Farm — ${productName}.`,
+    `Horizon Farm - ${productName}.`,
     `Disponibilité : ${stockLine}.`,
     `Tarif indicatif : ${priceLine} (${tone.style}).`,
     dlcLine,
@@ -145,7 +145,7 @@ function buildMessages({
   ].filter(Boolean).join('\n');
 
   const social_post = [
-    `🌾 ${productName} — dispo maintenant !`,
+    `🌾 ${productName} - dispo maintenant !`,
     `📦 ${stockLine}`,
     `💰 ${priceLine}`,
     dlc ? `⏳ ${dlcLine}` : null,
@@ -205,11 +205,11 @@ export function generateSalesPublication({
   });
 
   const warnings = [
-    'Aucun envoi automatique — copiez ou ouvrez le canal après relecture.',
+    'Aucun envoi automatique - copiez ou ouvrez le canal après relecture.',
     'Les prix catalogue ne sont pas modifiés sans votre validation.',
   ];
   if (price > 0 && cost > 0 && price < floor) {
-    warnings.push(`Prix sous le plancher (${fmtMoney(floor)}) — vérifiez la marge avant diffusion.`);
+    warnings.push(`Prix sous le plancher (${fmtMoney(floor)}) - vérifiez la marge avant diffusion.`);
   }
   if (promotional_offer && !promotional_offer.available && urgency !== 'normal') {
     warnings.push(promotional_offer.reason || 'Pas de promo automatique.');

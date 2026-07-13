@@ -1,5 +1,5 @@
 /**
- * Horizon Advisor — recommandations quotidiennes priorisées (lecture seule).
+ * Horizon Advisor - recommandations quotidiennes priorisées (lecture seule).
  */
 
 import { runErpHealthEngine } from '../erpHealthEngine.js';

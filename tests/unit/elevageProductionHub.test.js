@@ -34,8 +34,8 @@ test('Production — carte "Stock œufs & tablettes" présente', () => {
 
 test('Production — sections métier orientées rendement', () => {
   assert.match(productionHubSrc, /Œufs & rendement ponte/);
-  assert.match(productionHubSrc, /Chair — rendement/);
-  assert.match(productionHubSrc, /Bovins — GMQ/);
+  assert.match(productionHubSrc, /Chair - rendement/);
+  assert.match(productionHubSrc, /Bovins - GMQ/);
   assert.match(productionHubSrc, /Ovins/);
   assert.match(productionHubSrc, /Caprins/);
   assert.match(productionHubSrc, /Viande & transformation/);

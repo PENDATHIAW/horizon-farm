@@ -1,5 +1,5 @@
 /**
- * Questions ultra-courtes — porte d'entrée universelle Horizon Farm V6.
+ * Questions ultra-courtes - porte d'entrée universelle Horizon Farm V6.
  * ventes ? · stock ? · clients ? · lots ? · animaux ? · parcelles ? · objectifs ?
  */
 

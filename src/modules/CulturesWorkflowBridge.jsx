@@ -69,7 +69,7 @@ export default function CulturesWorkflowBridge({ rows = [], onUpdate, onRefresh 
       const reason = risk.reasons.join(' · ') || 'Culture à suivre';
       await tachesCrud.create?.({
         id: taskId,
-        title: `Suivi culture — ${cultureName(row)}`,
+        title: `Suivi culture - ${cultureName(row)}`,
         module_lie: 'cultures',
         related_id: row.id,
         due_date: today(),

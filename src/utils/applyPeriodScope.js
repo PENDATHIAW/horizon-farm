@@ -30,7 +30,7 @@ export const PERIOD_UNFILTERED_PROP_KEYS = new Set([
   'tracabiliteAll',
 ]);
 
-/** Clés de props contenant des enregistrements datés — filtrées globalement. */
+/** Clés de props contenant des enregistrements datés - filtrées globalement. */
 export const PERIOD_FILTER_PROP_KEYS = new Set([
   'rows',
   'salesOrders',

@@ -145,7 +145,7 @@ export function buildProductionHubSnapshot({
       bovinCostPerKgAvg: avgBovinCostPerKg,
       meatStockKg: meatStockQty,
       technicalMarginTotal,
-      technicalMarginLabel: technicalMarginTotal != null ? fmtCurrency(technicalMarginTotal) : '—',
+      technicalMarginLabel: technicalMarginTotal != null ? fmtCurrency(technicalMarginTotal) : '-',
       eggMarginAvg: avgEggMargin,
       chairMarginAvg: avgChairMargin,
       bovinMarginAvg: avgBovinMargin,

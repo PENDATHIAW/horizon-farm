@@ -1,6 +1,6 @@
 /**
- * Dashboard V3 — brief premium, comparaisons temporelles, dynamique, présentation.
- * Sans LLM obligatoire — règles métier sur données existantes.
+ * Dashboard V3 - brief premium, comparaisons temporelles, dynamique, présentation.
+ * Sans LLM obligatoire - règles métier sur données existantes.
  */
 
 import { fmtCurrency } from '../../utils/format.js';
@@ -189,13 +189,13 @@ function treasurySentence(summary = {}) {
 
 function stockSentence(summary = {}, props = {}) {
   const low = n(summary.stockSummary?.lowStockCount || summary.stockBas);
-  if (low > 0) return `Le stock compte ${low} produit(s) sous le seuil — un réapprovisionnement est à prévoir.`;
+  if (low > 0) return `Le stock compte ${low} produit(s) sous le seuil - un réapprovisionnement est à prévoir.`;
   const feedCritical = arr(props.stocks).some((row) => /aliment|provende|feed/i.test(`${row.produit || row.nom || ''}`) && n(row.quantite ?? row.quantity) <= n(row.seuil ?? row.threshold));
   if (feedCritical) return 'Le stock d\'aliment nécessite une attention dans les prochains jours.';
   return null;
 }
 
-/** Brief dirigeant premium — texte naturel, sans jargon ERP. */
+/** Brief dirigeant premium - texte naturel, sans jargon ERP. */
 export function buildPremiumExecutiveBrief(options = {}) {
   const {
     displayName = 'Exploitant',
@@ -217,7 +217,7 @@ export function buildPremiumExecutiveBrief(options = {}) {
   const paragraphs = [];
   const greeting = `Bonjour ${displayName}.`;
   const intro = summary.startupMode
-    ? `Votre projet ${scopeLabel} est en phase de démarrage — chaque première saisie renforce le pilotage.`
+    ? `Votre projet ${scopeLabel} est en phase de démarrage - chaque première saisie renforce le pilotage.`
     : `Aujourd'hui, la situation ${scopeLabel} est ${situationWord(summary, priorities)}.`;
 
   paragraphs.push(`${greeting} ${intro}`);
@@ -233,7 +233,7 @@ export function buildPremiumExecutiveBrief(options = {}) {
   if (summary.receivable > 0) {
     const count = priorities.find((p) => p.id === 'receivables');
     paragraphs.push(count
-      ? `${count.title.toLowerCase()} — ${fmtCurrency(summary.receivable)} restent à encaisser.`
+      ? `${count.title.toLowerCase()} - ${fmtCurrency(summary.receivable)} restent à encaisser.`
       : `${fmtCurrency(summary.receivable)} de créances clients restent ouverts.`);
   }
 
@@ -256,16 +256,16 @@ export function buildPremiumExecutiveBrief(options = {}) {
   if (nextAction) {
     paragraphs.push(`Prochaine action prioritaire : ${nextAction.title.toLowerCase()}.`);
   } else if (!summary.startupMode) {
-    paragraphs.push('Aucune urgence critique — vous pouvez avancer sereinement sur le plan de la semaine.');
+    paragraphs.push('Aucune urgence critique - vous pouvez avancer sereinement sur le plan de la semaine.');
   }
 
   if (demoMode) {
-    paragraphs.push('Mode démonstration — certaines fermes affichées sont fictives.');
+    paragraphs.push('Mode démonstration - certaines fermes affichées sont fictives.');
   }
 
   const sections = [
     { id: 'situation', label: 'Situation générale', text: paragraphs[0] },
-    { id: 'ventes', label: 'Ventes & encaissements', text: paragraphs.find((p) => /ventes|encaiss/i.test(p)) || '—' },
+    { id: 'ventes', label: 'Ventes & encaissements', text: paragraphs.find((p) => /ventes|encaiss/i.test(p)) || '-' },
     { id: 'tresorerie', label: 'Trésorerie', text: paragraphs.find((p) => /trésorerie|tresorerie/i.test(p)) || treasurySentence(summary) },
     { id: 'creances', label: 'Créances', text: paragraphs.find((p) => /créance|creance/i.test(p)) || (summary.receivable > 0 ? `${fmtCurrency(summary.receivable)} ouverts.` : 'Créances maîtrisées.') },
     { id: 'stock', label: 'Stock', text: stockLine || 'Stocks globalement suivis.' },
@@ -295,7 +295,7 @@ export function isSpeechSynthesisSupported() {
     && typeof SpeechSynthesisUtterance !== 'undefined';
 }
 
-/** Score dynamique — En progression / Stable / À surveiller / En recul. */
+/** Score dynamique - En progression / Stable / À surveiller / En recul. */
 export function buildExploitationDynamics(summary = {}, comparisons = []) {
   const week = comparisons.find((row) => row.key === 'week') || null;
   const month = comparisons.find((row) => row.key === 'month') || null;
@@ -450,8 +450,8 @@ export function buildSingleFarmLocationCard(farm = {}, summary = {}, _weather = 
   return {
     id: farm.id,
     name: farm.name,
-    region: farm.region || '—',
-    commune: farm.settings?.location_details?.commune || farm.location || farm.ville || '—',
+    region: farm.region || '-',
+    commune: farm.settings?.location_details?.commune || farm.location || farm.ville || '-',
     country: farm.country || 'SN',
     latitude: farm.latitude,
     longitude: farm.longitude,

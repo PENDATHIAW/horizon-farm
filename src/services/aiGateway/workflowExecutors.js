@@ -1,5 +1,5 @@
 /**
- * Registre des exécuteurs workflow — seule porte d'écriture post-validation IA.
+ * Registre des exécuteurs workflow - seule porte d'écriture post-validation IA.
  */
 
 import {

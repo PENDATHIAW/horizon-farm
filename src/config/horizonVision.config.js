@@ -5,7 +5,7 @@ import {
 } from './businessInterconnections.config.js';
 import { getModuleTabs } from './moduleTabs/index.js';
 
-/** Vision ERP Horizon Farm — source de vérité métier, chiffres, interconnexions et règles de cohérence. */
+/** Vision ERP Horizon Farm - source de vérité métier, chiffres, interconnexions et règles de cohérence. */
 export const HORIZON_MISSION = [
   'piloter une ferme intégrée à partir des opérations réelles du terrain',
   'réduire les doubles saisies grâce aux événements métier',

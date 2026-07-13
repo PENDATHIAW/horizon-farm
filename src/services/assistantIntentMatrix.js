@@ -1,5 +1,5 @@
 /**
- * ASSISTANT_INTENT_MATRIX — 3 familles d'intentions métier.
+ * ASSISTANT_INTENT_MATRIX - 3 familles d'intentions métier.
  * DÉCLARER · DEMANDER · DÉCIDER
  */
 

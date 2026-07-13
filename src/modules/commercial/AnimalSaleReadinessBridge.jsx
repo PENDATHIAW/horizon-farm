@@ -17,7 +17,7 @@ function readiness(animal = {}) {
   const state = getAnimalSaleReadiness({ animal, metrics: { totalCost: toNumber(animal.cout_total ?? animal.total_cost) } });
   if (isClosed(animal)) return { ready: false, label: 'Indisponible', reason: 'Animal sorti du cheptel' };
   if (isSaleReady(animal)) return { ready: true, confirmed: true, label: 'Prêt confirmé', reason: 'Confirmation enregistrée', state };
-  if (state.recommended) return { ready: true, label: 'Prêt recommandé', reason: `${state.currentWeight || '—'} kg / objectif ${state.targetWeight || '—'} kg`, state };
+  if (state.recommended) return { ready: true, label: 'Prêt recommandé', reason: `${state.currentWeight || '-'} kg / objectif ${state.targetWeight || '-'} kg`, state };
   if (state.status === 'presque_pret') return { ready: true, label: 'Presque prêt', reason: `Progression ${state.targetProgress}%`, state };
   return { ready: false, label: 'Non prêt', reason: `Progression ${state.targetProgress}%`, state };
 }

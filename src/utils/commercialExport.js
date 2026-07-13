@@ -1,5 +1,5 @@
 /**
- * Commercial V3 — export preuve commerciale / investisseur.
+ * Commercial V3 - export preuve commerciale / investisseur.
  */
 
 import { exportModuleReportPdf } from './moduleReportExports.js';
@@ -49,8 +49,8 @@ export function buildCommercialInvestorReport({
       `Créances : ${fmtCurrency(kpis.receivable)}`,
       `Clients actifs : ${kpis.activeClients}`,
       `Panier moyen : ${fmtCurrency(kpis.basketAvg)}`,
-      `Taux paiement : ${kpis.paymentRate ?? '—'}%`,
-      `Taux livraison : ${kpis.deliveryRate ?? '—'}%`,
+      `Taux paiement : ${kpis.paymentRate ?? '-'}%`,
+      `Taux livraison : ${kpis.deliveryRate ?? '-'}%`,
       `Devis ouverts : ${kpis.openQuotes}`,
       `Abonnements actifs : ${subscriptions.length}`,
       `Prospects chauds : ${prospects.hot.length}`,
@@ -91,8 +91,8 @@ export function exportCommercialInvestorPdf(report = {}, fileName = '') {
           ['Encaissé', fmtCurrency(report.kpis?.collected)],
           ['Créances', fmtCurrency(report.kpis?.receivable)],
           ['Panier moyen', fmtCurrency(report.kpis?.basketAvg)],
-          ['Taux paiement', `${report.kpis?.paymentRate ?? '—'}%`],
-          ['Taux livraison', `${report.kpis?.deliveryRate ?? '—'}%`],
+          ['Taux paiement', `${report.kpis?.paymentRate ?? '-'}%`],
+          ['Taux livraison', `${report.kpis?.deliveryRate ?? '-'}%`],
         ],
       },
       {

@@ -1,6 +1,6 @@
 /**
- * ASSISTANT_BUSINESS_QUESTIONS — matrice de questions naturelles par module et profil.
- * Porte d'entrée universelle Horizon Farm V6 — couverture ≥ 95 % par domaine.
+ * ASSISTANT_BUSINESS_QUESTIONS - matrice de questions naturelles par module et profil.
+ * Porte d'entrée universelle Horizon Farm V6 - couverture ≥ 95 % par domaine.
  */
 
 import { mergeTerrainPhrasesIntoCatalog } from './assistantTerrainPhrases.js';
@@ -31,7 +31,7 @@ function q(family, intent, label, farmer = [], manager = [], investor = []) {
   };
 }
 
-/** Questions par module ERP (lecture seule) — base catalogue. */
+/** Questions par module ERP (lecture seule) - base catalogue. */
 const BASE_MODULE_BUSINESS_QUESTIONS = Object.freeze({
   dashboard: [
     q(F.DECISION, 'today_priorities', 'Priorités', ['que dois-je faire aujourd hui', 'par quoi commencer', 'que faire aujourd hui', 'c est quoi l urgence', 'par quoi je commence', 'quoi traiter en premier'], ['priorités du jour', 'urgences exploitation', 'plan du jour', 'feuille de route'], []),

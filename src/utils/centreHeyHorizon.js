@@ -1,5 +1,5 @@
 /**
- * Questions rapides Centre — alignées sur les 3 onglets (navigation, pas doublon Hey Horizon).
+ * Questions rapides Centre - alignées sur les 3 onglets (navigation, pas doublon Hey Horizon).
  */
 
 export const CENTRE_HEY_HORIZON_QUESTIONS = [
@@ -8,7 +8,7 @@ export const CENTRE_HEY_HORIZON_QUESTIONS = [
   { id: 'saisons', label: 'Saisons', query: 'Quand lancer une nouvelle bande ?', moduleId: 'centre_ia', tab: 'Saisons & marchés' },
 ];
 
-/** @deprecated — alias legacy pour tests / liens externes */
+/** @deprecated - alias legacy pour tests / liens externes */
 export const CENTRE_TAB_SHORTCUTS = CENTRE_HEY_HORIZON_QUESTIONS;
 
 export function launchCentreHeyHorizonQuestion({ questionId = '', onNavigate, onOpenAssistant, mode = 'tab' } = {}) {

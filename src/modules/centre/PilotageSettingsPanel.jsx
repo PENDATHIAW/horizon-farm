@@ -93,7 +93,7 @@ export default function PilotageSettingsPanel({ clients = [], onChange }) {
           <h3 className="text-lg font-semibold text-earth mt-1">Seuils, clients VIP et calendrier marché</h3>
           <p className="text-sm text-slate mt-1">
             Le moteur calcule automatiquement Tabaski, Korité, Magal, Gamou et Ramadan (calendrier hijri).
-            Vous n&apos;avez rien à saisir — ajustez une date seulement si l&apos;annonce officielle diffère.
+            Vous n&apos;avez rien à saisir - ajustez une date seulement si l&apos;annonce officielle diffère.
           </p>
         </div>
         <Btn variant="outline" onClick={() => setOpen((v) => !v)}>
@@ -112,7 +112,7 @@ export default function PilotageSettingsPanel({ clients = [], onChange }) {
         <div className="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-2">
           <fieldset className="space-y-3 rounded-2xl border border-positive bg-positive-bg p-4 lg:col-span-2">
             <legend className="px-2 text-sm font-semibold text-positive flex items-center gap-2">
-              <CalendarDays size={15} /> Dates pivot marché — calculées automatiquement
+              <CalendarDays size={15} /> Dates pivot marché - calculées automatiquement
             </legend>
             <p className="text-xs text-positive">
               Ces dates alimentent Cycles (QUAND LANCER), Risques (QUAND VENDRE) et le calendrier commercial.

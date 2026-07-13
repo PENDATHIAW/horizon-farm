@@ -32,11 +32,11 @@ export function groupElevageDocuments(documents = [], { animaux = [], lots = [] 
       const cat = classifyElevageDocument(doc);
       const entityId = doc.entity_id || doc.animal_id || doc.related_id || doc.lot_id;
       const entityType = lower(doc.entity_type || '');
-      let linkLabel = '—';
+      let linkLabel = '-';
       if (entityType.includes('animal') || doc.animal_id) {
-        linkLabel = animalMap.get(String(entityId)) || entityId || '—';
+        linkLabel = animalMap.get(String(entityId)) || entityId || '-';
       } else if (entityType.includes('lot') || doc.lot_id) {
-        linkLabel = lotMap.get(String(entityId)) || entityId || '—';
+        linkLabel = lotMap.get(String(entityId)) || entityId || '-';
       }
       grouped[cat].push({ ...doc, vaultCategory: cat, linkLabel });
     });

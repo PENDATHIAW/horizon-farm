@@ -97,7 +97,7 @@ export default function AlertTaskBridgePanel({
 
       {bridge.staleAlerts.length ? (
         <div>
-          <p className="text-xs font-semibold text-earth mb-2">Tâches terminées — alertes encore ouvertes</p>
+          <p className="text-xs font-semibold text-earth mb-2">Tâches terminées - alertes encore ouvertes</p>
           <div className="space-y-2">
             {bridge.staleAlerts.slice(0, 4).map((row) => (
               <div key={row.id} className="flex flex-col gap-2 rounded-xl border border-vigilance bg-vigilance-bg p-3 sm:flex-row sm:items-center sm:justify-between">

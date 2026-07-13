@@ -2,7 +2,7 @@ import { BookOpen } from 'lucide-react';
 import { MARGIN_GLOSSARY_ENTRIES } from '../utils/marginGlossary.js';
 
 /**
- * Panneau repliable — clarifie les libellés « marge » selon le contexte ERP.
+ * Panneau repliable - clarifie les libellés « marge » selon le contexte ERP.
  */
 export default function MarginGlossaryPanel({ className = '', defaultOpen = false }) {
   return (

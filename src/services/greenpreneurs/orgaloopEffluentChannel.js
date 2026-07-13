@@ -164,9 +164,9 @@ export function computeOrgaloopEffluentMetrics(dataMap = {}) {
     advice: hybrid
       ? (soldKg > 0
         ? `${fmtAdvice(soldKg)} vendus sur ${platformName} (surplus après cultures).`
-        : `Priorité fertilisation cultures — surplus à publier sur ${platformName}.`)
+        : `Priorité fertilisation cultures - surplus à publier sur ${platformName}.`)
       : (soldKg > 0
-        ? `${fmtAdvice(soldKg)} déjà tracé(s) — vente ${platformName}.`
+        ? `${fmtAdvice(soldKg)} déjà tracé(s) - vente ${platformName}.`
         : `Collecte biosécurité → publication sur ${platformName}.`),
   };
 }
@@ -179,12 +179,12 @@ export function buildOrgaloopEffluentOpportunity({ profile = 'mixte', sacs = 0, 
   const label = profile === 'pondeuses' ? 'Fientes pondeuses' : profile === 'bovins' ? 'Fumier bovin' : profile === 'chair' ? 'Litière chair' : 'Fumier / effluent';
   const platform = ORGALOOP_EFFLUENT_CHANNEL.platformName;
   const hybridNote = isOrgaloopHybridStrategy()
-    ? 'Surplus après couverture besoins cultures Horizon Farm — '
+    ? 'Surplus après couverture besoins cultures Horizon Farm - '
     : '';
   return {
     title: surplus || isOrgaloopHybridStrategy()
-      ? `${label} — surplus ${platform}`
-      : `${label} — vente ${platform}`,
+      ? `${label} - surplus ${platform}`
+      : `${label} - vente ${platform}`,
     opportunity_type: 'stock',
     source_type: 'stock',
     source_id: stockId,
@@ -193,7 +193,7 @@ export function buildOrgaloopEffluentOpportunity({ profile = 'mixte', sacs = 0, 
     activity_type: 'effluent_orgaloop',
     canal: 'orgaloop',
     marketplace: 'orgaloop',
-    notes: `${hybridNote}Publication sur ${platform} — ${ORGALOOP_EFFLUENT_CHANNEL.strategyLabel}`,
+    notes: `${hybridNote}Publication sur ${platform} - ${ORGALOOP_EFFLUENT_CHANNEL.strategyLabel}`,
     quantity: sacs,
     quantite: sacs,
     unit: 'sac',
@@ -206,7 +206,7 @@ export function buildOrgaloopEffluentOpportunity({ profile = 'mixte', sacs = 0, 
 
 /** Opportunité modèle pour le pipeline commercial. */
 export const ORGALOOP_EFFLUENT_OPPORTUNITY_TEMPLATE = {
-  title: 'Fumier & fientes — surplus Orgaloop',
+  title: 'Fumier & fientes - surplus Orgaloop',
   opportunity_type: 'stock',
   source_type: 'libre',
   phase: 'actuelle',
@@ -214,7 +214,7 @@ export const ORGALOOP_EFFLUENT_OPPORTUNITY_TEMPLATE = {
   activity_type: 'effluent_orgaloop',
   canal: 'orgaloop',
   marketplace: 'orgaloop',
-  notes: 'Surplus effluent après fertilisation cultures — vente plateforme Orgaloop.',
+  notes: 'Surplus effluent après fertilisation cultures - vente plateforme Orgaloop.',
   created_from: 'orgaloop_effluent_channel',
   status: 'a_traiter',
   statut: 'a_traiter',

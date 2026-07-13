@@ -49,7 +49,7 @@ export default function MobileMoneyPayPanel({
         provider,
         clientPhone,
         clientId: sale.client_id || '',
-        description: `Vente ${sale.id} — ${sale.client_label || sale.client_name || 'Client'}`,
+        description: `Vente ${sale.id} - ${sale.client_label || sale.client_name || 'Client'}`,
       });
       setPending(link);
       if (link.paymentUrl) {
@@ -57,8 +57,8 @@ export default function MobileMoneyPayPanel({
       }
       toast.success(
         link.sandbox
-          ? 'Lien simulation créé — confirmez le paiement ci-dessous'
-          : 'Lien de paiement ouvert — en attente confirmation client',
+          ? 'Lien simulation créé - confirmez le paiement ci-dessous'
+          : 'Lien de paiement ouvert - en attente confirmation client',
         { duration: 5000 },
       );
     } catch (error) {
@@ -182,7 +182,7 @@ export default function MobileMoneyPayPanel({
         </p>
       ) : null}
       {!clientPhone ? (
-        <p className="text-xs text-horizon-dark">Numéro client absent — le lien peut quand même être généré.</p>
+        <p className="text-xs text-horizon-dark">Numéro client absent - le lien peut quand même être généré.</p>
       ) : null}
     </div>
   );

@@ -1,5 +1,5 @@
 /**
- * Réponses investisseur / dirigeant — moteurs de calcul uniquement.
+ * Réponses investisseur / dirigeant - moteurs de calcul uniquement.
  * consolidateFinance · buildConsolidatedCommercialKpis · summarizeSalesMargins · buildObjectifsCroissanceData
  */
 
@@ -142,7 +142,7 @@ export function buildInvestorPilotageAnswer(type = 'farm_status', dataMap = {}) 
       if (monthTarget > 0 && monthRealized < monthTarget * 0.7) risks.push('objectif mensuel en retard');
       situation = risks.length
         ? `Principal risque : ${risks[0]}.`
-        : `Exploitation stable — CA ${fmtCurrency(ca)} · Trésorerie ${fmtCurrency(treasury)}.`;
+        : `Exploitation stable - CA ${fmtCurrency(ca)} · Trésorerie ${fmtCurrency(treasury)}.`;
       cause = risks.length > 1 ? `Autres points de vigilance : ${risks.slice(1).join(', ')}.` : 'Analyse consolidateFinance + objectifs.';
       action = risks.length ? 'Traitez le risque prioritaire cette semaine avant d\'investir.' : 'Poursuivez le pilotage habituel.';
       sources = ['consolidateFinance', 'buildObjectifsCroissanceData', 'buildConsolidatedCommercialKpis'];

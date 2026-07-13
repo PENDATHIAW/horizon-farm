@@ -1,5 +1,5 @@
 /**
- * Hey Horizon Vocal — brief ferme lecture seule (Hey Horizon AI Core + contextual voice).
+ * Hey Horizon Vocal - brief ferme lecture seule (Hey Horizon AI Core + contextual voice).
  * Aucune écriture Supabase : journal local assistant uniquement.
  */
 
@@ -153,7 +153,7 @@ export async function processHeyHorizonVoiceBrief({
   }
 
   if (handlers.onCreateBusinessEvent) {
-    // Journal optionnel — désactivé par défaut (pas d'écriture base pour le brief vocal v1).
+    // Journal optionnel - désactivé par défaut (pas d'écriture base pour le brief vocal v1).
   }
 
   return {

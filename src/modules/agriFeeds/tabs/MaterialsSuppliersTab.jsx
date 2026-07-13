@@ -153,8 +153,8 @@ export default function MaterialsSuppliersTab({
       }));
       setMessage(
         preview.quality.quality_status === 'rejected'
-          ? 'Réception enregistrée — lot rejeté, inutilisable en production.'
-          : `Réception enregistrée — lot ${preview.batch.batch_code}.`,
+          ? 'Réception enregistrée - lot rejeté, inutilisable en production.'
+          : `Réception enregistrée - lot ${preview.batch.batch_code}.`,
       );
     } catch (err) {
       setMessage(err?.message || 'Réception impossible.');
@@ -258,9 +258,9 @@ export default function MaterialsSuppliersTab({
 
           {selectedSupplier ? (
             <div className="rounded-xl border border-line bg-card p-3 text-xs text-earth space-y-1">
-              <p><b>Score qualité :</b> {hints.averageQualityScore != null ? `${Math.round(hints.averageQualityScore * 100)} %` : '—'}</p>
-              <p><b>Délai moyen :</b> {hints.averageDeliveryDelay != null ? `${hints.averageDeliveryDelay} j` : '—'}</p>
-              <p><b>Conditions :</b> {hints.paymentTerms || '—'}</p>
+              <p><b>Score qualité :</b> {hints.averageQualityScore != null ? `${Math.round(hints.averageQualityScore * 100)} %` : '-'}</p>
+              <p><b>Délai moyen :</b> {hints.averageDeliveryDelay != null ? `${hints.averageDeliveryDelay} j` : '-'}</p>
+              <p><b>Conditions :</b> {hints.paymentTerms || '-'}</p>
               {hints.usualMaterials.length ? (
                 <p><b>Matières habituelles :</b> {hints.usualMaterials.map((m) => m.name).join(', ')}</p>
               ) : null}
@@ -389,7 +389,7 @@ export default function MaterialsSuppliersTab({
                   <td className="px-3 py-2 text-right">{fmtNumber(b.quantity_available)} / {fmtNumber(b.quantity_received)}</td>
                   <td className="px-3 py-2 text-right">{fmtCurrency(b.total_cost)}</td>
                   <td className="px-3 py-2">{QUALITY_STATUSES.find((q) => q.value === b.quality_status)?.label || b.quality_status}</td>
-                  <td className="px-3 py-2">{b.received_date || '—'}</td>
+                  <td className="px-3 py-2">{b.received_date || '-'}</td>
                 </tr>
               );
             })}

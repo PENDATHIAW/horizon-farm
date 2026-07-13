@@ -18,7 +18,7 @@ export default function CulturesRecoltesHub({
   return (
     <div className="space-y-6">
       <section className="rounded-3xl border border-positive bg-positive-bg p-4 text-sm text-positive">
-        <b>Centre de production</b> — une saisie récolte : stock vendable, opportunité commerciale, rentabilité culture et traçabilité.
+        <b>Centre de production</b> - une saisie récolte : stock vendable, opportunité commerciale, rentabilité culture et traçabilité.
       </section>
       <CulturesHarvestPanel rows={rows} context={context} handlers={handlers} onSuccess={onSuccess} />
       <CulturesTransformationPanel stocks={stocks} context={context} handlers={handlers} onSuccess={onSuccess} />

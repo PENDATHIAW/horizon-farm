@@ -9,7 +9,7 @@ import navigation from '../i18n/fr/navigation.js';
 const noIcon = () => null;
 const libelle = (id) => navigation.modules[id] || id;
 
-/** Registre central des modules ERP — routes, labels, regroupements. Libellés : src/i18n. */
+/** Registre central des modules ERP - routes, labels, regroupements. Libellés : src/i18n. */
 export const MODULE_REGISTRY = {
   dashboard: { label: libelle('dashboard'), icon: LayoutDashboard, group: 'core' },
   assistant_erp: { label: libelle('assistant_erp'), icon: Bot, group: 'core' },
@@ -35,7 +35,7 @@ export const MODULE_REGISTRY = {
   gestion_systeme: { label: libelle('gestion_systeme'), icon: Settings, group: 'system' },
 };
 
-/** Modules historiques — accessibles par route directe, regroupés en « avancés ». */
+/** Modules historiques - accessibles par route directe, regroupés en « avancés ». */
 export const ADVANCED_MODULE_IDS = [
   'animaux', 'avicole', 'sante', 'finances', 'comptabilite', 'investissements',
   'stock', 'clients', 'fournisseurs', 'tracabilite', 'alertes', 'ventes',

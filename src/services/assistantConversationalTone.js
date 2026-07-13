@@ -1,5 +1,5 @@
 /**
- * Ton conversationnel Horizon V7 — directeur d'exploitation, zéro jargon ERP.
+ * Ton conversationnel Horizon V7 - directeur d'exploitation, zéro jargon ERP.
  */
 
 import { dedupeProse } from './assistantEntityLabels.js';
@@ -85,9 +85,9 @@ function humanizeErpPhrasing(text = '') {
 /** Supprime toute fuite technique visible par l'utilisateur. */
 export function stripTechnicalLeaks(text = '') {
   let out = String(text || '');
-  out = out.replace(/\n\n—\s*[^\n]+/g, '');
-  out = out.replace(/\n—\s*[^\n]+/g, '');
-  out = out.replace(/\s—\s*(Commercial|Horizon|Finance|Élevage|receivableFromOrders|[\w]+From\w+)\s*$/gi, '');
+  out = out.replace(/\n\n-\s*[^\n]+/g, '');
+  out = out.replace(/\n-\s*[^\n]+/g, '');
+  out = out.replace(/\s-\s*(Commercial|Horizon|Finance|Élevage|receivableFromOrders|[\w]+From\w+)\s*$/gi, '');
   for (const pattern of TECHNICAL_PATTERNS) {
     out = out.replace(pattern, '');
   }
@@ -100,7 +100,7 @@ function softenSituation(situation = '') {
   s = humanizeErpPhrasing(s);
   s = ensurePeriod(stripTechnicalLeaks(s));
   if (!s) return '';
-  if (/^bonjour — je suis là pour suivre votre exploitation/i.test(s)) return '';
+  if (/^bonjour - je suis là pour suivre votre exploitation/i.test(s)) return '';
   return dedupeProse(s.charAt(0).toUpperCase() + s.slice(1));
 }
 
@@ -139,7 +139,7 @@ function softenAction(action = '') {
 }
 
 /**
- * Transforme SCA interne en prose humaine — jamais de sources visibles.
+ * Transforme SCA interne en prose humaine - jamais de sources visibles.
  */
 export function toConversationalAnswer({
   situation = '',

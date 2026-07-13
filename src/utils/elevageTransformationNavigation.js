@@ -3,7 +3,7 @@
 export const TRANSFORMATION_FORM_ID = 'elevage-transformation-official-form';
 
 export const TRANSFORMATION_TERRAIN_BANNER =
-  'Préparation terrain — complétez le formulaire officiel Transformation. Le stock viande n’est créé qu’après validation explicite.';
+  'Préparation terrain - complétez le formulaire officiel Transformation. Le stock viande n’est créé qu’après validation explicite.';
 
 const today = () => new Date().toISOString().slice(0, 10);
 
@@ -61,7 +61,7 @@ export function navigateToCommercialAfterTransform(onNavigate, context = {}) {
   onNavigate?.('commercial', {
     tab: 'Ventes',
     stockContext: 'viande',
-    contextMessage: 'Produit fini issu transformation — confirmer la vente.',
+    contextMessage: 'Produit fini issu transformation - confirmer la vente.',
     productId: context.stockId || context.produit_fini_id || '',
     productName: context.produit_fini_nom || context.produit || '',
     quantity: context.quantite_produit || context.quantite,

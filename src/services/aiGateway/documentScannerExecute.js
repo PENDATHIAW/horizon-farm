@@ -1,5 +1,5 @@
 /**
- * Exécution post-validation du scanner — workflows métier uniquement.
+ * Exécution post-validation du scanner - workflows métier uniquement.
  */
 
 import { markDraftValidated } from './aiActionDrafts.js';

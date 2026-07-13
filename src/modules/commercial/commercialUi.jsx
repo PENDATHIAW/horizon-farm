@@ -1,4 +1,4 @@
-/** Grilles responsive — module Commercial */
+/** Grilles responsive - module Commercial */
 
 export const COMMERCIAL_STAT_GRID = 'grid min-w-0 grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4';
 export const COMMERCIAL_ACTION_GRID = 'grid min-w-0 grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3';

@@ -4,7 +4,7 @@ import { supabase } from '../../../lib/supabase';
 const arr = (v) => (Array.isArray(v) ? v : []);
 
 /**
- * Souscription Realtime Supabase — événements et dispositifs terrain.
+ * Souscription Realtime Supabase - événements et dispositifs terrain.
  */
 export function useSmartFarmRealtime({
   enabled = true,

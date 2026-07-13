@@ -1,5 +1,5 @@
 /**
- * Confirmations humaines — langage agriculteur, jamais jargon ERP.
+ * Confirmations humaines - langage agriculteur, jamais jargon ERP.
  */
 
 const arr = (v) => (Array.isArray(v) ? v : []);

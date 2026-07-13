@@ -37,7 +37,7 @@ function liveSensorSeries(sensors = []) {
   const tempSensors = arr(sensors).filter((s) => low(s.type).includes('temp'));
   const humSensors = arr(sensors).filter((s) => low(s.type).includes('humid') || low(s.type) === 'air');
   const soilSensors = arr(sensors).filter((s) => low(s.type).includes('eau') || low(s.type).includes('sol'));
-  const label = (list) => list.map((s) => s.name || s.id).slice(0, 3).join(', ') || '—';
+  const label = (list) => list.map((s) => s.name || s.id).slice(0, 3).join(', ') || '-';
   return {
     tempNow: tempSensors.length ? num(tempSensors[0].value ?? tempSensors[0].last_value) : null,
     humNow: humSensors.length ? num(humSensors[0].value ?? humSensors[0].last_value) : null,
@@ -77,17 +77,17 @@ export default function TelemetryStreamTab({ data, handlers, realtime }) {
       <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
         <div className="rounded-2xl border border-line bg-card p-4">
           <p className="text-xs text-slate">Température air</p>
-          <p className="mt-1 text-xl font-semibold text-earth">{live.tempNow != null ? `${live.tempNow}°` : data.meteo?.temp != null ? `${data.meteo.temp}°` : '—'}</p>
+          <p className="mt-1 text-xl font-semibold text-earth">{live.tempNow != null ? `${live.tempNow}°` : data.meteo?.temp != null ? `${data.meteo.temp}°` : '-'}</p>
           <p className="text-xs text-slate">{live.tempLabel}</p>
         </div>
         <div className="rounded-2xl border border-line bg-card p-4">
           <p className="text-xs text-slate">Humidité air</p>
-          <p className="mt-1 text-xl font-semibold text-earth">{live.humNow != null ? `${live.humNow}%` : data.meteo?.humidite != null ? `${data.meteo.humidite}%` : '—'}</p>
+          <p className="mt-1 text-xl font-semibold text-earth">{live.humNow != null ? `${live.humNow}%` : data.meteo?.humidite != null ? `${data.meteo.humidite}%` : '-'}</p>
           <p className="text-xs text-slate">{live.humLabel}</p>
         </div>
         <div className="rounded-2xl border border-line bg-card p-4">
           <p className="text-xs text-slate">Humidité sol</p>
-          <p className="mt-1 text-xl font-semibold text-earth">{live.soilNow != null ? `${live.soilNow}%` : '—'}</p>
+          <p className="mt-1 text-xl font-semibold text-earth">{live.soilNow != null ? `${live.soilNow}%` : '-'}</p>
           <p className="text-xs text-slate">{live.soilLabel}</p>
         </div>
         <div className="rounded-2xl border border-line bg-card p-4">
@@ -123,7 +123,7 @@ export default function TelemetryStreamTab({ data, handlers, realtime }) {
       <SmartEvolutionChart
         moduleName="Smart Farm"
         title="Température / humidité / sol"
-        subtitle="Croisement air ambiant et tension hydrique — base évapotranspiration parcelle."
+        subtitle="Croisement air ambiant et tension hydrique - base évapotranspiration parcelle."
         months={chartLabels}
         leftUnit="%"
         rightUnit="°C"
@@ -138,18 +138,18 @@ export default function TelemetryStreamTab({ data, handlers, realtime }) {
         <h3 className="flex items-center gap-2 text-lg font-semibold text-earth">
           <Activity size={20} /> Flux temps réel
         </h3>
-        <p className="mt-1 text-sm text-slate">Derniers signaux IoT — chaque ligne peut générer une alerte automatique.</p>
+        <p className="mt-1 text-sm text-slate">Derniers signaux IoT - chaque ligne peut générer une alerte automatique.</p>
         <div className="mt-4 space-y-2 max-h-80 overflow-y-auto">
           {events.length ? events.slice(0, 30).map((ev) => (
             <div key={ev.id} className="flex flex-col gap-1 rounded-xl border border-line bg-card px-3 py-2 text-sm sm:flex-row sm:items-center sm:justify-between">
               <div>
                 <b className="text-earth">{ev.event_type || 'signal'}</b>
-                <p className="text-xs text-slate">{ev.zone || '—'} · {ev.message || ev.device_id || ''}</p>
+                <p className="text-xs text-slate">{ev.zone || '-'} · {ev.message || ev.device_id || ''}</p>
               </div>
               <span className="text-xs font-semibold text-slate">{String(ev.created_at || '').slice(0, 19).replace('T', ' ')}</span>
             </div>
           )) : (
-            <p className="text-sm text-slate">Aucun événement — les signaux capteurs apparaîtront ici dès qu’ils seront reçus.</p>
+            <p className="text-sm text-slate">Aucun événement - les signaux capteurs apparaîtront ici dès qu’ils seront reçus.</p>
           )}
         </div>
       </section>

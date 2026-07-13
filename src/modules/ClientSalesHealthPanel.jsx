@@ -40,7 +40,7 @@ export default function ClientSalesHealthPanel({ rows = [], salesOrders = [], pa
           <tbody>
             {top.length ? top.map((row) => (
               <tr key={row.id || row.name} className={`border-t border-line ${row.remaining > 0 ? 'bg-vigilance-bg' : ''}`}>
-                <td className="px-3 py-2"><b className="text-earth">{row.name}</b><p className="text-xs text-slate">{row.lastSale || '—'}</p></td>
+                <td className="px-3 py-2"><b className="text-earth">{row.name}</b><p className="text-xs text-slate">{row.lastSale || '-'}</p></td>
                 <td className="px-3 py-2 text-right font-semibold">{row.orders}</td>
                 <td className="px-3 py-2 text-right font-semibold">{fmtCurrency(row.ca)}</td>
                 <td className={`px-3 py-2 text-right font-semibold ${row.remaining > 0 ? 'text-horizon-dark' : ''}`}>{fmtCurrency(row.remaining)}</td>

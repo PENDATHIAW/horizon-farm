@@ -1,5 +1,5 @@
 /**
- * Finance & Pilotage V1 — trésorerie officielle, échéancier, mode démarrage.
+ * Finance & Pilotage V1 - trésorerie officielle, échéancier, mode démarrage.
  * Source de vérité trésorerie : consolidateFinance().cashNet
  */
 
@@ -42,7 +42,7 @@ export function buildFinancePilotageInput(props = {}) {
   });
 }
 
-/** Lecture officielle unique — consolidateFinance comme source de vérité. */
+/** Lecture officielle unique - consolidateFinance comme source de vérité. */
 export function buildOfficialTreasuryView(props = {}) {
   const input = buildFinancePilotageInput(props);
   const finance = consolidateFinance(input);

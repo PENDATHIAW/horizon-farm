@@ -30,12 +30,12 @@ export default function FinanceRepaymentCapacityPanel({ capacity = null }) {
         <div className="mt-4 rounded-2xl border border-line bg-card p-4">
           <p className="text-xs font-semibold uppercase tracking-normal text-slate">Paramètres du financement envisagé</p>
           <div className="mt-2 grid grid-cols-2 gap-2 text-sm lg:grid-cols-3">
-            <Param label="Montant du prêt" value={loan.loanAmount ? fmtCurrency(loan.loanAmount) : '—'} />
-            <Param label="Durée" value={loan.durationMonths ? `${loan.durationMonths} mois` : '—'} />
-            <Param label="Taux indicatif" value={loan.annualRate != null ? `${loan.annualRate} %` : '—'} />
-            <Param label="Mensualité estimée" value={loan.estimatedMonthlyPayment ? fmtCurrency(loan.estimatedMonthlyPayment) : '—'} />
-            <Param label="Service de dette mensuel" value={capacity.monthlyDebtService ? fmtCurrency(capacity.monthlyDebtService) : '—'} />
-            <Param label="Apport personnel" value={loan.personalContribution ? fmtCurrency(loan.personalContribution) : '—'} />
+            <Param label="Montant du prêt" value={loan.loanAmount ? fmtCurrency(loan.loanAmount) : '-'} />
+            <Param label="Durée" value={loan.durationMonths ? `${loan.durationMonths} mois` : '-'} />
+            <Param label="Taux indicatif" value={loan.annualRate != null ? `${loan.annualRate} %` : '-'} />
+            <Param label="Mensualité estimée" value={loan.estimatedMonthlyPayment ? fmtCurrency(loan.estimatedMonthlyPayment) : '-'} />
+            <Param label="Service de dette mensuel" value={capacity.monthlyDebtService ? fmtCurrency(capacity.monthlyDebtService) : '-'} />
+            <Param label="Apport personnel" value={loan.personalContribution ? fmtCurrency(loan.personalContribution) : '-'} />
             <Param label="Différé" value={loan.deferMonths ? `${loan.deferMonths} mois` : 'Aucun'} />
           </div>
           {!loan.filled && loan.hint ? (

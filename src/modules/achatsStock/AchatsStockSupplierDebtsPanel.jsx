@@ -6,7 +6,7 @@ export default function AchatsStockSupplierDebtsPanel({ suppliers = [], onRelanc
   if (!suppliers.length) return null;
 
   return (
-    <AchatsStockSection title="Dettes à planifier" subtitle="Relances et paiements — détail complet dans la liste fournisseurs ci-dessous.">
+    <AchatsStockSection title="Dettes à planifier" subtitle="Relances et paiements - détail complet dans la liste fournisseurs ci-dessous.">
       <div className="divide-y divide-line/60">
         {suppliers.map((s) => (
           <div key={s.id || s.name} className="flex flex-col gap-2 py-3 sm:flex-row sm:items-center sm:justify-between">

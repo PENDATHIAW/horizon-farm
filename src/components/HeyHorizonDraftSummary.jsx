@@ -24,9 +24,9 @@ export default function HeyHorizonDraftSummary({ draft, variant = 'inline' }) {
         {completion.confidence != null ? (
           <p className="mt-2 text-xs" style={{ color: HORIZON.textMuted }}>
             Confiance : {completion.confidence}%
-            {completion.mode === 'validate' ? ' — validation possible' : ''}
-            {completion.mode === 'confirm' ? ' — confirmation recommandée' : ''}
-            {completion.mode === 'conversation' ? ' — complétons ensemble' : ''}
+            {completion.mode === 'validate' ? ' - validation possible' : ''}
+            {completion.mode === 'confirm' ? ' - confirmation recommandée' : ''}
+            {completion.mode === 'conversation' ? ' - complétons ensemble' : ''}
           </p>
         ) : null}
 
@@ -66,7 +66,7 @@ export default function HeyHorizonDraftSummary({ draft, variant = 'inline' }) {
       style={isInline ? { color: HORIZON.text } : { borderColor: HORIZON.border, background: HORIZON.surface, color: HORIZON.text }}
     >
       <p className="text-body leading-relaxed">
-        D'accord — je prépare {legacyActionLabel.toLowerCase().startsWith('l') ? legacyActionLabel.toLowerCase() : `l'enregistrement : ${legacyActionLabel.toLowerCase()}`}.
+        D'accord - je prépare {legacyActionLabel.toLowerCase().startsWith('l') ? legacyActionLabel.toLowerCase() : `l'enregistrement : ${legacyActionLabel.toLowerCase()}`}.
       </p>
 
       {recordLines.length ? (

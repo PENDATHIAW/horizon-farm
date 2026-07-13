@@ -21,11 +21,11 @@ const safeDate = (value) => {
 };
 const dateLabel = (value) => {
   const date = safeDate(value);
-  if (!date) return '—';
+  if (!date) return '-';
   try {
     return new Intl.DateTimeFormat('fr-FR', { dateStyle: 'short', timeStyle: 'short' }).format(date);
   } catch {
-    return '—';
+    return '-';
   }
 };
 const safeCreatedAt = (row = {}) => safeDate(row.created_at || row.createdAt || row.date || row.updated_at)?.toISOString() || '';
@@ -61,7 +61,7 @@ export default function Sync({ onRefreshAll, onFlushOffline, online = true, last
   const [syncing, setSyncing] = useState(false);
   const [showSimulation, setShowSimulation] = useState(false);
   const [localQueue, setLocalQueue] = useState(() => arr(readOfflineQueue()).map(normalizeQueueItem));
-  const lastSync = dateLabel(lastOnlineAt) === '—' ? "Aujourd'hui" : dateLabel(lastOnlineAt);
+  const lastSync = dateLabel(lastOnlineAt) === '-' ? "Aujourd'hui" : dateLabel(lastOnlineAt);
   const syncModules = useMemo(() => Object.entries(moduleLabels).map(([key, label]) => { const records = Array.isArray(dataMap?.[key]) ? dataMap[key].length : 0; return { key, module: label, records, size: estimateSize(records) }; }), [dataMap]);
   const basePendingItems = localQueue.length ? localQueue.map(normalizeQueueItem) : (showSimulation || !online ? pendingSimulation.map((item) => normalizeQueueItem({ ...item, created_at: new Date().toISOString() })) : []);
   const pendingItems = safeEnrichOfflineQueue(basePendingItems);

@@ -1,5 +1,5 @@
 /**
- * OCR Intelligent Horizon — extraction facture fournisseur (simulation texte ou scanner existant).
+ * OCR Intelligent Horizon - extraction facture fournisseur (simulation texte ou scanner existant).
  */
 
 import {
@@ -73,7 +73,7 @@ function refineInvoiceFromText(raw = '', fields = {}) {
   const montantTotal = amounts.length ? Math.max(...amounts) : fields.montant_total;
 
   const sacLine = raw.match(/(\d+(?:[.,]\d+)?)\s*sacs?\s*(?:d['’]?)?\s*[^x\n]*x\s*(\d[\d\s.,]*)\s*(?:fcfa|f\s*cfa|xof)/i);
-  const alimentLine = raw.match(/(aliment[^,\n—-]*(?:chair|pondeuse|volaille)?)/i);
+  const alimentLine = raw.match(/(aliment[^,\n-]*(?:chair|pondeuse|volaille)?)/i);
   const poussinLine = raw.match(/(poussins?[^,\n]*)/i);
   const medicLine = raw.match(/(vaccin[^,\n]*|antibio[^,\n]*|medicament[^,\n]*)/i);
   const transportLine = /(transport|livraison|logistique|fret)/i.test(text);
@@ -212,7 +212,7 @@ export const INVOICE_OCR_DEMO_SAMPLES = [
     text: `FACTURE FOURNISSEUR
 SEN AGRO DISTRIBUTION
 Date: 15/03/2026
-Aliment chair 50 kg — 10 sacs x 14 250 FCFA
+Aliment chair 50 kg - 10 sacs x 14 250 FCFA
 Total TTC: 142 500 FCFA
 Paiement: à crédit 30 jours`,
   },
@@ -222,15 +222,15 @@ Paiement: à crédit 30 jours`,
     category: 'poussins',
     text: `Facture AVICOL PLUS
 Date 02/03/2026
-Poussins chair one-day — 500 têtes x 350 FCFA
-Total 175 000 FCFA — payé espèces`,
+Poussins chair one-day - 500 têtes x 350 FCFA
+Total 175 000 FCFA - payé espèces`,
   },
   {
     id: 'demo-medicament',
     label: 'Facture médicaments',
     category: 'medicaments',
     text: `Facture VET SANTE
-Vaccin Newcastle — 20 flacons x 4 500 FCFA
+Vaccin Newcastle - 20 flacons x 4 500 FCFA
 Antibiotique 5 L x 12 000 FCFA
 Total 210 000 FCFA payé`,
   },
@@ -241,7 +241,7 @@ Total 210 000 FCFA payé`,
     text: `Facture TRANS LOGISTIQUE
 Transport aliment Dakar-Thiès
 Forfait livraison 45 000 FCFA
-Date 10/03/2026 — payé`,
+Date 10/03/2026 - payé`,
   },
 ];
 

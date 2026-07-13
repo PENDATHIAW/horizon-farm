@@ -41,14 +41,14 @@ export default function FournisseursEvolution({ rows = [], stocks = [], finances
 
   return (
     <ChartsGrid>
-      <SmartEvolutionChart moduleName="Fournisseurs" compact title="Achats vs paiements" subtitle="Histogramme — flux fournisseurs" months={data.map((row) => row.month)} leftUnit="FCFA" rightUnit="" series={[
+      <SmartEvolutionChart moduleName="Fournisseurs" compact title="Achats vs paiements" subtitle="Histogramme - flux fournisseurs" months={data.map((row) => row.month)} leftUnit="FCFA" rightUnit="" series={[
         { name: 'Achats', type: 'bar', unit: 'FCFA', data: data.map((row) => row.achats) },
         { name: 'Paiements', type: 'bar', unit: 'FCFA', data: data.map((row) => row.paiements) },
       ]} />
-      <SmartEvolutionChart moduleName="Fournisseurs" compact title="Livraisons mensuelles" subtitle="Courbe — réceptions fournisseurs" months={data.map((row) => row.month)} leftUnit="liv." rightUnit="" series={[
+      <SmartEvolutionChart moduleName="Fournisseurs" compact title="Livraisons mensuelles" subtitle="Courbe - réceptions fournisseurs" months={data.map((row) => row.month)} leftUnit="liv." rightUnit="" series={[
         { name: 'Livraisons', type: 'line', unit: 'liv.', data: data.map((row) => row.livraisons) },
       ]} />
-      <SmartPieChart moduleName="Fournisseurs" compact title="Achats vs dettes" subtitle="Camembert — engagement fournisseurs" unit="FCFA" items={[
+      <SmartPieChart moduleName="Fournisseurs" compact title="Achats vs dettes" subtitle="Camembert - engagement fournisseurs" unit="FCFA" items={[
         { name: 'Achats période', value: achats },
         { name: 'Paiements période', value: paiements },
         { name: 'Dettes déclarées', value: dettes },

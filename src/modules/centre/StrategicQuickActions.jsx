@@ -91,7 +91,7 @@ export default function StrategicQuickActions({
 
   const queueItem = {
     id: item.id || `${item.category || 'strategic'}-${lotId || building || headline}`,
-    title: item.eventLabel ? `Préparer ${item.eventLabel}` : (subject ? `${headline} — ${subject}` : headline),
+    title: item.eventLabel ? `Préparer ${item.eventLabel}` : (subject ? `${headline} - ${subject}` : headline),
     detail: message,
     message,
     tone: priority === 'critique' ? 'bad' : 'warn',
@@ -161,7 +161,7 @@ export default function StrategicQuickActions({
   };
 
   const openLabel = openTarget?.label
-    || (item.entityType === 'animal' ? 'Ouvrir animal' : lotId ? 'Ouvrir bande' : building ? `Lots — ${building}` : 'Voir source');
+    || (item.entityType === 'animal' ? 'Ouvrir animal' : lotId ? 'Ouvrir bande' : building ? `Lots - ${building}` : 'Voir source');
 
   return (
     <div className="flex flex-wrap gap-2 pt-1">

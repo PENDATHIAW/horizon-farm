@@ -67,7 +67,7 @@ function ProofInput({ form, onChange }) {
       {form.preuve_photo_data ? (
         <img src={form.preuve_photo_data} alt="preuve" className="h-16 w-16 rounded-lg object-cover border border-positive" />
       ) : (
-        <p className="text-xs text-slate"><Camera size={13} className="inline" /> Aucune photo — recommandée pour abattage.</p>
+        <p className="text-xs text-slate"><Camera size={13} className="inline" /> Aucune photo - recommandée pour abattage.</p>
       )}
     </div>
   );
@@ -215,7 +215,7 @@ export default function TransformationOfficialForm(props) {
         handlers: props.handlers || {},
       });
       setLastResult(result);
-      toast.success('Transformation enregistrée — stock créé après validation');
+      toast.success('Transformation enregistrée - stock créé après validation');
       props.onClearDraft?.();
       props.onSuccess?.(result);
       setForm((prev) => ({
@@ -248,7 +248,7 @@ export default function TransformationOfficialForm(props) {
     update('sanitary_override', true);
     update('sanitary_override_reason', overrideReason.trim());
     setOverrideOpen(false);
-    toast('Dérogation sanitaire enregistrée — sera tracée à la validation', { icon: '⚠️' });
+    toast('Dérogation sanitaire enregistrée - sera tracée à la validation', { icon: '⚠️' });
   };
 
   return (
@@ -263,7 +263,7 @@ export default function TransformationOfficialForm(props) {
 
       {sanitaryBlock.blocked && !form.sanitary_override ? (
         <div className="rounded-xl border border-urgent bg-urgent-bg p-3 text-sm text-urgent" role="alert">
-          <p className="font-semibold flex items-center gap-2"><AlertTriangle size={16} /> Transformation bloquée — délai sanitaire actif</p>
+          <p className="font-semibold flex items-center gap-2"><AlertTriangle size={16} /> Transformation bloquée - délai sanitaire actif</p>
           <p className="mt-1">{sanitaryBlock.message}</p>
           {activeWithdrawals.map((w) => (
             <p key={w.id} className="text-xs mt-1">{formatWithdrawalLabel(w)}</p>
@@ -297,7 +297,7 @@ export default function TransformationOfficialForm(props) {
             <Select
               value={form.animal_id || ''}
               onChange={(v) => update('animal_id', v)}
-              options={[{ value: '', label: '—' }, ...animals.map((a) => ({ value: a.id, label: `${a.type || 'Animal'} · ${a.name || a.tag || a.id}` }))]}
+              options={[{ value: '', label: '-' }, ...animals.map((a) => ({ value: a.id, label: `${a.type || 'Animal'} · ${a.name || a.tag || a.id}` }))]}
             />
           </Field>
         ) : null}
@@ -306,7 +306,7 @@ export default function TransformationOfficialForm(props) {
             <Select
               value={form.lot_id || ''}
               onChange={(v) => update('lot_id', v)}
-              options={[{ value: '', label: '—' }, ...lotOptions.map((l) => ({ value: l.id, label: `${l.name || l.nom || l.id} · ${avicoleActiveCount(l)} actifs` }))]}
+              options={[{ value: '', label: '-' }, ...lotOptions.map((l) => ({ value: l.id, label: `${l.name || l.nom || l.id} · ${avicoleActiveCount(l)} actifs` }))]}
             />
           </Field>
         ) : null}
@@ -320,7 +320,7 @@ export default function TransformationOfficialForm(props) {
           <Field label="Poids carcasse / produit fini (kg)"><Input type="number" value={form.poids_carcasse} onChange={(v) => update('poids_carcasse', v)} /></Field>
         ) : null}
         {profile.show.rendement ? (
-          <Field label="Rendement carcasse"><div className="rounded-lg border border-line bg-card px-3 py-2 text-sm">{rendement != null ? `${rendement} %` : '—'}</div></Field>
+          <Field label="Rendement carcasse"><div className="rounded-lg border border-line bg-card px-3 py-2 text-sm">{rendement != null ? `${rendement} %` : '-'}</div></Field>
         ) : null}
         {profile.show.pertes && permissions.canViewCosts ? (
           <Field label="Pertes (F)"><Input type="number" value={form.pertes} onChange={(v) => update('pertes', v)} /></Field>
@@ -356,7 +356,7 @@ export default function TransformationOfficialForm(props) {
                 options={[
                   { value: 'stock', label: 'Stock viande' },
                   { value: 'vente_directe', label: 'Réservé vente' },
-                  { value: 'perte', label: 'Perte — pas de stock' },
+                  { value: 'perte', label: 'Perte - pas de stock' },
                 ]}
               />
             </Field>
@@ -370,7 +370,7 @@ export default function TransformationOfficialForm(props) {
       </div>
 
       {permissions.canViewCosts ? <div className="rounded-xl border border-line bg-card p-3 text-sm text-slate space-y-1">
-        <p><b>Coût de revient total :</b> {fmtCurrency(costing.totalCost)} · <b>/kg :</b> {costing.costPerKg ? fmtCurrency(costing.costPerKg) : '—'}</p>
+        <p><b>Coût de revient total :</b> {fmtCurrency(costing.totalCost)} · <b>/kg :</b> {costing.costPerKg ? fmtCurrency(costing.costPerKg) : '-'}</p>
         {costing.marginEstimee != null ? <p><b>Marge estimée :</b> {fmtCurrency(costing.marginEstimee)}</p> : null}
         {costing.incomplete ? (
           <p className="text-horizon-dark font-semibold">{costing.costMessage}</p>
@@ -417,7 +417,7 @@ export default function TransformationOfficialForm(props) {
       <QuickInputModal
         open={overrideOpen}
         title="Dérogation sanitaire"
-        description="Justification obligatoire — sera tracée à la validation."
+        description="Justification obligatoire - sera tracée à la validation."
         label="Motif de dérogation"
         type="textarea"
         value={overrideReason}

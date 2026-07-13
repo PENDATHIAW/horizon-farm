@@ -3,7 +3,7 @@ import { toNumber } from '../utils/format.js';
 const arr = (value) => (Array.isArray(value) ? value : []);
 const n = (value) => toNumber(value);
 const clean = (value = '') => String(value || '').trim().toLowerCase();
-const label = (row = {}) => row.name || row.nom || row.title || row.id || '—';
+const label = (row = {}) => row.name || row.nom || row.title || row.id || '-';
 
 function linkedId(row = {}) {
   return clean(row.lot_id || row.avicole_id || row.animal_id || row.source_id || row.related_id || row.entity_id);

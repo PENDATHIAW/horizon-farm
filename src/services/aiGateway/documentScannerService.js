@@ -1,5 +1,5 @@
 /**
- * Orchestrateur scanner document IA — extraction → compréhension → brouillon.
+ * Orchestrateur scanner document IA - extraction → compréhension → brouillon.
  */
 
 import { extractTextFromDocument } from './documentTextExtraction.js';

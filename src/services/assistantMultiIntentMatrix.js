@@ -1,5 +1,5 @@
 /**
- * ASSISTANT_MULTI_INTENT_MATRIX — questions composées (plusieurs demandes dans une phrase).
+ * ASSISTANT_MULTI_INTENT_MATRIX - questions composées (plusieurs demandes dans une phrase).
  */
 
 import {

@@ -35,7 +35,7 @@ export const WHATSAPP_DEMO_MESSAGES = [
   },
   {
     id: 'demo-hotel-terminus',
-    label: 'Commande Hôtel Terminus (investisseur — pipeline commitCommercialSale)',
+    label: 'Commande Hôtel Terminus (investisseur - pipeline commitCommercialSale)',
     module: 'Commercial',
     pipeline: 'commitCommercialSale',
     executionNote: 'Message démo ; exécution bout-en-bout après validation utilisateur (multi-lignes, créance virement).',

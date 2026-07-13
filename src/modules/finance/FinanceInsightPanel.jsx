@@ -40,7 +40,7 @@ export default function FinanceInsightPanel({
             <Bot size={14} /> Signaux métier finance
           </p>
           <p className="text-sm text-slate mt-1">
-            Signaux terrain — synthèse trésorerie, rentabilité et risques sur Centre décisionnel.
+            Signaux terrain - synthèse trésorerie, rentabilité et risques sur Centre décisionnel.
           </p>
         </div>
         <button

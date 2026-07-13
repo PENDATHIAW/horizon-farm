@@ -3,7 +3,7 @@ import { runErpHealthEngine, loadLastHealthEngineSnapshot } from '../../services
 let cachedFingerprint = null;
 let cachedReport = null;
 
-/** Cache Santé ERP par empreinte données — mêmes résultats, moins de recalculs. */
+/** Cache Santé ERP par empreinte données - mêmes résultats, moins de recalculs. */
 export function getDashboardHealthReport(dataFingerprint, buildData) {
   const fingerprint = String(dataFingerprint || '');
   if (fingerprint && fingerprint === cachedFingerprint && cachedReport) {

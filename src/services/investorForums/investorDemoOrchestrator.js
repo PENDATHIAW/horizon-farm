@@ -1,5 +1,5 @@
 /**
- * Démo Investisseur — orchestrateur lecture seule (4 scénarios).
+ * Démo Investisseur - orchestrateur lecture seule (4 scénarios).
  * Données simulées BP Horizon Farm · aucune écriture ERP sans validation.
  */
 
@@ -13,7 +13,7 @@ import { horizonFarmSimulationSeed } from '../../utils/horizonFarmSimulationSeed
 import { fmtCurrency } from '../../utils/format.js';
 
 export const INVESTOR_DEMO_SOURCE = 'investor_demo';
-export const INVESTOR_DEMO_MODE_LABEL = 'Mode démo — aucune écriture réelle';
+export const INVESTOR_DEMO_MODE_LABEL = 'Mode démo - aucune écriture réelle';
 
 export const INVESTOR_DEMO_SCENARIOS = [
   {
@@ -24,7 +24,7 @@ export const INVESTOR_DEMO_SCENARIOS = [
     icon: 'whatsapp',
     inputLabel: 'Message simulé',
     inputText: "J'ai vendu 20 tablettes d'œufs à 70 000 FCFA, payé par Orange Money.",
-    narrative: 'Horizon comprend la phrase WhatsApp et prépare toute la chaîne — sans enregistrer tant que Penda n\'a pas validé.',
+    narrative: 'Horizon comprend la phrase WhatsApp et prépare toute la chaîne - sans enregistrer tant que Penda n\'a pas validé.',
   },
   {
     id: 'ocr_intelligent',
@@ -44,7 +44,7 @@ export const INVESTOR_DEMO_SCENARIOS = [
     icon: 'mic',
     inputLabel: 'Question',
     inputText: 'Fais-moi le brief de la semaine.',
-    narrative: 'En une question, la fondatrice obtient la synthèse de la ferme — production, trésorerie, alertes et actions.',
+    narrative: 'En une question, la fondatrice obtient la synthèse de la ferme - production, trésorerie, alertes et actions.',
   },
   {
     id: 'horizon_forecast',
@@ -54,7 +54,7 @@ export const INVESTOR_DEMO_SCENARIOS = [
     icon: 'forecast',
     inputLabel: 'Question',
     inputText: 'Puis-je lancer 1 000 poussins le mois prochain ?',
-    narrative: 'Avant d\'investir, Horizon simule coûts, marge, besoin de trésorerie et risques — décision éclairée.',
+    narrative: 'Avant d\'investir, Horizon simule coûts, marge, besoin de trésorerie et risques - décision éclairée.',
   },
   {
     id: 'horizon_advisor',
@@ -64,14 +64,14 @@ export const INVESTOR_DEMO_SCENARIOS = [
     icon: 'advisor',
     inputLabel: 'Contexte',
     inputText: 'Quelles actions prioritaires pour sécuriser trésorerie et production cette semaine ?',
-    narrative: 'Horizon Advisor agrège santé ERP, stocks, créances et alertes pour proposer des actions concrètes — sans écriture automatique.',
+    narrative: 'Horizon Advisor agrège santé ERP, stocks, créances et alertes pour proposer des actions concrètes - sans écriture automatique.',
   },
 ];
 
 const arr = (value) => (Array.isArray(value) ? value : []);
 const money = (value) => fmtCurrency(Number(value || 0));
 
-/** DataMap isolé pour la démo — ne fusionne pas les données live. */
+/** DataMap isolé pour la démo - ne fusionne pas les données live. */
 export function buildInvestorDemoDataMap() {
   const seed = horizonFarmSimulationSeed;
   return {
@@ -102,7 +102,7 @@ export function buildInvestorDemoDataMap() {
     demoMode: true,
     demoSource: INVESTOR_DEMO_SOURCE,
     farm_name: 'Horizon Farm',
-    periodLabel: 'Mode démo — données simulées BP',
+    periodLabel: 'Mode démo - données simulées BP',
     periodFiltered: false,
   };
 }
@@ -179,7 +179,7 @@ export async function runWhatsAppHorizonDemo(dataMap = buildInvestorDemoDataMap(
     chainSteps,
     impacts,
     headline: `Brouillon vente ${money(70000)} prêt à valider`,
-    summary: `${drafts.length} brouillon(s) généré(s) : vente, encaissement Orange Money, sortie stock tablettes et écriture finance — sans écriture tant que non validé.`,
+    summary: `${drafts.length} brouillon(s) généré(s) : vente, encaissement Orange Money, sortie stock tablettes et écriture finance - sans écriture tant que non validé.`,
     validationNote: 'Aucune donnée ERP modifiée. Penda valide ou corrige avant enregistrement.',
   };
 }
@@ -212,7 +212,7 @@ export async function runOcrIntelligentDemo(dataMap = buildInvestorDemoDataMap()
     bullets: recommendation.bullets || [],
     recommendation: recommendation.action || 'Ajuster prix de vente ou renégocier fournisseur',
     severity: recommendation.severity || 'warning',
-    validationNote: 'Brouillon achat/stock/dépense — validation utilisateur requise avant écriture.',
+    validationNote: 'Brouillon achat/stock/dépense - validation utilisateur requise avant écriture.',
   };
 }
 
@@ -237,7 +237,7 @@ export async function runHeyHorizonBriefDemo(dataMap = buildInvestorDemoDataMap(
     sections,
     priorities: priorities.length ? priorities : ['Ponte', 'Trésorerie', 'Stocks', 'Alertes'],
     risks: sections.filter((s) => /risque|alerte|créance|stock|mortalité/i.test(`${s.label} ${s.detail}`)).slice(0, 3),
-    validationNote: 'Lecture seule — aucun enregistrement ERP.',
+    validationNote: 'Lecture seule - aucun enregistrement ERP.',
   };
 }
 
@@ -270,7 +270,7 @@ export function runHorizonForecastDemo(dataMap = buildInvestorDemoDataMap()) {
       level: r.level,
     })),
     preLaunchActions: arr(report.preLaunchActions).slice(0, 4),
-    validationNote: 'Simulation décisionnelle — pas de lancement automatique.',
+    validationNote: 'Simulation décisionnelle - pas de lancement automatique.',
   };
 }
 
@@ -304,10 +304,10 @@ export function runHorizonAdvisorDemo(dataMap = buildInvestorDemoDataMap()) {
       detail: 'Actions priorisées pour sécuriser trésorerie et production',
       urgency: 'elevee',
     }],
-    businessValue: 'Décisions quotidiennes accélérées — moins de pertes, meilleure trésorerie, dossier investisseur crédible.',
+    businessValue: 'Décisions quotidiennes accélérées - moins de pertes, meilleure trésorerie, dossier investisseur crédible.',
     healthScore: report.health_score,
     counts: report.counts,
-    validationNote: 'Brouillons tâches/alertes — validation Penda requise.',
+    validationNote: 'Brouillons tâches/alertes - validation Penda requise.',
   };
 }
 
@@ -336,7 +336,7 @@ export function buildInvestorDemoFlow(result = {}) {
       { key: 'input', label: 'Donnée de départ', body: result.message, tone: 'neutral' },
       { key: 'ai', label: 'Traitement', body: result.summary || 'Analyse NLP + génération brouillons', tone: 'primary' },
       { key: 'erp', label: 'Impact ERP', body: (result.impacts || []).map((i) => `${i.label} : ${i.detail}`).join('\n'), tone: 'warn' },
-      { key: 'investor', label: 'Résultat investisseur', body: result.headline || 'Vente terrain capturée sans ressaisie — traçabilité et rapidité.', tone: 'good' },
+      { key: 'investor', label: 'Résultat investisseur', body: result.headline || 'Vente terrain capturée sans ressaisie - traçabilité et rapidité.', tone: 'good' },
     ];
   }
   if (result.id === 'ocr_intelligent') {
@@ -352,7 +352,7 @@ export function buildInvestorDemoFlow(result = {}) {
       { key: 'input', label: 'Donnée de départ', body: result.phrase, tone: 'neutral' },
       { key: 'ai', label: 'Traitement', body: result.headline || 'Brief vocal hebdomadaire', tone: 'primary' },
       { key: 'erp', label: 'Impact ERP', body: (result.sections || []).slice(0, 4).map((s) => `${s.label} : ${s.value || s.detail}`).join('\n'), tone: 'warn' },
-      { key: 'investor', label: 'Résultat investisseur', body: 'Pilotage quotidien sans tableur — décisions fondatrice accélérées.', tone: 'good' },
+      { key: 'investor', label: 'Résultat investisseur', body: 'Pilotage quotidien sans tableur - décisions fondatrice accélérées.', tone: 'good' },
     ];
   }
   if (result.id === 'horizon_forecast') {
@@ -360,7 +360,7 @@ export function buildInvestorDemoFlow(result = {}) {
     return [
       { key: 'input', label: 'Donnée de départ', body: result.phrase, tone: 'neutral' },
       { key: 'ai', label: 'Traitement', body: result.headline || 'Simulation Forecast Engine', tone: 'primary' },
-      { key: 'erp', label: 'Impact ERP', body: `ROI ${m.roiPercent != null ? `${Math.round(m.roiPercent)}%` : '—'} · Trésorerie ${money(m.treasuryNeed)} · Marge ${money(m.estimatedMargin)}`, tone: 'warn' },
+      { key: 'erp', label: 'Impact ERP', body: `ROI ${m.roiPercent != null ? `${Math.round(m.roiPercent)}%` : '-'} · Trésorerie ${money(m.treasuryNeed)} · Marge ${money(m.estimatedMargin)}`, tone: 'warn' },
       { key: 'investor', label: 'Résultat investisseur', body: `Recommandation : ${result.recommendation || 'Décision chiffrée avant investissement.'}`, tone: 'good' },
     ];
   }
@@ -386,7 +386,7 @@ export async function runFullInvestorDemo(dataMap = buildInvestorDemoDataMap()) 
     readOnly: true,
     demoMode: true,
     modeLabel: INVESTOR_DEMO_MODE_LABEL,
-    tagline: 'Horizon Farm : copilote agricole intelligent — pas seulement un ERP.',
+    tagline: 'Horizon Farm : copilote agricole intelligent - pas seulement un ERP.',
     steps,
     generated_at: new Date().toISOString(),
   };

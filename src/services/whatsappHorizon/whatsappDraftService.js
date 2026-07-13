@@ -1,5 +1,5 @@
 /**
- * WhatsApp Horizon — analyse, validation et exécution via AI Gateway (mode démo).
+ * WhatsApp Horizon - analyse, validation et exécution via AI Gateway (mode démo).
  * Aucune écriture métier sans validation utilisateur explicite.
  */
 
@@ -32,7 +32,7 @@ export const WHATSAPP_WORKFLOW_LABELS = {
 };
 
 /**
- * Journal whatsapp_logs — uniquement si handler CRUD fourni.
+ * Journal whatsapp_logs - uniquement si handler CRUD fourni.
  */
 export async function journalizeWhatsAppEvent({
   message = '',
@@ -207,7 +207,7 @@ export async function executeWhatsAppDraft(draft = {}, { handlers = {}, dataMap 
         handlers,
         meta: { reason: 'open_form', workflow },
       });
-      return { ok: true, workflow, openedForm: true, message: 'Formulaire prérempli ouvert — confirmez la saisie.' };
+      return { ok: true, workflow, openedForm: true, message: 'Formulaire prérempli ouvert - confirmez la saisie.' };
     }
 
     if (workflow === TARGET_WORKFLOWS.SALE_PAYMENT) {

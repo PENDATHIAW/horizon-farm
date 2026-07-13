@@ -42,7 +42,7 @@ export function navigateToFeedStock(onNavigate) {
     tab: 'Stock',
     stockContext: 'aliment',
     searchContext: 'aliment feed provende',
-    contextMessage: 'Intrants alimentaires consommés par l\'élevage — gérés dans Achats & Stock.',
+    contextMessage: 'Intrants alimentaires consommés par l\'élevage - gérés dans Achats & Stock.',
   });
 }
 

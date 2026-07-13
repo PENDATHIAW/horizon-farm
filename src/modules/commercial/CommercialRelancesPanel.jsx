@@ -17,7 +17,7 @@ export default function CommercialRelancesPanel({
             <MessageCircle size={14} className="text-positive" />
             Relances clients
           </p>
-          <p className="text-sm text-slate">Priorité, canal et message proposé — envoi manuel uniquement.</p>
+          <p className="text-sm text-slate">Priorité, canal et message proposé - envoi manuel uniquement.</p>
         </div>
         <span className="rounded-full border border-line bg-card px-3 py-1 text-xs font-semibold text-earth">
           {rows.length}

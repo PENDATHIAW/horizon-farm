@@ -72,7 +72,7 @@ export default function CultureFicheModal({ open, onClose, culture }) {
         {locked ? (
           <div className="rounded-2xl border border-line bg-neutral-bg px-4 py-3 text-sm text-ink flex items-center gap-2">
             <Lock size={16} />
-            Fiche verrouillée — culture {culture.statut || culture.status}. Modification métier limitée.
+            Fiche verrouillée - culture {culture.statut || culture.status}. Modification métier limitée.
           </div>
         ) : null}
 
@@ -118,7 +118,7 @@ export default function CultureFicheModal({ open, onClose, culture }) {
             {harvested > 0 ? (
               <Section title="Historique récolte (synthèse)">
                 <Field label="Date récolte" value={culture.date_recolte || culture.date_fin_campagne || 'Non renseignée'} />
-                <Field label="Qualité / notes" value={culture.notes || culture.commentaire || '—'} />
+                <Field label="Qualité / notes" value={culture.notes || culture.commentaire || '-'} />
               </Section>
             ) : null}
           </>

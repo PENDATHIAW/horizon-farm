@@ -1,4 +1,4 @@
-/** Utilitaires partagés — dédoublonnage contenu Centre décisionnel. */
+/** Utilitaires partagés - dédoublonnage contenu Centre décisionnel. */
 
 export function normalizeTitle(value = '') {
   return String(value || '').trim().toLowerCase().replace(/\s+/g, ' ');

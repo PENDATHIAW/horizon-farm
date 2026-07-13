@@ -1,5 +1,5 @@
 /**
- * Zones site AGRI FEEDS — prévues dès Phase 1 (réservation d’espaces).
+ * Zones site AGRI FEEDS - prévues dès Phase 1 (réservation d’espaces).
  * Utilise feed_facility_zones si présent, sinon les zones planifiées par défaut.
  */
 import {

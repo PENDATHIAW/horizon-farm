@@ -70,23 +70,23 @@ export default function StockEvolution({ rows = [], alimentationLogs = [] }) {
 
   return (
     <ChartsGrid>
-      <SmartEvolutionChart moduleName="Stock" compact title="Achats vs sorties" subtitle="Histogramme — flux stock mensuels" months={labels(monthly)} leftUnit="FCFA" rightUnit="" series={[
+      <SmartEvolutionChart moduleName="Stock" compact title="Achats vs sorties" subtitle="Histogramme - flux stock mensuels" months={labels(monthly)} leftUnit="FCFA" rightUnit="" series={[
         { name: 'Achats', type: 'bar', unit: 'FCFA', data: values(monthly, 'achats') },
         { name: 'Sorties', type: 'bar', unit: 'FCFA', data: values(monthly, 'sorties') },
       ]} />
-      <SmartEvolutionChart moduleName="Stock" compact title="Rotation stock" subtitle="Courbe — % sorties / valeur" months={labels(monthly)} leftUnit="%" rightUnit="" series={[
+      <SmartEvolutionChart moduleName="Stock" compact title="Rotation stock" subtitle="Courbe - % sorties / valeur" months={labels(monthly)} leftUnit="%" rightUnit="" series={[
         { name: 'Rotation', type: 'line', unit: '%', data: values(monthly, 'rotation') },
       ]} />
-      <SmartPieChart moduleName="Stock" compact title="Valeur par catégorie" subtitle="Camembert — répartition du stock" unit="FCFA" items={byCategory.map((row) => ({ name: row.categorie, value: row.valeur }))} />
-      <SmartEvolutionChart moduleName="Stock" compact title="Ruptures vs critiques" subtitle="Histogramme — alertes stock" months={labels(monthly)} leftUnit="" rightUnit="" series={[
+      <SmartPieChart moduleName="Stock" compact title="Valeur par catégorie" subtitle="Camembert - répartition du stock" unit="FCFA" items={byCategory.map((row) => ({ name: row.categorie, value: row.valeur }))} />
+      <SmartEvolutionChart moduleName="Stock" compact title="Ruptures vs critiques" subtitle="Histogramme - alertes stock" months={labels(monthly)} leftUnit="" rightUnit="" series={[
         { name: 'Ruptures', type: 'bar', data: values(monthly, 'ruptures') },
         { name: 'Critiques', type: 'bar', data: values(monthly, 'critiques') },
       ]} />
-      <SmartEvolutionChart moduleName="Stock" compact title="Mouvements vs réappro" subtitle="Histogramme — activité stock" months={labels(monthly)} leftUnit="" rightUnit="" series={[
+      <SmartEvolutionChart moduleName="Stock" compact title="Mouvements vs réappro" subtitle="Histogramme - activité stock" months={labels(monthly)} leftUnit="" rightUnit="" series={[
         { name: 'Mouvements', type: 'bar', data: values(monthly, 'mouvements') },
         { name: 'Réappro', type: 'bar', data: values(monthly, 'reappro') },
       ]} />
-      <SmartEvolutionChart moduleName="Stock" compact title="Valeur stock vs pertes" subtitle="Histogramme — valorisation et pertes" months={labels(monthly)} leftUnit="FCFA" rightUnit="" series={[
+      <SmartEvolutionChart moduleName="Stock" compact title="Valeur stock vs pertes" subtitle="Histogramme - valorisation et pertes" months={labels(monthly)} leftUnit="FCFA" rightUnit="" series={[
         { name: 'Valeur stock', type: 'bar', unit: 'FCFA', data: values(monthly, 'valeur_stock') },
         { name: 'Pertes', type: 'bar', unit: 'FCFA', data: values(monthly, 'pertes') },
       ]} />

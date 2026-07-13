@@ -1,4 +1,4 @@
-/** Constantes agronomiques Horizon Farm — fumier / engrais. */
+/** Constantes agronomiques Horizon Farm - fumier / engrais. */
 
 export const FERTILIZER_BAG_KG = 50;
 

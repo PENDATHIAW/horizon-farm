@@ -1,5 +1,5 @@
 /**
- * Routeur langage naturel agricole — V4.
+ * Routeur langage naturel agricole - V4.
  * Orchestre intentions universelles, multi-intentions, contexte conversationnel et réponses canoniques.
  */
 

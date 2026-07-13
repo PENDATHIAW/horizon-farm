@@ -31,7 +31,7 @@ export default function ClientProfileModal({
     <BaseModal
       open={open}
       onClose={onClose}
-      title={`Profil — ${client.nom || client.name || client.id}`}
+      title={`Profil - ${client.nom || client.name || client.id}`}
       footer={(
         <div className="flex flex-wrap gap-2 justify-between">
           <div className="flex gap-2">
@@ -49,15 +49,15 @@ export default function ClientProfileModal({
         <section>
           <p className="text-xs font-semibold uppercase text-slate mb-2">Segmentation</p>
           <div className="grid gap-2 sm:grid-cols-2">
-            <Row label="Segment" value={segment.segment || '—'} />
-            <Row label="Canal" value={segment.channel || '—'} />
+            <Row label="Segment" value={segment.segment || '-'} />
+            <Row label="Canal" value={segment.channel || '-'} />
             <Row label="Fidélité" value={`${segment.loyaltyScore ?? 0}%`} />
             <Row label="Taux paiement" value={`${segment.paymentRate ?? 0}%`} />
             <Row label="Panier moyen" value={fmtCurrency(segment.averageBasket || summary.averageBasket || 0)} />
-            <Row label="Fréquence d'achat" value={segment.frequencyLabel || '—'} />
-            <Row label="Intervalle moyen" value={segment.averageIntervalDays != null ? `${segment.averageIntervalDays} j` : '—'} />
-            <Row label="Commandes / mois" value={segment.ordersPerMonth != null ? String(segment.ordersPerMonth) : '—'} />
-            <Row label="Inactivité" value={segment.inactivityDays != null ? `${segment.inactivityDays} j` : '—'} warn={segment.isDueForReorder} />
+            <Row label="Fréquence d'achat" value={segment.frequencyLabel || '-'} />
+            <Row label="Intervalle moyen" value={segment.averageIntervalDays != null ? `${segment.averageIntervalDays} j` : '-'} />
+            <Row label="Commandes / mois" value={segment.ordersPerMonth != null ? String(segment.ordersPerMonth) : '-'} />
+            <Row label="Inactivité" value={segment.inactivityDays != null ? `${segment.inactivityDays} j` : '-'} warn={segment.isDueForReorder} />
             {segment.isDueForReorder ? (
               <Row label="Renouvellement" value={`En retard (+${segment.daysOverdue || 0} j)`} warn />
             ) : null}
@@ -71,8 +71,8 @@ export default function ClientProfileModal({
             <Row label="Payé" value={fmtCurrency(summary.totalPaye || 0)} />
             <Row label="Reste à payer" value={fmtCurrency(summary.resteAPayer || 0)} warn={summary.resteAPayer > 0} />
             <Row label="Commandes" value={summary.orders?.length || 0} />
-            <Row label="Dernière commande" value={summary.derniereCommandeVente || '—'} />
-            <Row label="Type client" value={client.type_client || client.type || '—'} />
+            <Row label="Dernière commande" value={summary.derniereCommandeVente || '-'} />
+            <Row label="Type client" value={client.type_client || client.type || '-'} />
           </div>
         </section>
 

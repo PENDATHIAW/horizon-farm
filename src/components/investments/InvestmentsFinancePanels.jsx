@@ -42,7 +42,7 @@ function buildCoreDataMap(props = {}) {
   };
 }
 
-/** Guide visuel — où trouver charges, financements, prévisions et plan financier. */
+/** Guide visuel - où trouver charges, financements, prévisions et plan financier. */
 export function BpDistributionNav({
   onSelectTab,
   onNavigate,
@@ -52,23 +52,23 @@ export function BpDistributionNav({
     {
       id: 'costs',
       title: 'Charges BP',
-      subtitle: 'Hors investissements actionnables — concrétiser vers Finance, RH, Achats',
+      subtitle: 'Hors investissements actionnables - concrétiser vers Finance, RH, Achats',
       tab: 'costs',
-      stat: stats.chargesLabel || '—',
+      stat: stats.chargesLabel || '-',
     },
     {
       id: 'funding',
       title: 'Financements',
       subtitle: 'Besoins, ressources, écart et amortissement',
       tab: 'funding',
-      stat: stats.fundingLabel || '—',
+      stat: stats.fundingLabel || '-',
     },
     {
       id: 'forecasts',
       title: 'Revenus & prévisions',
-      subtitle: 'CA mensuel BP — comparer avec Suivi réel et Objectifs',
+      subtitle: 'CA mensuel BP - comparer avec Suivi réel et Objectifs',
       tab: 'forecasts',
-      stat: stats.revenueLabel || '—',
+      stat: stats.revenueLabel || '-',
     },
     {
       id: 'plan',
@@ -80,7 +80,7 @@ export function BpDistributionNav({
     {
       id: 'documents',
       title: 'Plan financier à imprimer',
-      subtitle: 'Synthèse lecture seule — Documents & Rapports',
+      subtitle: 'Synthèse lecture seule - Documents & Rapports',
       external: 'documents_rapports',
       stat: 'PDF / export',
     },
@@ -120,7 +120,7 @@ export function BpDistributionNav({
       </div>
       <p className="text-meta text-slate flex items-center gap-1">
         <FileText size={12} />
-        Actions disponibles sur chaque ligne : Concrétiser · Compléter · Joindre preuve · Voir opération — menu « … » pour réparer une liaison exceptionnelle.
+        Actions disponibles sur chaque ligne : Concrétiser · Compléter · Joindre preuve · Voir opération - menu « … » pour réparer une liaison exceptionnelle.
       </p>
     </section>
   );
@@ -170,7 +170,7 @@ export function InvestmentsInvestorBridge({ onNavigate, ...props }) {
         </ul>
       ) : (
         <p className="mt-3 text-xs text-positive rounded-2xl border border-positive bg-positive-bg p-3">
-          Dossier cohérent côté ERP — vous pouvez générer le pack financeur depuis Financements.
+          Dossier cohérent côté ERP - vous pouvez générer le pack financeur depuis Financements.
         </p>
       )}
     </div>
@@ -196,7 +196,7 @@ export function BpFundingFinanceurPanel({ bpFundingSources = [], besoinsTotal = 
           <Landmark size={20} />
           Financement & scénario financeur
         </p>
-        <p className="mt-1 text-sm text-slate">Ressources du BP officiel Horizon Farm — à croiser avec le dossier investisseur.</p>
+        <p className="mt-1 text-sm text-slate">Ressources du BP officiel Horizon Farm - à croiser avec le dossier investisseur.</p>
       </div>
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
         <div className="rounded-2xl border border-line bg-card p-4">
@@ -227,7 +227,7 @@ export function BpFundingFinanceurPanel({ bpFundingSources = [], besoinsTotal = 
           <tbody>
             {fundingRows.map((row) => (
               <tr key={row.id || row.designation} className="border-t border-line">
-                <td className="px-3 py-2 font-semibold text-earth">{row.designation || row.nom || row.name || '—'}</td>
+                <td className="px-3 py-2 font-semibold text-earth">{row.designation || row.nom || row.name || '-'}</td>
                 <td className="px-3 py-2 text-right">{fmtCurrency(n(row.montant ?? row.amount ?? row.total))}</td>
               </tr>
             ))}
@@ -299,7 +299,7 @@ export function BpMonthlyCostsPanel({
           Charges mensuelles BP
         </p>
         <p className="mt-1 text-sm text-slate">
-          Chaque ligne peut être concrétisée vers Finance, RH ou Achats — comme les investissements actionnables.
+          Chaque ligne peut être concrétisée vers Finance, RH ou Achats - comme les investissements actionnables.
         </p>
       </div>
 
@@ -353,7 +353,7 @@ export function BpMonthlyCostsPanel({
               return (
                 <tr key={r.id || i} className="border-t border-line">
                   <td className="px-3 py-2 font-semibold text-earth">{bpCostLabel(r)}</td>
-                  <td className="px-3 py-2 text-slate">{MODULE_LABELS[r.module_cible] || r.module_cible || '—'}</td>
+                  <td className="px-3 py-2 text-slate">{MODULE_LABELS[r.module_cible] || r.module_cible || '-'}</td>
                   <td className="px-3 py-2 text-right">{fmtCurrency(bpCostPlannedAmount(r))}</td>
                   <td className="px-3 py-2 text-right">{fmtCurrency(r.montant_paye ?? r.montant_reel ?? 0)}</td>
                   <td className="px-3 py-2 text-right">{fmtCurrency(r.reste_a_realiser ?? Math.max(0, bpCostPlannedAmount(r) - n(r.montant_paye ?? r.montant_reel)))}</td>
@@ -387,7 +387,7 @@ export function BpMonthlyCostsPanel({
             })}
             {!rows.length ? (
               <tr>
-                <td colSpan={6} className="px-3 py-6 text-center text-slate">Aucune charge BP — resynchronisez le plan officiel.</td>
+                <td colSpan={6} className="px-3 py-6 text-center text-slate">Aucune charge BP - resynchronisez le plan officiel.</td>
               </tr>
             ) : null}
           </tbody>
@@ -409,7 +409,7 @@ export function BpRevenueForecastsPanel({ projections = [] }) {
           <TrendingUp size={20} />
           Prévisions CA BP
         </p>
-        <p className="mt-1 text-sm text-slate">Revenus par période — comparer avec l’onglet Suivi réel et Objectifs & Croissance.</p>
+        <p className="mt-1 text-sm text-slate">Revenus par période - comparer avec l’onglet Suivi réel et Objectifs & Croissance.</p>
       </div>
       <div className="rounded-2xl border border-line bg-card p-4 max-w-xs">
         <p className="text-xs text-slate">CA prévu cumulé (lignes affichées)</p>
@@ -427,14 +427,14 @@ export function BpRevenueForecastsPanel({ projections = [] }) {
           <tbody>
             {rows.slice(0, 24).map((r, i) => (
               <tr key={r.id || i} className="border-t border-line">
-                <td className="px-3 py-2">{r.mois || r.periode || r.period || r.label || '—'}</td>
-                <td className="px-3 py-2 text-slate">{r.activite || r.activity || r.designation || '—'}</td>
+                <td className="px-3 py-2">{r.mois || r.periode || r.period || r.label || '-'}</td>
+                <td className="px-3 py-2 text-slate">{r.activite || r.activity || r.designation || '-'}</td>
                 <td className="px-3 py-2 text-right font-semibold">{fmtCurrency(n(r.ca_estime ?? r.revenue ?? r.montant))}</td>
               </tr>
             ))}
             {!rows.length ? (
               <tr>
-                <td colSpan={3} className="px-3 py-6 text-center text-slate">Aucune projection — synchronisez le BP.</td>
+                <td colSpan={3} className="px-3 py-6 text-center text-slate">Aucune projection - synchronisez le BP.</td>
               </tr>
             ) : null}
           </tbody>

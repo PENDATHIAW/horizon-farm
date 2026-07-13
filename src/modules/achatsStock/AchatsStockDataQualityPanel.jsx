@@ -23,7 +23,7 @@ export default function AchatsStockDataQualityPanel({ snapshot = {}, compact = f
   return (
     <AchatsStockSection
       title="Qualité des données stock"
-      subtitle={`${snapshot.totalIssues || issues.length} écart(s) — certains calculs peuvent être incomplets.`}
+      subtitle={`${snapshot.totalIssues || issues.length} écart(s) - certains calculs peuvent être incomplets.`}
     >
       <div className="space-y-2">
         {visible.map((issue) => (

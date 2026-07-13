@@ -113,7 +113,7 @@ export function evaluateModuleDataCoverage(data = {}, { modules = ENRICHED_MODUL
     module: 'erp_audit',
     severity: CRITICAL_DATA_KEYS.has(key) ? 'haute' : 'moyenne',
     title: `Donnée source absente : ${key}`,
-    description: `Aucun enregistrement ${key} — KPI, interconnexions ou rapports potentiellement incomplets`,
+    description: `Aucun enregistrement ${key} - KPI, interconnexions ou rapports potentiellement incomplets`,
     recommended_action: `Alimenter ${DATA_SOURCES_OF_TRUTH[key.replace(/s$/, '')]?.table || key} depuis le module source ou vérifier le mapping`,
     category: 'coverage',
     source_records: [{ type: 'dataset', id: key }],

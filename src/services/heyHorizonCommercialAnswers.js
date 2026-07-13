@@ -1,5 +1,5 @@
 /**
- * Hey Horizon Commercial — réponses rule-based (format SITUATION / CAUSE / ACTION).
+ * Hey Horizon Commercial - réponses rule-based (format SITUATION / CAUSE / ACTION).
  */
 
 import { buildConsolidatedCommercialKpis } from '../utils/commercialKpiConsolidated.js';
@@ -94,7 +94,7 @@ function collectReceivableRows(orders = [], payments = [], clients = []) {
 
 function topProductFromKpis(kpis = {}) {
   const top = arr(kpis.topProducts)[0];
-  return top?.name || '—';
+  return top?.name || '-';
 }
 
 function buildTodayActions(props = {}, kpis = {}, relances = []) {
@@ -222,8 +222,8 @@ export function buildCommercialPilotageAnswer(type = 'summary', dataMap = {}) {
       .filter((name) => name !== worst.name);
     const actionText = worst
       ? (otherNames.length
-        ? `Commencez par ${worst.name}${sharePct > 0 ? ` — cette créance représente ${sharePct} % du total en attente` : ''}, puis ${otherNames.slice(0, 2).join(' et ')}.`
-        : `Commencez par ${worst.name}${sharePct > 0 ? ` — cette créance représente ${sharePct} % du total en attente` : ''}.`)
+        ? `Commencez par ${worst.name}${sharePct > 0 ? ` - cette créance représente ${sharePct} % du total en attente` : ''}, puis ${otherNames.slice(0, 2).join(' et ')}.`
+        : `Commencez par ${worst.name}${sharePct > 0 ? ` - cette créance représente ${sharePct} % du total en attente` : ''}.`)
       : '';
     return buildCommercialAnswerPayload({
       type: 'commercial_receivables',
@@ -349,7 +349,7 @@ export function buildCommercialPilotageAnswer(type = 'summary', dataMap = {}) {
       sources: ['buildConsolidatedCommercialKpis'],
       rows: pendingDeliveries.slice(0, 4).map((row) => ({
         label: row.client_nom || row.client_name || 'Livraison',
-        value: row.produit || row.product_name || '—',
+        value: row.produit || row.product_name || '-',
       })),
       route: 'commercial',
       tab: 'Livraisons',

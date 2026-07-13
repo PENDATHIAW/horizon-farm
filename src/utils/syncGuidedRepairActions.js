@@ -439,7 +439,7 @@ export async function executeGuidedRepairAction(issue = {}, actionId = '', props
       await props.onUpdateAlert?.(alert.id, {
         suivi_manuel: true,
         manual_followup: true,
-        action_recommandee: 'Suivi manuel confirmé — ne pas recréer automatiquement de tâche.',
+        action_recommandee: 'Suivi manuel confirmé - ne pas recréer automatiquement de tâche.',
         notes: `${alert.notes || alert.message || ''} · Suivi manuel`.trim(),
       });
       await props.onRefreshAlertes?.();

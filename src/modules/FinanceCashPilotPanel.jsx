@@ -54,7 +54,7 @@ export default function FinanceCashPilotPanel(props) {
       ) : null}
       <div className="rounded-2xl border border-line bg-card p-4 text-sm text-slate">
         <b className="text-earth">Lecture :</b> {TREASURY_LABELS.treasuryAvailable} ({fmtCurrency(treasury.treasuryAvailable)}) est le chiffre de référence.
-        {TREASURY_LABELS.netPosition} inclut créances et dettes — ce n&apos;est pas un second solde de trésorerie.
+        {TREASURY_LABELS.netPosition} inclut créances et dettes - ce n&apos;est pas un second solde de trésorerie.
         {TREASURY_LABELS.realMargin} : {fmtCurrency(treasury.realMargin)} ({treasury.marginRate}%).
       </div>
     </section>

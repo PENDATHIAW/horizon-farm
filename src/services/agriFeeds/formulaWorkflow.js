@@ -1,5 +1,5 @@
 /**
- * AGRI FEEDS — création / mise à jour formules + versions + coûts théoriques.
+ * AGRI FEEDS - création / mise à jour formules + versions + coûts théoriques.
  */
 import { computeTheoreticalFormulaCost, compareFormulaCostToPrevious, availableStockForMaterial } from './feedCostEngine.js';
 import { assertCanSetFormulaStatus, buildNextVersionCode, formulaStatusLabel } from './formulaLifecycleService.js';
@@ -104,7 +104,7 @@ export function prepareFormulaDraft(payload = {}, context = {}) {
       module_source: 'agri_feeds',
       entity_type: 'feed_formula',
       entity_id: formulaId,
-      title: `Formule créée — ${name}`,
+      title: `Formule créée - ${name}`,
       description: `${formulaCode} · ${version.version_code} · ${cost.theoretical_cost_per_kg.toFixed(0)} FCFA/kg`,
       amount: cost.theoretical_cost_per_kg,
       event_date: new Date().toISOString().slice(0, 10),
@@ -152,7 +152,7 @@ export function prepareFormulaStatusChange(formula = {}, nextStatus = '', dataMa
       module_source: 'agri_feeds',
       entity_type: 'feed_formula',
       entity_id: formula.id,
-      title: `Statut formule — ${formulaStatusLabel(nextStatus)}`,
+      title: `Statut formule - ${formulaStatusLabel(nextStatus)}`,
       description: `${formula.name || formula.formula_code} → ${formulaStatusLabel(nextStatus)}`,
       event_date: new Date().toISOString().slice(0, 10),
       severity: nextStatus === 'commercializable' ? 'haute' : 'info',

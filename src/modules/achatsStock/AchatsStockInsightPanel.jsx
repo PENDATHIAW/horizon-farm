@@ -40,7 +40,7 @@ export default function AchatsStockInsightPanel({
             <Bot size={14} /> Signaux métier stock & achats
           </p>
           <p className="text-sm text-slate mt-1">
-            Analyse automatique (règles métier) — risques globaux sur le Centre décisionnel.
+            Analyse automatique (règles métier) - risques globaux sur le Centre décisionnel.
           </p>
         </div>
         <button

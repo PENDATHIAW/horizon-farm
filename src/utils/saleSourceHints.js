@@ -53,4 +53,4 @@ export function saleSourceHint({ sourceType = '', selected = null, unit = '' } =
   return null;
 }
 
-export const DELIVERY_HINT = 'Retrait sur place : 0 FCFA livraison (total = produits uniquement). Livré / à livrer : renseigne les frais si le client paie la livraison — sinon laisse 0.';
+export const DELIVERY_HINT = 'Retrait sur place : 0 FCFA livraison (total = produits uniquement). Livré / à livrer : renseigne les frais si le client paie la livraison - sinon laisse 0.';

@@ -14,7 +14,7 @@ const stockValue = (rows = []) => arr(rows).reduce((sum, row) => {
 }, 0);
 
 /**
- * @deprecated KPI financeur — préférer buildConsolidatedCommercialKpis pour CA/encaissé.
+ * @deprecated KPI financeur - préférer buildConsolidatedCommercialKpis pour CA/encaissé.
  * Conservé pour compatibilité exports PDF investisseur.
  * @see canonicalExecutionRegistry KPI_ENFORCEMENT_MATRIX
  */
@@ -47,7 +47,7 @@ export function buildFinanceurReportData(data = {}, options = {}) {
   const harvested = cultures.reduce((sum, row) => sum + Number(row.quantite_recoltee || row.recolte || 0), 0);
   const proofRows = arr(data.documents).slice(0, 15).map((doc) => ({
     title: doc.title || doc.nom || doc.id,
-    module: doc.source_module || doc.module_module || doc.module_source || '—',
+    module: doc.source_module || doc.module_module || doc.module_source || '-',
     linked: Boolean(doc.source_record_id || doc.related_id || doc.entity_id || doc.transaction_id || doc.order_id),
   }));
   const linkedProofs = proofRows.filter((row) => row.linked).length;
@@ -83,7 +83,7 @@ export function exportFinanceurReportPdf(data = {}, options = {}) {
   const filename = `dossier-financeur-${String(report.financier).toLowerCase().replace(/[^a-z0-9]+/gi, '-')}-${now.toISOString().slice(0, 10)}.pdf`;
 
   doc.setFontSize(18);
-  doc.text('Horizon Farm — Dossier financeur', 40, 48);
+  doc.text('Horizon Farm - Dossier financeur', 40, 48);
   doc.setFontSize(11);
   doc.text(`Financeur : ${report.financier}`, 40, 72);
   doc.text(`Business plan : ${report.businessPlan}`, 40, 88);
@@ -101,7 +101,7 @@ export function exportFinanceurReportPdf(data = {}, options = {}) {
       ['Charges période', `${fmt(report.kpis.finance?.depensesPeriod)} FCFA`, 'finances'],
       ['Résultat période', `${fmt(report.kpis.finance?.resultatPeriod)} FCFA`, 'payments - finances'],
       ['Valeur stock', `${fmt(report.kpis.stock?.stockValue)} FCFA`, 'stock'],
-      ['Objectif atteint', report.kpis.growth?.periodAttainment != null ? `${report.kpis.growth.periodAttainment}%` : '—', 'business_plans'],
+      ['Objectif atteint', report.kpis.growth?.periodAttainment != null ? `${report.kpis.growth.periodAttainment}%` : '-', 'business_plans'],
     ],
     styles: { fontSize: 9, cellPadding: 4 },
     headStyles: { fillColor: [47, 36, 21] },

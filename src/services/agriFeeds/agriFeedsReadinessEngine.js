@@ -1,5 +1,5 @@
 /**
- * AGRI FEEDS — moteur de readiness data-driven.
+ * AGRI FEEDS - moteur de readiness data-driven.
  *
  * Distingue clairement :
  *   - REFERENCE      → collecte Phase 1
@@ -64,7 +64,7 @@ function scoreBucket({ score, label, cap, met, missing, warnings, used, missingD
   };
 }
 
-/* --------------------------- Phase 1 — REFERENCE -------------------------- */
+/* --------------------------- Phase 1 - REFERENCE -------------------------- */
 
 function scorePhase1Reference(dataMap = {}) {
   const logs = arr(dataMap.alimentation_logs);
@@ -174,7 +174,7 @@ function scorePhase1Reference(dataMap = {}) {
   };
 }
 
-/* --------------------- Phase 2A — PILOT_INTERNAL --------------------------- */
+/* --------------------- Phase 2A - PILOT_INTERNAL --------------------------- */
 /**
  * 12 critères pondérés (total 100). Chaque critère renvoie un score borné
  * ainsi qu’une décomposition claire des données utilisées / manquantes.
@@ -242,7 +242,7 @@ function scorePilotPhase2A(dataMap = {}, phase1 = {}) {
         met.push(`Mortalité moyenne ${avgMortality.toFixed(1)} %`);
       } else if (avgMortality <= 10 && openHealthAlerts === 0) {
         s = cap * 0.6;
-        warnings.push(`Mortalité moyenne ${avgMortality.toFixed(1)} % — surveiller`);
+        warnings.push(`Mortalité moyenne ${avgMortality.toFixed(1)} % - surveiller`);
       } else {
         s = cap * 0.3;
         warnings.push(`Mortalité moyenne ${avgMortality.toFixed(1)} % ou alertes sanitaires ouvertes`);
@@ -268,7 +268,7 @@ function scorePilotPhase2A(dataMap = {}, phase1 = {}) {
     let s = 0;
     const lotsWithIc = lots.filter((lot) => toNumber(lot.indice_consommation || lot.feed_conversion || lot.fcr) > 0);
     if (lotsWithIc.length >= 2) { s = cap; met.push(`${lotsWithIc.length} lots avec IC calculé`); }
-    else if (lotsWithIc.length === 1) { s = cap * 0.6; warnings.push('Seul un lot avec IC — enrichir'); }
+    else if (lotsWithIc.length === 1) { s = cap * 0.6; warnings.push('Seul un lot avec IC - enrichir'); }
     else {
       missing.push('Indice de consommation non calculé');
       missingData.push('avicole.indice_consommation');
@@ -318,7 +318,7 @@ function scorePilotPhase2A(dataMap = {}, phase1 = {}) {
       const marginPct = safePct(margin, revenue);
       if (margin > 0 && marginPct >= 10) { s = cap; met.push(`Marge observée ${marginPct.toFixed(1)} %`); }
       else if (margin > 0) { s = cap * 0.6; warnings.push(`Marge faible (${marginPct.toFixed(1)} %)`); }
-      else { s = cap * 0.2; warnings.push(`Marge négative — risque avant lancement pilote`); }
+      else { s = cap * 0.2; warnings.push(`Marge négative - risque avant lancement pilote`); }
     } else {
       missing.push('Marge observée non calculable (CA ou charges manquants)');
       missingData.push('sales_orders / finances');
@@ -352,7 +352,7 @@ function scorePilotPhase2A(dataMap = {}, phase1 = {}) {
       met.push('Trésorerie positive nette');
     } else {
       s = cap * 0.3;
-      warnings.push('Trésorerie nette négative — prudence avant pilote AGRI FEEDS');
+      warnings.push('Trésorerie nette négative - prudence avant pilote AGRI FEEDS');
     }
     buckets.push(scoreBucket({ score: s, label: 'Trésorerie', cap, met, missing, warnings, used, missingData }));
   }
@@ -388,7 +388,7 @@ function scorePilotPhase2A(dataMap = {}, phase1 = {}) {
       warnings.push(`${overdue} facture(s) en retard`);
     } else {
       s = cap * 0.2;
-      warnings.push(`${overdue} factures en retard — risque financier`);
+      warnings.push(`${overdue} factures en retard - risque financier`);
     }
     buckets.push(scoreBucket({ score: s, label: 'Créances & dettes', cap, met, missing, warnings, used, missingData }));
   }
@@ -449,7 +449,7 @@ function scorePilotPhase2A(dataMap = {}, phase1 = {}) {
       met.push(`${rawMaterials.length} MP · ${rawBatches.length} lot(s) approvisionnés`);
     } else if (rawMaterials.length >= 1) {
       s = cap * 0.5;
-      warnings.push(`Seulement ${rawMaterials.length} matière(s) première(s) — élargir`);
+      warnings.push(`Seulement ${rawMaterials.length} matière(s) première(s) - élargir`);
       if (rawBatches.length === 0) missing.push('Aucun lot MP réceptionné');
     } else {
       missing.push('Aucun fournisseur MP AGRI FEEDS');
@@ -490,7 +490,7 @@ function scorePilotPhase2A(dataMap = {}, phase1 = {}) {
     const openCritical = alerts.filter(isCriticalAlert).length;
     if (openCritical === 0) { s = cap; met.push('Aucune alerte critique ouverte'); }
     else if (openCritical <= 2) { s = cap * 0.4; warnings.push(`${openCritical} alerte(s) critique(s) ouverte(s)`); }
-    else { s = 0; warnings.push(`${openCritical} alertes critiques ouvertes — bloquant si non traitées`); }
+    else { s = 0; warnings.push(`${openCritical} alertes critiques ouvertes - bloquant si non traitées`); }
     buckets.push(scoreBucket({ score: s, label: 'Alertes critiques ouvertes', cap, met, missing, warnings, used, missingData }));
   }
 
@@ -531,7 +531,7 @@ function scorePilotPhase2A(dataMap = {}, phase1 = {}) {
   };
 }
 
-/* -------------------- Phase 2B — PROGRESSIVE_SALES ------------------------ */
+/* -------------------- Phase 2B - PROGRESSIVE_SALES ------------------------ */
 /**
  * La vente progressive est **bloquée** tant qu’un seul de ces éléments manque :
  *   - au moins une formule testée (`internal_testing`, `to_improve`,
@@ -675,7 +675,7 @@ function buildNextActions(mode, phase1, pilot, sales) {
 /* ------------------------------ API publique ------------------------------ */
 
 /**
- * @param {object} dataMap — collections ERP (+ collections AGRI FEEDS si présentes)
+ * @param {object} dataMap - collections ERP (+ collections AGRI FEEDS si présentes)
  * @returns {object} readiness structuré (jamais binaire prêt/pas prêt)
  */
 export function computeAgriFeedsReadiness(dataMap = {}) {
@@ -703,7 +703,7 @@ export function computeAgriFeedsReadiness(dataMap = {}) {
       missingData: phase1.missingData,
     },
     PILOT_INTERNAL: {
-      label: 'Phase 2A — Production pilote interne',
+      label: 'Phase 2A - Production pilote interne',
       score: pilot.score,
       met: pilot.met,
       missing: pilot.missing,
@@ -714,7 +714,7 @@ export function computeAgriFeedsReadiness(dataMap = {}) {
       breakdown: pilot.breakdown,
     },
     PROGRESSIVE_SALES: {
-      label: 'Phase 2B — Vente progressive',
+      label: 'Phase 2B - Vente progressive',
       score: sales.score,
       met: sales.met,
       missing: sales.missing,

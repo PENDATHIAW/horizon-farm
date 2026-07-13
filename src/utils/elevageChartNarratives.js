@@ -19,9 +19,9 @@ export function buildElevageChartNarratives({
   if (mortalityRate <= 3) {
     narratives.push('La mortalité reste dans la plage normale.');
   } else if (mortalityRate <= 6) {
-    narratives.push('La mortalité est modérée — surveiller les lots les plus touchés.');
+    narratives.push('La mortalité est modérée - surveiller les lots les plus touchés.');
   } else {
-    narratives.push('La mortalité est élevée — action Santé et biosécurité recommandée.');
+    narratives.push('La mortalité est élevée - action Santé et biosécurité recommandée.');
   }
 
   const eggsByWeek = arr(productionLogs).slice(-14);
@@ -39,12 +39,12 @@ export function buildElevageChartNarratives({
 
   const feedCost = arr(alimentationLogs).reduce((s, r) => s + n(r.montant_total ?? r.cout_total), 0);
   if (feedCost > 0 && animaux.length + lots.length > 0) {
-    narratives.push(`Coût alimentation période : ${Math.round(feedCost).toLocaleString('fr-FR')} F — croiser avec Production pour l’IC.`);
+    narratives.push(`Coût alimentation période : ${Math.round(feedCost).toLocaleString('fr-FR')} F - croiser avec Production pour l’IC.`);
   }
 
   const bovinsWithWeight = arr(animaux).filter((a) => n(a.poids ?? a.weight) > 0);
   if (bovinsWithWeight.length >= 2) {
-    narratives.push(`${bovinsWithWeight.length} bovin(s) avec pesée — suivre GMQ dans Production.`);
+    narratives.push(`${bovinsWithWeight.length} bovin(s) avec pesée - suivre GMQ dans Production.`);
   }
 
   return narratives;

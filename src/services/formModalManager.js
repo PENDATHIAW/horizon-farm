@@ -1,4 +1,4 @@
-/** Gestionnaire centralisé de modals/formulaires — remplace window.dispatchEvent('horizon-open-form'). */
+/** Gestionnaire centralisé de modals/formulaires - remplace window.dispatchEvent('horizon-open-form'). */
 
 import { trackFormModalOpen } from './erpRules/surveillanceUxRules.js';
 

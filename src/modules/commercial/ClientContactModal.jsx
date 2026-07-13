@@ -108,7 +108,7 @@ export default function ClientContactModal({
           />
         </label>
         <p className="text-xs text-slate">
-          WhatsApp ouvre l&apos;application avec le texte prérempli — l&apos;envoi n&apos;est confirmé que si vous cliquez sur &ldquo;Marquer envoyé manuellement&rdquo;.
+          WhatsApp ouvre l&apos;application avec le texte prérempli - l&apos;envoi n&apos;est confirmé que si vous cliquez sur &ldquo;Marquer envoyé manuellement&rdquo;.
         </p>
       </div>
     </BaseModal>

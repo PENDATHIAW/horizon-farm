@@ -1,7 +1,7 @@
 const n = (v) => Number(v || 0);
 
 /**
- * Brief dirigeant — règles métier, données réelles, pas de LLM externe.
+ * Brief dirigeant - règles métier, données réelles, pas de LLM externe.
  */
 export function buildElevageExecutiveBrief({
   healthScore = 0,
@@ -23,9 +23,9 @@ export function buildElevageExecutiveBrief({
   lines.push(stable ? 'La ferme est stable sur la période.' : 'La ferme nécessite une attention opérationnelle.');
 
   if (!layingRateCalculable) {
-    warnings.push('Taux de ponte non calculable — enregistrez des ramassages sur les lots pondeuses.');
+    warnings.push('Taux de ponte non calculable - enregistrez des ramassages sur les lots pondeuses.');
   } else if (layingRate < 70) {
-    warnings.push(`Taux de ponte faible (${layingRate.toFixed(0)} %) — vérifier alimentation et santé pondeuses.`);
+    warnings.push(`Taux de ponte faible (${layingRate.toFixed(0)} %) - vérifier alimentation et santé pondeuses.`);
   }
 
   const chairLots = productionSnapshot.chair?.readyList || [];
@@ -40,20 +40,20 @@ export function buildElevageExecutiveBrief({
   });
 
   if (recentMortality > 5) {
-    warnings.push(`Mortalité élevée sur la période (${recentMortality} cas) — consulter Santé et Transformation.`);
+    warnings.push(`Mortalité élevée sur la période (${recentMortality} cas) - consulter Santé et Transformation.`);
   }
 
   if (healthLate > 0) {
-    warnings.push(`${healthLate} soin(s) en retard — risque blocage vente / transformation.`);
+    warnings.push(`${healthLate} soin(s) en retard - risque blocage vente / transformation.`);
   }
 
   if (reproduction?.gestantesProches > 0) {
-    warnings.push(`${reproduction.gestantesProches} mise(s) bas proche(s) — préparer Reproduction.`);
+    warnings.push(`${reproduction.gestantesProches} mise(s) bas proche(s) - préparer Reproduction.`);
   }
 
   const grossMargin = activityPnl?.totals?.grossMargin;
   if (grossMargin != null && grossMargin < 0) {
-    warnings.push('Rentabilité globale négative sur la période — revoir coûts alimentation et prix de vente.');
+    warnings.push('Rentabilité globale négative sur la période - revoir coûts alimentation et prix de vente.');
   }
 
   healthFindings.slice(0, 2).forEach((f) => {
@@ -62,7 +62,7 @@ export function buildElevageExecutiveBrief({
 
   const attention = warnings.length
     ? warnings.slice(0, 4).join(' ')
-    : 'Aucun signal critique — poursuivre le suivi quotidien.';
+    : 'Aucun signal critique - poursuivre le suivi quotidien.';
 
   return {
     headline: lines[0],

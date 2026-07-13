@@ -1,5 +1,5 @@
 /**
- * Achats & Stock V2 — CMUP / coût moyen pondéré et valorisation.
+ * Achats & Stock V2 - CMUP / coût moyen pondéré et valorisation.
  */
 
 import { toNumber } from './format.js';

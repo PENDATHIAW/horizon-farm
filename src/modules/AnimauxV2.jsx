@@ -227,7 +227,7 @@ export default function AnimauxV2(props) {
     />
     {valorisationSample?.total > 0 ? (
       <p className="rounded-xl border border-positive bg-positive-bg px-3 py-2 text-sm text-positive">
-        Valorisation (moteur Finance) · <b>{valorisationSample.name}</b> : coût unifié {fmtCurrency(valorisationSample.total)} — aligné Rentabilité Finance.
+        Valorisation (moteur Finance) · <b>{valorisationSample.name}</b> : coût unifié {fmtCurrency(valorisationSample.total)} - aligné Rentabilité Finance.
       </p>
     ) : null}
     {horizonDraft ? <div id="hey-horizon-animal-card"><HeyHorizonAnimalCard draft={horizonDraft} rows={props.rows || []} species={species} onCreate={wrapCreate} onUpdate={wrapUpdate} onCreateBusinessEvent={props.onCreateBusinessEvent || businessEventsCrud.create} onRefresh={props.onRefresh} onRefreshBusinessEvents={props.onRefreshBusinessEvents || businessEventsCrud.refresh} onClose={() => setHorizonDraft(null)} /></div> : null}

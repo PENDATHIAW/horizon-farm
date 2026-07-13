@@ -93,7 +93,7 @@ export default function AchatsStockMovementsPanel({ data, onNavigate, setTab, ac
   return (
     <div className="space-y-4 achats-stock-mobile">
       <div className="rounded-2xl border border-line bg-neutral-bg px-4 py-3 text-sm text-neutral">
-        <b>Lecture seule</b> — les saisies (réception, sortie, perte) se font dans l&apos;onglet <b>Stock</b>.
+        <b>Lecture seule</b> - les saisies (réception, sortie, perte) se font dans l&apos;onglet <b>Stock</b>.
       </div>
       <AchatsStockSection title="Où agir ?" subtitle="Mouvements enregistrés en priorité · historique distingué.">
         <div className={ACHATS_STOCK_ACTION_GRID}>
@@ -169,7 +169,7 @@ export default function AchatsStockMovementsPanel({ data, onNavigate, setTab, ac
         rows={movements.map((row) => ({
           id: `${row.source}-${row.id}`,
           title: row.title,
-          detail: `${String(row.date || '—').slice(0, 10)} · ${row.detail}${row.source === 'historique' ? ' · historique' : ''}`,
+          detail: `${String(row.date || '-').slice(0, 10)} · ${row.detail}${row.source === 'historique' ? ' · historique' : ''}`,
           value: row.quantite != null ? `${row.quantite} u.` : undefined,
           module: 'achats_stock',
           tab: 'Mouvements',

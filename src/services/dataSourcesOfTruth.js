@@ -1,4 +1,4 @@
-/** Sources officielles de vérité ERP — affichage autorisé ailleurs, saisie unique ici. */
+/** Sources officielles de vérité ERP - affichage autorisé ailleurs, saisie unique ici. */
 export const DATA_SOURCES_OF_TRUTH = {
   sales_order: { table: 'sales_orders', modules: ['commercial', 'dashboard', 'centre_ia', 'objectifs_croissance', 'clients', 'finance_pilotage', 'documents_rapports', 'assistant_erp'] },
   sales_order_item: { table: 'sales_order_items', modules: ['commercial', 'achats_stock', 'documents_rapports', 'elevage', 'cultures'] },

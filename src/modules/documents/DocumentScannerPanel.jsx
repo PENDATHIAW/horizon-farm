@@ -95,8 +95,8 @@ export default function DocumentScannerPanel({
       setDraft(nextDraft);
       setEditFields({ ...(nextDraft.draft?.fields || {}) });
       setExtractionHint(extraction.hint || (empty ? 'Ajoutez le texte extrait pour améliorer la détection.' : ''));
-      if (empty) toast('Texte limité — complétez ci-dessous puis relancez.', { icon: '⚠️' });
-      else toast.success('Brouillon préparé — vérifiez avant validation.');
+      if (empty) toast('Texte limité - complétez ci-dessous puis relancez.', { icon: '⚠️' });
+      else toast.success('Brouillon préparé - vérifiez avant validation.');
     } catch (e) {
       toast.error(e.message || 'Analyse impossible');
     } finally {
@@ -139,7 +139,7 @@ export default function DocumentScannerPanel({
         toast.error(result.error || 'Exécution refusée');
         return;
       }
-      toast.success('Document validé — opération enregistrée via le workflow métier.');
+      toast.success('Document validé - opération enregistrée via le workflow métier.');
       setDraft(null);
       setFile(null);
       setPastedText('');

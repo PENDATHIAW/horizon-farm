@@ -1,7 +1,7 @@
 import { MODULE_TARGET_TABS, MODULE_AUDIT_ORDER } from '../../config/horizonVision.config.js';
 import { NAV_MODULE_ORDER, ADVANCED_MODULE_IDS, GRAND_MODULE_IDS } from '../../config/modules.config.js';
 
-/** Audit ERP UX — doublons navigation, modules hors vision, onglets orphelins. */
+/** Audit ERP UX - doublons navigation, modules hors vision, onglets orphelins. */
 export function evaluateErpUxAuditRules() {
   const findings = [];
   const visionSet = new Set(MODULE_AUDIT_ORDER);

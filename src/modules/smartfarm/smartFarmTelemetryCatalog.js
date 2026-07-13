@@ -1,5 +1,5 @@
 /**
- * Catalogue métier Smart Farm — familles d'objets, alertes et intégrations recommandées.
+ * Catalogue métier Smart Farm - familles d'objets, alertes et intégrations recommandées.
  * Source de vérité UI (onglet Automatisation) et moteurs d'alerte.
  */
 
@@ -83,7 +83,7 @@ export const SMART_ALERT_RULE_CATALOG = [
   },
   {
     id: 'humidity_soil_low',
-    label: 'Sol sec — irrigation',
+    label: 'Sol sec - irrigation',
     trigger: 'humidite_sol < 18% pendant 2h',
     triggerLabel: 'humidité du sol inférieure à 18 % pendant 2 h',
     severity: 'warning',

@@ -1,5 +1,5 @@
 /**
- * Commercial V3 — marge par vente / commande.
+ * Commercial V3 - marge par vente / commande.
  */
 
 import { saleAmount } from '../modules/commercial/commercialMetrics.js';

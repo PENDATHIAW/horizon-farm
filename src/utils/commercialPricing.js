@@ -1,5 +1,5 @@
 /**
- * Commercial V2 — prix client, remises et marge estimée.
+ * Commercial V2 - prix client, remises et marge estimée.
  */
 
 import { toNumber } from './format.js';

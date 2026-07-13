@@ -1,5 +1,5 @@
 /**
- * Commercial V1 — traducteur de graphiques (format dirigeant).
+ * Commercial V1 - traducteur de graphiques (format dirigeant).
  */
 
 const arr = (v) => (Array.isArray(v) ? v : []);
@@ -93,7 +93,7 @@ export function formatChartInsightForDirector(insight = {}) {
   const lines = [];
   if (insight.progressing) lines.push(`↑ ${insight.progressing}`);
   if (insight.declining) lines.push(`↓ ${insight.declining}`);
-  lines.push(`Cause probable : ${insight.probableCause || '—'}`);
-  lines.push(`Action : ${insight.recommendedAction || '—'}`);
+  lines.push(`Cause probable : ${insight.probableCause || '-'}`);
+  lines.push(`Action : ${insight.recommendedAction || '-'}`);
   return lines.join('\n');
 }

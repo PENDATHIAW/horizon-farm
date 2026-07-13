@@ -74,7 +74,7 @@ export function buildForecastReport(phrase = '', dataMap = {}) {
   const summaryText = [
     `Scénario : ${scenario.label}${engineResult.quantity ? ` · ${fmtNumber(engineResult.quantity)} sujet(s)` : ''}`,
     `Recommandation : ${RECOMMENDATION_LABELS[recommendation]}`,
-    simulation.estimatedMargin != null ? `Marge estimée ${fmtCurrency(simulation.estimatedMargin)}` : 'Marge non estimable — données vente manquantes',
+    simulation.estimatedMargin != null ? `Marge estimée ${fmtCurrency(simulation.estimatedMargin)}` : 'Marge non estimable - données vente manquantes',
     `Besoin trésorerie ${fmtCurrency(simulation.treasuryNeed || 0)}`,
   ].join(' · ');
 
@@ -113,10 +113,10 @@ export function buildForecastReport(phrase = '', dataMap = {}) {
 export function forecastReportToText(report = {}) {
   const m = report.metrics || {};
   const lines = [
-    'Horizon Forecast — Rapport d’aide à la décision',
+    'Horizon Forecast - Rapport d’aide à la décision',
     report.phrase || '',
     '',
-    `Recommandation : ${report.recommendationLabel || '—'}`,
+    `Recommandation : ${report.recommendationLabel || '-'}`,
     report.summary || '',
     '',
     'Indicateurs',
@@ -132,7 +132,7 @@ export function forecastReportToText(report = {}) {
     ...(report.assumptions || []).map((a) => `• ${a.label} : ${a.value != null ? a.value : 'Non renseigné'} (${a.source})`),
     '',
     'Risques',
-    ...(report.risks || []).map((r) => `• [${r.level}] ${r.title} — ${r.detail}`),
+    ...(report.risks || []).map((r) => `• [${r.level}] ${r.title} - ${r.detail}`),
     '',
     'Actions avant lancement',
     ...(report.preLaunchActions || []).map((a) => `• ${a}`),
@@ -146,7 +146,7 @@ export function forecastReportToExportPayload(report = {}) {
   const m = report.metrics || {};
   return {
     module: 'objectifs_croissance',
-    title: `Horizon Forecast — ${report.scenario?.label || 'Projet'}`,
+    title: `Horizon Forecast - ${report.scenario?.label || 'Projet'}`,
     period: new Date().toISOString().slice(0, 10),
     subtitle: report.summary,
     labels: ['Indicateur', 'Valeur'],

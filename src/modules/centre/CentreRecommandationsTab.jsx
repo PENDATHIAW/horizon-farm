@@ -1,6 +1,6 @@
 import CentreSimpleRecoCard from './CentreSimpleRecoCard.jsx';
 
-/** Recommandations commerciales — cartes courtes, sans renvoi vers d'autres onglets. */
+/** Recommandations commerciales - cartes courtes, sans renvoi vers d'autres onglets. */
 export default function CentreRecommandationsTab({
   plan = {},
   onNavigate,
@@ -26,7 +26,7 @@ export default function CentreRecommandationsTab({
           </div>
         ) : (
           <p className="text-sm text-slate rounded-xl border border-line bg-white p-4">
-            Aucune action commerciale prioritaire — saisissez ventes et objectifs.
+            Aucune action commerciale prioritaire - saisissez ventes et objectifs.
           </p>
         )}
       </section>

@@ -1,28 +1,28 @@
 /**
- * Horizon Farm — registre Canonical Execution Enforcement V1.
+ * Horizon Farm - registre Canonical Execution Enforcement V1.
  * Cartographie statique des appels workflow, events et KPI.
- * Lecture seule — ne modifie pas les moteurs de calcul.
+ * Lecture seule - ne modifie pas les moteurs de calcul.
  */
 
 /** @typedef {'canonical'|'legacy'|'parallel'|'bypass'} WorkflowCallKind */
 
 /**
- * Phase 1 — WORKFLOW_ENFORCEMENT_REPORT
+ * Phase 1 - WORKFLOW_ENFORCEMENT_REPORT
  * Tous les appels directs vers les workflows canoniques et leurs contournements.
  */
 export const WORKFLOW_ENFORCEMENT_REPORT = [
-  // —— Commercial : commitCommercialSale / prepareCommercialSaleCommit ——
+  // -- Commercial : commitCommercialSale / prepareCommercialSaleCommit --
   { workflow: 'commitCommercialSale', fichier: 'src/modules/VentesTerrainV3.jsx', appelant: 'VentesTerrainV3', kind: 'canonical', risque: 'faible', note: 'Vente terrain modal' },
   { workflow: 'commitCommercialSale', fichier: 'src/services/whatsappHorizon/whatsappDraftService.js', appelant: 'WhatsApp COMMERCIAL_SALE', kind: 'canonical', risque: 'faible', note: 'Pipeline investisseur Terminus' },
   { workflow: 'commitCommercialSale', fichier: 'src/services/aiGateway/workflowExecutors.js', appelant: 'Hey Horizon executor', kind: 'canonical', risque: 'faible', note: 'TARGET_WORKFLOWS.COMMERCIAL_SALE' },
   { workflow: 'prepareCommercialSaleCommit', fichier: 'src/utils/commercialQuoteWorkflow.js', appelant: 'convertQuoteToOrder', kind: 'canonical', risque: 'faible', note: 'Devis → commande' },
   { workflow: 'commitCommercialSale', fichier: 'src/utils/commercialSaleWorkflow.js', appelant: 'runNewSaleSideEffects hub', kind: 'canonical', risque: 'faible', note: 'Implémentation centrale' },
 
-  { workflow: 'commitSaleWorkflow', fichier: 'src/modules/VentesV2.jsx', appelant: 'VentesV2', kind: 'legacy', risque: 'moyen', note: '@deprecated — UI masquée' },
+  { workflow: 'commitSaleWorkflow', fichier: 'src/modules/VentesV2.jsx', appelant: 'VentesV2', kind: 'legacy', risque: 'moyen', note: '@deprecated - UI masquée' },
   { workflow: 'commitSaleWorkflow', fichier: 'src/services/whatsappHorizon/whatsappDraftService.js', appelant: 'WhatsApp SALE simple', kind: 'legacy', risque: 'moyen', note: 'Vente mono-ligne legacy' },
   { workflow: 'commitSaleWorkflow', fichier: 'src/services/aiGateway/workflowExecutors.js', appelant: 'Hey Horizon SALE', kind: 'legacy', risque: 'moyen', note: 'Alias TARGET_WORKFLOWS.SALE' },
 
-  // —— recordSalePayment ——
+  // -- recordSalePayment --
   { workflow: 'recordSalePayment', fichier: 'src/modules/SaleActionModal.jsx', appelant: 'SaleActionModal', kind: 'canonical', risque: 'faible', note: 'Encaissement vente' },
   { workflow: 'recordSalePayment', fichier: 'src/modules/SalesFollowUpPanel.jsx', appelant: 'SalesFollowUpPanel', kind: 'canonical', risque: 'faible', note: 'Suivi ventes' },
   { workflow: 'recordSalePayment', fichier: 'src/modules/VentesV6.jsx', appelant: 'VentesV6', kind: 'canonical', risque: 'faible', note: 'Encaissements' },
@@ -32,13 +32,13 @@ export const WORKFLOW_ENFORCEMENT_REPORT = [
 
   { workflow: 'recordSalePayment', fichier: 'src/modules/VentesV2.jsx', appelant: 'PaymentFinanceAuditPanel sync', kind: 'canonical', risque: 'faible', note: 'Synchronisation paiements ↔ finances' },
 
-  // —— confirmSaleDelivery ——
+  // -- confirmSaleDelivery --
   { workflow: 'confirmSaleDelivery', fichier: 'src/modules/VentesV4.jsx', appelant: 'VentesV4', kind: 'canonical', risque: 'faible', note: '' },
   { workflow: 'confirmSaleDelivery', fichier: 'src/modules/CommercialDeliverySyncPanel.jsx', appelant: 'CommercialDeliverySyncPanel', kind: 'canonical', risque: 'faible', note: 'Fusionné dans CommercialDeliveriesPanel phase 2' },
   { workflow: 'confirmSaleDelivery', fichier: 'src/modules/SaleActionModal.jsx', appelant: 'SaleActionModal', kind: 'canonical', risque: 'faible', note: '' },
   { workflow: 'confirmSaleDelivery', fichier: 'src/modules/SalesFollowUpPanel.jsx', appelant: 'SalesFollowUpPanel', kind: 'canonical', risque: 'faible', note: '' },
 
-  // —— Stock : commitStockPurchaseWorkflow ——
+  // -- Stock : commitStockPurchaseWorkflow --
   { workflow: 'commitStockPurchaseWorkflow', fichier: 'src/modules/StocksV3.jsx', appelant: 'StocksV3 réception', kind: 'canonical', risque: 'faible', note: '' },
   { workflow: 'commitStockPurchaseWorkflow', fichier: 'src/modules/StockPurchaseReceptionForm.jsx', appelant: 'Formulaire réception', kind: 'canonical', risque: 'faible', note: '' },
   { workflow: 'commitStockPurchaseWorkflow', fichier: 'src/utils/supplierSideEffects.js', appelant: 'supplierSideEffects', kind: 'canonical', risque: 'faible', note: '' },
@@ -49,13 +49,13 @@ export const WORKFLOW_ENFORCEMENT_REPORT = [
   { workflow: 'commitStockPurchaseWorkflow', fichier: 'src/modules/StocksV4.jsx', appelant: 'HeyHorizonStockCard réception', kind: 'canonical', risque: 'faible', note: 'Réception avec montant via le parcours de réception' },
   { workflow: 'commitStockPurchaseWorkflow', fichier: 'src/utils/purchaseSideEffects.js', appelant: 'purchaseSideEffects', kind: 'parallel', risque: 'moyen', note: 'onCreateFinanceTransaction hors workflow canonique' },
 
-  // —— Finance : consolidateFinance (lecture seule — pas de bypass écriture) ——
+  // -- Finance : consolidateFinance (lecture seule - pas de bypass écriture) --
   { workflow: 'consolidateFinance', fichier: 'src/utils/financePilotageCore.js', appelant: 'buildOfficialTreasuryView', kind: 'canonical', risque: 'faible', note: 'Lecture officielle trésorerie' },
   { workflow: 'consolidateFinance', fichier: 'src/modules/dashboard/dashboardMetrics.js', appelant: 'buildDashboardSummary', kind: 'canonical', risque: 'faible', note: 'Dashboard trésorerie ERP' },
   { workflow: 'consolidateFinance', fichier: 'src/modules/FinancePilotageRecoveredModule.jsx', appelant: 'Finance pilotage', kind: 'canonical', risque: 'faible', note: '' },
   { workflow: 'consolidateFinance', fichier: 'src/services/globalProfitabilityService.js', appelant: 'computeGlobalProfitability', kind: 'canonical', risque: 'faible', note: 'Rentabilité cross-module' },
 
-  // —— Parallèles (hub side effects hors commitCommercialSale) ——
+  // -- Parallèles (hub side effects hors commitCommercialSale) --
   { workflow: 'runNewSaleSideEffects', fichier: 'src/utils/culturesWorkflow.js', appelant: 'vente culture', kind: 'parallel', risque: 'moyen', note: 'Vente récolte sans prepareCommercialSaleCommit' },
   { workflow: 'runNewSaleSideEffects', fichier: 'src/services/workflowService.js', appelant: 'commitSaleWorkflow', kind: 'legacy', risque: 'moyen', note: 'Hub partagé (ancien + actuel)' },
 ];
@@ -67,17 +67,17 @@ export const CANONICAL_WORKFLOW_MARKERS = {
 };
 
 /**
- * Phase 2 — EVENT_ENFORCEMENT_REPORT
+ * Phase 2 - EVENT_ENFORCEMENT_REPORT
  */
 export const EVENT_ENFORCEMENT_REPORT = [
   { source: 'createBusinessEvent', fichier: 'src/services/businessEventsService.js', canonique: true, legacy: false, risque: 'faible', note: 'issue_key auto + findDuplicateBusinessEvent' },
-  { source: 'AppContext.emitBusinessEvents', fichier: 'src/context/AppContext.jsx', canonique: false, legacy: true, risque: 'moyen', note: 'Auto-events create/update CRUD — pas skipDuplicate workflow' },
-  { source: 'onCreateBusinessEvent (handlers)', fichier: '60+ modules/workflows', canonique: false, legacy: true, risque: 'moyen-élevé', note: 'Bypass createBusinessEvent — issue_key optionnel' },
+  { source: 'AppContext.emitBusinessEvents', fichier: 'src/context/AppContext.jsx', canonique: false, legacy: true, risque: 'moyen', note: 'Auto-events create/update CRUD - pas skipDuplicate workflow' },
+  { source: 'onCreateBusinessEvent (handlers)', fichier: '60+ modules/workflows', canonique: false, legacy: true, risque: 'moyen-élevé', note: 'Bypass createBusinessEvent - issue_key optionnel' },
   { source: 'commitCommercialSale → onCreateBusinessEvent', fichier: 'commercialSaleWorkflow.js', canonique: true, legacy: false, risque: 'faible', note: 'event_type vente_commercial_workflow + side_effects_managed' },
   { source: 'commitStockPurchaseWorkflow → onCreateBusinessEvent', fichier: 'stockPurchaseWorkflow.js', canonique: true, legacy: false, risque: 'faible', note: 'Events mouvement + business_event' },
   { source: 'StocksV3 mouvements manuels', fichier: 'StocksV3.jsx', canonique: false, legacy: true, risque: 'moyen', note: 'reception_stock / sortie_stock / perte_stock inline' },
   { source: 'StocksV4 HeyHorizon', fichier: 'StocksV4.jsx', canonique: false, legacy: true, risque: 'moyen', note: 'Events stock inline sans createBusinessEvent' },
-  { source: 'activiteSuiviWorkflow state.push', fichier: 'activiteSuiviWorkflow.js', canonique: false, legacy: true, risque: 'faible', note: 'État local agrégé — pas écriture DB directe' },
+  { source: 'activiteSuiviWorkflow state.push', fichier: 'activiteSuiviWorkflow.js', canonique: false, legacy: true, risque: 'faible', note: 'État local agrégé - pas écriture DB directe' },
   { source: 'AppContext sales_orders create', fichier: 'AppContext.jsx buildCreateEvents', canonique: false, legacy: true, risque: 'haute', note: 'event vente + workflow vente_commercial_workflow = doublon activité' },
   { source: 'AppContext cultures recolte update', fichier: 'AppContext.jsx buildUpdateEvents', canonique: false, legacy: true, risque: 'moyenne', note: 'recolte AppContext + cultureSideEffects workflow' },
   { source: 'AppContext finances create', fichier: 'AppContext.jsx buildCreateEvents', canonique: false, legacy: true, risque: 'moyenne', note: 'recette/depense auto si workflow finance déjà émis event' },
@@ -91,7 +91,7 @@ export const EVENT_WRITE_PATHS = {
 };
 
 /**
- * Phase 3 — KPI_ENFORCEMENT_MATRIX
+ * Phase 3 - KPI_ENFORCEMENT_MATRIX
  */
 export const KPI_ENFORCEMENT_MATRIX = [
   {
@@ -111,7 +111,7 @@ export const KPI_ENFORCEMENT_MATRIX = [
     kpi: 'CA ERP global',
     canonique: 'consolidateFinance().caConsolide',
     secondaire: 'buildConsolidatedCommercialKpis',
-    legacy: '—',
+    legacy: '-',
     panneauxCritiques: [
       { panneau: 'FinancePilotageRecoveredModule', moteur: 'consolidateFinance', ok: true },
       { panneau: 'Dashboard buildDashboardSummary', moteur: 'consolidateFinance.cashNet + ca reduce', ok: true },
@@ -134,7 +134,7 @@ export const KPI_ENFORCEMENT_MATRIX = [
     kpi: 'Trésorerie',
     canonique: 'buildOfficialTreasuryView → consolidateFinance().cashNet',
     secondaire: 'computeFinancePeriodSummary',
-    legacy: '—',
+    legacy: '-',
     panneauxCritiques: [
       { panneau: 'FinanceCashPilotPanel', moteur: 'buildOfficialTreasuryView', ok: true },
       { panneau: 'DashboardV2', moteur: 'consolidateFinance.cashNet', ok: true },
@@ -158,7 +158,7 @@ export const KPI_ENFORCEMENT_MATRIX = [
     kpi: 'Créances',
     canonique: 'consolidateFinance().creancesReelles',
     secondaire: 'receivableFromOrders (commercial ops)',
-    legacy: '—',
+    legacy: '-',
     panneauxCritiques: [
       { panneau: 'Finance Créances', moteur: 'consolidateFinance', ok: true },
       { panneau: 'Commercial Clients', moteur: 'receivableFromOrders', ok: true },

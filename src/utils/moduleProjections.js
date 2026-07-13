@@ -1,5 +1,5 @@
 /**
- * Projections par module — réutilise les mêmes moteurs que l'Accueil dirigeant.
+ * Projections par module - réutilise les mêmes moteurs que l'Accueil dirigeant.
  */
 import { buildCommercialObjectivesView } from './commercialPilotageMetrics.js';
 import { buildCashFlowForecast } from './financePilotageV2.js';
@@ -37,7 +37,7 @@ function baseItem(id, label, value, format, hint, tone = 'neutral', navigate = n
   return { id, label, value, format, hint, tone, navigate };
 }
 
-/** Commercial — CA fin de mois, restant objectif. */
+/** Commercial - CA fin de mois, restant objectif. */
 export function buildCommercialModuleProjections(props = {}, periodScope = {}) {
   const scope = normalizePeriodScope(periodScope);
   const orders = filterRowsByPeriodScope(arr(props.salesOrdersAll || props.salesOrders), scope);
@@ -81,7 +81,7 @@ export function buildCommercialModuleProjections(props = {}, periodScope = {}) {
   return { items, hasData: items.length > 0 };
 }
 
-/** Finance — trésorerie J+30/60, créances. */
+/** Finance - trésorerie J+30/60, créances. */
 export function buildFinanceModuleProjections(props = {}) {
   const forecast = buildCashFlowForecast({
     salesOrders: props.salesOrdersAll || props.salesOrders,
@@ -131,7 +131,7 @@ export function buildFinanceModuleProjections(props = {}) {
   return { items, hasData: items.length > 0 };
 }
 
-/** Achats & Stock — ruptures, dettes, péremption. */
+/** Achats & Stock - ruptures, dettes, péremption. */
 export function buildStockModuleProjections(props = {}) {
   const stocks = arr(props.stocks);
   const ruptures = countStockRuptures(stocks);
@@ -177,7 +177,7 @@ export function buildStockModuleProjections(props = {}) {
   return { items, hasData: items.length > 0 };
 }
 
-/** Élevage — production œufs projetée, lots sous traitement. */
+/** Élevage - production œufs projetée, lots sous traitement. */
 export function buildElevageModuleProjections(props = {}) {
   const prodLogs = arr(props.productionLogs);
   const weekAgo = Date.now() - 7 * 86400000;
@@ -220,7 +220,7 @@ export function buildElevageModuleProjections(props = {}) {
   return { items, hasData: items.length > 0 };
 }
 
-/** Cultures — parcelles à surveiller, récoltes attendues. */
+/** Cultures - parcelles à surveiller, récoltes attendues. */
 export function buildCulturesModuleProjections(props = {}) {
   const cultures = arr(props.cultures);
   const parcelsWatch = cultures.filter((row) => {

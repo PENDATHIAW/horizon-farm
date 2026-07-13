@@ -1,5 +1,5 @@
 /**
- * Seuils officiels Élevage V2 — source unique pour alertes, workflows et IA.
+ * Seuils officiels Élevage V2 - source unique pour alertes, workflows et IA.
  * Override futur par ferme via farm_cost_settings.elevageThresholds.
  */
 

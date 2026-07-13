@@ -37,7 +37,7 @@ export function evaluateElevageHealthBlocks({
   const blocked = late.length > 0 || vacuum;
   const messages = [];
   if (late.length) messages.push(`${late.length} intervention(s) en retard ou à faire.`);
-  if (vacuum) messages.push('Aucune intervention sanitaire récente (30 j) — vide sanitaire à combler.');
+  if (vacuum) messages.push('Aucune intervention sanitaire récente (30 j) - vide sanitaire à combler.');
 
   return {
     blocked,
@@ -54,7 +54,7 @@ export function buildSanitaryAlertsPanel(healthRows = []) {
   return late.slice(0, 8).map((row) => ({
     id: row.id,
     title: row.nom || row.type_intervention || 'Soin',
-    message: `${row.animal || row.target_summary || '—'} · ${String(row.prevue || row.date || '').slice(0, 10)}`,
+    message: `${row.animal || row.target_summary || '-'} · ${String(row.prevue || row.date || '').slice(0, 10)}`,
     severity: 'warning',
   }));
 }

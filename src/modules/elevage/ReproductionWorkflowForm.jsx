@@ -367,7 +367,7 @@ export default function ReproductionWorkflowForm({
                   entity_type: 'animal',
                   entity_id: animalId,
                   title: `Preuve reproduction · ${animalId}`,
-                  description: `${documentTitle}${notes ? ` — ${notes}` : ''}`,
+                  description: `${documentTitle}${notes ? ` - ${notes}` : ''}`,
                   event_date: date,
                   severity: 'info',
                 });

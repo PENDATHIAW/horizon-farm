@@ -11,7 +11,7 @@ import {
 } from '../../utils/justifiedExceptionStore.js';
 
 function formatDate(value = '') {
-  if (!value) return '—';
+  if (!value) return '-';
   const date = new Date(value);
   return Number.isNaN(date.getTime()) ? value : date.toLocaleString('fr-FR');
 }
@@ -40,7 +40,7 @@ export default function JustifiedExceptionsAuditPanel({ onCreateBusinessEvent, o
       const event = buildJustifiedExceptionAuditEvent(revoked, 'justified_exception_revoked');
       await onCreateBusinessEvent?.({ id: `EVT-${revoked.id}-REV`, ...event });
       await onRefreshBusinessEvents?.();
-      toast.success('Exception révoquée — l’écart réapparaîtra dans les alertes actives.');
+      toast.success('Exception révoquée - l’écart réapparaîtra dans les alertes actives.');
     } catch (error) {
       toast.error(error.message || 'Révocation impossible');
     } finally {
@@ -86,12 +86,12 @@ export default function JustifiedExceptionsAuditPanel({ onCreateBusinessEvent, o
                     </span>
                   </td>
                   <td className="px-3 py-2 font-semibold text-earth">{reasonLabel(row.raison)}</td>
-                  <td className="px-3 py-2 text-slate">{row.commentaire || '—'}</td>
-                  <td className="px-3 py-2">{row.utilisateur || '—'}</td>
+                  <td className="px-3 py-2 text-slate">{row.commentaire || '-'}</td>
+                  <td className="px-3 py-2">{row.utilisateur || '-'}</td>
                   <td className="px-3 py-2 whitespace-nowrap">{formatDate(row.date || row.created_at)}</td>
-                  <td className="px-3 py-2">{row.source_module || '—'} · {row.source_record_id || '—'}</td>
+                  <td className="px-3 py-2">{row.source_module || '-'} · {row.source_record_id || '-'}</td>
                   <td className="px-3 py-2 text-xs font-sans text-slate">{row.issue_key}</td>
-                  <td className="px-3 py-2">{row.type_exception || '—'}</td>
+                  <td className="px-3 py-2">{row.type_exception || '-'}</td>
                   <td className="px-3 py-2">
                     {row.active !== false && canManage ? (
                       <button type="button" disabled={busyKey === row.issue_key} onClick={() => revoke(row)} className="rounded-full border border-vigilance bg-vigilance-bg px-2 py-1 text-meta font-semibold text-horizon-dark disabled:opacity-40">

@@ -28,7 +28,7 @@ export const DEFAULT_FARM_COST_SETTINGS = {
     eggBreakAlertPct: 8,
     lowLayingPct: 65,
   },
-  /** Prix de vente suggérés élevage (FCFA/kg) — utilisés si la fiche animal n'a pas de prix/kg. */
+  /** Prix de vente suggérés élevage (FCFA/kg) - utilisés si la fiche animal n'a pas de prix/kg. */
   animalSalePricePerKg: {
     default: 3000,
     bovin: 2800,

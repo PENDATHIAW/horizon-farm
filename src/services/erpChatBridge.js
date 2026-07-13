@@ -82,7 +82,7 @@ function summarize(language, module, rows = []) {
     r.title || r.description || r.nom || r.name || r.produit || r.product_name || r.reference || r.numero_facture || r.email || r.id || `élément ${i + 1}`,
     r.status || r.statut || r.severity || r.priority || r.priorite || r.health_status || r.payment_status || r.order_status || '',
     r.total || r.montant || r.montant_total || r.total_amount || r.remaining_amount || r.quantite || r.quantity || r.oeufs_produits || '',
-  ].filter(Boolean).join(' — ')).join(' ; ');
+  ].filter(Boolean).join(' - ')).join(' ; ');
   if (language === 'wo') return `Ci ERP bi, gis naa ${rows.length} résultat ci module ${module}. Yu njëkk yi: ${preview}.`;
   if (language === 'en') return `I found ${rows.length} ERP record(s) in ${module}. First results: ${preview}.`;
   return `J’ai trouvé ${rows.length} donnée(s) ERP dans ${module}. Premiers résultats : ${preview}.`;

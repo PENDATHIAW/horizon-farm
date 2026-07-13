@@ -6,7 +6,7 @@ import { isSimulatedDataModeEnabled } from '../../utils/uiPreferences.js';
 import { buildTitleKeys } from './centreContentUtils.js';
 
 /**
- * Urgences & risques — actions du jour + blocages critiques, sans doublon avec priorités.
+ * Urgences & risques - actions du jour + blocages critiques, sans doublon avec priorités.
  */
 export default function CentreUrgencesTab({
   data,

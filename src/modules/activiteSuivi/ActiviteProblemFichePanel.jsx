@@ -6,7 +6,7 @@ export default function ActiviteProblemFichePanel({ fiches = [], selectedKey = '
   if (!fiches.length) {
     return (
       <div className="rounded-2xl border border-positive bg-positive-bg p-4 text-sm text-positive">
-        Aucun problème métier ouvert — alertes, tâches et suggestions sont alignées.
+        Aucun problème métier ouvert - alertes, tâches et suggestions sont alignées.
       </div>
     );
   }
@@ -41,7 +41,7 @@ export default function ActiviteProblemFichePanel({ fiches = [], selectedKey = '
               <p className="font-sans text-xs text-earth break-all">{selected.issue_key}</p>
             </div>
             <div className="grid grid-cols-2 gap-2 text-sm">
-              <div className="rounded-xl border border-line p-3"><span className="text-slate">Alerte</span><p className="font-semibold">{selected.alert ? 'Liée' : '—'}</p></div>
+              <div className="rounded-xl border border-line p-3"><span className="text-slate">Alerte</span><p className="font-semibold">{selected.alert ? 'Liée' : '-'}</p></div>
               <div className="rounded-xl border border-line p-3"><span className="text-slate">Tâches</span><p className="font-semibold">{fmtNumber(selected.tasks.length)}</p></div>
               <div className="rounded-xl border border-line p-3"><span className="text-slate">Recommandations</span><p className="font-semibold">{fmtNumber(selected.recommendations.length)}</p></div>
               <div className="rounded-xl border border-line p-3"><span className="text-slate">Événements</span><p className="font-semibold">{fmtNumber(selected.events.length)}</p></div>
@@ -49,7 +49,7 @@ export default function ActiviteProblemFichePanel({ fiches = [], selectedKey = '
               <div className="rounded-xl border border-line p-3"><span className="text-slate">Transactions</span><p className="font-semibold">{fmtNumber(selected.transactions.length)}</p></div>
             </div>
             {selected.openAlert && selected.openTasks.length === 0 ? (
-              <p className="flex items-center gap-1 text-xs text-horizon-dark"><Link2 size={14} /> Alerte ouverte sans tâche — créer une action.</p>
+              <p className="flex items-center gap-1 text-xs text-horizon-dark"><Link2 size={14} /> Alerte ouverte sans tâche - créer une action.</p>
             ) : null}
           </div>
         ) : null}

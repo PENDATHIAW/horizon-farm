@@ -110,7 +110,7 @@ export default function FormulationsTab({
       setLines([{ raw_material_id: '', percentage: '' }]);
       const alertText = preview.alerts?.[0]?.message;
       setMessage(
-        `Formule créée — ${preview.version.version_code} · ${fmtCurrency(preview.cost.theoretical_cost_per_kg)}/kg`
+        `Formule créée - ${preview.version.version_code} · ${fmtCurrency(preview.cost.theoretical_cost_per_kg)}/kg`
         + (alertText ? ` · ${alertText}` : ''),
       );
     } catch (err) {
@@ -227,7 +227,7 @@ export default function FormulationsTab({
                       onChange={(e) => updateLine(idx, { raw_material_id: e.target.value })}
                       className="w-full min-h-[40px] rounded-xl border border-line px-2 text-sm"
                     >
-                      <option value="">—</option>
+                      <option value="">-</option>
                       {materials.map((m) => (
                         <option key={m.id} value={m.id}>{m.name}{m.is_experimental ? ' (exp.)' : ''}</option>
                       ))}
@@ -243,7 +243,7 @@ export default function FormulationsTab({
                     />
                   </label>
                   <div className="col-span-2 text-meta text-slate pb-2">
-                    {unitCost > 0 ? fmtCurrency(contrib) : '—'}
+                    {unitCost > 0 ? fmtCurrency(contrib) : '-'}
                   </div>
                   <button type="button" onClick={() => removeLine(idx)} className="col-span-1 text-xs text-urgent pb-2">×</button>
                 </div>
@@ -257,7 +257,7 @@ export default function FormulationsTab({
             <p><b>Coût / 100 kg</b> : {fmtCurrency(costPreview.cost_for_100kg)}</p>
             <p className="font-semibold"><b>Coût théorique / kg</b> : {fmtCurrency(costPreview.theoretical_cost_per_kg)}</p>
             {costPreview.alerts.map((a) => (
-              <p key={a.message} className="text-xs text-horizon-dark">Point d’attention — {a.message}</p>
+              <p key={a.message} className="text-xs text-horizon-dark">Point d’attention - {a.message}</p>
             ))}
           </div>
 
@@ -285,7 +285,7 @@ export default function FormulationsTab({
               <option value="">Sélectionner…</option>
               {formulas.map((f) => (
                 <option key={f.id} value={f.id}>
-                  {f.name} — {formulaStatusLabel(f.status)}
+                  {f.name} - {formulaStatusLabel(f.status)}
                 </option>
               ))}
             </select>
@@ -355,7 +355,7 @@ export default function FormulationsTab({
                   <td className="px-3 py-2">{f.name}</td>
                   <td className="px-3 py-2">{TARGET_SPECIES.find((s) => s.value === f.target_species)?.label || f.target_species}</td>
                   <td className="px-3 py-2">{FORMULA_STATUSES.find((s) => s.value === f.status)?.label || f.status}</td>
-                  <td className="px-3 py-2 text-right">{v ? fmtCurrency(v.theoretical_cost_per_kg) : '—'}</td>
+                  <td className="px-3 py-2 text-right">{v ? fmtCurrency(v.theoretical_cost_per_kg) : '-'}</td>
                 </tr>
               );
             })}

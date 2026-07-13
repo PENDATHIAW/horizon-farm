@@ -28,10 +28,10 @@ export default function VisionDecisionGraphiquesTab(props) {
     <div className="space-y-6">
       <TabIntro
         title="Graphiques décisionnels"
-        detail="Avicole, embouche, logistique aliments et simulateur maraîcher — repérer anomalies et opportunités en un coup d'œil."
+        detail="Avicole, embouche, logistique aliments et simulateur maraîcher - repérer anomalies et opportunités en un coup d'œil."
       />
 
-      <Section icon={BarChart3} title="Élevage avicole — ponte vs consommation aliment">
+      <Section icon={BarChart3} title="Élevage avicole - ponte vs consommation aliment">
         <p className="mb-3 text-xs text-slate">Courbe : taux de ponte réel (%). Histogramme : aliment consommé (kg/j). Anomalie si ponte baisse et consommation reste haute.</p>
         {graphiques.avicoleDaily.length ? (
           <SmartEvolutionChart
@@ -49,7 +49,7 @@ export default function VisionDecisionGraphiquesTab(props) {
         )}
       </Section>
 
-      <Section icon={BarChart3} title="Poulets de chair — Indice de consommation (IC) par lot">
+      <Section icon={BarChart3} title="Poulets de chair - Indice de consommation (IC) par lot">
         <p className="mb-3 text-xs text-slate">IC = Aliment total (kg) ÷ Poids vif total (kg). Cible {BROILER_IC_TARGET.min}–{BROILER_IC_TARGET.max}.</p>
         {graphiques.broilerIC.length ? (
           <div className="overflow-x-auto">
@@ -79,7 +79,7 @@ export default function VisionDecisionGraphiquesTab(props) {
         )}
       </Section>
 
-      <Section icon={BarChart3} title="Embouche bovine — GMQ & MCA flash">
+      <Section icon={BarChart3} title="Embouche bovine - GMQ & MCA flash">
         {graphiques.cattleGMQ.length ? (
           <>
             <SmartEvolutionChart
@@ -105,7 +105,7 @@ export default function VisionDecisionGraphiquesTab(props) {
         )}
       </Section>
 
-      <Section icon={BarChart3} title="Logistique & aliments — jauges silos">
+      <Section icon={BarChart3} title="Logistique & aliments - jauges silos">
         <p className="mb-3 text-xs text-slate">Jours restants = Stock (kg) ÷ Consommation quotidienne. Alerte rouge si &lt; {STOCK_CRITICAL_DAYS} jours.</p>
         {graphiques.siloLevels.length ? (
           <div className="space-y-4">
@@ -118,7 +118,7 @@ export default function VisionDecisionGraphiquesTab(props) {
         )}
       </Section>
 
-      <Section icon={BarChart3} title="Futur maraîchage — matrice d'assolement">
+      <Section icon={BarChart3} title="Futur maraîchage - matrice d'assolement">
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>

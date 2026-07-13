@@ -1,5 +1,5 @@
 /**
- * Élevage V3 — export / rapport synthèse.
+ * Élevage V3 - export / rapport synthèse.
  */
 
 import { exportModuleReportPdf } from './moduleReportExports.js';

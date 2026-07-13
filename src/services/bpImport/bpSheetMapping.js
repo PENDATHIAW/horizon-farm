@@ -62,12 +62,12 @@ export const STARTUP_CATEGORY_MAP = {
   tresorerie_depart: { nature: BP_LINE_NATURE.TRESORERIE_DEPART, module_cible: BP_TARGET_MODULES.FINANCE_PILOTAGE, display_in_investissements: true },
 };
 
-/** Mapping des 4 onglets — rôle et cibles ERP. */
+/** Mapping des 4 onglets - rôle et cibles ERP. */
 export const BP_SHEET_MAPPING = [
   {
     key: BP_SHEET_KEYS.HYPOTHESES,
     label: BP_SHEET_LABELS[BP_SHEET_KEYS.HYPOTHESES],
-    role: 'Base de calcul du BP — coûts, prix, quantités, salaires.',
+    role: 'Base de calcul du BP - coûts, prix, quantités, salaires.',
     targets: [
       { module: BP_TARGET_MODULES.OBJECTIFS_CROISSANCE, tab: 'Hypothèses', sections: ['charges_variables', 'charges_fixes', 'salaires', 'revenus_annuels'] },
       { module: BP_TARGET_MODULES.COMMERCIAL, tab: 'Prévisions', sections: ['prix_vente', 'revenus_previsionnels'] },
@@ -93,7 +93,7 @@ export const BP_SHEET_MAPPING = [
   {
     key: BP_SHEET_KEYS.DONNEES,
     label: BP_SHEET_LABELS[BP_SHEET_KEYS.DONNEES],
-    role: 'Données structurantes — à découper par section.',
+    role: 'Données structurantes - à découper par section.',
     sections: [
       { key: 'identite', label: 'Infos projet / statut juridique', module: BP_TARGET_MODULES.GESTION_SYSTEME, nature: BP_LINE_NATURE.IDENTITE_PROJET, display_in_investissements: false },
       { key: 'besoins_demarrage', label: 'Besoins de démarrage', module: BP_TARGET_MODULES.INVESTISSEMENTS, nature: BP_LINE_NATURE.BESOIN_DEMARRAGE, display_in_investissements: true },
@@ -112,7 +112,7 @@ export const BP_SHEET_MAPPING = [
   {
     key: BP_SHEET_KEYS.PLAN_IMPRIMABLE,
     label: BP_SHEET_LABELS[BP_SHEET_KEYS.PLAN_IMPRIMABLE],
-    role: 'Rapport de synthèse financeur — lecture, pas source de création.',
+    role: 'Rapport de synthèse financeur - lecture, pas source de création.',
     targets: [
       { module: BP_TARGET_MODULES.DOCUMENTS, tab: 'Rapports', sections: ['synthese_bp'] },
       { module: BP_TARGET_MODULES.OBJECTIFS_CROISSANCE, tab: 'Financeurs', sections: ['dossier_financeur'] },

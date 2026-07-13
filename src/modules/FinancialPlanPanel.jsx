@@ -26,7 +26,7 @@ const safeModel = (model = {}) => ({
   marginGap: Number(model.marginGap || 0),
   revenueAttainment: Number(model.revenueAttainment || 0),
   cashRate: Number(model.cashRate || 0),
-  monthCode: model.monthCode || '—',
+  monthCode: model.monthCode || '-',
 });
 
 function StatusPill({ children, tone = 'info' }) {
@@ -55,7 +55,7 @@ export default function FinancialPlanPanel({ dataMap = {}, salesOrders = [], pay
           <p className="text-xs uppercase tracking-normal text-horizon-dark font-semibold flex items-center gap-2"><PiggyBank size={15} aria-hidden="true" /> Plan financier prévisionnel</p>
           <h2 className="mt-1 text-2xl font-semibold text-earth">Prévu vs réel · {model.monthLabel || model.monthCode}</h2>
           <p className="mt-1 text-sm text-slate leading-relaxed">
-            {model.activityYear?.year1Label || 'Année 1'} — objectifs BP calés sur 12 mois après le démarrage ({model.activityYear?.startDate ? new Date(model.activityYear.startDate).toLocaleDateString('fr-FR') : 'date non renseignée'}).
+            {model.activityYear?.year1Label || 'Année 1'} - objectifs BP calés sur 12 mois après le démarrage ({model.activityYear?.startDate ? new Date(model.activityYear.startDate).toLocaleDateString('fr-FR') : 'date non renseignée'}).
           </p>
         </div>
         <div className="flex flex-wrap gap-2">

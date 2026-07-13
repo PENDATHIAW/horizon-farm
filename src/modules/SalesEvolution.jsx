@@ -99,29 +99,29 @@ export default function SalesEvolution({
     <ChartsGrid>
       {undatedOrders > 0 ? (
         <p className="col-span-full rounded-xl border border-vigilance bg-vigilance-bg px-4 py-2 text-sm text-horizon-dark">
-          {undatedOrders} vente(s) sans date valide — exclue(s) des graphiques mensuels. Renseignez la date sur la fiche vente.
+          {undatedOrders} vente(s) sans date valide - exclue(s) des graphiques mensuels. Renseignez la date sur la fiche vente.
         </p>
       ) : null}
-      <SmartEvolutionChart moduleName="Ventes" compact title="CA commandé vs encaissé" subtitle="Histogramme — montants mensuels" months={labels(monthly)} leftUnit="FCFA" rightUnit="" series={[
+      <SmartEvolutionChart moduleName="Ventes" compact title="CA commandé vs encaissé" subtitle="Histogramme - montants mensuels" months={labels(monthly)} leftUnit="FCFA" rightUnit="" series={[
         { name: 'CA commandé', type: 'bar', unit: 'FCFA', data: values(monthly, 'commandes') },
         { name: 'Encaissé', type: 'bar', unit: 'FCFA', data: values(monthly, 'encaisses') },
       ]} />
-      <SmartEvolutionChart moduleName="Ventes" compact title="Impayés vs marge fiable" subtitle="Histogramme — reste à encaisser et marge" months={labels(monthly)} leftUnit="FCFA" rightUnit="" series={[
+      <SmartEvolutionChart moduleName="Ventes" compact title="Impayés vs marge fiable" subtitle="Histogramme - reste à encaisser et marge" months={labels(monthly)} leftUnit="FCFA" rightUnit="" series={[
         { name: 'Impayés', type: 'bar', unit: 'FCFA', data: values(monthly, 'impayes') },
         { name: 'Marge fiable', type: 'bar', unit: 'FCFA', data: values(monthly, 'marge') },
       ]} />
-      <SmartEvolutionChart moduleName="Ventes" compact title="Taux de paiement" subtitle="Courbe — % encaissé sur CA" months={labels(monthly)} leftUnit="%" rightUnit="" series={[
+      <SmartEvolutionChart moduleName="Ventes" compact title="Taux de paiement" subtitle="Courbe - % encaissé sur CA" months={labels(monthly)} leftUnit="%" rightUnit="" series={[
         { name: 'Taux paiement', type: 'line', unit: '%', data: values(monthly, 'taux_paiement') },
       ]} />
-      <SmartPieChart moduleName="Ventes" compact title="Répartition encaissements" subtitle="Camembert — payé vs reste à encaisser" unit="FCFA" items={[
+      <SmartPieChart moduleName="Ventes" compact title="Répartition encaissements" subtitle="Camembert - payé vs reste à encaisser" unit="FCFA" items={[
         { name: 'Encaissé', value: totalPaid },
         { name: 'Impayés', value: totalRemaining },
       ]} />
-      <SmartEvolutionChart moduleName="Ventes" compact title="Commandes ouvertes vs converties" subtitle="Histogramme — suivi pipeline" months={labels(monthly)} leftUnit="" rightUnit="" series={[
+      <SmartEvolutionChart moduleName="Ventes" compact title="Commandes ouvertes vs converties" subtitle="Histogramme - suivi pipeline" months={labels(monthly)} leftUnit="" rightUnit="" series={[
         { name: 'Commandes ouvertes', type: 'bar', data: values(monthly, 'ouvertes') },
         { name: 'Opport. converties', type: 'bar', data: values(monthly, 'converties') },
       ]} />
-      <SmartPieChart moduleName="Ventes" compact title="Structure CA global" subtitle="Camembert — commandé / encaissé / impayés" unit="FCFA" items={[
+      <SmartPieChart moduleName="Ventes" compact title="Structure CA global" subtitle="Camembert - commandé / encaissé / impayés" unit="FCFA" items={[
         { name: 'Encaissé', value: totalPaid },
         { name: 'Impayés', value: totalRemaining },
         { name: 'CA non encaissé partiel', value: Math.max(0, totalOrders - totalPaid - totalRemaining) },

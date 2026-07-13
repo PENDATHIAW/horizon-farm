@@ -1,5 +1,5 @@
 /**
- * Objectifs canoniques — une seule vérité pour Assistant, Accueil et Centre décisionnel.
+ * Objectifs canoniques - une seule vérité pour Assistant, Accueil et Centre décisionnel.
  * S'aligne sur computeDashboardPeriodGoal (dashboard).
  */
 

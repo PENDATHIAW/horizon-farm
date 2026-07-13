@@ -19,7 +19,7 @@ export default function FinanceMissingProofPanel({ items = [], compact = false }
             <div>
               <p className="font-semibold text-earth">{row.title}</p>
               <p className="text-xs text-slate">
-                {String(row.date || '—').slice(0, 10)} · {fmtCurrency(row.amount)}
+                {String(row.date || '-').slice(0, 10)} · {fmtCurrency(row.amount)}
               </p>
             </div>
             <div className="flex flex-wrap gap-2">

@@ -83,7 +83,7 @@ function maraichageRows(analytics = {}) {
 export function buildObjectifsExportWorkbook(analytics = {}) {
   const workbook = XLSX.utils.book_new();
   workbook.Props = {
-    Title: 'Objectifs & Croissance — Horizon Farm',
+    Title: 'Objectifs & Croissance - Horizon Farm',
     Subject: 'Analytique export',
     Author: 'Horizon Farm ERP',
     CreatedDate: new Date(),

@@ -1,8 +1,8 @@
 /**
- * Source unique des entry points modules — App.jsx charge uniquement depuis ici.
+ * Source unique des entry points modules - App.jsx charge uniquement depuis ici.
  * Ne pas référencer les anciennes versions (Dashboard.jsx, ImpactBusinessStrategicV*, etc.).
  *
- * CANONICAL_MODULE_FILES — fichier réellement chargé (dernière version connue par famille).
+ * CANONICAL_MODULE_FILES - fichier réellement chargé (dernière version connue par famille).
  */
 export const CANONICAL_MODULE_FILES = {
   dashboard: 'dashboard/AccueilConforme.jsx',
@@ -46,7 +46,7 @@ export const CANONICAL_MODULE_FILES = {
   gestion_systeme: 'GestionSystemeV2.jsx',
 };
 
-/** Fichiers legacy — ne doivent jamais apparaître comme entry point App. */
+/** Fichiers legacy - ne doivent jamais apparaître comme entry point App. */
 export const FORBIDDEN_ENTRY_FILES = [
   'Dashboard.jsx',
   'ImpactBusiness.jsx',
@@ -65,7 +65,7 @@ export const MODULE_ENTRY_POINTS = {
   dashboard: () => import('../modules/dashboard/AccueilConforme.jsx'),
   assistant_erp: () => import('../modules/AssistantERPV2.jsx'),
   centre_decisionnel: () => import('../modules/CentreIA.jsx'),
-  /** @deprecated alias — redirigé vers centre_decisionnel */
+  /** @deprecated alias - redirigé vers centre_decisionnel */
   centre_ia: () => import('../modules/CentreIA.jsx'),
   objectifs_croissance: () => import('../modules/ObjectifsCroissanceV2.jsx'),
   elevage: () => import('../modules/ElevageModule.jsx'),
@@ -82,7 +82,7 @@ export const MODULE_ENTRY_POINTS = {
   comptabilite: () => import('../modules/ComptabiliteV7.jsx'),
   investissements: () => import('../modules/InvestissementsV9.jsx'),
   financements: () => import('../modules/FinancementsModule.jsx'),
-  /** @deprecated alias — redirigé vers financements */
+  /** @deprecated alias - redirigé vers financements */
   impact_business: () => import('../modules/FinancementsModule.jsx'),
   investisseurs_forums: () => import('../modules/FinancementsModule.jsx'),
   stock: () => import('../modules/StocksV5.jsx'),
@@ -96,7 +96,7 @@ export const MODULE_ENTRY_POINTS = {
   documents: () => import('../modules/DocumentsV2.jsx'),
   taches: () => import('../modules/TachesV3.jsx'),
   equipe: () => import('../modules/RHV2.jsx'),
-  /** @deprecated alias — redirigé vers equipe */
+  /** @deprecated alias - redirigé vers equipe */
   rh: () => import('../modules/RHV2.jsx'),
   rapports: () => import('../modules/RapportsV2.jsx'),
   equipements: () => import('../modules/EquipementsV3.jsx'),

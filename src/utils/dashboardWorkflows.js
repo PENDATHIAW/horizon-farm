@@ -69,7 +69,7 @@ export function buildDashboardTodayActions(data = {}) {
       iconKey: 'money',
       category: 'Argent',
       title: unpaidOrders.length === 1 ? '1 vente reste à encaisser' : `${unpaidOrders.length} ventes restent à encaisser`,
-      detail: `${fmtCurrency(receivable)} à récupérer — relancer depuis Commercial`,
+      detail: `${fmtCurrency(receivable)} à récupérer - relancer depuis Commercial`,
       moduleKey: 'commercial',
       tone: 'red',
       priority: 10,

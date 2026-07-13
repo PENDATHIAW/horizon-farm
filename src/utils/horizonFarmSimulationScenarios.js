@@ -94,7 +94,7 @@ export function buildTransformationSaleEvents(salesOrders = []) {
       String(o.source_type || '').includes('animal') ? 'animal' : 'lot_avicole',
       o.source_id,
       `Vente enregistrée : ${o.product_name || o.id}`,
-      `Commande ${o.id} · ${o.quantity} ${o.unit} · ${money(o.montant_total)} FCFA — visible Transformation`,
+      `Commande ${o.id} · ${o.quantity} ${o.unit} · ${money(o.montant_total)} FCFA - visible Transformation`,
       'info',
       {
         amount: money(o.montant_total),
@@ -165,7 +165,7 @@ export function buildExtraSimulationEntities() {
     ],
     business_events_extra: [
       event(210, 'abattage_animal', 'animaux_abattage', 'animal', 'HF-BOV-010', 'Abattage bovin HF-BOV-010', '185 kg viande → stock', 'info', { amount: 45000, quantity: 185, unit: 'kg', event_date: dateDaysAgo(20) }),
-      event(211, 'mortalite_lot', 'avicole', 'lot_avicole', 'HF-CH-005', 'Mortalité lot retard poids', '8 sujets — impact effectif', 'warning', { amount: 52000, quantity: 8, unit: 'sujet', event_date: dateDaysAgo(6) }),
+      event(211, 'mortalite_lot', 'avicole', 'lot_avicole', 'HF-CH-005', 'Mortalité lot retard poids', '8 sujets - impact effectif', 'warning', { amount: 52000, quantity: 8, unit: 'sujet', event_date: dateDaysAgo(6) }),
       event(212, 'reforme_pondeuses', 'avicole', 'lot_avicole', 'HF-PO-001', 'Réforme pondeuses planifiée', 'Simulation réforme 17+ mois', 'info', { event_date: dateDaysFromNow(45) }),
     ],
     stock_extra: [

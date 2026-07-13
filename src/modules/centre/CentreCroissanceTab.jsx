@@ -23,7 +23,7 @@ function AccordionSection({ title, detail, open, onToggle, children }) {
 }
 
 /**
- * Croissance & opportunités — objectifs, recommandations, ROI (sans calendrier ni urgences).
+ * Croissance & opportunités - objectifs, recommandations, ROI (sans calendrier ni urgences).
  */
 export default function CentreCroissanceTab({
   plan = {},
@@ -73,7 +73,7 @@ export default function CentreCroissanceTab({
 
       <AccordionSection
         title="Graphiques"
-        detail="Optionnel — production, marge et signaux."
+        detail="Optionnel - production, marge et signaux."
         open={graphOpen}
         onToggle={() => setGraphOpen((v) => !v)}
       >

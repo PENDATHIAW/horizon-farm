@@ -129,7 +129,7 @@ export function opportunityMessageForClient(opportunity = {}, client = {}) {
   const product = opportunity.title || opportunity.libelle || opportunity.product_name || 'une disponibilité Horizon Farm';
   const value = saleAmount(opportunity) || opportunity.estimated_value || opportunity.montant_estime;
   const reason = opportunity.reason ? ` ${opportunity.reason}` : '';
-  return `Bonjour ${clientName(client)}, nous avons : ${product}.${reason}${value ? ` Estimation : ${fmtCurrency(value)}.` : ''} Êtes-vous intéressé(e) ? — Horizon Farm`;
+  return `Bonjour ${clientName(client)}, nous avons : ${product}.${reason}${value ? ` Estimation : ${fmtCurrency(value)}.` : ''} Êtes-vous intéressé(e) ? - Horizon Farm`;
 }
 
 export function relanceMessageForClient(client = {}, summary = {}) {

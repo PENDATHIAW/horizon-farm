@@ -409,7 +409,7 @@ export default function ElevageRecoveredModule(props) {
       },
       onAfterOpen: () => {
         scrollToTransformationForm();
-        toast.success('Transformation — formulaire officiel ouvert');
+        toast.success('Transformation - formulaire officiel ouvert');
       },
     });
   }, [setTab]);
@@ -422,7 +422,7 @@ export default function ElevageRecoveredModule(props) {
       context,
       onAfterOpen: () => {
         scrollToReproductionWorkflowForm();
-        toast.success('Reproduction — workflow officiel ouvert');
+        toast.success('Reproduction - workflow officiel ouvert');
       },
     });
   }, [setTab]);
@@ -451,7 +451,7 @@ export default function ElevageRecoveredModule(props) {
           toast.error(block.message);
           return;
         }
-        toast('Exception terrain — vente avec délai sanitaire actif', { icon: '⚠️' });
+        toast('Exception terrain - vente avec délai sanitaire actif', { icon: '⚠️' });
       }
     }
     props.onNavigate?.(module, opts);
@@ -478,7 +478,7 @@ export default function ElevageRecoveredModule(props) {
         },
         onAfterOpen: () => {
           scrollToHealthInterventionForm();
-          toast.success('Intervention santé — formulaire complet ouvert');
+          toast.success('Intervention santé - formulaire complet ouvert');
         },
       });
       return;
@@ -593,7 +593,7 @@ export default function ElevageRecoveredModule(props) {
       window.setTimeout(() => {
         document.getElementById('hey-horizon-animal-card')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
       }, 120);
-      if (ctx?.animalId) toast.success('Fiche jeune — complétez la création animal');
+      if (ctx?.animalId) toast.success('Fiche jeune - complétez la création animal');
     },
   };
 

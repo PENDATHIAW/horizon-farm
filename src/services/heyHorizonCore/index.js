@@ -1,5 +1,5 @@
 /**
- * Hey Horizon AI Core — socle central lecture seule pour futures fonctionnalités IA.
+ * Hey Horizon AI Core - socle central lecture seule pour futures fonctionnalités IA.
  *
  * Règles :
  * - Aucune écriture Supabase depuis ce module.
@@ -64,7 +64,7 @@ export function getHeyHorizonCoreSnapshot(dataMap = {}) {
 }
 
 /**
- * Synthèse « dossier financeur / investisseur » — indicateurs réels uniquement.
+ * Synthèse « dossier financeur / investisseur » - indicateurs réels uniquement.
  */
 export function getInvestorReadySummary(dataMap = {}) {
   const snapshot = getHeyHorizonCoreSnapshot(dataMap);

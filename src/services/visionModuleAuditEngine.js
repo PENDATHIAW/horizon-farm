@@ -40,7 +40,7 @@ function dataPresence(data, keys) {
   return keys.map((key) => ({ key, count: arr(data[key]).length, ok: arr(data[key]).length > 0 }));
 }
 
-/** Audit automatique vision 2026 — un module à la fois, ordre MODULE_AUDIT_ORDER. */
+/** Audit automatique vision 2026 - un module à la fois, ordre MODULE_AUDIT_ORDER. */
 export function runVisionModuleAudit(data = {}) {
   const health = runErpHealthEngine(data);
   const modules = MODULE_AUDIT_ORDER.map((moduleId) => {
@@ -74,7 +74,7 @@ export function runVisionModuleAudit(data = {}) {
     if (moduleId === 'impact_business' && !arr(data.business_events).length) lost.push('Impacts métier non structurés');
 
     const redundancies = [];
-    if (moduleId === 'objectifs_croissance' && MODULE_REGISTRY.centre_ia) redundancies.push('Centre décisionnel parallèle — vérifier non-duplication des recommandations');
+    if (moduleId === 'objectifs_croissance' && MODULE_REGISTRY.centre_ia) redundancies.push('Centre décisionnel parallèle - vérifier non-duplication des recommandations');
 
     const { status, label: statusLabel, score } = scoreFromIssues(issues);
 

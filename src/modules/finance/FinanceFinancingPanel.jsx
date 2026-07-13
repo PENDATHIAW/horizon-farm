@@ -20,7 +20,7 @@ export default function FinanceFinancingPanel({
           <Banknote size={20} className="text-horizon-dark" />
           <div>
             <h2 className="text-lg font-semibold text-earth">Financement</h2>
-            <p className="text-sm text-slate">Lecture banque / investisseur — données reprises du business plan.</p>
+            <p className="text-sm text-slate">Lecture banque / investisseur - données reprises du business plan.</p>
           </div>
         </div>
 

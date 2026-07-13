@@ -1,4 +1,4 @@
-/** Référence DER/FJ Greenpreneurs 2026 — ne remplace pas le BP officiel existant. */
+/** Référence DER/FJ Greenpreneurs 2026 - ne remplace pas le BP officiel existant. */
 export const DERFJ_GREENPRENEURS_PROFILE = {
   program: 'DER/FJ Greenpreneurs',
   projectName: 'HORIZON FARM',
@@ -29,11 +29,11 @@ export const GREENPRENEURS_STATUS_THRESHOLDS = {
   pret_renforcer: 55,
 };
 
-/** Canal vente fumier/fientes — plateforme Orgaloop (conjoint). */
+/** Canal vente fumier/fientes - plateforme Orgaloop (conjoint). */
 export const ORGALOOP_EFFLUENT_CHANNEL = {
   platformName: 'Orgaloop',
   strategy: 'hybride_surplus_orgaloop',
-  strategyLabel: 'Priorité fertilisation cultures Horizon Farm — surplus vendu sur Orgaloop',
+  strategyLabel: 'Priorité fertilisation cultures Horizon Farm - surplus vendu sur Orgaloop',
   internalFertilizationPriority: true,
   saleChannelTags: ['orgaloop', 'plateforme conjoint', 'marketplace orgaloop'],
 };
@@ -56,7 +56,7 @@ export const CIRCULAR_STOCK_CATEGORIES = [
   'fertilisant_naturel',
 ];
 
-/** Estimations mensuelles (hypothèse BP DER/FJ) — kg */
+/** Estimations mensuelles (hypothèse BP DER/FJ) - kg */
 export const CIRCULAR_SIMULATION_MONTHLY_KG = {
   fientes_pondeuses: 48000,
   litiere_chair: 2000,

@@ -92,7 +92,7 @@ export default function CommercialSaleRepairPanel({
           orderId: row.orderId,
           stocks,
         });
-        toast.success('Sortie stock appliquée — vérifiez le stock');
+        toast.success('Sortie stock appliquée - vérifiez le stock');
       } else {
         toast('Réparation manuelle requise pour ce cas.', { icon: 'ℹ️' });
       }
@@ -115,7 +115,7 @@ export default function CommercialSaleRepairPanel({
   return (
     <section className="space-y-3">
       <p className="text-sm text-slate">
-        Panneau admin/qualité — ne fait pas partie du flux « Nouvelle vente ». {gaps.length} écart(s).
+        Panneau admin/qualité - ne fait pas partie du flux « Nouvelle vente ». {gaps.length} écart(s).
       </p>
       {gaps.slice(0, 12).map((row) => (
         <div key={row.id} className="flex flex-col gap-2 rounded-xl border border-line bg-white p-3 sm:flex-row sm:items-center sm:justify-between">

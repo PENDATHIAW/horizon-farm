@@ -1,5 +1,5 @@
 /**
- * Commercial V3 — livraisons terrain, preuves et statuts.
+ * Commercial V3 - livraisons terrain, preuves et statuts.
  */
 
 import { rowFarmId } from './farmScope.js';

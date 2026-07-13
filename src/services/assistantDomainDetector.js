@@ -1,5 +1,5 @@
 /**
- * Détection automatique du domaine métier — l'utilisateur ne nomme pas les modules.
+ * Détection automatique du domaine métier - l'utilisateur ne nomme pas les modules.
  */
 
 import { normalizeAgriculturalText } from './assistantUniversalIntents.js';

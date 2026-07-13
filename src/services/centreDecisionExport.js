@@ -21,7 +21,7 @@ function priorityRows(priorities = []) {
     Priorité: item.priorityLabel,
     Module: item.sourceLabel,
     Destination: item.targetTab || 'Urgences & risques',
-    Type: item.kind || '—',
+    Type: item.kind || '-',
   }));
 }
 
@@ -134,10 +134,10 @@ export function buildCentreExportWorkbook({ data = {}, decisionPlan = {}, strate
     'Synthese',
     ['Indicateur', 'Valeur'],
     [
-      { Indicateur: 'Santé ERP', Valeur: `${data.healthScore ?? data.globalScore ?? '—'}/100` },
+      { Indicateur: 'Santé ERP', Valeur: `${data.healthScore ?? data.globalScore ?? '-'}/100` },
       { Indicateur: 'File du jour', Valeur: buildActionQueue(data.priorities || [], { includeDismissed: true }).today.length },
       { Indicateur: 'Urgences vente', Valeur: strategicPlan.sellNow?.length || 0 },
-      { Indicateur: 'ITH', Valeur: strategicPlan.ith ?? '—' },
+      { Indicateur: 'ITH', Valeur: strategicPlan.ith ?? '-' },
       { Indicateur: 'BFR bloqué', Valeur: strategicPlan.bfr?.blocked ? 'Oui' : 'Non' },
       { Indicateur: 'Date export', Valeur: today() },
     ],

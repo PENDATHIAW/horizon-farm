@@ -1,5 +1,5 @@
 /**
- * Résolution de libellés métier — interdit les placeholders génériques
+ * Résolution de libellés métier - interdit les placeholders génériques
  * quand une donnée réelle existe (Client, Produit, Animal, Lot).
  */
 
@@ -120,7 +120,7 @@ export function dedupeProse(text = '') {
   return unique.join(' ').replace(/\s{2,}/g, ' ').trim();
 }
 
-/** Filtre une liste de noms clients — exclut les placeholders et doublons. */
+/** Filtre une liste de noms clients - exclut les placeholders et doublons. */
 export function uniqueClientNames(rows = [], clients = []) {
   const names = [];
   const seen = new Set();

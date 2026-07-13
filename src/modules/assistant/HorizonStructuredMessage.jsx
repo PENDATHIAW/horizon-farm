@@ -5,7 +5,7 @@ import {
   parseHorizonStructuredText,
 } from '../../services/assistantResponseFormatter.js';
 
-/** Réponses conversationnelles — prose naturelle, zéro source technique. */
+/** Réponses conversationnelles - prose naturelle, zéro source technique. */
 export default function HorizonStructuredMessage({ text = '', structured = null }) {
   const parsed = structured?.situation || structured?.cause || structured?.action
     ? parseHorizonStructuredText(structured)

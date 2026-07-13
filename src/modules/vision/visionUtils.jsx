@@ -12,7 +12,7 @@ export const low = (v) => String(v || '').toLowerCase();
 export const n = (v = 0) => Number(v || 0);
 export const amount = (r = {}) => n(r.montant ?? r.amount ?? r.total ?? r.montant_total ?? r.valeur ?? r.value);
 export const label = (r = {}) => r.title || r.nom || r.name || r.libelle || r.description || r.produit || r.id || 'Élément';
-export const dateOf = (r = {}) => r.date || r.event_date || r.created_at || r.updated_at || '—';
+export const dateOf = (r = {}) => r.date || r.event_date || r.created_at || r.updated_at || '-';
 export const isIncome = (r = {}) => ['entree', 'entrée', 'income', 'recette', 'vente'].includes(low(r.type || r.nature || r.sens));
 export const isExpense = (r = {}) => ['sortie', 'expense', 'depense', 'dépense', 'achat', 'charge'].includes(low(r.type || r.nature || r.sens));
 export const isOpen = (r = {}) => !['termine', 'terminé', 'closed', 'clos', 'resolu', 'résolu', 'done'].includes(low(r.status || r.statut || r.state));
@@ -82,7 +82,7 @@ export function DataRow({ title, detail, status, tone = 'neutral', onClick, acti
       <button type="button" onClick={onClick} className="text-left font-semibold text-earth hover:text-positive">{title}</button>
       <span className="text-sm text-slate">{detail}</span>
       {columns === 4 ? (
-        <div className="flex items-center">{status ? <Pill tone={tone}>{status}</Pill> : <span className="text-xs text-slate">—</span>}</div>
+        <div className="flex items-center">{status ? <Pill tone={tone}>{status}</Pill> : <span className="text-xs text-slate">-</span>}</div>
       ) : null}
       <div className="flex flex-wrap items-center gap-2">{actions || (columns === 3 && status ? <Pill tone={tone}>{status}</Pill> : null)}</div>
     </div>
@@ -112,7 +112,7 @@ export function TabIntro({ title, detail, action }) {
 
 export function riskLevelLabel(level = '') {
   const map = { critique: 'Critique', eleve: 'Élevé', haute: 'Élevé', moyen: 'Moyen', moyenne: 'Moyen', faible: 'Faible', basse: 'Faible' };
-  return map[low(level)] || level || '—';
+  return map[low(level)] || level || '-';
 }
 
 function mapEngineRisk(r) {
@@ -127,9 +127,9 @@ function mapEngineRisk(r) {
     module: r.module,
     severity: riskLevelLabel(r.level),
     probability: r.level === 'critique' || r.level === 'eleve' ? 'Élevée' : 'Moyenne',
-    financialImpact: '—',
-    owner: '—',
-    due: '—',
+    financialImpact: '-',
+    owner: '-',
+    due: '-',
     resolutionStatus: 'ouverte',
     tone,
     engineRisk: true,
@@ -145,20 +145,20 @@ function mapEnginePrediction(p) {
     module: p.module,
     severity: p.severity,
     days_left: p.days_left,
-    horizon: p.days_left != null ? `${p.days_left} j` : '—',
+    horizon: p.days_left != null ? `${p.days_left} j` : '-',
     type: p.type,
   };
 }
 
 export function buildRisks(data) {
   const risks = [];
-  data.openAlerts.forEach((r) => risks.push({ id: `alert-${r.id || label(r)}`, domain: 'Alerte', title: label(r), cause: r.message || r.description || 'Alerte ouverte', impact: 'Risque opérationnel non clôturé', action: 'Traiter ou transformer en tâche', module: 'activite_suivi', navTab: 'Alertes', severity: low(r.severity).includes('critique') ? 'Critique' : 'Moyenne', probability: 'Élevée', financialImpact: r.amount ? fmtCurrency(r.amount) : '—', owner: r.responsable || '—', due: dateOf(r), resolutionStatus: r.status || 'ouverte', tone: low(r.severity).includes('critique') ? 'bad' : 'warn' }));
-  data.openTasks.filter(isRisk).forEach((r) => risks.push({ id: `task-${r.id || label(r)}`, domain: 'Tâche', title: label(r), cause: r.description || 'Tâche prioritaire', impact: 'Retard possible sur exploitation', action: 'Planifier ou clôturer', module: 'activite_suivi', navTab: 'Tâches', severity: 'Moyenne', probability: 'Moyenne', financialImpact: '—', owner: r.assigned_to || '—', due: r.due_date || '—', resolutionStatus: r.status || 'ouverte', tone: 'warn' }));
-  data.stocks.filter((r) => stockThreshold(r) > 0 && stockQty(r) <= stockThreshold(r)).forEach((r) => risks.push({ id: `stock-${r.id || label(r)}`, domain: 'Stock', title: label(r), cause: `${fmtNumber(stockQty(r))} disponible · seuil ${fmtNumber(stockThreshold(r))}`, impact: 'Rupture ou arrêt activité', action: 'Réapprovisionner', module: 'achats_stock', navTab: 'Stock', severity: stockQty(r) <= 0 ? 'Critique' : 'Moyenne', probability: 'Élevée', financialImpact: fmtCurrency(stockQty(r) * n(r.prix_unitaire)), owner: '—', due: '—', resolutionStatus: 'ouverte', tone: stockQty(r) <= 0 ? 'bad' : 'warn' }));
-  data.animaux.filter(isRisk).forEach((r) => risks.push({ id: `animal-${r.id || label(r)}`, domain: 'Élevage', title: label(r), cause: r.health_status || r.status || 'Suivi santé', impact: 'Perte, contagion ou vente bloquée', action: 'Vérifier fiche santé', module: 'elevage', navTab: 'Santé', severity: 'Critique', probability: 'Élevée', financialImpact: '—', owner: '—', due: '—', resolutionStatus: 'ouverte', tone: 'bad' }));
-  if (data.treasuryResult < 0) risks.push({ id: 'cash-negative', domain: 'Finance', title: 'Trésorerie en tension', cause: 'Encaissements < charges sur la période', impact: 'Tension de liquidité', action: 'Accélérer encaissements', module: 'finance_pilotage', navTab: 'Trésorerie', severity: 'Critique', probability: 'Certaine', financialImpact: fmtCurrency(Math.abs(data.treasuryResult)), owner: '—', due: '—', resolutionStatus: 'ouverte', tone: 'bad' });
-  if (data.receivable > 0) risks.push({ id: 'receivable', domain: 'Commercial', title: 'Encaissements à suivre', cause: `${fmtCurrency(data.receivable)} restant à encaisser`, impact: 'Cash bloqué chez les clients', action: 'Relancer clients', module: 'commercial', navTab: 'Clients & créances', severity: 'Moyenne', probability: 'Moyenne', financialImpact: fmtCurrency(data.receivable), owner: '—', due: '—', resolutionStatus: 'ouverte', tone: 'warn' });
-  if (data.missingProof > 0) risks.push({ id: 'missing-proof', domain: 'Documents', title: 'Preuves manquantes', cause: `${data.missingProof} opération(s) sans justificatif`, impact: 'Dossiers financeurs fragilisés', action: 'Ajouter preuves', module: 'documents_rapports', navTab: 'Preuves', severity: 'Moyenne', probability: 'Certaine', financialImpact: '—', owner: '—', due: '—', resolutionStatus: 'ouverte', tone: 'warn' });
+  data.openAlerts.forEach((r) => risks.push({ id: `alert-${r.id || label(r)}`, domain: 'Alerte', title: label(r), cause: r.message || r.description || 'Alerte ouverte', impact: 'Risque opérationnel non clôturé', action: 'Traiter ou transformer en tâche', module: 'activite_suivi', navTab: 'Alertes', severity: low(r.severity).includes('critique') ? 'Critique' : 'Moyenne', probability: 'Élevée', financialImpact: r.amount ? fmtCurrency(r.amount) : '-', owner: r.responsable || '-', due: dateOf(r), resolutionStatus: r.status || 'ouverte', tone: low(r.severity).includes('critique') ? 'bad' : 'warn' }));
+  data.openTasks.filter(isRisk).forEach((r) => risks.push({ id: `task-${r.id || label(r)}`, domain: 'Tâche', title: label(r), cause: r.description || 'Tâche prioritaire', impact: 'Retard possible sur exploitation', action: 'Planifier ou clôturer', module: 'activite_suivi', navTab: 'Tâches', severity: 'Moyenne', probability: 'Moyenne', financialImpact: '-', owner: r.assigned_to || '-', due: r.due_date || '-', resolutionStatus: r.status || 'ouverte', tone: 'warn' }));
+  data.stocks.filter((r) => stockThreshold(r) > 0 && stockQty(r) <= stockThreshold(r)).forEach((r) => risks.push({ id: `stock-${r.id || label(r)}`, domain: 'Stock', title: label(r), cause: `${fmtNumber(stockQty(r))} disponible · seuil ${fmtNumber(stockThreshold(r))}`, impact: 'Rupture ou arrêt activité', action: 'Réapprovisionner', module: 'achats_stock', navTab: 'Stock', severity: stockQty(r) <= 0 ? 'Critique' : 'Moyenne', probability: 'Élevée', financialImpact: fmtCurrency(stockQty(r) * n(r.prix_unitaire)), owner: '-', due: '-', resolutionStatus: 'ouverte', tone: stockQty(r) <= 0 ? 'bad' : 'warn' }));
+  data.animaux.filter(isRisk).forEach((r) => risks.push({ id: `animal-${r.id || label(r)}`, domain: 'Élevage', title: label(r), cause: r.health_status || r.status || 'Suivi santé', impact: 'Perte, contagion ou vente bloquée', action: 'Vérifier fiche santé', module: 'elevage', navTab: 'Santé', severity: 'Critique', probability: 'Élevée', financialImpact: '-', owner: '-', due: '-', resolutionStatus: 'ouverte', tone: 'bad' }));
+  if (data.treasuryResult < 0) risks.push({ id: 'cash-negative', domain: 'Finance', title: 'Trésorerie en tension', cause: 'Encaissements < charges sur la période', impact: 'Tension de liquidité', action: 'Accélérer encaissements', module: 'finance_pilotage', navTab: 'Trésorerie', severity: 'Critique', probability: 'Certaine', financialImpact: fmtCurrency(Math.abs(data.treasuryResult)), owner: '-', due: '-', resolutionStatus: 'ouverte', tone: 'bad' });
+  if (data.receivable > 0) risks.push({ id: 'receivable', domain: 'Commercial', title: 'Encaissements à suivre', cause: `${fmtCurrency(data.receivable)} restant à encaisser`, impact: 'Cash bloqué chez les clients', action: 'Relancer clients', module: 'commercial', navTab: 'Clients & créances', severity: 'Moyenne', probability: 'Moyenne', financialImpact: fmtCurrency(data.receivable), owner: '-', due: '-', resolutionStatus: 'ouverte', tone: 'warn' });
+  if (data.missingProof > 0) risks.push({ id: 'missing-proof', domain: 'Documents', title: 'Preuves manquantes', cause: `${data.missingProof} opération(s) sans justificatif`, impact: 'Dossiers financeurs fragilisés', action: 'Ajouter preuves', module: 'documents_rapports', navTab: 'Preuves', severity: 'Moyenne', probability: 'Certaine', financialImpact: '-', owner: '-', due: '-', resolutionStatus: 'ouverte', tone: 'warn' });
   return risks.slice(0, 40);
 }
 
@@ -264,7 +264,7 @@ export function buildVisionData(props = {}) {
   const enginePriorities = health.findings.slice(0, 12).map((f) => ({
     id: f.id,
     title: f.title,
-    detail: f.recommended_action || f.description || '—',
+    detail: f.recommended_action || f.description || '-',
     value: 'Analyse',
     tone: f.severity === 'critique' || f.severity === 'haute' ? 'bad' : 'warn',
     tab: 'À traiter',

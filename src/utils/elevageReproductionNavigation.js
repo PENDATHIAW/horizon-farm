@@ -3,7 +3,7 @@
 export const REPRODUCTION_WORKFLOW_FORM_ID = 'elevage-reproduction-workflow-form';
 
 export const REPRODUCTION_TERRAIN_BANNER =
-  'Saisie terrain — reproduction officielle. Validez saillie, gestation ou mise bas avant enregistrement.';
+  'Saisie terrain - reproduction officielle. Validez saillie, gestation ou mise bas avant enregistrement.';
 
 const today = () => new Date().toISOString().slice(0, 10);
 

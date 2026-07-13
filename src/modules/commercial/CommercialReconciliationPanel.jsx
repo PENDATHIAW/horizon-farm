@@ -12,7 +12,7 @@ export default function CommercialReconciliationPanel({ rows = [], setTab }) {
             <AlertTriangle size={14} />
             Éléments à rapprocher
           </p>
-          <p className="text-sm text-horizon-dark">Anomalies Commercial ↔ Finance — validation manuelle requise.</p>
+          <p className="text-sm text-horizon-dark">Anomalies Commercial ↔ Finance - validation manuelle requise.</p>
         </div>
         <span className="rounded-full border border-vigilance bg-white px-3 py-1 text-xs font-semibold text-horizon-dark">
           {rows.length}

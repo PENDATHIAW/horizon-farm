@@ -1,4 +1,4 @@
-/** Grilles responsive — module Finance & Pilotage */
+/** Grilles responsive - module Finance & Pilotage */
 
 export const FINANCE_STAT_GRID = 'grid min-w-0 grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4';
 export const FINANCE_ACTION_GRID = 'grid min-w-0 grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4';

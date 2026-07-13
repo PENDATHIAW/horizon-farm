@@ -138,7 +138,7 @@ export default function CommercialOpportunitiesPanel({
       window.open(`tel:${phone}`, '_self');
       return;
     }
-    setContact({ client, message: opportunityMessageForClient(opportunity, client), title: `Proposer — ${client.nom || client.name}` });
+    setContact({ client, message: opportunityMessageForClient(opportunity, client), title: `Proposer - ${client.nom || client.name}` });
   };
 
   const openContactAll = (opportunity, clientList) => {
@@ -214,7 +214,7 @@ export default function CommercialOpportunitiesPanel({
         <div>
           <p className="text-meta font-semibold uppercase tracking-normal text-slate">Pipeline</p>
           <p className="text-2xl font-semibold text-earth">{fmtCurrency(pipeline)}</p>
-          <p className="text-sm text-slate">{mergedOpportunities.length} opportunité(s) · stock, cultures, élevage — clients ciblés automatiquement</p>
+          <p className="text-sm text-slate">{mergedOpportunities.length} opportunité(s) · stock, cultures, élevage - clients ciblés automatiquement</p>
         </div>
         <div className="flex flex-wrap gap-2">
           <button type="button" onClick={openDirectSale} className="min-h-[44px] rounded-xl bg-earth px-4 py-2 text-sm font-semibold text-white">+ Vente directe</button>

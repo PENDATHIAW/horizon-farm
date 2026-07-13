@@ -121,7 +121,7 @@ export default function GlobalPeriodControl({ periodScope = {}, onChange }) {
       {open && mode === 'months' ? (
         <div className="mt-2 rounded-2xl border border-line bg-white p-3 shadow-card">
           <div className="mb-2 flex items-center justify-between gap-2">
-            <p className="text-xs text-slate">Cochez un ou plusieurs mois — l&apos;ERP se met à jour après votre sélection.</p>
+            <p className="text-xs text-slate">Cochez un ou plusieurs mois - l&apos;ERP se met à jour après votre sélection.</p>
             <button type="button" onClick={closePanel} className="text-xs font-semibold text-slate">Fermer</button>
           </div>
           <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6">

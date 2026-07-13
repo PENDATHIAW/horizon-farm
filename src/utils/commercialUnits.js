@@ -1,5 +1,5 @@
 /**
- * Commercial V3 — unités agricoles normalisées.
+ * Commercial V3 - unités agricoles normalisées.
  */
 
 const clean = (value) => String(value || '').trim().toLowerCase();

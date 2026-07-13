@@ -79,7 +79,7 @@ export default function ProductionQuestionsPanel({
         </p>
         <h2 className="mt-1 text-xl font-semibold text-earth">Quand lancer, réformer ou réapprovisionner ?</h2>
         <p className="mt-1 text-sm text-slate">
-          Réponses basées sur le BP Horizon, les lots réels, la ponte et les stocks — pas sur l&apos;Assistant terrain.
+          Réponses basées sur le BP Horizon, les lots réels, la ponte et les stocks - pas sur l&apos;Assistant terrain.
         </p>
       </div>
 

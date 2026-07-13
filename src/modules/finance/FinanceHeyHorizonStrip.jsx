@@ -14,7 +14,7 @@ export default function FinanceHeyHorizonStrip({ questions = [], onNavigate, onO
       </div>
       <p className="mt-1 text-sm text-slate">
         {insufficientData
-          ? 'Questions guidées — réponses honnêtes même sans historique financier.'
+          ? 'Questions guidées - réponses honnêtes même sans historique financier.'
           : 'Questions rapides basées sur vos données financières.'}
       </p>
       {insufficientData ? (

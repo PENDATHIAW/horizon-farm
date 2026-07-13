@@ -36,7 +36,7 @@ export function inferLinkedModule(text = '', context = {}) {
 }
 
 /**
- * Propose un brouillon de rattachement document — pas d'upload ni de lien en base.
+ * Propose un brouillon de rattachement document - pas d'upload ni de lien en base.
  */
 export function proposeDocumentLinkDraft({
   text = '',
@@ -96,7 +96,7 @@ export function suggestMissingProofFields(transactions = [], documents = []) {
     .slice(0, 10)
     .map((tx) =>
       proposeDocumentLinkDraft({
-        text: `Preuve manquante — ${tx.libelle || tx.label || tx.id}`,
+        text: `Preuve manquante - ${tx.libelle || tx.label || tx.id}`,
         context: {
           related_id: tx.id,
           module_lie: 'finance_pilotage',

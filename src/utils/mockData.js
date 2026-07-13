@@ -92,7 +92,7 @@ export const meteoData = buildWeatherAnalysis({
   sunset: '19:28',
   latitude: 14.7167,
   longitude: -17.4677,
-  locationLabel: 'Horizon Farm — Simulation financeur',
+  locationLabel: 'Horizon Farm - Simulation financeur',
   updatedAt: new Date().toISOString(),
 });
 
@@ -146,7 +146,7 @@ const buildModuleSeedMap = () => ({
   bp_lines_history: horizonFarmSimulationSeed.bp_lines_history || [],
 });
 
-/** Copie figée — ne jamais muter (utilisée par le mode données simulées). */
+/** Copie figée - ne jamais muter (utilisée par le mode données simulées). */
 export const moduleSeedMap = Object.freeze(buildModuleSeedMap());
 
 export function getModuleSeedRows(moduleKey) {

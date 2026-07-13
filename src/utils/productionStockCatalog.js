@@ -156,7 +156,7 @@ export function buildProductionCoherenceAlerts({ stocks = [], lots = [], animaux
       id: 'prod-no-finished-lines',
       severity: 'orange',
       title: 'Aucun produit fini issu production en stock',
-      detail: 'Attendu : œufs, viande (chair/animaux) ou récoltes — après saisie métier dans Élevage / Cultures.',
+      detail: 'Attendu : œufs, viande (chair/animaux) ou récoltes - après saisie métier dans Élevage / Cultures.',
       module: 'achats_stock',
       tab: 'Stock',
     });

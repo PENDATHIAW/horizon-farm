@@ -82,7 +82,7 @@ export default function LoginPage() {
       <header className="relative z-30 flex shrink-0 justify-start px-4 pb-1 pt-3 sm:px-8 sm:pt-4 lg:px-12 lg:pt-6">
         <img
           src={brandLogo}
-          alt="Horizon Farm — De la terre à l'horizon"
+          alt="Horizon Farm - De la terre à l'horizon"
           className="pointer-events-none h-12 w-auto max-w-[11rem] object-contain object-left sm:h-14 lg:h-16 xl:h-[4.5rem] xl:max-w-[13rem]"
         />
       </header>

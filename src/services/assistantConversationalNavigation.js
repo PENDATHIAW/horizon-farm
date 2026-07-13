@@ -1,5 +1,5 @@
 /**
- * Navigation conversationnelle V7 — sans noms de modules ERP.
+ * Navigation conversationnelle V7 - sans noms de modules ERP.
  */
 
 const NAV_PHRASES = Object.freeze({
@@ -17,11 +17,11 @@ const NAV_PHRASES = Object.freeze({
   rh: 'Regardons vos équipes et ressources.',
   sync_activity: 'Je vérifie la synchronisation de la ferme.',
   gestion_systeme: 'J\'ouvre les paramètres de la ferme.',
-  assistant_erp: 'Je suis là — continuez à me parler.',
+  assistant_erp: 'Je suis là - continuez à me parler.',
 });
 
 export function buildConversationalNavigationReply(moduleId = '') {
-  const phrase = NAV_PHRASES[moduleId] || 'Très bien — je vous y emmène.';
+  const phrase = NAV_PHRASES[moduleId] || 'Très bien - je vous y emmène.';
   return {
     title: 'Horizon',
     situation: phrase,

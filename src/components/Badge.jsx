@@ -60,7 +60,7 @@ const COLOR_TONES = Object.freeze({
 });
 
 export default function Badge({ status, color, tone, children }) {
-  const configured = STATUS_MAP[status] || ['neutral', status || '—'];
+  const configured = STATUS_MAP[status] || ['neutral', status || '-'];
   const resolvedTone = tone || COLOR_TONES[color] || configured[0];
   const label = children || configured[1];
 

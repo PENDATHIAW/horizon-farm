@@ -65,7 +65,7 @@ function buildSimulationEstimates() {
 }
 
 /**
- * KPI économie circulaire — données ERP réelles ou estimation BP DER/FJ.
+ * KPI économie circulaire - données ERP réelles ou estimation BP DER/FJ.
  */
 export function computeCircularEconomyMetrics(dataMap = {}, options = {}) {
   const events = arr(dataMap.business_events);

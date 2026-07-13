@@ -1,5 +1,5 @@
 /**
- * Hey Horizon Finance — réponses rule-based alignées au system prompt officiel.
+ * Hey Horizon Finance - réponses rule-based alignées au system prompt officiel.
  * Vérités canoniques via buildOfficialTreasuryView (cashNet, creancesReelles, payablesTotal, margeReelle).
  */
 
@@ -192,9 +192,9 @@ function weekOutflows(schedule = {}) {
 function buildRecoveryTemplates(clientName = 'Client', amount = 0, orderId = '') {
   const amt = fmtCurrency(amount);
   return {
-    sms: `Bonjour ${clientName}, rappel amical : reste ${amt} sur commande ${orderId}. Merci de confirmer le paiement. — Horizon Farm`,
+    sms: `Bonjour ${clientName}, rappel amical : reste ${amt} sur commande ${orderId}. Merci de confirmer le paiement. - Horizon Farm`,
     whatsapp: `Bonjour ${clientName},\n\nJe vous contacte concernant le solde de ${amt} (commande ${orderId}).\nMerci de nous indiquer la date d'encaissement prévue.\n\nCordialement,\nHorizon Farm`,
-    email: `Objet : Rappel de paiement — ${orderId}\n\nBonjour ${clientName},\n\nNous constatons un solde de ${amt} sur la commande ${orderId}.\nMerci de procéder au règlement ou de nous confirmer votre échéance.\n\nCordialement,\nL'équipe Horizon Farm`,
+    email: `Objet : Rappel de paiement - ${orderId}\n\nBonjour ${clientName},\n\nNous constatons un solde de ${amt} sur la commande ${orderId}.\nMerci de procéder au règlement ou de nous confirmer votre échéance.\n\nCordialement,\nL'équipe Horizon Farm`,
   };
 }
 
@@ -250,18 +250,18 @@ export function buildFinancePilotageAnswer(type = '', dataMap = {}) {
         type,
         title: 'Créances à relancer',
         situation: sorted.length
-          ? `${sorted.length} créance(s) ouverte(s) — total ${fmtCurrency(total)}.`
+          ? `${sorted.length} créance(s) ouverte(s) - total ${fmtCurrency(total)}.`
           : 'Aucune créance client ouverte.',
         cause: sorted.length
           ? 'Ventes non totalement encaissées (creancesReelles ERP).'
           : 'Toutes les ventes suivies sont encaissées ou sans reste à payer.',
         action: top
-          ? `Relance prioritaire : ${top.name} — ${fmtCurrency(top.rest)} (commande ${top.id}).`
+          ? `Relance prioritaire : ${top.name} - ${fmtCurrency(top.rest)} (commande ${top.id}).`
           : 'Aucune relance nécessaire aujourd\'hui.',
         sources: [SRC.receivables],
         rows: sorted.slice(0, 6).map((r) => ({
           title: r.name,
-          detail: `Retard ${r.delayDays}j · ${r.dueStr || '—'}`,
+          detail: `Retard ${r.delayDays}j · ${r.dueStr || '-'}`,
           value: fmtCurrency(r.rest),
           module: 'commercial',
           orderId: r.id,
@@ -285,7 +285,7 @@ export function buildFinancePilotageAnswer(type = '', dataMap = {}) {
           ? 'Les paiements de la semaine dépassent la trésorerie disponible (cashNet).'
           : 'Dettes fournisseurs et charges impayées suivies dans payablesTotal.',
         action: top
-          ? `Priorité : ${top.title} — ${fmtCurrency(top.amount)} (${top.detail || top.source}).`
+          ? `Priorité : ${top.title} - ${fmtCurrency(top.amount)} (${top.detail || top.source}).`
           : 'Consultez l\'onglet Dettes pour la liste complète.',
         sources: [SRC.payables, SRC.treasuryAvailable],
         rows: items.slice(0, 6).map((item) => ({
@@ -325,10 +325,10 @@ export function buildFinancePilotageAnswer(type = '', dataMap = {}) {
       return buildFinanceAnswerPayload({
         type,
         title: 'Emprunt prudent',
-        situation: `Mensualité estimée ${fmtCurrency(sim.monthlyPayment)} · prudence ${sim.prudenceLabel} · DSCR ${sim.dscr ?? '—'}.`,
+        situation: `Mensualité estimée ${fmtCurrency(sim.monthlyPayment)} · prudence ${sim.prudenceLabel} · DSCR ${sim.dscr ?? '-'}.`,
         cause: `Basé sur trésorerie ${fmtCurrency(treasury.treasuryAvailable)}, marge réelle ${fmtCurrency(treasury.realMargin)}, dettes ${fmtCurrency(treasury.payables)}.`,
         action: sim.prudence === 'low'
-          ? 'Reporter l\'emprunt ou réduire le montant — simulation indicative à confirmer avec la banque.'
+          ? 'Reporter l\'emprunt ou réduire le montant - simulation indicative à confirmer avec la banque.'
           : 'Préparer le dossier bancaire (onglet Financement) avec les exports PDF.',
         sources: [SRC.treasuryAvailable, SRC.realMargin, SRC.payables, 'buildFinancingSimulator'],
         confidence: 88,
@@ -418,7 +418,7 @@ export function buildFinancePilotageAnswer(type = '', dataMap = {}) {
       return buildFinanceAnswerPayload({
         type,
         title: 'Relance client',
-        situation: `Relance prioritaire : ${top.name} — ${fmtCurrency(top.rest)}.`,
+        situation: `Relance prioritaire : ${top.name} - ${fmtCurrency(top.rest)}.`,
         cause: `Créance ouverte commande ${top.id}, retard ${top.delayDays} jour(s).`,
         action: 'Copiez le message adapté (SMS, WhatsApp ou email) ci-dessous.',
         sources: [SRC.receivables],
@@ -479,7 +479,7 @@ export function buildFinancePilotageAnswer(type = '', dataMap = {}) {
       return buildFinanceAnswerPayload({
         type,
         title: 'Collision financière',
-        situation: `Cash projeté négatif — ${first.horizon} : ${fmtCurrency(first.amount)} (date estimée ${first.date}).`,
+        situation: `Cash projeté négatif - ${first.horizon} : ${fmtCurrency(first.amount)} (date estimée ${first.date}).`,
         cause: 'Sorties prévues supérieures aux encaissements sur l\'horizon.',
         action: 'Reporter paiements non critiques, relancer créances, ou ajuster l\'échéancier crédit.',
         sources: ['buildCashFlowForecast'],
@@ -504,8 +504,8 @@ export function buildFinancePilotageAnswer(type = '', dataMap = {}) {
       const rows = invs.slice(0, 5).map((inv) => {
         const cost = n(inv.montant ?? inv.amount ?? inv.valeur);
         const revenue = n(inv.revenu_annuel ?? inv.ca_annuel ?? inv.retour_annuel);
-        const roi = revenue > 0 && cost > 0 ? `${((revenue / cost) * 100).toFixed(0)} %` : '—';
-        const payback = revenue > 0 ? `${Math.ceil(cost / revenue)} an(s)` : '—';
+        const roi = revenue > 0 && cost > 0 ? `${((revenue / cost) * 100).toFixed(0)} %` : '-';
+        const payback = revenue > 0 ? `${Math.ceil(cost / revenue)} an(s)` : '-';
         return {
           title: inv.nom || inv.name || inv.id,
           detail: `ROI ${roi} · payback ${payback}`,

@@ -35,7 +35,7 @@ function buildEngineInput(dataMap = {}) {
 }
 
 /**
- * Synthèse risques — moteur ERP Health en lecture seule (aucune écriture).
+ * Synthèse risques - moteur ERP Health en lecture seule (aucune écriture).
  */
 export function getRiskSummary(dataMap = {}) {
   const alertes = pickRows(dataMap, 'alertes_center', 'alertes').filter(isOpenAlert);

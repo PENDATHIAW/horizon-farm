@@ -37,7 +37,7 @@ export function buildStrategicAlertPayloads(strategicPlan = {}) {
       title: item.title || item.status || 'Urgence vente',
       message: item.message,
       severity: 'critique',
-      action_recommandee: `Vendre immédiatement ${item.subjectLabel || item.lotName || 'l\'entité concernée'} — rendement économique négatif.`,
+      action_recommandee: `Vendre immédiatement ${item.subjectLabel || item.lotName || 'l\'entité concernée'} - rendement économique négatif.`,
       category: 'sell_now',
     });
   });
@@ -46,7 +46,7 @@ export function buildStrategicAlertPayloads(strategicPlan = {}) {
     payloads.push({
       ...basePayload({ id: 'bfr-block', category: 'bfr' }),
       id: 'bfr-block',
-      title: 'Lancement suspendu — trésorerie insuffisante',
+      title: 'Lancement suspendu - trésorerie insuffisante',
       message: strategicPlan.bfr.message,
       severity: 'critique',
       action_recommandee: 'Relancer les créances VIP avant toute commande de bande.',
@@ -58,7 +58,7 @@ export function buildStrategicAlertPayloads(strategicPlan = {}) {
     payloads.push({
       ...basePayload({ ...item, category: 'sanitary', entity_type: 'batiment', entity_id: item.building }),
       id: item.id,
-      title: item.title || `Vide sanitaire — ${item.building}`,
+      title: item.title || `Vide sanitaire - ${item.building}`,
       message: item.explanation || item.message,
       severity: 'critique',
       action_recommandee: (item.actions || [])[0] || 'Respecter le délai de vide sanitaire avant lancement.',
@@ -70,7 +70,7 @@ export function buildStrategicAlertPayloads(strategicPlan = {}) {
     payloads.push({
       ...basePayload({ ...item, category: 'stock_audit', entity_type: 'batiment', entity_id: item.building }),
       id: item.id,
-      title: `Audit stock — ${item.building}`,
+      title: `Audit stock - ${item.building}`,
       message: item.message,
       severity: item.overPct >= 15 ? 'critique' : 'warning',
       action_recommandee: 'Contrôler stockage, distribution et écarts théoriques.',

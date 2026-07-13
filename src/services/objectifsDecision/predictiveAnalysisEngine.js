@@ -1,5 +1,5 @@
 /**
- * Analyses prédictives — stress thermique & valorisation biomasse (fumier/fientes).
+ * Analyses prédictives - stress thermique & valorisation biomasse (fumier/fientes).
  */
 
 const num = (v = 0) => Number(v || 0) || 0;

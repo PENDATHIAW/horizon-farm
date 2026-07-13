@@ -1,5 +1,5 @@
 /**
- * Extraction prix et coûts depuis données ERP — pas de prix inventés sans marquage hypothèse.
+ * Extraction prix et coûts depuis données ERP - pas de prix inventés sans marquage hypothèse.
  */
 
 import {
@@ -270,7 +270,7 @@ export function runForecastEngine(dataMap = {}, parsedScenario = {}) {
       missingFields: assumptions.filter((a) => a.value == null || a.isAssumption).map((a) => a.label),
     },
     readOnly: true,
-    disclaimer: 'Rapport d’aide à la décision — pas une vérité absolue. Validez les hypothèses avant lancement.',
+    disclaimer: 'Rapport d’aide à la décision - pas une vérité absolue. Validez les hypothèses avant lancement.',
   };
 }
 

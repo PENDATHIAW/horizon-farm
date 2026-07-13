@@ -202,7 +202,7 @@ function StepValidation({ draft }) {
         <div key={title} className="rounded-2xl border border-line bg-card p-4">
           <p className="text-sm font-semibold text-earth">{title}</p>
           <ul className="mt-2 space-y-1 text-sm text-slate">
-            {(items || []).length ? items.map((item) => <li key={String(item)}>• {item}</li>) : <li>—</li>}
+            {(items || []).length ? items.map((item) => <li key={String(item)}>• {item}</li>) : <li>-</li>}
           </ul>
         </div>
       ))}

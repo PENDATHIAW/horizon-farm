@@ -1,4 +1,4 @@
-/** Annexe — explications simples des calculs (Centre + Objectifs). */
+/** Annexe - explications simples des calculs (Centre + Objectifs). */
 
 import { DEFAULT_PILOTAGE_SETTINGS, normalizePilotageSettings } from './pilotageSettingsService.js';
 import { HIJRI_FESTIVAL_RULES } from './islamicCalendarEngine.js';
@@ -20,7 +20,7 @@ export const FORMULA_CATEGORIES = [
   { id: 'pilotage', label: 'Réglages & alertes du quotidien' },
 ];
 
-/** Sigles et mots — lire en premier. */
+/** Sigles et mots - lire en premier. */
 export const ACRONYM_GLOSSARY = [
   { term: 'J+40, J+90…', definition: 'Nombre de jours depuis le début de la bande ou l\'entrée des animaux. J+40 = 40 jours après le lancement. J+90 = environ 3 mois d\'élevage.' },
   { term: 'BFR', definition: 'Besoin en fonds de roulement : avez-vous assez d\'argent (caisse + factures clients à encaisser) pour payer l\'aliment du prochain cycle avant d\'être payé vous-même ?' },
@@ -33,7 +33,7 @@ export const ACRONYM_GLOSSARY = [
   { term: 'Date pivot / date limite', definition: 'Dernière date pour lancer ou acheter afin d\'être prêt à vendre avant une fête (Tabaski, Korité…).' },
   { term: 'Taux de ponte', definition: 'Pourcentage de poules qui pondent chaque jour (ex. 85 % = 85 poules sur 100 ont pondu).' },
   { term: 'Souche / race', definition: 'Type de poules ou animaux achetés (ex. Novogen, Lohmann) avec une fiche performance (ponte, poids attendus).' },
-  { term: 'Effet ciseau', definition: 'Quand le prix de l\'aliment monte vite alors que le prix de vente de la viande ne suit pas — marge compressée.' },
+  { term: 'Effet ciseau', definition: 'Quand le prix de l\'aliment monte vite alors que le prix de vente de la viande ne suit pas - marge compressée.' },
   { term: 'Couverture %', definition: 'Pourcentage : est-ce que votre stock ou votre argent suffit par rapport à l\'objectif ou au coût du cycle ? 100 % = juste assez. 50 % = il manque la moitié.' },
   { term: 'Catalogue race / objectif catalogue', definition: 'Fiche de référence du fabricant : à tel âge, la race devrait peser X ou pondre Y %.' },
   { term: 'Client VIP (BFR)', definition: 'Gros client dont l\'encaissement proche est compté dans l\'argent disponible pour lancer une bande.' },
@@ -145,7 +145,7 @@ export const FORMULA_BLOCKS = [
     formula: "Par activité :\nReste à vendre = objectif du mois − ventes déjà faites\nTaux de réussite = ventes ÷ objectif × 100\n\nGlobal :\nTrésorerie encaissée, dépenses du mois, marge = ventes − dépenses.",
     parameters: [
       { label: "Objectif du mois", unit: "FCFA", default: "business plan", where: "Objectifs & Croissance" },
-      { label: "Ventes enregistrées", unit: "FCFA", default: "—", where: "Module Ventes / Finances" },
+      { label: "Ventes enregistrées", unit: "FCFA", default: "-", where: "Module Ventes / Finances" },
     ],
     outputs: ["Reste à vendre", "Pourcentage d'objectif atteint"],
   },
@@ -157,8 +157,8 @@ export const FORMULA_BLOCKS = [
     summary: "Compte les pondeuses actives et la moyenne d'œufs des 14 derniers jours pour estimer tablettes/jour et taux de ponte.",
     formula: "Pondeuses vivantes = total des sujets en production.\n\nŒufs par jour = moyenne des 14 derniers jours de comptage.\n\nTaux de ponte (%) = œufs du jour ÷ pondeuses × 100.\n\nTablettes par jour ≈ œufs ÷ 30.",
     parameters: [
-      { label: "Journal de ponte", unit: "œufs/j", default: "—", where: "Module Production → comptage œufs" },
-      { label: "Effectif pondeuses", unit: "sujets", default: "—", where: "Module Avicole → bande pondeuse" },
+      { label: "Journal de ponte", unit: "œufs/j", default: "-", where: "Module Production → comptage œufs" },
+      { label: "Effectif pondeuses", unit: "sujets", default: "-", where: "Module Avicole → bande pondeuse" },
     ],
     outputs: ["Œufs/jour", "Tablettes/jour", "Taux de ponte %"],
   },
@@ -212,7 +212,7 @@ export const FORMULA_BLOCKS = [
     parameters: [
       { label: "Mix des activités", unit: "parts", default: "business plan", where: "Paramètres pilotage" },
       { label: "Prix moyen de vente", unit: "FCFA", default: "historique", where: "Module Ventes" },
-      { label: "Stock / production dispo", unit: "unités", default: "—", where: "Stock + production en cours" },
+      { label: "Stock / production dispo", unit: "unités", default: "-", where: "Stock + production en cours" },
     ],
     outputs: ["Taux couverture %", "Manque en FCFA", "Date limite pour produire"],
   },
@@ -237,8 +237,8 @@ export const FORMULA_BLOCKS = [
     summary: "Additionne stock prêt à vendre + production à venir, moins les commandes déjà promises.",
     formula: "Disponible = stock + production prévue − engagements clients\nValeur dispo = quantité × prix moyen\nCouverture = valeur dispo ÷ objectif du mois × 100",
     parameters: [
-      { label: "Stocks produits finis", unit: "unités", default: "—", where: "Module Stock" },
-      { label: "Capacité production", unit: "œufs/j…", default: "—", where: "Production en cours" },
+      { label: "Stocks produits finis", unit: "unités", default: "-", where: "Module Stock" },
+      { label: "Capacité production", unit: "œufs/j…", default: "-", where: "Production en cours" },
     ],
     outputs: ["Quantité disponible", "Taux de couverture %"],
   },
@@ -250,7 +250,7 @@ export const FORMULA_BLOCKS = [
     summary: "Compare ponte, poids ou croissance réels à ce que la race devrait faire à le même âge.",
     formula: "Écart % = (réel − objectif catalogue) ÷ objectif × 100\n\nVert si écart petit (dans la marge de tolérance).\nOrange / rouge si trop en dessous → risque surcoût aliment ou retard.",
     parameters: [
-      { label: "Type de race", unit: "texte", default: "—", where: "Fiche bande → race" },
+      { label: "Type de race", unit: "texte", default: "-", where: "Fiche bande → race" },
       { label: "Marge de tolérance", unit: "%", default: "5 à 8", where: "Catalogue races" },
       { label: "Cible croissance", unit: "g/j ou kg/j", default: "selon race", where: "Catalogue races" },
     ],
@@ -264,7 +264,7 @@ export const FORMULA_BLOCKS = [
     summary: "Sur 7 jours : combien d'œufs par poule par jour, comparé à la fiche race (ex. Lohmann ~92 % au pic).",
     formula: "Taux = total œufs 7 jours ÷ (poules × jours comptés) × 100\n\nCompare au catalogue selon l'âge en semaines.\n\nChute brutale sur 48 h → alerte (aliment, chaleur ou maladie).",
     parameters: [
-      { label: "Comptage œufs", unit: "œufs/j", default: "—", where: "Module Production" },
+      { label: "Comptage œufs", unit: "œufs/j", default: "-", where: "Module Production" },
       { label: "Fenêtre de calcul", unit: "jours", default: "7", where: "Automatique" },
     ],
     outputs: ["Taux réel %", "Taux attendu %", "Écart"],
@@ -279,7 +279,7 @@ export const FORMULA_BLOCKS = [
     parameters: [
       { label: "Poids actuel", unit: "kg ou g", default: "pesée", where: "Fiche lot / animal" },
       { label: "Poids à l'entrée", unit: "kg", default: "saisie entrée", where: "Fiche lot / animal" },
-      { label: "Prix marché", unit: "FCFA/kg", default: "—", where: "Fiche animal ou marché" },
+      { label: "Prix marché", unit: "FCFA/kg", default: "-", where: "Fiche animal ou marché" },
     ],
     outputs: ["Prise de poids/j", "Vendre maintenant ? oui/non"],
   },
@@ -306,7 +306,7 @@ export const FORMULA_BLOCKS = [
     parameters: [
       { label: "Température", unit: "°C", default: "météo", where: "Météo ferme ou saisie" },
       { label: "Humidité", unit: "%", default: "météo", where: "Météo ferme" },
-      { label: "Seuil alerte chaleur", unit: "—", default: "29", where: "Paramètres pilotage" },
+      { label: "Seuil alerte chaleur", unit: "-", default: "29", where: "Paramètres pilotage" },
     ],
     outputs: ["Indice chaleur", "Reporter lancement ?", "Réduction densité %"],
   },
@@ -318,7 +318,7 @@ export const FORMULA_BLOCKS = [
     summary: "Chaque race a une courbe (ponte ou poids selon l'âge). Le système lit la fiche race pour savoir ce qui est normal à J+30, J+60…",
     formula: "À X jours après l'entrée, la fiche race indique :\n• taux de ponte attendu, ou\n• poids moyen attendu\n\nLe logiciel interpole entre les points de la courbe.",
     parameters: [
-      { label: "Race / souche", unit: "texte", default: "—", where: "Fiche bande" },
+      { label: "Race / souche", unit: "texte", default: "-", where: "Fiche bande" },
       { label: "Âge de la bande", unit: "jours", default: "calculé", where: "Date entrée → aujourd'hui" },
     ],
     outputs: ["Valeur attendue à cet âge", "Type de mesure (ponte ou poids)"],
@@ -333,7 +333,7 @@ export const FORMULA_BLOCKS = [
     parameters: [
       { label: "Prix d'achat bête", unit: "FCFA", default: "saisie", where: "Fiche animal" },
       { label: "Aliment consommé", unit: "FCFA", default: "journal", where: "Module Alimentation" },
-      { label: "Soins vétérinaires", unit: "FCFA", default: "—", where: "Module Santé" },
+      { label: "Soins vétérinaires", unit: "FCFA", default: "-", where: "Module Santé" },
     ],
     outputs: ["Coût total", "Marge", "Coût au kilo", "Prise de poids/j"],
   },
@@ -373,8 +373,8 @@ export const FORMULA_BLOCKS = [
     summary: "Montant qu'il vous reste si on ne compte que le coût de l'aliment (hors achat poussins ou bête).",
     formula: "Marge aliment =\n  ventes (ou estimation)\n− coût aliment seul\n\nEn % : (ventes − aliment) ÷ aliment × 100\n\nUtile pour voir si l'alimentation « mange » toute la marge.",
     parameters: [
-      { label: "Ventes ou estimation", unit: "FCFA", default: "—", where: "Ventes / estimation lot" },
-      { label: "Coût aliment", unit: "FCFA", default: "—", where: "Alimentation" },
+      { label: "Ventes ou estimation", unit: "FCFA", default: "-", where: "Ventes / estimation lot" },
+      { label: "Coût aliment", unit: "FCFA", default: "-", where: "Alimentation" },
     ],
     outputs: ["Marge FCFA", "Marge %", "Alerte négative"],
   },
@@ -386,7 +386,7 @@ export const FORMULA_BLOCKS = [
     summary: "Quels lots perdent de l'argent ? Quels fournisseurs d'aliment ou poussins donnent les meilleures marges ?",
     formula: "Par lot ou bête : ventes, coût total, marge, coût unitaire.\n\nPar fournisseur : moyenne des marges sur plusieurs lots.",
     parameters: [
-      { label: "Fournisseur aliment / poussins", unit: "nom", default: "—", where: "Fiche bande ou animal" },
+      { label: "Fournisseur aliment / poussins", unit: "nom", default: "-", where: "Fiche bande ou animal" },
     ],
     outputs: ["Classement lots", "Classement fournisseurs"],
   },
@@ -401,7 +401,7 @@ export const FORMULA_BLOCKS = [
       { label: "Effectif prochaine bande", unit: "sujets", default: "5000", where: "Paramètres pilotage" },
       { label: "Ration par sujet/j", unit: "kg", default: "0,095 chair · 4,5 bœuf", where: "Réglages Centre" },
       { label: "Couverture minimum", unit: "%", default: "50", where: "Paramètres pilotage" },
-      { label: "Clients VIP", unit: "liste", default: "—", where: "Paramètres pilotage + fiche client" },
+      { label: "Clients VIP", unit: "liste", default: "-", where: "Paramètres pilotage + fiche client" },
     ],
     outputs: ["Couverture %", "Lancement bloqué oui/non", "Jours d'autonomie aliment"],
   },
@@ -427,7 +427,7 @@ export const FORMULA_BLOCKS = [
     summary: "Stock en kg ÷ consommation moyenne par jour = jours restants. Alerte si moins de 5 jours.",
     formula: "Consommation/j = moyenne des 30 derniers jours de distribution\n(ou estimation : effectif × ration)\n\nJours restants = stock aliment (kg) ÷ consommation/j\n\nAlerte rouge si < 5 jours.",
     parameters: [
-      { label: "Stock aliment", unit: "kg", default: "—", where: "Module Stock" },
+      { label: "Stock aliment", unit: "kg", default: "-", where: "Module Stock" },
       { label: "Seuil alerte", unit: "jours", default: "5", where: "Réglage Centre" },
     ],
     outputs: ["Jours restants", "Consommation/j"],
@@ -440,7 +440,7 @@ export const FORMULA_BLOCKS = [
     summary: "Combien de sujets par bâtiment ? Mortalité et valeur des pertes.",
     formula: "Taux remplissage ≈ effectif ÷ capacité référence (500 sujets)\n\nBalance : entrées, sorties (ventes), mortalité\nValeur perte = morts × coût unitaire moyen",
     parameters: [
-      { label: "Bâtiment", unit: "nom", default: "—", where: "Fiche bande" },
+      { label: "Bâtiment", unit: "nom", default: "-", where: "Fiche bande" },
       { label: "Capacité référence", unit: "sujets", default: "500", where: "Réglage affichage" },
     ],
     outputs: ["Effectif par bâtiment", "Mortalité %", "Valeur des pertes"],
@@ -478,8 +478,8 @@ export const FORMULA_BLOCKS = [
     summary: "Œufs produits vs œufs vendus : écart > 2 % → casse, vol ou oubli de saisie. Même logique sur l'aliment global.",
     formula: "Œufs : écart % = (produits − vendus) ÷ produits × 100\n\nAliment : écart % = (consommé − standard) ÷ standard × 100\n\nAlerte si seuils dépassés.",
     parameters: [
-      { label: "Comptage ponte", unit: "œufs", default: "—", where: "Production" },
-      { label: "Ventes enregistrées", unit: "—", default: "—", where: "Module Ventes" },
+      { label: "Comptage ponte", unit: "œufs", default: "-", where: "Production" },
+      { label: "Ventes enregistrées", unit: "-", default: "-", where: "Module Ventes" },
     ],
     outputs: ["Écart %", "Perte estimée en FCFA"],
   },
@@ -504,8 +504,8 @@ export const FORMULA_BLOCKS = [
     summary: "Certaines périodes se vendent mieux (fêtes). Le prix conseillé tient compte du mois.",
     formula: "Si historique ventes suffisant :\n  coef = ventes ce mois ÷ moyenne mensuelle (entre 0,85 et 1,25)\n\nSinon :\n  forte demande +15 % · normale 100 % · faible −15 %",
     parameters: [
-      { label: "Historique ventes", unit: "—", default: "—", where: "Module Ventes" },
-      { label: "Mois concerné", unit: "—", default: "aujourd'hui", where: "Automatique" },
+      { label: "Historique ventes", unit: "-", default: "-", where: "Module Ventes" },
+      { label: "Mois concerné", unit: "-", default: "aujourd'hui", where: "Automatique" },
     ],
     outputs: ["Coefficient saison"],
   },
@@ -518,7 +518,7 @@ export const FORMULA_BLOCKS = [
     formula: "Prix marché local = moyenne prix marché à votre zone\nPrix ajusté = marché × coefficient saison\n\nPrix conseillé = MAX(prix plancher ; prix ajusté)\n\nAlerte si votre coût est plus haut que le marché → risque de vendre à perte.",
     parameters: [
       { label: "Prix marché local", unit: "FCFA", default: "catalogue ou saisie", where: "Prix marché / catalogue" },
-      { label: "Localité", unit: "ville", default: "—", where: "Fiche ferme" },
+      { label: "Localité", unit: "ville", default: "-", where: "Fiche ferme" },
     ],
     outputs: ["Prix conseillé", "Alerte vente à perte"],
   },
@@ -543,8 +543,8 @@ export const FORMULA_BLOCKS = [
     summary: "Si les intrants alimentaires augmentent fortement, le Centre propose d'acheter 3 mois de stock maintenant pour économiser.",
     formula: "Pour maïs, soja, tourteau :\n  hausse mensuelle estimée → projection sur 3 mois\n\nSi hausse ≥ 5 %/mois :\n  économie possible = stock actuel × prix × hausse estimée × 50 %\n\nRecommandation si trésorerie suffisante.",
     parameters: [
-      { label: "Cours intrants", unit: "FCFA", default: "—", where: "Prix marché enregistrés" },
-      { label: "Stock aliment actuel", unit: "kg", default: "—", where: "Module Stock" },
+      { label: "Cours intrants", unit: "FCFA", default: "-", where: "Prix marché enregistrés" },
+      { label: "Stock aliment actuel", unit: "kg", default: "-", where: "Module Stock" },
     ],
     outputs: ["Hausse estimée %", "Économie possible FCFA"],
   },
@@ -571,8 +571,8 @@ export const FORMULA_BLOCKS = [
     summary: "Pour la même maladie ou vaccin : qui coûte moins cher ? Qui guérit plus vite ?",
     formula: "Par type d'intervention :\n  coût moyen par vétérinaire\n  jours avant animal « sain »\n\nInsight si écart coût ≥ 5 % ou guérison ≥ 2 jours",
     parameters: [
-      { label: "Interventions réalisées", unit: "—", default: "—", where: "Module Santé" },
-      { label: "Liste vétérinaires", unit: "—", default: "—", where: "Référentiel véto" },
+      { label: "Interventions réalisées", unit: "-", default: "-", where: "Module Santé" },
+      { label: "Liste vétérinaires", unit: "-", default: "-", where: "Référentiel véto" },
     ],
     outputs: ["Classement coût", "Classement délai guérison"],
   },
@@ -584,7 +584,7 @@ export const FORMULA_BLOCKS = [
     summary: "Compare prix d'achat aliment des 30 derniers jours vs les 30 jours d'avant. Alerte si +10 %.",
     formula: "Prix moyen/kg période récente vs période précédente\n\nHausse % = (récent − ancien) ÷ ancien × 100\n\nAlerte si ≥ 10 % (critique si ≥ 15 %)",
     parameters: [
-      { label: "Achats aliment", unit: "—", default: "—", where: "Alimentation / Achats" },
+      { label: "Achats aliment", unit: "-", default: "-", where: "Alimentation / Achats" },
     ],
     outputs: ["Hausse %", "Prix/kg avant et après"],
   },
@@ -596,8 +596,8 @@ export const FORMULA_BLOCKS = [
     summary: "Même produit, plusieurs fournisseurs : écart de prix et alerte si spread ≥ 5 %.",
     formula: "Prix moyen/kg par fournisseur et par type d'aliment\nÉcart % entre le moins cher et le plus cher",
     parameters: [
-      { label: "Fournisseurs", unit: "liste", default: "—", where: "Module Achats" },
-      { label: "Historique achats", unit: "—", default: "—", where: "Alimentation" },
+      { label: "Fournisseurs", unit: "liste", default: "-", where: "Module Achats" },
+      { label: "Historique achats", unit: "-", default: "-", where: "Alimentation" },
     ],
     outputs: ["Classement fournisseurs", "Alertes écart prix"],
   },
@@ -609,8 +609,8 @@ export const FORMULA_BLOCKS = [
     summary: "Historique : en saison chaude, la ponte baisse souvent. Alerte si chaleur actuelle ≥ 35 °C.",
     formula: "Par mois : taux ponte moyen\nCompare mois chauds (avr–mai) vs autres mois\n\nAlerte si baisse saisonnière ≥ 5 points ou canicule actuelle",
     parameters: [
-      { label: "Météo", unit: "°C", default: "—", where: "Météo ferme" },
-      { label: "Historique ponte", unit: "—", default: "—", where: "Production" },
+      { label: "Météo", unit: "°C", default: "-", where: "Météo ferme" },
+      { label: "Historique ponte", unit: "-", default: "-", where: "Production" },
     ],
     outputs: ["Baisse saison %", "Conseils brumisation"],
   },
@@ -622,8 +622,8 @@ export const FORMULA_BLOCKS = [
     summary: "Client demandant tri strict ou gros calibre pour un petit supplément → rentabilité faible.",
     formula: "Prix unitaire = montant commande ÷ quantité\n\nSi exigence « tri strict » et prix unitaire bas → alerte rentabilité",
     parameters: [
-      { label: "Commandes clients", unit: "—", default: "—", where: "Module Ventes" },
-      { label: "Fiches clients", unit: "—", default: "—", where: "Module Clients" },
+      { label: "Commandes clients", unit: "-", default: "-", where: "Module Ventes" },
+      { label: "Fiches clients", unit: "-", default: "-", where: "Module Clients" },
     ],
     outputs: ["Classement clients", "Alertes mauvaise marge"],
   },
@@ -649,7 +649,7 @@ export const FORMULA_BLOCKS = [
     formula: "Coût total = charges fixes + charges extra + rendement × coût/kg\n\nRecette = rendement × prix marché\nMarge = recette − coût\n\nSeuil rentabilité kg = coût total ÷ (prix − coût/kg)",
     parameters: [
       { label: "Charges fixes", unit: "FCFA", default: "0", where: "Saisie simulateur" },
-      { label: "Rendement", unit: "kg", default: "—", where: "Saisie simulateur" },
+      { label: "Rendement", unit: "kg", default: "-", where: "Saisie simulateur" },
       { label: "Coût production/kg", unit: "FCFA", default: "400", where: "Saisie simulateur" },
     ],
     outputs: ["Marge scénario A/B", "Kg minimum rentable"],
@@ -662,7 +662,7 @@ export const FORMULA_BLOCKS = [
     summary: "Courbes du module Objectifs : ponte, lots, seuil rentabilité, âge bandes, trésorerie, jauge objectif annuel, prix vs coût.",
     formula: "G1 : ponte réelle vs catalogue race\nG2 : comparer les lots\nG3 : ventes du mois vs seuil rentabilité\nG4 : âge des bandes (J+ = jours depuis le début)\nG5 : flux trésorerie\nG6 : % objectif annuel atteint\nG7 : coût revient vs marché vs prix pratiqué",
     parameters: [
-      { label: "Données graphiques", unit: "—", default: "—", where: "Module Objectifs → onglet Graphiques" },
+      { label: "Données graphiques", unit: "-", default: "-", where: "Module Objectifs → onglet Graphiques" },
     ],
     outputs: ["Courbes G1–G7"],
   },
@@ -674,7 +674,7 @@ export const FORMULA_BLOCKS = [
     summary: "Ponte vs aliment, indice consommation chair, croissance bovins, niveau silo, maraîchage.",
     formula: "• Ponte (% ) et kg aliment/j\n• Indice consommation par lot chair\n• Prise de poids bovins\n• Jours restants silo\n• Simulateur maraîchage",
     parameters: [
-      { label: "Journal ponte", unit: "—", default: "—", where: "Production" },
+      { label: "Journal ponte", unit: "-", default: "-", where: "Production" },
       { label: "Seuil silo critique", unit: "jours", default: "5", where: "Réglage Centre" },
     ],
     outputs: ["Graphiques Centre"],
@@ -684,11 +684,11 @@ export const FORMULA_BLOCKS = [
     modules: ["centre_ia"],
     category: "pilotage",
     title: "Alertes du quotidien (technique)",
-    summary: "Rappels concrets : stock bas, santé, capteurs, anomalies de saisie — issus des règles métier de la ferme.",
+    summary: "Rappels concrets : stock bas, santé, capteurs, anomalies de saisie - issus des règles métier de la ferme.",
     formula: "Le système scanne lots, animaux, stocks, santé, capteurs.\n\nGravité :\n• critique → à traiter tout de suite\n• warning → à planifier",
     parameters: [
-      { label: "Capteurs (température…)", unit: "—", default: "—", where: "IoT si installé" },
-      { label: "Événements saisis", unit: "—", default: "—", where: "Journal ERP" },
+      { label: "Capteurs (température…)", unit: "-", default: "-", where: "IoT si installé" },
+      { label: "Événements saisis", unit: "-", default: "-", where: "Journal ERP" },
     ],
     outputs: ["Liste alertes", "Actions proposées"],
   },
@@ -702,7 +702,7 @@ export const PILOTAGE_PARAM_ROWS = [
   { key: 'extra_vacuum_days', label: 'Jours en plus si maladie', unit: 'jours' },
   { key: 'next_band_size', label: 'Taille prochaine bande', unit: 'sujets' },
   { key: 'bfr_min_coverage_pct', label: 'Couverture trésorerie minimum', unit: '%' },
-  { key: 'ith_stress_threshold', label: 'Seuil chaleur (ITH)', unit: '—' },
+  { key: 'ith_stress_threshold', label: 'Seuil chaleur (ITH)', unit: '-' },
 ];
 
 const FESTIVAL_PARAM_ROWS = Object.entries(HIJRI_FESTIVAL_RULES).map(([key, rule]) => ({

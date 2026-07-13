@@ -1,5 +1,5 @@
 /**
- * Compréhension sémantique — scoring par tokens + synonymes agricoles.
+ * Compréhension sémantique - scoring par tokens + synonymes agricoles.
  * Ne dépend pas d'un simple message.includes() ou keywords[] figés.
  */
 

@@ -188,14 +188,14 @@ export async function runPriorityTaskAction(item, handlers = {}) {
   }
   const existing = findOpenTaskByDedupe(existingTasks, payload.task_dedupe_key);
   if (existing) {
-    toast.success('Tâche déjà planifiée — ouverture Activité & Suivi');
+    toast.success('Tâche déjà planifiée - ouverture Activité & Suivi');
     onNavigate?.('activite_suivi', { tab: 'À traiter maintenant' });
     return true;
   }
   try {
     await onCreateTask(payload);
     await onRefreshTasks?.();
-    toast.success('Tâche créée — visible dans Activité & Suivi');
+    toast.success('Tâche créée - visible dans Activité & Suivi');
     onNavigate?.('activite_suivi', { tab: 'À traiter maintenant' });
     return true;
   } catch (error) {
@@ -222,14 +222,14 @@ export async function runPriorityAlertAction(item, handlers = {}) {
   }
   const existing = findOpenAlertByDedupe(existingAlerts, payload.alert_dedupe_key);
   if (existing) {
-    toast.success('Alerte déjà créée — ouverture Activité & Suivi');
+    toast.success('Alerte déjà créée - ouverture Activité & Suivi');
     onNavigate?.('activite_suivi', { tab: 'À traiter maintenant' });
     return true;
   }
   try {
     await onCreateAlert(payload);
     await onRefreshAlertes?.();
-    toast.success('Alerte créée — visible dans Activité & Suivi');
+    toast.success('Alerte créée - visible dans Activité & Suivi');
     onNavigate?.('activite_suivi', { tab: 'À traiter maintenant' });
     return true;
   } catch (error) {

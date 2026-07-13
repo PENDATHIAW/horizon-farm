@@ -52,23 +52,23 @@ export default function InvestissementsEvolution({ rows = [], businessPlans = []
 
   return (
     <ChartsGrid>
-      <SmartEvolutionChart moduleName="Investissements" compact title="Investi vs revenus" subtitle="Histogramme — performance projets" months={labels(monthly)} leftUnit="FCFA" rightUnit="" series={[
+      <SmartEvolutionChart moduleName="Investissements" compact title="Investi vs revenus" subtitle="Histogramme - performance projets" months={labels(monthly)} leftUnit="FCFA" rightUnit="" series={[
         { name: 'Investi', type: 'bar', unit: 'FCFA', data: values(monthly, 'investi') },
         { name: 'Revenus', type: 'bar', unit: 'FCFA', data: values(monthly, 'revenus') },
       ]} />
-      <SmartEvolutionChart moduleName="Investissements" compact title="ROI estimé" subtitle="Courbe — retour sur investissement %" months={labels(monthly)} leftUnit="%" rightUnit="" series={[
+      <SmartEvolutionChart moduleName="Investissements" compact title="ROI estimé" subtitle="Courbe - retour sur investissement %" months={labels(monthly)} leftUnit="%" rightUnit="" series={[
         { name: 'ROI', type: 'line', unit: '%', data: values(monthly, 'roi') },
       ]} />
-      <SmartPieChart moduleName="Investissements" compact title="Investi vs dépenses vs revenus" subtitle="Camembert — structure financière" unit="FCFA" items={[
+      <SmartPieChart moduleName="Investissements" compact title="Investi vs dépenses vs revenus" subtitle="Camembert - structure financière" unit="FCFA" items={[
         { name: 'Investi', value: invested },
         { name: 'Dépenses', value: expenses },
         { name: 'Revenus', value: revenues },
       ].filter((item) => item.value > 0)} />
-      <SmartEvolutionChart moduleName="Investissements" compact title="Projets actifs vs terminés" subtitle="Histogramme — avancement" months={labels(monthly)} leftUnit="" rightUnit="" series={[
+      <SmartEvolutionChart moduleName="Investissements" compact title="Projets actifs vs terminés" subtitle="Histogramme - avancement" months={labels(monthly)} leftUnit="" rightUnit="" series={[
         { name: 'Actifs', type: 'bar', data: values(monthly, 'actifs') },
         { name: 'Terminés', type: 'bar', data: values(monthly, 'termines') },
       ]} />
-      <SmartEvolutionChart moduleName="Investissements" compact title="Risques vs retards" subtitle="Histogramme — vigilance projets" months={labels(monthly)} leftUnit="" rightUnit="" series={[
+      <SmartEvolutionChart moduleName="Investissements" compact title="Risques vs retards" subtitle="Histogramme - vigilance projets" months={labels(monthly)} leftUnit="" rightUnit="" series={[
         { name: 'Risques', type: 'bar', data: values(monthly, 'risques') },
         { name: 'Retards', type: 'bar', data: values(monthly, 'retards') },
       ]} />

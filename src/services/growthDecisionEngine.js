@@ -95,7 +95,7 @@ export function buildCommercialCalendar(_date = new Date(), activityYear = null)
           return false;
         }),
         target: bpRow.total || monthlyRevenueTargets[index] || 0,
-        note: index === 2 ? 'M3 — à réconcilier avec la stratégie bovins validée.' : `Objectif CA M${index + 1} : ${(bpRow.total || monthlyRevenueTargets[index] || 0).toLocaleString('fr-FR')} FCFA.`,
+        note: index === 2 ? 'M3 - à réconcilier avec la stratégie bovins validée.' : `Objectif CA M${index + 1} : ${(bpRow.total || monthlyRevenueTargets[index] || 0).toLocaleString('fr-FR')} FCFA.`,
       };
     });
     const currentIndex = planMonthIndexForKey(ctx.nowKey, ctx.year1MonthKeys);

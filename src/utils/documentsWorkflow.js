@@ -1,5 +1,5 @@
 /**
- * Chantier 7 — Documents & Rapports : rattacher preuves depuis la bibliothèque (pas point de départ métier).
+ * Chantier 7 - Documents & Rapports : rattacher preuves depuis la bibliothèque (pas point de départ métier).
  */
 
 import { makeId } from './ids.js';

@@ -33,7 +33,7 @@ function buildCentreRecommendationsAnswer(dataMap = {}, options = {}) {
   const lines = recs.map((row, index) => {
     const title = row.title || row.activity || 'Recommandation';
     const detail = row.recommendation || row.timing || '';
-    return `${index + 1}. ${title}${detail ? ` — ${detail}` : ''}`;
+    return `${index + 1}. ${title}${detail ? ` - ${detail}` : ''}`;
   });
 
   const strategic = buildStrategicDecisionPlan(dataMap, { meteo: options.meteo || dataMap.meteo });
@@ -42,7 +42,7 @@ function buildCentreRecommendationsAnswer(dataMap = {}, options = {}) {
 
   const situation = lines.length
     ? `Le centre décisionnel propose ${recs.length} axe(s) prioritaire(s) :\n\n${lines.join('\n\n')}`
-    : 'Peu de recommandations automatiques pour l\'instant — les objectifs et stocks guident encore la journée.';
+    : 'Peu de recommandations automatiques pour l\'instant - les objectifs et stocks guident encore la journée.';
 
   const action = strategicLines[0]
     ? `${strategicLines[0]} Ouvrez le Centre décisionnel → Croissance & opportunités pour le détail.`
@@ -53,7 +53,7 @@ function buildCentreRecommendationsAnswer(dataMap = {}, options = {}) {
     intent: 'centre_recommendations',
     situation,
     cause: plan.goals?.month?.attainment != null
-      ? `Objectif mois à ${n(plan.goals.month.attainment)} % — les recommandations visent l'écart restant.`
+      ? `Objectif mois à ${n(plan.goals.month.attainment)} % - les recommandations visent l'écart restant.`
       : 'Synthèse croissance + alertes techniques.',
     action,
     sources: ['buildDecisionCenterPlan', 'buildStrategicDecisionPlan'],
@@ -68,7 +68,7 @@ function buildCentreCyclesAnswer(dataMap = {}, options = {}) {
 
   const situation = pick
     ? `${pick.recommendation || pick.title}${pick.timing ? ` (${pick.timing})` : ''}.`
-    : 'Aucun signal de cycle urgent — consultez l\'onglet Saisons & marchés pour le calendrier complet.';
+    : 'Aucun signal de cycle urgent - consultez l\'onglet Saisons & marchés pour le calendrier complet.';
 
   const bfrBlock = arr(strategic.recommendations).find((row) => row.category === 'bfr');
   const cause = bfrBlock

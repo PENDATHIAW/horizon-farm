@@ -34,7 +34,7 @@ export default function FournisseurFicheModal({ open, onClose, supplier, metrics
   ];
 
   return (
-    <BaseModal open={open} onClose={onClose} title={`Fiche fournisseur — ${supplier.nom || supplier.name || supplier.id}`} size="4xl">
+    <BaseModal open={open} onClose={onClose} title={`Fiche fournisseur - ${supplier.nom || supplier.name || supplier.id}`} size="4xl">
       <div className="space-y-4">
         <div className="rounded-2xl border border-line bg-earth p-4 text-white">
           <p className="text-xs uppercase tracking-normal text-horizon">Fournisseur</p>

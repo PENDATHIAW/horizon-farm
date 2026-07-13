@@ -1,4 +1,4 @@
-/** Référentiel souches — standards officiels de croissance et ponte (clé de pointage par âge). */
+/** Référentiel souches - standards officiels de croissance et ponte (clé de pointage par âge). */
 
 export const SANITARY_VACUUM_DAYS = 10;
 
@@ -7,7 +7,7 @@ export const SOUCHE_REFERENTIAL = {
     label: 'Cobb 500',
     activity: 'chair',
     gmqTarget: 55,
-    /** GMQ théorique (g/j) par jour d'âge — interpolation linéaire entre points. */
+    /** GMQ théorique (g/j) par jour d'âge - interpolation linéaire entre points. */
     gmqByDay: { 1: 12, 7: 28, 14: 42, 21: 52, 28: 58, 35: 55, 42: 50 },
     icTarget: { min: 1.6, max: 1.9 },
   },

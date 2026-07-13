@@ -1,5 +1,5 @@
 /**
- * Affinage des réponses Hey Horizon — ton terrain, offres de suite, modules ERP.
+ * Affinage des réponses Hey Horizon - ton terrain, offres de suite, modules ERP.
  */
 
 import { inferOfferFromAnswer } from './assistantConversationOffers.js';

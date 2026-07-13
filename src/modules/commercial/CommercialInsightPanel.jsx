@@ -36,7 +36,7 @@ export default function CommercialInsightPanel({
       <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
         <div>
           <p className="text-meta font-semibold uppercase tracking-normal text-horizon-dark flex items-center gap-1"><Bot size={14} /> Signaux commercial</p>
-          <p className="text-sm text-slate mt-1">Alertes et cohérence ventes — détail opportunités sur l&apos;onglet Opportunités, objectifs sur Pilotage.</p>
+          <p className="text-sm text-slate mt-1">Alertes et cohérence ventes - détail opportunités sur l&apos;onglet Opportunités, objectifs sur Pilotage.</p>
         </div>
         <button type="button" onClick={() => onNavigate?.('centre_ia', { tab: 'Croissance & opportunités' })} className="text-xs font-semibold text-horizon-dark underline">Centre décisionnel →</button>
       </div>

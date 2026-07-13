@@ -301,7 +301,7 @@ export default function StockPurchaseReceptionForm({
                 }}
                 className="w-full min-h-[44px] rounded-xl border border-line bg-card px-3 py-2 text-sm"
               >
-                <option value="">— Nouveau produit —</option>
+                <option value="">- Nouveau produit -</option>
                 {stocks.map((row) => (
                   <option key={row.id} value={row.id}>
                     {row.produit || row.name} · {fmtNumber(row.quantite)} {row.unite}
@@ -352,7 +352,7 @@ export default function StockPurchaseReceptionForm({
                     onChange={(e) => setFournisseurId(e.target.value)}
                     className="w-full min-h-[44px] rounded-xl border border-line bg-card px-3 py-2 text-sm"
                   >
-                    <option value="">—</option>
+                    <option value="">-</option>
                     {fournisseurs.map((f) => (
                       <option key={f.id} value={f.id}>{f.nom || f.name || f.id}</option>
                     ))}
@@ -417,7 +417,7 @@ export default function StockPurchaseReceptionForm({
               <label className="space-y-1">
                 <span className="text-xs font-semibold text-slate">Lot</span>
                 <select value={lotId} onChange={(e) => setLotId(e.target.value)} className="w-full min-h-[44px] rounded-xl border border-line bg-card px-3 py-2 text-sm">
-                  <option value="">—</option>
+                  <option value="">-</option>
                   {lots.map((row) => <option key={row.id} value={row.id}>{row.nom || row.name || row.id}</option>)}
                 </select>
               </label>
@@ -426,7 +426,7 @@ export default function StockPurchaseReceptionForm({
               <label className="space-y-1">
                 <span className="text-xs font-semibold text-slate">Animal</span>
                 <select value={animalId} onChange={(e) => setAnimalId(e.target.value)} className="w-full min-h-[44px] rounded-xl border border-line bg-card px-3 py-2 text-sm">
-                  <option value="">—</option>
+                  <option value="">-</option>
                   {animaux.map((row) => <option key={row.id} value={row.id}>{row.name || row.tag || row.id}</option>)}
                 </select>
               </label>
@@ -435,7 +435,7 @@ export default function StockPurchaseReceptionForm({
               <label className="space-y-1">
                 <span className="text-xs font-semibold text-slate">Culture</span>
                 <select value={cultureId} onChange={(e) => setCultureId(e.target.value)} className="w-full min-h-[44px] rounded-xl border border-line bg-card px-3 py-2 text-sm">
-                  <option value="">—</option>
+                  <option value="">-</option>
                   {cultures.map((row) => <option key={row.id} value={row.id}>{row.culture || row.nom || row.id}</option>)}
                 </select>
               </label>

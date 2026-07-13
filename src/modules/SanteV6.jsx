@@ -45,7 +45,7 @@ const clean = (v) => String(v || "").trim();
 const today = () => new Date().toISOString().slice(0, 10);
 const now = () => new Date().toISOString();
 const labelOf = (r = {}) =>
-  r.name || r.nom || r.tag || r.produit || r.id || "—";
+  r.name || r.nom || r.tag || r.produit || r.id || "-";
 const validId = (r = {}) => Boolean(String(r.id || "").trim());
 const norm = (value = "") =>
   String(value || "")
@@ -682,7 +682,7 @@ function HealthBridge(props) {
         <div className="rounded-xl border border-urgent bg-urgent-bg p-3 text-sm text-urgent">
           <p className="font-semibold flex items-center gap-2">
             <AlertTriangle size={16} /> {activeWithdrawals.length} délai(x)
-            sanitaire(s) actif(s) — vente / transformation bloquées
+            sanitaire(s) actif(s) - vente / transformation bloquées
           </p>
           <p className="mt-1 text-xs text-urgent">
             {activeWithdrawals
@@ -704,7 +704,7 @@ function HealthBridge(props) {
             >
               <p className="font-semibold text-earth">{v.nom || v.id}</p>
               <p className="text-xs text-slate mt-1">
-                {v.prevue || "—"} · {fmtCurrency(v.cout)}
+                {v.prevue || "-"} · {fmtCurrency(v.cout)}
               </p>
               <button
                 type="button"
@@ -851,7 +851,7 @@ function InterventionPanel(props) {
       applyPreset(type, { ...prev, ...draft, type_intervention: type }),
     );
     toast.success(
-      "Ordonnance analysée — vérifiez les champs et validez avec une photo preuve",
+      "Ordonnance analysée - vérifiez les champs et validez avec une photo preuve",
     );
   };
   const animals = arr(props.animaux).filter(isAvailableAnimal);
@@ -1910,7 +1910,7 @@ function InterventionPanel(props) {
           />
         ) : (
           <div className="rounded-xl border border-line bg-card px-3 py-2 text-sm text-slate">
-            Rappel auto: {calculatedNextDate || "—"}
+            Rappel auto: {calculatedNextDate || "-"}
           </div>
         )}
         {form.periodicite === "personnalisee" ? (
@@ -1999,7 +1999,7 @@ function InterventionPanel(props) {
             Préremplir le formulaire depuis l’ordonnance
           </button>
           <p className="text-xs text-slate">
-            Le scan préremplit sans enregistrer — à confirmer avant enregistrement
+            Le scan préremplit sans enregistrer - à confirmer avant enregistrement
             avec photo preuve.
           </p>
         </div>
@@ -2013,8 +2013,8 @@ function InterventionPanel(props) {
         </div>
       </div>
       <div className="rounded-xl border border-positive bg-positive-bg p-3 text-sm text-positive">
-        <b>Cible :</b> {target.target_summary} · {target.module_lie || "—"} ·{" "}
-        {target.related_id || "—"}
+        <b>Cible :</b> {target.target_summary} · {target.module_lie || "-"} ·{" "}
+        {target.related_id || "-"}
       </div>
       <div className="flex justify-end">
         <Btn icon={ShieldCheck} onClick={submit} disabled={!canSubmit}>
@@ -2074,17 +2074,17 @@ function InterventionsHistory({
                     {row.type_intervention ||
                       row.medicament ||
                       row.produit_utilise ||
-                      "—"}
+                      "-"}
                   </p>
                 </td>
                 <td className="px-3 py-2 text-slate">
-                  {row.target_summary || row.animal || row.related_id || "—"}
+                  {row.target_summary || row.animal || row.related_id || "-"}
                 </td>
                 <td className="px-3 py-2 text-slate">
-                  {row.effectuee || row.prevue || "—"}
+                  {row.effectuee || row.prevue || "-"}
                 </td>
                 <td className="px-3 py-2 text-slate">
-                  {row.prochaine_date_calculee || row.prochaine_action || "—"}
+                  {row.prochaine_date_calculee || row.prochaine_action || "-"}
                 </td>
                 <td className="px-3 py-2 text-slate">
                   {row.impact_business_label ||
@@ -2094,7 +2094,7 @@ function InterventionsHistory({
                   {row.preuve_photo_data ? (
                     <span className="text-positive font-semibold">Photo</span>
                   ) : (
-                    "—"
+                    "-"
                   )}
                 </td>
                 <td className="px-3 py-2">
@@ -2113,7 +2113,7 @@ function InterventionsHistory({
                 </td>
                 <td className="px-3 py-2 text-right">
                   {done(row) ? (
-                    "—"
+                    "-"
                   ) : (
                     <button
                       type="button"

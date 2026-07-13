@@ -176,7 +176,7 @@ export default function CarteKPI({
       </div>
 
       <div className="mt-4 min-w-0">
-        <p className="hf-kpi-value break-words">{hasData ? formatNumber(displayValue) : '—'}</p>
+        <p className="hf-kpi-value break-words">{hasData ? formatNumber(displayValue) : '-'}</p>
         <p className="hf-kpi-unit">{hasData ? displayUnit : 'Pas encore de données'}</p>
         {periode && hasData ? <p className="hf-kpi-period">{periode}</p> : null}
       </div>
@@ -187,7 +187,7 @@ export default function CarteKPI({
             <TrendIcon size={15} strokeWidth={2.5} aria-hidden="true" />
           </span>
           <span className={`hf-kpi-variation ${semanticClasses.text}`}>
-            {displayVariation == null ? '—' : `${Number(displayVariation) > 0 ? '+' : ''}${formatNumber(displayVariation)} %`}
+            {displayVariation == null ? '-' : `${Number(displayVariation) > 0 ? '+' : ''}${formatNumber(displayVariation)} %`}
           </span>
           <span className="hf-kpi-comparison truncate">{displayComparison}</span>
         </div>

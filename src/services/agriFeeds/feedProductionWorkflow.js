@@ -1,5 +1,5 @@
 /**
- * AGRI FEEDS — ordres de fabrication, FIFO matières, lots finis, QR.
+ * AGRI FEEDS - ordres de fabrication, FIFO matières, lots finis, QR.
  */
 import { AGRI_FEEDS_ALERT_THRESHOLDS, PACKAGE_SIZES } from '../../config/agriFeeds.config.js';
 import { assertBatchUsableInProduction } from './rawMaterialWorkflow.js';
@@ -63,7 +63,7 @@ export function buildPublicQrPayload({
   qualityStatus,
   contact = 'Horizon Farm',
 } = {}) {
-  // Pas de recette complète — familles / type seulement.
+  // Pas de recette complète - familles / type seulement.
   return {
     product: productName || 'Aliment AGRI FEEDS',
     type: feedType || 'aliment_compose',
@@ -94,7 +94,7 @@ export function prepareProductionOrder(payload = {}, dataMap = {}) {
   const formula = arr(dataMap.feed_formulas).find((f) => String(f.id) === String(version.formula_id));
   const status = norm(formula?.status || '');
   if (['abandoned', 'suspended'].includes(status)) {
-    return { ok: false, error: 'Formule suspendue ou abandonnée — production bloquée.' };
+    return { ok: false, error: 'Formule suspendue ou abandonnée - production bloquée.' };
   }
 
   const planned = toNumber(payload.planned_quantity);
@@ -134,7 +134,7 @@ export function prepareProductionOrder(payload = {}, dataMap = {}) {
         `Stock insuffisant : ${material?.name || ing.raw_material_id} (manque ${fifo.shortfall.toFixed(1)} kg)`,
       );
     }
-    // Vérifie qu’aucun lot rejeté n’est proposé (déjà filtré) — double check
+    // Vérifie qu’aucun lot rejeté n’est proposé (déjà filtré) - double check
     fifo.allocations.forEach((a) => {
       const batch = arr(dataMap.feed_raw_batches).find((b) => String(b.id) === String(a.batch_id));
       const usable = assertBatchUsableInProduction(batch || {});
@@ -211,7 +211,7 @@ export function prepareProductionOrder(payload = {}, dataMap = {}) {
       module_source: 'agri_feeds',
       entity_type: 'feed_production_order',
       entity_id: orderId,
-      title: `OF planifié — ${orderCode}`,
+      title: `OF planifié - ${orderCode}`,
       description: `${formula?.name || version.version_code} · ${planned} kg · ${theoreticalCostPerKg.toFixed(0)} FCFA/kg théo.`,
       amount: theoreticalMaterialsCost,
       event_date: order.production_date,
@@ -275,7 +275,7 @@ export function prepareCloseProductionOrder(payload = {}, dataMap = {}) {
     return { ok: false, error: 'OF déjà clôturé.' };
   }
   if (norm(order.status) === 'cancelled') {
-    return { ok: false, error: 'OF annulé — clôture impossible.' };
+    return { ok: false, error: 'OF annulé - clôture impossible.' };
   }
 
   const actual = toNumber(payload.actual_quantity);
@@ -287,7 +287,7 @@ export function prepareCloseProductionOrder(payload = {}, dataMap = {}) {
     return { ok: false, error: 'Contrôle qualité obligatoire avant clôture.' };
   }
   if (['rejected', 'non_conforme', 'echec'].includes(norm(qcResult))) {
-    return { ok: false, error: 'QC non conforme — clôture / mise en stock commercial bloquée.' };
+    return { ok: false, error: 'QC non conforme - clôture / mise en stock commercial bloquée.' };
   }
 
   const allocations = arr(order.raw_material_batches_used);
@@ -368,7 +368,7 @@ export function prepareCloseProductionOrder(payload = {}, dataMap = {}) {
     feed_finished_batch_id: finishedId,
     formula_version_id: order.formula_version_id,
     vendable: destination === 'commercial_sale',
-    notes: `Lot AGRI FEEDS — destination ${destination}`,
+    notes: `Lot AGRI FEEDS - destination ${destination}`,
   };
 
   const orderPatch = {
@@ -435,7 +435,7 @@ export function prepareCloseProductionOrder(payload = {}, dataMap = {}) {
       module_source: 'agri_feeds',
       entity_type: 'feed_finished_batch',
       entity_id: finishedId,
-      title: `Lot produit — ${batchCode}`,
+      title: `Lot produit - ${batchCode}`,
       description: `${actual} kg · ${real.real_cost_per_kg.toFixed(0)} FCFA/kg réel · ${destination}`,
       amount: real.real_cost_total,
       event_date: productionDate,
@@ -476,13 +476,13 @@ export function assertFinishedBatchSellable(batch = {}, formula = {}) {
   if (!batch?.id) return { ok: false, message: 'Lot produit introuvable.' };
   if (batch.active === false) return { ok: false, message: 'Lot inactif.' };
   if (['rejected', 'suspended', 'suspendu'].includes(norm(batch.quality_status))) {
-    return { ok: false, message: 'Lot suspendu ou rejeté — vente bloquée.' };
+    return { ok: false, message: 'Lot suspendu ou rejeté - vente bloquée.' };
   }
   if (toNumber(batch.quantity_available) <= 0) {
     return { ok: false, message: 'Stock produit fini insuffisant.' };
   }
   if (norm(formula.status) !== 'commercializable' && norm(batch.destination) === 'commercial_sale') {
-    return { ok: false, message: 'Formule non commercialisable — vente bloquée.' };
+    return { ok: false, message: 'Formule non commercialisable - vente bloquée.' };
   }
   return { ok: true };
 }

@@ -69,7 +69,7 @@ function buildExecutiveSummary(profile, audience) {
     case 'investisseur_prive':
       return `${HORIZON_FARM_TAGLINE} CA ERP ${money(k.ca_erp)} · trésorerie ${money(k.resultat_tresorerie)} · CA BP annuel ${money(k.ca_bp_annuel)}. Opportunité avicole-bovine intégrée avec pilotage ERP.`;
     case 'banque':
-      return `Dossier remboursement Horizon Farm — encaissements ${money(k.encaissements)}, créances ${money(k.creances)}, besoin structuré ${money(k.besoin_bp)}. ${audience.angle}.`;
+      return `Dossier remboursement Horizon Farm - encaissements ${money(k.encaissements)}, créances ${money(k.creances)}, besoin structuré ${money(k.besoin_bp)}. ${audience.angle}.`;
     case 'ong_subvention':
       return `${founder} porte un projet de sécurité alimentaire locale : œufs, volaille, viande bovine. ${profile.socialImpact?.securite_alimentaire}. ${audience.angle}.`;
     case 'salon_agricole':
@@ -79,7 +79,7 @@ function buildExecutiveSummary(profile, audience) {
     case 'incubateur':
       return `Projet incubable : ${founder}, ERP opérationnel, score santé ${k.health_score}/100. ${audience.angle}.`;
     case 'femmes_entrepreneures':
-      return `${founder} — ferme intégrée pilotée par la donnée. ${profile.socialImpact?.femmes_jeunes}. ${audience.angle}.`;
+      return `${founder} - ferme intégrée pilotée par la donnée. ${profile.socialImpact?.femmes_jeunes}. ${audience.angle}.`;
     default:
       return profile.tagline;
   }
@@ -97,7 +97,7 @@ function buildHighlights(profile, audience) {
   }
   if (audience.emphasis.includes('socialImpact')) {
     items.push({ label: 'Emplois prévus BP', value: String(profile.socialImpact?.emplois_prevus || 0) });
-    items.push({ label: 'Sécurité alimentaire', value: profile.socialImpact?.securite_alimentaire || '—' });
+    items.push({ label: 'Sécurité alimentaire', value: profile.socialImpact?.securite_alimentaire || '-' });
   }
   if (audience.emphasis.includes('aiInnovation')) {
     items.push({ label: 'Score santé ERP', value: `${k.health_score || 0}/100` });
@@ -114,8 +114,8 @@ function buildHighlights(profile, audience) {
     });
   }
   if (audience.emphasis.includes('founderProfile')) {
-    items.push({ label: 'Fondatrice', value: profile.founderProfile?.name || '—' });
-    items.push({ label: 'Rôle', value: profile.founderProfile?.role || '—' });
+    items.push({ label: 'Fondatrice', value: profile.founderProfile?.name || '-' });
+    items.push({ label: 'Rôle', value: profile.founderProfile?.role || '-' });
   }
   if (audience.emphasis.includes('risksMitigation')) {
     arr(profile.risksMitigation).slice(0, 2).forEach((risk) => {
@@ -132,8 +132,8 @@ function buildHighlights(profile, audience) {
 
 /**
  * Adapte le profil pour une audience cible.
- * @param {object} profile — buildInvestorForumProfile()
- * @param {string} audienceKey — clé FORUM_AUDIENCES
+ * @param {object} profile - buildInvestorForumProfile()
+ * @param {string} audienceKey - clé FORUM_AUDIENCES
  */
 export function adaptProfileForAudience(profile = {}, audienceKey = 'investisseur_prive') {
   const audience = FORUM_AUDIENCES[audienceKey] || FORUM_AUDIENCES.investisseur_prive;

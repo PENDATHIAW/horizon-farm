@@ -278,7 +278,7 @@ export default function CentreDecisionModule({
             </span>
             <span className="rounded-xl border border-line bg-white px-3 py-2">
               <span className="text-slate">ITH </span>
-              <b>{strategicPlan.ith ?? '—'}</b>
+              <b>{strategicPlan.ith ?? '-'}</b>
             </span>
             <button type="button" onClick={() => onNavigate?.('objectifs_croissance', { tab: 'Suivi du Business Plan' })} className="rounded-xl border border-line bg-white px-3 py-2 text-xs font-semibold text-horizon-dark hover:bg-positive-bg">
               Objectifs →
@@ -296,7 +296,7 @@ export default function CentreDecisionModule({
               variant="outline"
               onClick={() => {
                 exportCentreDecisionCsv({ data, decisionPlan, strategicPlan }, tab);
-                toast.success(`Export CSV — onglet ${tab}`);
+                toast.success(`Export CSV - onglet ${tab}`);
               }}
             >
               Exporter CSV

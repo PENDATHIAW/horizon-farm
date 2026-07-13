@@ -31,15 +31,15 @@ export default function TachesEvolution({ rows = [] }) {
 
   return (
     <ChartsGrid>
-      <SmartEvolutionChart moduleName="Tâches" compact title="Ouvertes vs terminées" subtitle="Histogramme — charge de travail" months={data.map((row) => row.month)} leftUnit="tâches" rightUnit="" series={[
+      <SmartEvolutionChart moduleName="Tâches" compact title="Ouvertes vs terminées" subtitle="Histogramme - charge de travail" months={data.map((row) => row.month)} leftUnit="tâches" rightUnit="" series={[
         { name: 'Ouvertes', type: 'bar', unit: 'tâches', data: data.map((row) => row.ouvertes) },
         { name: 'Terminées', type: 'bar', unit: 'tâches', data: data.map((row) => row.terminees) },
       ]} />
-      <SmartEvolutionChart moduleName="Tâches" compact title="Retard vs sensibles" subtitle="Courbes — vigilance opérationnelle" months={data.map((row) => row.month)} leftUnit="tâches" rightUnit="" series={[
+      <SmartEvolutionChart moduleName="Tâches" compact title="Retard vs sensibles" subtitle="Courbes - vigilance opérationnelle" months={data.map((row) => row.month)} leftUnit="tâches" rightUnit="" series={[
         { name: 'En retard', type: 'line', unit: 'tâches', data: data.map((row) => row.retard) },
         { name: 'Sensibles', type: 'line', unit: 'tâches', data: data.map((row) => row.critiques) },
       ]} />
-      <SmartPieChart moduleName="Tâches" compact title="Répartition statuts" subtitle="Camembert — ouvertes / terminées / retard" unit="tâches" items={[
+      <SmartPieChart moduleName="Tâches" compact title="Répartition statuts" subtitle="Camembert - ouvertes / terminées / retard" unit="tâches" items={[
         { name: 'Ouvertes', value: totalOuvertes },
         { name: 'Terminées', value: totalTerminees },
         { name: 'En retard', value: totalRetard },

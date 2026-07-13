@@ -1,5 +1,5 @@
 /**
- * Utilitaires partagés Hey Horizon AI Core — lecture seule sur dataMap.
+ * Utilitaires partagés Hey Horizon AI Core - lecture seule sur dataMap.
  */
 
 export const HEY_HORIZON_CORE_VERSION = '1.0.0';

@@ -28,7 +28,7 @@ function formatHealthLabel(data = {}) {
   const hasSignals = (data.priorities?.length || 0) + (data.risks?.length || 0) > 0;
   if (score > 0) return `${score}/100`;
   if (hasSignals) return 'Partiel';
-  return '—';
+  return '-';
 }
 
 export default function VisionPrioritiesTab({
@@ -175,7 +175,7 @@ export default function VisionPrioritiesTab({
             </DataTable>
           </Section>
         ) : (
-          <Empty>Aucune urgence prioritaire — consultez Croissance ou Saisons pour anticiper.</Empty>
+          <Empty>Aucune urgence prioritaire - consultez Croissance ou Saisons pour anticiper.</Empty>
         )}
       </div>
     );

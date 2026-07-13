@@ -303,10 +303,10 @@ function OpportunitiesTab({ cockpit }) {
                   <td className="p-3 font-semibold text-earth">{item.title}<p className="text-xs font-semibold text-slate">{item.institution}</p></td>
                   <td className="p-3"><Badge>{item.type}</Badge></td>
                   <td className="p-3">{item.status}</td>
-                  <td className="p-3 font-semibold">{item.amount_requested ? money(item.amount_requested) : '—'}</td>
+                  <td className="p-3 font-semibold">{item.amount_requested ? money(item.amount_requested) : '-'}</td>
                   <td className="p-3">{dateLabel(item.deadline)}</td>
-                  <td className="p-3">{item.owner || '—'}</td>
-                  <td className="p-3">{item.next_action || '—'}</td>
+                  <td className="p-3">{item.owner || '-'}</td>
+                  <td className="p-3">{item.next_action || '-'}</td>
                 </tr>
               ))}
             </tbody>
@@ -393,9 +393,9 @@ function AgreementsTab({ cockpit }) {
               <tbody>
                 {cockpit.expenseAllocations.map((row) => (
                   <tr key={row.id} className="border-t border-line">
-                    <td className="p-3">{row.agreement_id || '—'}</td>
-                    <td className="p-3">{row.transaction_id || '—'}</td>
-                    <td className="p-3">{row.category || '—'}</td>
+                    <td className="p-3">{row.agreement_id || '-'}</td>
+                    <td className="p-3">{row.transaction_id || '-'}</td>
+                    <td className="p-3">{row.category || '-'}</td>
                     <td className="p-3 font-semibold">{money(row.amount)}</td>
                     <td className="p-3">{row.status}</td>
                   </tr>

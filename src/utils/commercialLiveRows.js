@@ -3,7 +3,7 @@ import { filterRowsByPeriodScope, isAllTimeScope, normalizePeriodScope } from '.
 
 const arr = (value) => (Array.isArray(value) ? value : []);
 
-/** Données CRUD live — prioritaire sur les props (snapshots période parfois périmés). */
+/** Données CRUD live - prioritaire sur les props (snapshots période parfois périmés). */
 export function crudFirstRows(provided, crud, periodFiltered = false) {
   const live = arr(crud?.rows);
   if (live.length) return live;

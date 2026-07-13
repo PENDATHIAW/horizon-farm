@@ -1,5 +1,5 @@
 /**
- * Commercial V1 P0 — farm_id sur ventes et entités liées.
+ * Commercial V1 P0 - farm_id sur ventes et entités liées.
  */
 
 import {

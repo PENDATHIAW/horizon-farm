@@ -1,5 +1,5 @@
 /**
- * Rapprochement intelligent — suggestions uniquement ; sync via recordSalePayment / services finance.
+ * Rapprochement intelligent - suggestions uniquement ; sync via recordSalePayment / services finance.
  */
 
 import {
@@ -44,7 +44,7 @@ export function findUnmatchedPayments(payments = [], transactions = []) {
 }
 
 /**
- * Propose un brouillon de rapprochement (encaissement workflow) — pas de création finance directe.
+ * Propose un brouillon de rapprochement (encaissement workflow) - pas de création finance directe.
  */
 export function proposeReconciliationDraft({
   payment = {},
@@ -161,7 +161,7 @@ export function proposeReconciliationDraftFromRow(row = {}, context = {}) {
       },
       target_workflow: TARGET_WORKFLOWS.OPEN_FORM,
       required_validation: true,
-      warnings: ['Aucune écriture finance automatique — redirection vers Commercial.'],
+      warnings: ['Aucune écriture finance automatique - redirection vers Commercial.'],
       status: 'awaiting_validation',
     });
   }

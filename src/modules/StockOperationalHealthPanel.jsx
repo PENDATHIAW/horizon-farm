@@ -79,7 +79,7 @@ export default function StockOperationalHealthPanel({
             <AlertCard
               key={row.id}
               tone={qty(row) <= 0 ? 'red' : 'orange'}
-              title={`${label(row)} — ${fmtNumber(qty(row))} ${row.unite || ''} (seuil ${fmtNumber(seuil(row))})`}
+              title={`${label(row)} - ${fmtNumber(qty(row))} ${row.unite || ''} (seuil ${fmtNumber(seuil(row))})`}
               detail={`Valeur ligne : ${fmtCurrency(qty(row) * unitPrice(row))}`}
               actionLabel="Ouvrir inventaire"
               onAction={() => onNavigate?.('achats_stock', { tab: 'Stock' })}
@@ -90,7 +90,7 @@ export default function StockOperationalHealthPanel({
 
       {orangeDlc.length ? (
         <div className="space-y-2">
-          <p className="text-xs font-semibold uppercase text-horizon-dark">DLC — à vendre rapidement (J-3)</p>
+          <p className="text-xs font-semibold uppercase text-horizon-dark">DLC - à vendre rapidement (J-3)</p>
           {orangeDlc.slice(0, 5).map(({ row }) => (
             <AlertCard
               key={`orange-${row.id}`}
@@ -106,7 +106,7 @@ export default function StockOperationalHealthPanel({
 
       {redDlc.length ? (
         <div className="space-y-2">
-          <p className="text-xs font-semibold uppercase text-urgent">DLC — expiration &lt; 24 h</p>
+          <p className="text-xs font-semibold uppercase text-urgent">DLC - expiration &lt; 24 h</p>
           {redDlc.slice(0, 5).map(({ row }) => (
             <AlertCard
               key={`red-${row.id}`}
@@ -122,7 +122,7 @@ export default function StockOperationalHealthPanel({
 
       {blackDlc.length ? (
         <div className="space-y-2">
-          <p className="text-xs font-semibold uppercase text-earth">Produits périmés — blocage vente</p>
+          <p className="text-xs font-semibold uppercase text-earth">Produits périmés - blocage vente</p>
           {blackDlc.slice(0, 5).map(({ row }) => (
             <AlertCard
               key={`black-${row.id}`}

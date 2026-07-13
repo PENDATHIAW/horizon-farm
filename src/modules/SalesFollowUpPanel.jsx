@@ -72,7 +72,7 @@ async function settleOrder(order, props, linkedPayments) {
     void props.onRefreshWorkflow?.();
   } catch (error) {
     console.error('Encaissement vente', error);
-    toast.error(error?.message || 'Encaissement impossible — réessayez');
+    toast.error(error?.message || 'Encaissement impossible - réessayez');
   }
 }
 
@@ -93,7 +93,7 @@ async function markDelivered(order, props) {
     void props.onRefreshWorkflow?.();
   } catch (error) {
     console.error('Livraison vente', error);
-    toast.error(error?.message || 'Livraison impossible — réessayez');
+    toast.error(error?.message || 'Livraison impossible - réessayez');
   }
 }
 
@@ -234,7 +234,7 @@ export default function SalesFollowUpPanel(props) {
       <div className="rounded-2xl border border-line bg-card p-3 text-sm text-slate">{orders.length} vente(s){missingCostCount ? ` · ${missingCostCount} coût(s) à compléter` : ''}</div>
     </div>
     {missingCostCount ? <div className="rounded-2xl border border-vigilance bg-vigilance-bg p-4 text-sm text-horizon-dark">{missingCostCount} vente(s) sans coût source fiable. Compléter alimentation / production dans <button type="button" className="font-semibold underline" onClick={() => props.onNavigate?.('elevage', { tab: 'Avicole' })}>Élevage</button> ou <button type="button" className="font-semibold underline" onClick={() => props.onNavigate?.('achats_stock', { tab: 'Stock' })}>Stock</button>.</div> : null}
-    <details className="rounded-2xl border border-line bg-card p-4 text-sm text-slate"><summary className="cursor-pointer font-semibold text-earth">Comment est calculée la marge ?</summary><p className="mt-3 leading-relaxed">{SALES_MARGIN_FORMULA}</p><p className="mt-2 text-xs">Livraison : comptée uniquement si mode livré/à livrer et montant renseigné — retrait sur place = 0 FCFA. Viande abattue : vendre depuis le stock (kg), coût déjà consolidé au journal d’abattage.</p></details>
+    <details className="rounded-2xl border border-line bg-card p-4 text-sm text-slate"><summary className="cursor-pointer font-semibold text-earth">Comment est calculée la marge ?</summary><p className="mt-3 leading-relaxed">{SALES_MARGIN_FORMULA}</p><p className="mt-2 text-xs">Livraison : comptée uniquement si mode livré/à livrer et montant renseigné - retrait sur place = 0 FCFA. Viande abattue : vendre depuis le stock (kg), coût déjà consolidé au journal d’abattage.</p></details>
     <div className="space-y-3 md:hidden">{orders.length ? orders.map((order) => <MobileSaleCard key={order.id} order={order} linkedPayments={linkedPayments} props={props} marginRow={marginById.get(String(order.id)) || order} deliveries={deliveries} onOpen={openSale} />) : <div className="rounded-2xl border border-line bg-card p-6 text-center text-slate">Aucune vente enregistrée pour le moment.</div>}</div>
     <div className="hidden md:block overflow-x-auto rounded-2xl border border-line bg-card -mx-1 px-1">
       <table className="min-w-[1580px] w-full text-sm">
@@ -263,7 +263,7 @@ export default function SalesFollowUpPanel(props) {
             const productTotal = productAmountOf(order, deliveries);
             const total = saleAmount(order);
             return <tr key={order.id} className="border-t border-line hover:bg-white align-top">
-              <td className="px-6 py-4 text-slate whitespace-nowrap">{saleDate(order) || '—'}</td>
+              <td className="px-6 py-4 text-slate whitespace-nowrap">{saleDate(order) || '-'}</td>
               <td className="px-6 py-4"><b className="text-earth text-base">{productLabel(order)}</b><p className="text-xs text-slate mt-1">{order.id}</p>{marginRow.source_label ? <p className="text-meta text-slate mt-1">Source : {marginRow.source_label}</p> : null}</td>
               <td className="px-6 py-4 font-semibold text-earth">{qty.label}</td>
               <td className="px-6 py-4 text-slate">{clientLabel(order)}</td>

@@ -1,5 +1,5 @@
 /**
- * Consolidation et comparaison multi-fermes — Phase 5.
+ * Consolidation et comparaison multi-fermes - Phase 5.
  */
 
 import { normalizeFarmActivities } from '../config/farmActivities.js';
@@ -69,7 +69,7 @@ export const QUICK_ACTION_ROUTES = Object.freeze({
   manage_farms: { module: 'gestion_systeme', tab: 'Fermes' },
 });
 
-/** Lignes rattachées à une ferme — legacy sans farm_id → ferme par défaut. */
+/** Lignes rattachées à une ferme - legacy sans farm_id → ferme par défaut. */
 export function rowsForFarm(rows = [], farmId = '', legacyFarmId = DEFAULT_FARM_ID) {
   return arr(rows).filter((row) => {
     const ownFarm = rowFarmId(row);
@@ -214,8 +214,8 @@ export function buildFarmLocationCards(farms = [], comparisonRows = []) {
     return {
       id: farm.id,
       name: farm.name,
-      region: farm.region || metrics.region || '—',
-      commune: farm.settings?.location_details?.commune || farm.location || '—',
+      region: farm.region || metrics.region || '-',
+      commune: farm.settings?.location_details?.commune || farm.location || '-',
       country: farm.country || 'SN',
       latitude: farm.latitude,
       longitude: farm.longitude,
@@ -244,44 +244,44 @@ export function buildActivityKpiCards(farm = {}, summary = {}, dataProps = {}) {
   const culture = summary.cultureSummary || computeCultureSummary(dataProps.cultures);
   const stock = summary.stockSummary || computeStockSummary(dataProps.stocks);
   const egg = summary.eggProduction || {};
-  const fmt = (value) => (Number.isFinite(Number(value)) ? Number(value).toLocaleString('fr-FR') : '—');
+  const fmt = (value) => (Number.isFinite(Number(value)) ? Number(value).toLocaleString('fr-FR') : '-');
 
   const valueMap = {
-    lay_rate: egg.layRate != null ? `${fmt(egg.layRate)} %` : head.effectifPondeuses ? 'Actif' : '—',
+    lay_rate: egg.layRate != null ? `${fmt(egg.layRate)} %` : head.effectifPondeuses ? 'Actif' : '-',
     eggs_produced: fmt(summary.production || egg.eggsPeriod || egg.eggsAllTime),
-    mortality: head.activeAvicole ? `${fmt(head.effectifAvicole)} volailles` : '—',
+    mortality: head.activeAvicole ? `${fmt(head.effectifAvicole)} volailles` : '-',
     feed_stock: stock.lowStockCount ? `${stock.lowStockCount} alerte(s)` : `${stock.availableProducts} OK`,
     egg_sales: fmt(summary.ca),
     broiler_count: fmt(head.effectifChair),
-    avg_weight: '—',
+    avg_weight: '-',
     feed_cost: fmt(stock.stockValue),
     broiler_sales: fmt(summary.ca),
     cattle_count: fmt(head.activeAnimals),
     fattening_cost: fmt(summary.resultat),
     health: fmt(summary.alertesOuvertes),
     live_sales: fmt(summary.receivable),
-    cultivated_area: culture.surfaceM2 ? `${fmt(Math.round(culture.surfaceM2 / 10000))} ha` : '—',
+    cultivated_area: culture.surfaceM2 ? `${fmt(Math.round(culture.surfaceM2 / 10000))} ha` : '-',
     active_parcels: fmt(culture.parcelCount),
     harvests: fmt(culture.activeCultures),
-    yield: culture.surfaceM2 ? 'Suivi actif' : '—',
-    irrigation: '—',
+    yield: culture.surfaceM2 ? 'Suivi actif' : '-',
+    irrigation: '-',
     weather_alerts: summary.alertesOuvertes ? `${summary.alertesOuvertes} alerte(s)` : 'Stable',
     storage_capacity: fmt(stock.totalProducts),
     stock_level: fmt(stock.availableProducts),
     expiry_risk: stock.lowStockCount ? `${stock.lowStockCount} sous seuil` : 'OK',
     sensors: fmt(arr(dataProps.sensorDevices).length),
     cameras: fmt(arr(dataProps.cameraDevices).length),
-    weather_station: dataProps.meteo?.condition || '—',
+    weather_station: dataProps.meteo?.condition || '-',
     overview: fmt(summary.effectifs || head.total),
     consolidated: 'Vue groupe',
     farm_comparison: fmt(arr(dataProps.accessibleFarms).length),
-    top_performance: '—',
-    top_risk: '—',
+    top_performance: '-',
+    top_risk: '-',
   };
 
   return definitions.map((entry) => ({
     ...entry,
-    value: valueMap[entry.key] || '—',
+    value: valueMap[entry.key] || '-',
   }));
 }
 
@@ -289,7 +289,7 @@ export function buildAdaptedAlertsPanel(farm = null, scope = {}, _dataProps = {}
   if (scope?.mode === 'all' && comparison) {
     return [
       comparison.riskiestFarm ? `Ferme la plus à risque : ${comparison.riskiestFarm.name}` : null,
-      comparison.mostAlertsFarm?.alerts ? `${comparison.mostAlertsFarm.name} — ${comparison.mostAlertsFarm.alerts} alerte(s)` : null,
+      comparison.mostAlertsFarm?.alerts ? `${comparison.mostAlertsFarm.name} - ${comparison.mostAlertsFarm.alerts} alerte(s)` : null,
       comparison.totals.stockCritical ? `${comparison.totals.stockCritical} produit(s) sous seuil (consolidé)` : null,
       comparison.totals.receivable ? `Créances consolidées à suivre` : null,
       comparison.totals.cashNet < 0 ? 'Trésorerie consolidée négative' : null,

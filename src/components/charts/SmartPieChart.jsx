@@ -17,7 +17,7 @@ const formatCompact = (value, unit = '') => {
   return `${number.toLocaleString('fr-FR')}${unit ? ` ${unit}` : ''}`;
 };
 
-/** Camembert — idéal pour répartitions et structures (max ~8 parts lisibles). */
+/** Camembert - idéal pour répartitions et structures (max ~8 parts lisibles). */
 export default function SmartPieChart({
   title,
   subtitle,

@@ -264,7 +264,7 @@ export function resolveElevageTab(value = '') {
   return 'Vue élevage';
 }
 
-/** Navigation externe — conserve Avicole/Animaux pour la sous-vue Lots & bandes. */
+/** Navigation externe - conserve Avicole/Animaux pour la sous-vue Lots & bandes. */
 export function navigateElevageTab(onNavigate, tab = '', options = {}) {
   const raw = String(tab || '').trim() || 'Lots & bandes';
   if (typeof onNavigate === 'function') {
@@ -337,7 +337,7 @@ export function resolveFinanceNavigation(value = '') {
   return { tab, treasurySubview, pilotageSubview };
 }
 
-/** Navigation externe — conserve alias sous-vues (Réconciliation, Investissements…). */
+/** Navigation externe - conserve alias sous-vues (Réconciliation, Investissements…). */
 export function navigateFinanceTab(onNavigate, tab = '', options = {}) {
   const raw = String(tab || '').trim() || 'Résumé';
   if (typeof onNavigate === 'function') {
@@ -360,7 +360,7 @@ export function resolveActiviteSuiviNavigation(value = '') {
   return { tab: resolveActiviteSuiviTab(value) };
 }
 
-/** Navigation externe — conserve alias legacy (Alertes, Traçabilité…). */
+/** Navigation externe - conserve alias legacy (Alertes, Traçabilité…). */
 export function navigateActiviteSuiviTab(onNavigate, tab = '', options = {}) {
   const raw = String(tab || '').trim() || 'À faire';
   if (typeof onNavigate === 'function') {
@@ -701,7 +701,7 @@ export function resolveDocumentsNavigation(value = '') {
   return { tab: resolveDocumentsTab(raw) };
 }
 
-/** Navigation externe — conserve alias legacy (Preuves, Rapports…). */
+/** Navigation externe - conserve alias legacy (Preuves, Rapports…). */
 export function navigateDocumentsTab(onNavigate, tab = '', options = {}) {
   const raw = String(tab || '').trim() || 'Bibliothèque';
   if (typeof onNavigate === 'function') {
@@ -725,7 +725,7 @@ export function resolveRhNavigation(value = '') {
   return { tab: resolveRhTab(raw) };
 }
 
-/** Navigation externe — conserve alias legacy (Affectations, Équipements…). */
+/** Navigation externe - conserve alias legacy (Affectations, Équipements…). */
 export function navigateRhTab(onNavigate, tab = '', options = {}) {
   const raw = String(tab || '').trim() || 'Vue d’ensemble';
   if (typeof onNavigate === 'function') {
@@ -781,7 +781,7 @@ export function resolveSyncActivityNavigation(value = '') {
   return { tab: resolveSyncActivityTab(value) };
 }
 
-/** Navigation externe — conserve alias legacy (audit, sync…). */
+/** Navigation externe - conserve alias legacy (audit, sync…). */
 export function navigateSyncActivityTab(onNavigate, tab = '', options = {}) {
   const raw = String(tab || '').trim() || 'Vérifications';
   if (typeof onNavigate === 'function') {
@@ -805,7 +805,7 @@ export function resolveSmartFarmNavigation(value = '') {
   return { tab: resolveSmartFarmTab(raw) };
 }
 
-/** Navigation externe — conserve alias legacy (Capteurs, flux…). */
+/** Navigation externe - conserve alias legacy (Capteurs, flux…). */
 export function navigateSmartFarmTab(onNavigate, tab = '', options = {}) {
   const raw = String(tab || '').trim() || 'Vue d’ensemble';
   if (typeof onNavigate === 'function') {
@@ -828,7 +828,7 @@ export function resolveGestionSystemeNavigation(value = '') {
   return { tab: resolveGestionSystemeTab(value) };
 }
 
-/** Navigation externe — conserve alias legacy (Paramètres, Audit…). */
+/** Navigation externe - conserve alias legacy (Paramètres, Audit…). */
 export function navigateGestionSystemeTab(onNavigate, tab = '', options = {}) {
   const raw = String(tab || '').trim() || 'Fermes';
   if (typeof onNavigate === 'function') {
@@ -850,7 +850,7 @@ export function resolveCulturesTab(value = '') {
   return 'Parcelles cultures';
 }
 
-/** Navigation externe — conserve alias section (Intrants, Transformation…) pour replis auto. */
+/** Navigation externe - conserve alias section (Intrants, Transformation…) pour replis auto. */
 export function navigateCulturesTab(onNavigate, tab = '', options = {}) {
   const raw = String(tab || '').trim() || 'Parcelles & campagnes';
   if (typeof onNavigate === 'function') {
@@ -883,7 +883,7 @@ export function resolveInvestisseursTab(value = '') {
 
 export const resolveFinancementsTab = resolveInvestisseursTab;
 
-/** Navigation externe — conserve alias legacy (Préparation, Data Room…). */
+/** Navigation externe - conserve alias legacy (Préparation, Data Room…). */
 export function navigateInvestisseursTab(onNavigate, tab = '', options = {}) {
   const raw = String(tab || '').trim() || 'cockpit-dashboard';
   if (typeof onNavigate === 'function') {

@@ -112,7 +112,7 @@ export default function ObjectifsBpSuiviTab({
 
       <section className="rounded-3xl border border-positive bg-positive-bg p-6 shadow-card space-y-3">
         <div>
-          <p className="text-sm font-semibold text-positive">💩 La Mine d&apos;Or — Valorisation du Fumier</p>
+          <p className="text-sm font-semibold text-positive">💩 La Mine d&apos;Or - Valorisation du Fumier</p>
           <p className="text-xs text-positive mt-1">
             Mis à jour lors des nettoyages de bâtiment enregistrés dans Élevage (biosécurité).
           </p>

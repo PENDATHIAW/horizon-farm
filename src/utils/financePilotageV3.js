@@ -1,5 +1,5 @@
 /**
- * Finance & Pilotage V3 — simulateur, DSCR enrichi, qualité données, multi-fermes avancé.
+ * Finance & Pilotage V3 - simulateur, DSCR enrichi, qualité données, multi-fermes avancé.
  * Extension de V2 sans modifier les moteurs V1/V2.
  */
 
@@ -86,7 +86,7 @@ export function writeFinanceSimulatorParams(params = {}) {
   return next;
 }
 
-/** Mensualité amortissement constant — formule standard, sans inventer de données. */
+/** Mensualité amortissement constant - formule standard, sans inventer de données. */
 export function estimateMonthlyPayment({
   principal = 0,
   annualRate = 0,
@@ -231,7 +231,7 @@ export function buildFinanceDataQuality(props = {}, options = {}) {
       score: null,
       issues: [],
       issueCount: 0,
-      summary: 'En attente de données — enregistrez une vente, un paiement ou une dépense.',
+      summary: 'En attente de données - enregistrez une vente, un paiement ou une dépense.',
       empty: true,
       insufficientData: true,
     };
@@ -498,7 +498,7 @@ export function buildFinanceDemoPresentation() {
     enabled,
     label: 'Mode démonstration',
     message: enabled
-      ? 'Vue présentable pour banque ou investisseur — aucune fausse donnée n\'est injectée en production.'
+      ? 'Vue présentable pour banque ou investisseur - aucune fausse donnée n\'est injectée en production.'
       : null,
     presentationTips: enabled ? [
       'Commencez par la situation financière et la trésorerie.',
@@ -550,9 +550,9 @@ export function buildFinanceDirectExports(props = {}, options = {}) {
       ...full.repayment,
       extra: {
         ...full.repayment.extra,
-        'Mensualité simulée': enhanced.simulatedMonthlyPayment ?? '—',
-        'Service de dette mensuel': enhanced.monthlyDebtService ?? '—',
-        DSCR: enhanced.dscr ?? '—',
+        'Mensualité simulée': enhanced.simulatedMonthlyPayment ?? '-',
+        'Service de dette mensuel': enhanced.monthlyDebtService ?? '-',
+        DSCR: enhanced.dscr ?? '-',
         'Capacité': enhanced.capacityLabel,
       },
     },

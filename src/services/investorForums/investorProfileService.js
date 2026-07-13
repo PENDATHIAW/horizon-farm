@@ -1,5 +1,5 @@
 /**
- * Financements — agrégation lecture seule du profil projet.
+ * Financements - agrégation lecture seule du profil projet.
  * Réutilise Hey Horizon AI Core + composeReportData ; ne recalcule pas Finance / Rapports / Impact.
  */
 
@@ -185,7 +185,7 @@ export function buildInvestorForumProfile({ crud = {}, dataMap = {}, liveMeteo =
       name: official.identity?.ownerName || 'Penda THIAW',
       role: 'Fondatrice & coordinatrice projet',
       highlights: [
-        'Entrepreneure agricole — projet intégré avicole et bovin',
+        'Entrepreneure agricole - projet intégré avicole et bovin',
         'Pilotage opérationnel via ERP Horizon Farm',
         payrollJobs > 0 ? `${payrollJobs} emploi(s) direct(s) prévus au BP` : 'Emplois locaux à valoriser dans le dossier',
         'Programmes femmes entrepreneures et incubateurs : parcours et légitimité à compléter',
@@ -220,12 +220,12 @@ export function buildInvestorForumProfile({ crud = {}, dataMap = {}, liveMeteo =
         : [`${investorReady.gaps.length} point(s) à renforcer pour dossier subvention`],
     },
     aiInnovation: {
-      headline: 'Hey Horizon AI Core — pilotage décisionnel intégré',
+      headline: 'Hey Horizon AI Core - pilotage décisionnel intégré',
       modules: [
         'Assistant ERP & recommandations Horizon Advisor',
         'Centre décisionnel & simulateur Horizon Forecast',
         'OCR intelligent factures & traçabilité documents',
-        'Smart Farm — capteurs et alertes météo',
+        'Smart Farm - capteurs et alertes météo',
       ],
       differentiator: 'Une ferme africaine avec ERP complet : ventes, stock, santé, finances et rapports interconnectés.',
       health_score: investorReady.highlights?.health_score ?? 0,

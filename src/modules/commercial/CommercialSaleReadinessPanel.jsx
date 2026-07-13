@@ -28,7 +28,7 @@ export default function CommercialSaleReadinessPanel({
   return (
     <CommercialSection
       title="Prêts à vendre (production)"
-      subtitle="Lots avicoles et animaux confirmés ici créent ou mettent à jour les opportunités commerciales — plus besoin de le faire depuis Élevage."
+      subtitle="Lots avicoles et animaux confirmés ici créent ou mettent à jour les opportunités commerciales - plus besoin de le faire depuis Élevage."
     >
       <AnimalSaleReadinessBridge rows={animaux} onUpdate={onUpdateAnimal} onRefresh={onRefreshAnimals} {...shared} />
       <AvicoleSaleReadinessBridge rows={lots} onUpdate={onUpdateLot} onRefresh={onRefreshLots} {...shared} />

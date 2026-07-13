@@ -1,5 +1,5 @@
 /**
- * Canal officiel transformation — vivant → produit fini (stock, traçabilité, coût de revient).
+ * Canal officiel transformation - vivant → produit fini (stock, traçabilité, coût de revient).
  */
 
 import { makeId } from './ids.js';
@@ -26,8 +26,8 @@ const num = (value) => toNumber(value);
 const today = () => new Date().toISOString().slice(0, 10);
 
 export const TRANSFORM_TYPES = [
-  { value: 'abattage', label: 'Abattage — carcasse / stock viande' },
-  { value: 'reforme', label: 'Réforme — sortie cheptel / lot' },
+  { value: 'abattage', label: 'Abattage - carcasse / stock viande' },
+  { value: 'reforme', label: 'Réforme - sortie cheptel / lot' },
   { value: 'mortalite_lot', label: 'Mortalité lot / bande (avicole)' },
   { value: 'mortalite_animal', label: 'Mortalité animal individuel (perte)' },
   { value: 'sortie_vente_vivant', label: 'Sortie vente vivant (pas de stock carcasse)' },
@@ -35,7 +35,7 @@ export const TRANSFORM_TYPES = [
   { value: 'autre', label: 'Autre sortie / conversion' },
 ];
 
-/** Champs et défauts selon le type — évite incohérences (réforme + tous les frais abattage, etc.). */
+/** Champs et défauts selon le type - évite incohérences (réforme + tous les frais abattage, etc.). */
 export const TRANSFORM_TYPE_PROFILES = {
   abattage: {
     hint: 'Animal ou lot chair → poids vif/carcasse, frais abattage, stock viande après validation.',
@@ -45,42 +45,42 @@ export const TRANSFORM_TYPE_PROFILES = {
     defaults: { destination: 'stock', create_stock: true, produit_fini_type: 'viande_fraiche' },
   },
   reforme: {
-    hint: 'Réforme pondeuses ou animal — effectif, poids optionnel, frais limités, stock ou vente.',
+    hint: 'Réforme pondeuses ou animal - effectif, poids optionnel, frais limités, stock ou vente.',
     sources: ['animal', 'lot_avicole'],
     lotScope: 'all',
     show: { effectif: true, poids_vif: true, poids_carcasse: true, rendement: true, pertes: true, frais_abattage: true, frais_decoupe: false, frais_emballage: true, frais_transport: true, autres_frais: true, produit_fini: true, stock_fields: true, proof: true },
     defaults: { destination: 'stock', create_stock: true, produit_fini_type: 'viande_fraiche' },
   },
   mortalite_lot: {
-    hint: 'Mortalité sur une bande avicole — effectif perdu, perte financière, pas de stock viande.',
+    hint: 'Mortalité sur une bande avicole - effectif perdu, perte financière, pas de stock viande.',
     sources: ['lot_avicole'],
     lotScope: 'all',
     show: { effectif: true, poids_vif: false, poids_carcasse: false, rendement: false, pertes: true, frais_abattage: false, frais_decoupe: false, frais_emballage: false, frais_transport: false, autres_frais: true, produit_fini: false, stock_fields: false, proof: false },
     defaults: { destination: 'perte', create_stock: false, source_type: 'lot_avicole' },
   },
   mortalite_animal: {
-    hint: 'Décès d’un animal (bovin, ovin, caprin…) — perte financière, pas de produit fini ni stock.',
+    hint: 'Décès d’un animal (bovin, ovin, caprin…) - perte financière, pas de produit fini ni stock.',
     sources: ['animal'],
     lotScope: 'all',
     show: { effectif: false, poids_vif: false, poids_carcasse: false, rendement: false, pertes: true, frais_abattage: false, frais_decoupe: false, frais_emballage: false, frais_transport: false, autres_frais: true, produit_fini: false, stock_fields: false, proof: false },
     defaults: { destination: 'perte', create_stock: false, source_type: 'animal' },
   },
   sortie_vente_vivant: {
-    hint: 'Vente vivant — pas de carcasse ni stock produit fini ici (préparer vente Commercial).',
+    hint: 'Vente vivant - pas de carcasse ni stock produit fini ici (préparer vente Commercial).',
     sources: ['animal', 'lot_avicole'],
     lotScope: 'all',
     show: { effectif: true, poids_vif: true, poids_carcasse: false, rendement: false, pertes: false, frais_abattage: false, frais_decoupe: false, frais_emballage: false, frais_transport: true, autres_frais: true, produit_fini: false, stock_fields: false, proof: false },
     defaults: { destination: 'vente_directe', create_stock: false },
   },
   transformation_viande: {
-    hint: 'Découpe / conditionnement — pièces, frais découpe et emballage, stock produit fini.',
+    hint: 'Découpe / conditionnement - pièces, frais découpe et emballage, stock produit fini.',
     sources: ['animal', 'lot_avicole'],
     lotScope: 'all',
     show: { effectif: false, poids_vif: false, poids_carcasse: true, rendement: false, pertes: true, frais_abattage: false, frais_decoupe: true, frais_emballage: true, frais_transport: true, autres_frais: true, produit_fini: true, stock_fields: true, proof: true },
     defaults: { destination: 'stock', create_stock: true, produit_fini_type: 'pieces' },
   },
   autre: {
-    hint: 'Sortie ou conversion non standard — précisez en notes.',
+    hint: 'Sortie ou conversion non standard - précisez en notes.',
     sources: ['animal', 'lot_avicole'],
     lotScope: 'all',
     show: { effectif: true, poids_vif: true, poids_carcasse: true, rendement: true, pertes: true, frais_abattage: true, frais_decoupe: true, frais_emballage: true, frais_transport: true, autres_frais: true, produit_fini: true, stock_fields: true, proof: true },
@@ -315,7 +315,7 @@ export function validateOfficialTransformationForm(form = {}) {
 }
 
 /**
- * Commit officiel — une seule voie pour créer stock viande après validation.
+ * Commit officiel - une seule voie pour créer stock viande après validation.
  */
 export async function commitOfficialTransformation({
   form = {},

@@ -72,7 +72,7 @@ export default function CommercialEvolution(props) {
 
       <p className="rounded-xl border border-line bg-card px-4 py-2 text-sm text-slate">
         <span className="font-semibold text-earth">Année 1 d&apos;activité</span>
-        {' — '}
+        {' - '}
         démarrage {new Date(data.activityYear.startDate).toLocaleDateString('fr-FR')}
         {' ('}
         {activityStartSourceLabel(data.activityYear.startSource)}
@@ -84,7 +84,7 @@ export default function CommercialEvolution(props) {
       </p>
       {data.undatedOrders > 0 ? (
         <p className="rounded-xl border border-vigilance bg-vigilance-bg px-4 py-2 text-sm text-horizon-dark">
-          {data.undatedOrders} vente(s) sans date — exclue(s) des graphiques mensuels.
+          {data.undatedOrders} vente(s) sans date - exclue(s) des graphiques mensuels.
         </p>
       ) : null}
 
@@ -94,7 +94,7 @@ export default function CommercialEvolution(props) {
             moduleName="Commercial"
             compact
             title="CA vs marge fiable"
-            subtitle="Histogramme — CA commandé et marge directe fiable par mois"
+            subtitle="Histogramme - CA commandé et marge directe fiable par mois"
             months={monthlyLabels}
             leftUnit="FCFA"
             legendBottom
@@ -108,7 +108,7 @@ export default function CommercialEvolution(props) {
             moduleName="Commercial"
             compact
             title="Marge par activité"
-            subtitle="Camembert — répartition de la marge fiable (coûts sources renseignés)"
+            subtitle="Camembert - répartition de la marge fiable (coûts sources renseignés)"
             unit="FCFA"
             items={data.marginByActivity}
             emptyText="Complétez les coûts sources (lots, animaux, stock) pour alimenter ce camembert."
@@ -124,7 +124,7 @@ export default function CommercialEvolution(props) {
             categoryAxis
             legendBottom
             title="Volumes réalisés vs objectifs"
-            subtitle="Histogramme — quantités vendues vs plan prévisionnel par activité"
+            subtitle="Histogramme - quantités vendues vs plan prévisionnel par activité"
             months={activityLabels}
             leftUnit=""
             height={440}
@@ -139,7 +139,7 @@ export default function CommercialEvolution(props) {
             categoryAxis
             legendBottom
             title="CA par activité vs objectif"
-            subtitle="Histogramme — CA réalisé vs objectif CA par activité"
+            subtitle="Histogramme - CA réalisé vs objectif CA par activité"
             months={activityLabels}
             leftUnit="FCFA"
             height={440}
@@ -180,7 +180,7 @@ export default function CommercialEvolution(props) {
             categoryAxis
             legendBottom
             title="Taux d'atteinte par activité"
-            subtitle="Courbe — % objectif CA atteint par activité"
+            subtitle="Courbe - % objectif CA atteint par activité"
             months={activityLabels}
             leftUnit="%"
             height={400}
@@ -198,7 +198,7 @@ export default function CommercialEvolution(props) {
             moduleName="Commercial"
             compact
             title="Encaissé vs impayés"
-            subtitle="Camembert — part encaissée et créances restantes"
+            subtitle="Camembert - part encaissée et créances restantes"
             unit="FCFA"
             items={[
               { name: 'Encaissé', value: data.totalPaid },
@@ -210,7 +210,7 @@ export default function CommercialEvolution(props) {
             compact
             legendBottom
             title="CA mensuel"
-            subtitle="Histogramme — chiffre d'affaires commandé par mois"
+            subtitle="Histogramme - chiffre d'affaires commandé par mois"
             months={monthlyLabels}
             leftUnit="FCFA"
             height={400}

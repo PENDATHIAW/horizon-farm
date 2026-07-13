@@ -100,17 +100,17 @@ export function resolveDirectorIntent(query = '', conversationContext = null) {
   return null;
 }
 
-/** COMMENT_VA_LA_FERME — synthèse conseil multi-domaines. */
+/** COMMENT_VA_LA_FERME - synthèse conseil multi-domaines. */
 export function buildCommentVaLaFermeAnswer(dataMap = {}) {
   return buildCommentVaLaFermeConseilAnswer(dataMap);
 }
 
-/** PRIORITÉS_DU_JOUR — top 3 actions classées par impact + tendance. */
+/** PRIORITÉS_DU_JOUR - top 3 actions classées par impact + tendance. */
 export function buildPrioritesDuJourAnswer(dataMap = {}) {
   return buildPrioritesConseilAnswer(dataMap);
 }
 
-/** OBJECTIF_STATUS — objectifs sans détour par les créances. */
+/** OBJECTIF_STATUS - objectifs sans détour par les créances. */
 export function buildObjectifStatusAnswer(dataMap = {}, query = '') {
   const snap = buildDirectorSnapshot(dataMap);
   const goals = resolveCanonicalGoalProgress(dataMap);
@@ -141,7 +141,7 @@ export function buildObjectifStatusAnswer(dataMap = {}, query = '') {
       action = 'Il faudrait accélérer les ventes sur le trimestre en cours.';
     } else if (annualPct != null && annualPct >= 100) {
       cause = 'Vous êtes en avance sur l\'objectif annuel.';
-      action = 'Belle dynamique — consolidez la trésorerie pour la suite.';
+      action = 'Belle dynamique - consolidez la trésorerie pour la suite.';
     } else {
       cause = 'Vous progressez vers la cible annuelle.';
       action = 'Maintenez le rythme commercial actuel.';
@@ -187,7 +187,7 @@ export function buildObjectifStatusAnswer(dataMap = {}, query = '') {
   };
 }
 
-/** QUESTION_DE_SUIVI — détail client prioritaire après créances. */
+/** QUESTION_DE_SUIVI - détail client prioritaire après créances. */
 export function buildReceivableFollowUpAnswer(dataMap = {}, conversationContext = null) {
   const memoryTop = conversationContext?.memory?.topReceivable;
   const snap = buildDirectorSnapshot(dataMap);

@@ -7,7 +7,7 @@ const low = (v) => String(v || '').toLowerCase();
 const amount = (r = {}) => n(r.montant ?? r.amount ?? r.total ?? r.montant_total);
 const hasProof = (r = {}) => Boolean(r.document_id || r.proof_url || r.justificatif_id || r.file_url || r.url);
 const labelOf = (r = {}) => r.title || r.nom || r.name || r.filename || r.libelle || r.id || 'Document';
-const dateOf = (r = {}) => r.date || r.created_at || r.updated_at || '—';
+const dateOf = (r = {}) => r.date || r.created_at || r.updated_at || '-';
 const isInvoiced = (r = {}) => r.invoice_id || r.facture_id || ['facture', 'facturé', 'invoiced'].includes(low(r.invoice_status || r.facture_status));
 
 export function buildDocumentsHealthSnapshot({ documents = [], transactions = [], salesOrders = [] }) {

@@ -1,7 +1,7 @@
 import Btn from '../../components/Btn';
 import { fmtCurrency } from '../../utils/format';
 
-/** Carte légère — 3 lignes max, sans score ni blocs multiples. */
+/** Carte légère - 3 lignes max, sans score ni blocs multiples. */
 export default function CentreSimpleRecoCard({ item, onNavigate }) {
   const isCommercial = !item.technical_rule && !item.strategic;
 

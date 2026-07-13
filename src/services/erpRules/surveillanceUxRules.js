@@ -32,7 +32,7 @@ function readCounts(storageKey) {
   }
 }
 
-/** Surveillance UX — récursions, boucles navigation, onglets manquants. */
+/** Surveillance UX - récursions, boucles navigation, onglets manquants. */
 export function evaluateSurveillanceUxRules() {
   const findings = [];
   const formLoops = readCounts(STORAGE_FORM_LOOP);

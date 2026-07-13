@@ -1,6 +1,6 @@
 const arr = (value) => (Array.isArray(value) ? value : []);
 
-/** Rows from scoped props — empty period result must not fall back to full CRUD. */
+/** Rows from scoped props - empty period result must not fall back to full CRUD. */
 export function rowsOf(provided, crud, periodFiltered = false) {
   const fromProps = arr(provided);
   if (fromProps.length) return fromProps;

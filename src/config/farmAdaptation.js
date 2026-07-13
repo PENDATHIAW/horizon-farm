@@ -1,5 +1,5 @@
 /**
- * Adaptation ERP par activité ferme — Phase 4 Multi-Fermes.
+ * Adaptation ERP par activité ferme - Phase 4 Multi-Fermes.
  * KPI, alertes, actions rapides et résumé assistant création.
  */
 
@@ -14,7 +14,7 @@ import {
 
 const arr = (value) => (Array.isArray(value) ? value : []);
 
-/** `null` ne déclenche pas la valeur par défaut des paramètres — normaliser explicitement. */
+/** `null` ne déclenche pas la valeur par défaut des paramètres - normaliser explicitement. */
 function safeFarm(farm) {
   return farm && typeof farm === 'object' ? farm : {};
 }
@@ -252,10 +252,10 @@ export function buildFarmCreationSummary(draft = {}) {
 export function formatFarmActivitiesLabel(activityTypes = []) {
   const activities = normalizeFarmActivities(activityTypes);
   if (activities.includes('mixte')) return 'Mixte';
-  return activities.map(getActivityLabel).join(', ') || '—';
+  return activities.map(getActivityLabel).join(', ') || '-';
 }
 
-/** Réordonne les onglets — activités prioritaires en premier (Phase 5). */
+/** Réordonne les onglets - activités prioritaires en premier (Phase 5). */
 const MODULE_TAB_PRIORITY = Object.freeze({
   elevage: {
     aviculture_pondeuses: ['Avicole', 'Production', 'Alimentation', 'Santé', 'Résumé'],

@@ -1,5 +1,5 @@
 /**
- * Diagnostic économique facture — comparaison prix, impact marge & trésorerie.
+ * Diagnostic économique facture - comparaison prix, impact marge & trésorerie.
  * Lecture seule : utilise Hey Horizon Core + historique ERP.
  */
 
@@ -191,16 +191,16 @@ function buildRecommendation({ invoice = {}, priceDelta = {}, margin = {}, treas
   }
 
   if (invoice.stockable) {
-    lines.push('Produit stockable — réception stock recommandée après validation (workflow Achats & Stock).');
+    lines.push('Produit stockable - réception stock recommandée après validation (workflow Achats & Stock).');
   } else {
-    lines.push('Charge non stockable — enregistrement dépense finance après validation.');
+    lines.push('Charge non stockable - enregistrement dépense finance après validation.');
   }
 
   const headline = severity === 'warning' && priceDelta.delta_pct
     ? `⚠️ Hausse détectée : ${product} +${Math.abs(priceDelta.delta_pct)} %`
     : priceDelta.trend === 'baisse'
       ? `✓ Baisse prix : ${product} ${Math.abs(priceDelta.delta_pct || 0)} %`
-      : `Diagnostic facture — ${invoice.fournisseur || 'fournisseur'}`;
+      : `Diagnostic facture - ${invoice.fournisseur || 'fournisseur'}`;
 
   return {
     severity,

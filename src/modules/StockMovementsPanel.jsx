@@ -25,7 +25,7 @@ export default function StockMovementsPanel({ movements = [], stockId = '' }) {
             <div key={row.id} className="flex items-center justify-between rounded-xl border border-line bg-card px-3 py-2 text-sm">
               <div>
                 <b className="text-earth">{typeLabel(row.movement_type)} · {labelOf(row)}</b>
-                <p className="text-xs text-slate">{String(row.movement_date || row.created_at || '—').slice(0, 10)} · {row.stock_before} → {row.stock_after} {row.unit || ''}</p>
+                <p className="text-xs text-slate">{String(row.movement_date || row.created_at || '-').slice(0, 10)} · {row.stock_before} → {row.stock_after} {row.unit || ''}</p>
               </div>
               <span className="font-semibold text-earth">{fmtNumber(row.quantity)}</span>
             </div>

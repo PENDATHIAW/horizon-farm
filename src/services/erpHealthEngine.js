@@ -30,7 +30,7 @@ function toRecommendation(finding) {
   };
 }
 
-/** Moteur ERP Health — détecte, explique, propose, suit. */
+/** Moteur ERP Health - détecte, explique, propose, suit. */
 export function runErpHealthEngine(data = {}) {
   const auditReport = runErpAuditEngine(data);
   const riskReport = runRiskEngine({ ...data, auditReport });

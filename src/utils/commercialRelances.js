@@ -1,5 +1,5 @@
 /**
- * Commercial V2 — relances clients structurées (priorité, canal, message).
+ * Commercial V2 - relances clients structurées (priorité, canal, message).
  */
 
 import {  buildClientSegment } from '../services/clientSegmentationEngine.js';

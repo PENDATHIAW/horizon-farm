@@ -1,5 +1,5 @@
 /**
- * Commercial V1 P0 — validation disponibilité stock avant vente.
+ * Commercial V1 P0 - validation disponibilité stock avant vente.
  */
 
 import { toNumber } from './format.js';
@@ -92,7 +92,7 @@ export function validateSaleStockAvailability(form = {}, sources = {}, options =
 
     if (available == null) {
       if (options.warnOnUnknownAvailability) {
-        return `Disponibilité non confirmée pour ${line.product_name || sourceId} — vérifiez la source avant validation.`;
+        return `Disponibilité non confirmée pour ${line.product_name || sourceId} - vérifiez la source avant validation.`;
       }
       continue;
     }

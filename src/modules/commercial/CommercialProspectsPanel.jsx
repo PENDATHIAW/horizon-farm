@@ -32,7 +32,7 @@ function ProspectBlock({ title, rows, tone = 'neutral', onConvertQuote, onConver
           <div key={row.id} className="flex flex-col justify-between gap-2 rounded-card border border-line bg-card p-3 md:flex-row md:items-center">
             <div>
               <p className="font-semibold text-earth">{row.name}</p>
-              <p className="text-xs text-slate">{row.source || 'Source ?'} · {row.interest || '—'} · prob. {row.probability || 0}% · {fmtCurrency(row.estimatedNeed)}</p>
+              <p className="text-xs text-slate">{row.source || 'Source ?'} · {row.interest || '-'} · prob. {row.probability || 0}% · {fmtCurrency(row.estimatedNeed)}</p>
               <p className="text-meta text-horizon-dark">{row.nextAction || 'Prochaine action à définir'}</p>
             </div>
             <div className="flex flex-wrap gap-1">
@@ -164,7 +164,7 @@ export default function CommercialProspectsPanel({
       <ProspectBlock title="Prospects chauds" rows={pipeline.hot} tone="hot" onConvertQuote={convertQuote} onConvertClient={convertClient} />
       <ProspectBlock title="À relancer" rows={pipeline.toFollowUp} onConvertQuote={convertQuote} onConvertClient={convertClient} />
       <ProspectBlock title="Convertis" rows={pipeline.converted} onConvertQuote={convertQuote} onConvertClient={convertClient} />
-      {!pipeline.all.length ? <p className="text-sm text-center text-slate py-6">Aucun prospect — créez-en un ou passez un client en statut prospect.</p> : null}
+      {!pipeline.all.length ? <p className="text-sm text-center text-slate py-6">Aucun prospect - créez-en un ou passez un client en statut prospect.</p> : null}
     </div>
   );
 }

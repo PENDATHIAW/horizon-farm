@@ -200,13 +200,13 @@ function buildPaymentCollectionParse(raw = '', dataMap = {}) {
     });
     draft.source = AI_DRAFT_SOURCES.WHATSAPP;
     draft.raw_input = raw;
-    draft.warnings = [...arr(draft.warnings), `Plusieurs ventes ouvertes pour « ${clientName || 'ce client'} » — précisez la commande.`];
+    draft.warnings = [...arr(draft.warnings), `Plusieurs ventes ouvertes pour « ${clientName || 'ce client'} » - précisez la commande.`];
     draft.missing_fields = [...new Set([...arr(draft.missing_fields), 'sale_or_order_id'])];
     draft.confirmation_required = true;
     draft.status = 'draft_incomplete';
     draft.draft.primary_module = 'commercial';
     draft.draft.title = 'Encaissement WhatsApp à valider';
-    draft.draft.subtitle = `${orders.length} commande(s) candidate(s) — choisissez avant exécution.`;
+    draft.draft.subtitle = `${orders.length} commande(s) candidate(s) - choisissez avant exécution.`;
     draft.meta = { role: 'primary', scenario: 'payment_collection', channel: 'whatsapp_demo', candidate_orders: orders.map((o) => o.id) };
     return {
       drafts: [draft],
@@ -342,7 +342,7 @@ function enrichSaleLegacy(legacy, raw) {
   };
   if (paid && amount) {
     legacy.draft_fields.montant_paye = amount;
-    legacy.warnings = [...arr(legacy.warnings), 'Paiement détecté — vente + encaissement via workflow unique (pas de doublon finance).'];
+    legacy.warnings = [...arr(legacy.warnings), 'Paiement détecté - vente + encaissement via workflow unique (pas de doublon finance).'];
   }
   return legacy;
 }
@@ -383,7 +383,7 @@ function buildMortalityParse(raw = '', dataMap = {}) {
 export function parseWhatsAppCommand(message = '', dataMap = {}) {
   const raw = clean(message);
   if (!raw) {
-    return { drafts: [], clarify: 'Message vide — saisissez une action terrain.', phrase: raw, scenario: 'empty' };
+    return { drafts: [], clarify: 'Message vide - saisissez une action terrain.', phrase: raw, scenario: 'empty' };
   }
 
   if (isHotelTerminusInvestorOrder(raw)) {

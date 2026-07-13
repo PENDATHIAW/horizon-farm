@@ -1,5 +1,5 @@
 /**
- * Écarts chantier 5 — cultures / stock / commercial / finance.
+ * Écarts chantier 5 - cultures / stock / commercial / finance.
  */
 
 import { toNumber } from './format.js';

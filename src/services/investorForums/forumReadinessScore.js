@@ -1,5 +1,5 @@
 /**
- * Score de préparation financement — s'appuie sur getInvestorReadySummary sans recalcul Finance.
+ * Score de préparation financement - s'appuie sur getInvestorReadySummary sans recalcul Finance.
  */
 
 const arr = (value) => (Array.isArray(value) ? value : []);
@@ -150,9 +150,9 @@ export function computeForumReadinessScore(profile = {}, context = {}) {
       .map((m) => ({ id: m.id, label: m.label, ...m.action })),
     ready_for_export: composite >= 55,
     summary: composite >= 80
-      ? 'Dossier solide — rapports financeurs et subvention recommandés.'
+      ? 'Dossier solide - rapports financeurs et subvention recommandés.'
       : composite >= 55
-        ? 'Base présentable — compléter les points manquants avant échange financeur.'
+        ? 'Base présentable - compléter les points manquants avant échange financeur.'
         : 'Renforcer justificatifs ERP et textes stratégiques avant banque ou subvention.',
   };
 }

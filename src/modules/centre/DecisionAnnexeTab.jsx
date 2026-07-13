@@ -95,7 +95,7 @@ export default function DecisionAnnexeTab({
     <div className="space-y-6">
       <section className="rounded-3xl border border-line bg-card p-6">
         <p className="text-xs uppercase tracking-normal text-slate font-semibold flex items-center gap-2">
-          <BookOpen size={15} /> Annexe — comment on calcule
+          <BookOpen size={15} /> Annexe - comment on calcule
         </p>
         <h2 className="text-xl font-semibold text-earth mt-1">{moduleLabel} : guide en langage simple</h2>
         <p className="text-sm text-slate mt-1">
@@ -106,7 +106,7 @@ export default function DecisionAnnexeTab({
 
       <section className="rounded-2xl border border-vigilance bg-vigilance-bg p-4">
         <p className="font-semibold text-horizon-dark flex items-center gap-2 text-sm">
-          <HelpCircle size={15} /> Sigles et mots utiles — lire en premier
+          <HelpCircle size={15} /> Sigles et mots utiles - lire en premier
         </p>
         <div className="mt-3 grid grid-cols-1 md:grid-cols-2 gap-2">
           {ACRONYM_GLOSSARY.map((row) => (
@@ -212,7 +212,7 @@ export default function DecisionAnnexeTab({
           {snapshot.festivals.map((fest) => (
             <div key={fest.key} className="rounded-xl border border-line px-3 py-2 text-xs">
               <span className="font-semibold text-earth">{fest.label}</span>
-              <span className="text-slate"> — règle calendrier : </span>
+              <span className="text-slate"> - règle calendrier : </span>
               <span className="text-slate">jour {fest.rule}</span>
             </div>
           ))}

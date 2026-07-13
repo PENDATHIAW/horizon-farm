@@ -3,7 +3,7 @@ import { fmtCurrency } from '../utils/format';
 import { PROPOSED_PRICE_MARGIN_LABEL, SALE_PRICE_HELP_ANIMAL, SALE_PRICE_HELP_AVICOLE } from '../utils/salePricePresentation.js';
 
 /**
- * Bandeau prix de vente proposé — visible sur toutes les fiches (pas seulement l’onglet Finances).
+ * Bandeau prix de vente proposé - visible sur toutes les fiches (pas seulement l’onglet Finances).
  * Marge affichée = prix proposé − coût unifié (alignée liste Animaux / Avicole).
  */
 export default function SalePricingSummaryCard({

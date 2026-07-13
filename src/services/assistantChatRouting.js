@@ -1,5 +1,5 @@
 /**
- * Routage chat Hey Horizon — assistant ERP vs déclarations terrain vocales.
+ * Routage chat Hey Horizon - assistant ERP vs déclarations terrain vocales.
  */
 import {
   classifyUniversalIntent,

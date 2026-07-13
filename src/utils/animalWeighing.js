@@ -81,7 +81,7 @@ export function buildAnimalWeighingProfile(animal = {}) {
           : weighingStatus === 'j-1'
             ? 'Pesée à préparer demain (rappel J-1)'
             : weighingStatus === 'retard'
-              ? 'Pesée en retard — enregistrer une nouvelle pesée'
+              ? 'Pesée en retard - enregistrer une nouvelle pesée'
               : 'Continuer le suivi normal (cycle J+15)';
 
   return {

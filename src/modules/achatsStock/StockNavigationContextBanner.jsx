@@ -25,7 +25,7 @@ export default function StockNavigationContextBanner({
             </p>
           ) : (
             <p className="mt-2 text-xs text-horizon-dark font-semibold">
-              Aucune ligne stock ne correspond encore à ce filtre — vérifiez les articles œufs/tablettes ou créez-les manuellement si besoin.
+              Aucune ligne stock ne correspond encore à ce filtre - vérifiez les articles œufs/tablettes ou créez-les manuellement si besoin.
             </p>
           )}
         </div>

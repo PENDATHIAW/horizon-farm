@@ -3,10 +3,10 @@
 export const HEALTH_INTERVENTION_FORM_ID = 'elevage-health-intervention-form';
 
 export const HEALTH_TERRAIN_BANNER =
-  'Saisie terrain — formulaire santé complet. Ajoutez une photo, ordonnance, facture ou carnet de vaccination si disponible.';
+  'Saisie terrain - formulaire santé complet. Ajoutez une photo, ordonnance, facture ou carnet de vaccination si disponible.';
 
 export const HEALTH_STOCK_CONTEXT_MESSAGE =
-  'Médicaments et vaccins stockés — gérez les intrants sanitaires dans Achats & Stock.';
+  'Médicaments et vaccins stockés - gérez les intrants sanitaires dans Achats & Stock.';
 
 export const HEALTH_STOCK_SEARCH_TERMS = [
   'vaccin',
@@ -88,7 +88,7 @@ export function navigateToHealthStock(onNavigate) {
 const lower = (value) => String(value || '').toLowerCase().trim();
 
 /**
- * Brouillon SanteV6 depuis scan ordonnance (fusion matrice — pas d’auto-commit).
+ * Brouillon SanteV6 depuis scan ordonnance (fusion matrice - pas d’auto-commit).
  */
 export function buildHealthInterventionDraftFromScan(fields = {}, proofMeta = {}) {
   const typeMap = {

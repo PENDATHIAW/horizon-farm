@@ -1,5 +1,5 @@
 /**
- * Phrases réelles exploitants — WhatsApp, terrain, oral sénégalais.
+ * Phrases réelles exploitants - WhatsApp, terrain, oral sénégalais.
  * Fusionnées dans MODULE_BUSINESS_QUESTIONS pour le matcher sémantique.
  */
 
@@ -17,7 +17,7 @@ const F = Object.freeze({
 });
 
 /**
- * Bundles terrain par module ERP — formulations orales, WhatsApp, micro.
+ * Bundles terrain par module ERP - formulations orales, WhatsApp, micro.
  * @type {ReadonlyArray<{ module: string, family: string, intent: string, label?: string, phrases: string[] }>}
  */
 export const TERRAIN_PHRASE_BUNDLES = Object.freeze([

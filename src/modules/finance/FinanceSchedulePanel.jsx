@@ -63,7 +63,7 @@ export default function FinanceSchedulePanel({ schedule = null, showFarm = false
           <CalendarClock size={20} className="text-horizon-dark" />
           <div>
             <h2 className="text-lg font-semibold text-earth">Échéancier financier</h2>
-            <p className="text-sm text-slate">Encaissements attendus et paiements à effectuer — lecture direction.</p>
+            <p className="text-sm text-slate">Encaissements attendus et paiements à effectuer - lecture direction.</p>
           </div>
         </div>
         <div className="mt-4 grid grid-cols-2 gap-3 md:grid-cols-4">
@@ -76,7 +76,7 @@ export default function FinanceSchedulePanel({ schedule = null, showFarm = false
 
       {empty ? (
         <div className="rounded-2xl border border-line bg-card p-6 text-center text-sm text-slate">
-          Aucune échéance ouverte — créances et dettes sont à jour.
+          Aucune échéance ouverte - créances et dettes sont à jour.
         </div>
       ) : (
         Object.values(schedule.buckets).map((bucket) => (

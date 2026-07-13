@@ -1,5 +1,5 @@
 /**
- * AGRI FEEDS — achat / réception matière première + contrôle qualité.
+ * AGRI FEEDS - achat / réception matière première + contrôle qualité.
  * Réutilise le pattern prepare/commit (stock + finance + business_event).
  */
 import { AGRI_FEEDS_ALERT_THRESHOLDS } from '../../config/agriFeeds.config.js';
@@ -160,7 +160,7 @@ export function prepareRawMaterialReception(payload = {}, context = {}) {
     fournisseur_id: batch.supplier_id,
     raw_material_id: material.id,
     feed_raw_batch_id: batchId,
-    notes: quality.quality_status === 'rejected' ? 'Lot rejeté — non utilisable en production' : '',
+    notes: quality.quality_status === 'rejected' ? 'Lot rejeté - non utilisable en production' : '',
   };
 
   const movement = {
@@ -181,7 +181,7 @@ export function prepareRawMaterialReception(payload = {}, context = {}) {
     id: makeId('TRX'),
     type: 'sortie',
     categorie: 'Stock',
-    libelle: `Achat MP AGRI FEEDS — ${material.name}`,
+    libelle: `Achat MP AGRI FEEDS - ${material.name}`,
     montant: paidAmount,
     module_lie: 'agri_feeds',
     related_id: batchId,
@@ -204,8 +204,8 @@ export function prepareRawMaterialReception(payload = {}, context = {}) {
     entity_type: 'feed_raw_batch',
     entity_id: batchId,
     title: quality.quality_status === 'rejected'
-      ? `MP rejetée — ${material.name}`
-      : `Réception MP — ${material.name}`,
+      ? `MP rejetée - ${material.name}`
+      : `Réception MP - ${material.name}`,
     description: `${qty} ${material.unit || 'kg'} · ${batchCode} · ${quality.quality_status}`,
     amount: totalCost,
     event_date: receivedDate,
@@ -213,7 +213,7 @@ export function prepareRawMaterialReception(payload = {}, context = {}) {
   };
 
   const alert = quality.quality_status === 'rejected' ? {
-    title: `Qualité MP — ${material.name} rejetée`,
+    title: `Qualité MP - ${material.name} rejetée`,
     message: quality.issues.join(' · ') || 'Lot matière première rejeté à la réception.',
     severity: 'haute',
     module_source: 'agri_feeds',
@@ -286,10 +286,10 @@ export async function commitRawMaterialReception(preview = {}, handlers = {}) {
 export function assertBatchUsableInProduction(batch = {}) {
   if (!batch?.id) return { ok: false, message: 'Lot matière introuvable.' };
   if (norm(batch.quality_status) === 'rejected') {
-    return { ok: false, message: 'Matière première rejetée — production bloquée.' };
+    return { ok: false, message: 'Matière première rejetée - production bloquée.' };
   }
   if (norm(batch.quality_status) === 'under_review') {
-    return { ok: false, message: 'Lot encore en revue qualité — production bloquée.' };
+    return { ok: false, message: 'Lot encore en revue qualité - production bloquée.' };
   }
   if (toNumber(batch.quantity_available) <= 0) {
     return { ok: false, message: 'Quantité disponible insuffisante.' };

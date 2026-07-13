@@ -1,4 +1,4 @@
-/** Chantier 10 — registre anti-duplication (source de vérité par domaine). */
+/** Chantier 10 - registre anti-duplication (source de vérité par domaine). */
 
 export const ANTI_DUPLICATION_DECISIONS = {
   keep: 'keep',
@@ -25,7 +25,7 @@ export const ANTI_DUPLICATION_PAIRS = [
     sourceTab: 'Bibliothèque',
     duplicateModules: ['finance_pilotage', 'activite_suivi'],
     decision: ANTI_DUPLICATION_DECISIONS.redirect,
-    detail: 'Upload et rattachement dans Documents · Bibliothèque — pas de tâche seule.',
+    detail: 'Upload et rattachement dans Documents · Bibliothèque - pas de tâche seule.',
   },
   {
     id: 'vente_commercial_finance',
@@ -34,7 +34,7 @@ export const ANTI_DUPLICATION_PAIRS = [
     sourceTab: 'Ventes',
     duplicateModules: ['finance_pilotage', 'centre_ia', 'objectifs_croissance'],
     decision: ANTI_DUPLICATION_DECISIONS.redirect,
-    detail: 'Création vente uniquement dans Commercial — Finance = encaissements liés.',
+    detail: 'Création vente uniquement dans Commercial - Finance = encaissements liés.',
   },
   {
     id: 'stock_vs_mouvements',
@@ -44,7 +44,7 @@ export const ANTI_DUPLICATION_PAIRS = [
     duplicateModules: ['achats_stock'],
     duplicateTab: 'Mouvements',
     decision: ANTI_DUPLICATION_DECISIONS.readonly,
-    detail: 'Saisie dans Stock — Mouvements = historique lecture seule.',
+    detail: 'Saisie dans Stock - Mouvements = historique lecture seule.',
   },
   {
     id: 'alertes_centre_activite',
@@ -53,7 +53,7 @@ export const ANTI_DUPLICATION_PAIRS = [
     sourceTab: 'Alertes',
     duplicateModules: ['centre_ia'],
     decision: ANTI_DUPLICATION_DECISIONS.redirect,
-    detail: 'CRUD alertes dans Activité & Suivi — Centre = pilotage et redirection.',
+    detail: 'CRUD alertes dans Activité & Suivi - Centre = pilotage et redirection.',
   },
   {
     id: 'financeur_documents_objectifs',
@@ -62,7 +62,7 @@ export const ANTI_DUPLICATION_PAIRS = [
     sourceTab: null,
     duplicateModules: ['documents_rapports', 'objectifs_croissance'],
     decision: ANTI_DUPLICATION_DECISIONS.redirect,
-    detail: 'Génération PDF dans Rapports — Documents/Objectifs = vitrine lecture.',
+    detail: 'Génération PDF dans Rapports - Documents/Objectifs = vitrine lecture.',
   },
   {
     id: 'maintenance_rh_equipements',
@@ -71,7 +71,7 @@ export const ANTI_DUPLICATION_PAIRS = [
     sourceTab: null,
     duplicateModules: ['rh'],
     decision: ANTI_DUPLICATION_DECISIONS.redirect,
-    detail: 'Workflow maintenance complet dans Équipements — RH = file d’attente lecture.',
+    detail: 'Workflow maintenance complet dans Équipements - RH = file d’attente lecture.',
   },
   {
     id: 'capteurs_smartfarm_equipements',
@@ -80,7 +80,7 @@ export const ANTI_DUPLICATION_PAIRS = [
     sourceTab: null,
     duplicateModules: ['equipements', 'rh'],
     decision: ANTI_DUPLICATION_DECISIONS.redirect,
-    detail: 'CRUD capteurs/caméras dans Smart Farm — Équipements = matériel physique.',
+    detail: 'CRUD capteurs/caméras dans Smart Farm - Équipements = matériel physique.',
   },
   {
     id: 'rentabilite_finance_elevage',
@@ -89,7 +89,7 @@ export const ANTI_DUPLICATION_PAIRS = [
     sourceTab: 'Rentabilité',
     duplicateModules: ['elevage', 'objectifs_croissance'],
     decision: ANTI_DUPLICATION_DECISIONS.readonly,
-    detail: 'Marge globale ERP dans Finance — Élevage/Objectifs = lecture métier + liens.',
+    detail: 'Marge globale ERP dans Finance - Élevage/Objectifs = lecture métier + liens.',
   },
 ];
 

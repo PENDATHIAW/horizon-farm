@@ -15,13 +15,13 @@ export default function AchatsStockExpiryPanel({ expiry = {}, setTab, onNavigate
   if (!rows.length) return null;
 
   return (
-    <AchatsStockSection title="Péremption & DLC" subtitle="Produits frais à traiter — aucune suppression automatique.">
+    <AchatsStockSection title="Péremption & DLC" subtitle="Produits frais à traiter - aucune suppression automatique.">
       <div className="space-y-2">
         {rows.slice(0, 8).map((row) => (
           <div key={row.id} className={`rounded-xl border px-3 py-2 ${riskTone(row.risk)}`}>
             <AchatsStockTodoRow
               title={row.label}
-              detail={`DLC ${row.dlc || '—'} · ${row.daysLeft != null ? `${row.daysLeft} j` : 'DLC manquante'} · ${fmtNumber(row.qty)} ${row.unit}`}
+              detail={`DLC ${row.dlc || '-'} · ${row.daysLeft != null ? `${row.daysLeft} j` : 'DLC manquante'} · ${fmtNumber(row.qty)} ${row.unit}`}
               actionLabel={
                 row.recommended?.action === 'mark_loss' ? 'Marquer perte'
                   : row.recommended?.action === 'quick_sale' || row.recommended?.action === 'promote_sale' ? 'Vendre'

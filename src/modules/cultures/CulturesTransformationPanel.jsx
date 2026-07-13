@@ -53,7 +53,7 @@ export default function CulturesTransformationPanel({ stocks = [], context, hand
           context,
           handlers,
         });
-        toast.success('Transformation enregistrée — stock produit fini créé');
+        toast.success('Transformation enregistrée - stock produit fini créé');
         setForm({ ...initial, source_stock_id: sourceStocks[0]?.id || '' });
         await onSuccess?.();
       });
@@ -95,7 +95,7 @@ export default function CulturesTransformationPanel({ stocks = [], context, hand
         </form>
       )}
       {sourceStocks.length ? (
-        <p className="text-sm text-slate">Coût de revient estimé produit fini : <b>{unitCost ? fmtCurrency(unitCost) : '—'}</b> / {form.unite_produit_fini || 'kg'}</p>
+        <p className="text-sm text-slate">Coût de revient estimé produit fini : <b>{unitCost ? fmtCurrency(unitCost) : '-'}</b> / {form.unite_produit_fini || 'kg'}</p>
       ) : null}
     </section>
   );

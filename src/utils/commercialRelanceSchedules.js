@@ -1,5 +1,5 @@
 /**
- * Commercial V1 — relances IA planifiées J+2, J+7, J+15 (WhatsApp, SMS, Email).
+ * Commercial V1 - relances IA planifiées J+2, J+7, J+15 (WhatsApp, SMS, Email).
  */
 
 import { fmtCurrency } from './format.js';
@@ -42,20 +42,20 @@ export function buildRelanceMessageForChannel({
 
   if (channel === 'sms') {
     if (level === 'j2') {
-      return `Bonjour ${name}, rappel amical : solde ${amt}${ref}. Merci de confirmer le paiement. — Horizon Farm`;
+      return `Bonjour ${name}, rappel amical : solde ${amt}${ref}. Merci de confirmer le paiement. - Horizon Farm`;
     }
     if (level === 'j7') {
-      return `Bonjour ${name}, nous n'avons pas reçu ${amt}${ref}, en retard ${overdue}. Merci de régulariser. — Horizon Farm`;
+      return `Bonjour ${name}, nous n'avons pas reçu ${amt}${ref}, en retard ${overdue}. Merci de régulariser. - Horizon Farm`;
     }
-    return `Bonjour ${name}, solde ${amt}${ref} toujours impayé ${overdue}. Contactez-nous pour planifier le règlement. — Horizon Farm`;
+    return `Bonjour ${name}, solde ${amt}${ref} toujours impayé ${overdue}. Contactez-nous pour planifier le règlement. - Horizon Farm`;
   }
 
   if (channel === 'email') {
     const subject = level === 'j15'
-      ? `Relance paiement — solde ${amt}`
+      ? `Relance paiement - solde ${amt}`
       : level === 'j7'
-        ? `Rappel de paiement — ${orderId || 'commande'}`
-        : `Rappel amical — ${orderId || 'commande'}`;
+        ? `Rappel de paiement - ${orderId || 'commande'}`
+        : `Rappel amical - ${orderId || 'commande'}`;
     const body = level === 'j2'
       ? `Bonjour ${name},\n\nNous vous contactons courtoisement concernant le solde de ${amt}${ref}.\nMerci de nous indiquer la date de règlement prévue.\n\nCordialement,\nL'équipe Horizon Farm`
       : level === 'j7'

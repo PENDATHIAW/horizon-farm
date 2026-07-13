@@ -61,7 +61,7 @@ export default function AchatsStockPurchasesPanel({ data, setTab, onNavigate, on
               <AchatsStockTodoRow
                 key={trx.id}
                 title={trx.libelle || trx.title || 'Achat'}
-                detail={`${trx.date || '—'} · ${fmtCurrency(n(trx.montant ?? trx.amount))}`}
+                detail={`${trx.date || '-'} · ${fmtCurrency(n(trx.montant ?? trx.amount))}`}
                 actionLabel="Payer"
                 onOpen={() => onNavigate?.('finance_pilotage', { tab: 'Dépenses' })}
                 onAction={() => setTab?.('Fournisseurs')}
@@ -72,7 +72,7 @@ export default function AchatsStockPurchasesPanel({ data, setTab, onNavigate, on
       ) : null}
 
       {ops.purchasesWithoutProof?.length ? (
-        <AchatsStockSection title="Achats sans preuve" subtitle="Justificatifs manquants — à compléter.">
+        <AchatsStockSection title="Achats sans preuve" subtitle="Justificatifs manquants - à compléter.">
           <div className="divide-y divide-line/60">
             {ops.purchasesWithoutProof.slice(0, 5).map((trx) => (
               <AchatsStockTodoRow
@@ -93,7 +93,7 @@ export default function AchatsStockPurchasesPanel({ data, setTab, onNavigate, on
       ) : null}
 
       {ops.suppliersToContact?.length ? (
-        <AchatsStockSection title="Fournisseurs à contacter" subtitle="Dettes actives — relance ou paiement.">
+        <AchatsStockSection title="Fournisseurs à contacter" subtitle="Dettes actives - relance ou paiement.">
           <div className="divide-y divide-line/60">
             {ops.suppliersToContact.map((s) => (
               <AchatsStockTodoRow
@@ -142,7 +142,7 @@ export default function AchatsStockPurchasesPanel({ data, setTab, onNavigate, on
               <AchatsStockTodoRow
                 key={trx.id}
                 title={trx.libelle || trx.title || 'Achat'}
-                detail={`${trx.date || '—'} · ${fmtCurrency(n(trx.montant ?? trx.amount))}`}
+                detail={`${trx.date || '-'} · ${fmtCurrency(n(trx.montant ?? trx.amount))}`}
                 actionLabel="Créer entrée"
                 onOpen={() => setTab?.('Stock')}
                 onAction={() => openStockPurchaseForm({
@@ -168,7 +168,7 @@ export default function AchatsStockPurchasesPanel({ data, setTab, onNavigate, on
         rows={purchases.map((row) => ({
           id: row.id || `${row.date}-${row.libelle}`,
           title: row.libelle || row.title || 'Achat',
-          detail: `${row.date || row.created_at || '—'} · ${row.categorie || row.category || 'Approvisionnement'}`,
+          detail: `${row.date || row.created_at || '-'} · ${row.categorie || row.category || 'Approvisionnement'}`,
           value: fmtCurrency(n(row.montant ?? row.amount)),
           module: 'achats_stock',
           tab: 'Achats',

@@ -33,7 +33,7 @@ export function buildSupplierReceptionWorkflow({ supplier = {}, stock = {}, qty 
     debtTransaction: {
       id: financeId,
       type: 'sortie',
-      libelle: `Réception fournisseur ${supplierName(supplier)} — ${stockProductName(stock)}`,
+      libelle: `Réception fournisseur ${supplierName(supplier)} - ${stockProductName(stock)}`,
       montant: amount,
       reste_a_payer: amount,
       date,
@@ -52,7 +52,7 @@ export function buildSupplierReceptionWorkflow({ supplier = {}, stock = {}, qty 
     },
     missingInvoiceDocument: {
       id: documentId,
-      title: `Facture fournisseur à joindre — ${supplierName(supplier)}`,
+      title: `Facture fournisseur à joindre - ${supplierName(supplier)}`,
       document_category: 'facture',
       module_source: 'fournisseurs',
       entity_type: 'fournisseur',
@@ -132,7 +132,7 @@ export function buildSupplierPaymentWorkflow({
     },
     paymentProofDocument: {
       id: documentId,
-      title: `Preuve paiement fournisseur — ${supplierName(supplier)}`,
+      title: `Preuve paiement fournisseur - ${supplierName(supplier)}`,
       document_category: 'preuve / facture',
       module_source: 'fournisseurs',
       entity_type: 'fournisseur',
@@ -165,7 +165,7 @@ export function buildSupplierPaymentWorkflow({
       entity_type: 'fournisseur',
       entity_id: supplier.id,
       title: 'Paiement fournisseur',
-      description: `${supplierName(supplier)} — ${amount}`,
+      description: `${supplierName(supplier)} - ${amount}`,
       amount,
       event_date: date,
       severity: 'info',

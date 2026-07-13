@@ -39,7 +39,7 @@ const activityLabel = {
   stock: 'Stock',
   global: 'Global',
 };
-const prettyModule = (value) => moduleLabel[String(value || '').toLowerCase()] || value || '—';
+const prettyModule = (value) => moduleLabel[String(value || '').toLowerCase()] || value || '-';
 const prettyActivity = (value) => activityLabel[String(value || '').toLowerCase()] || value || 'Global';
 
 function ProfitBadge({ status }) {
@@ -64,7 +64,7 @@ function TraceSummary({ decision }) {
 }
 
 function justificationOf(decision) {
-  return decision.profitability_status === 'not_profitable' ? explainDecisionNonProfitability(decision) : decision.profitability_explanation || decision.decision_reason || '—';
+  return decision.profitability_status === 'not_profitable' ? explainDecisionNonProfitability(decision) : decision.profitability_explanation || decision.decision_reason || '-';
 }
 
 function MobileDecisionCard({ decision }) {
@@ -80,7 +80,7 @@ function MobileDecisionCard({ decision }) {
     <div className="grid grid-cols-2 gap-2 text-xs">
       <div className="rounded-xl bg-white border border-line p-3"><span className="text-slate">Investi réel</span><b className="block text-earth">{fmtCurrency(decision.actual_investment)}</b></div>
       <div className="rounded-xl bg-white border border-line p-3"><span className="text-slate">CA réel</span><b className="block text-earth">{fmtCurrency(decision.actual_revenue)}</b></div>
-      <div className="rounded-xl bg-white border border-line p-3"><span className="text-slate">ROI</span><b className="block text-earth">{decision.roi_percent === null || decision.roi_percent === undefined ? '—' : `${decision.roi_percent}%`}</b></div>
+      <div className="rounded-xl bg-white border border-line p-3"><span className="text-slate">ROI</span><b className="block text-earth">{decision.roi_percent === null || decision.roi_percent === undefined ? '-' : `${decision.roi_percent}%`}</b></div>
       <div className="rounded-xl bg-white border border-line p-3"><span className="text-slate">Module</span><b className="block text-earth">{prettyModule(decision.target_module)}</b></div>
     </div>
     <p className="text-sm text-slate line-clamp-3" title={justificationOf(decision)}>{justificationOf(decision)}</p>
@@ -169,12 +169,12 @@ export default function DecisionHistoryPanel({ dataMap = {}, onNavigate, compact
               <tr key={decision.id || decision.recommendation_id} className="border-t border-line align-top">
                 <td className="px-3 py-3"><b className="text-earth line-clamp-2">{decision.title}</b><TraceSummary decision={decision} /></td>
                 <td className="px-3 py-3 text-slate">{prettyActivity(decision.activity)}</td>
-                <td className="px-3 py-3 text-slate">{String(decision.recommendation_date || decision.created_at || '').slice(0, 10) || '—'}</td>
+                <td className="px-3 py-3 text-slate">{String(decision.recommendation_date || decision.created_at || '').slice(0, 10) || '-'}</td>
                 <td className="px-3 py-3"><span className={`rounded-full border px-2 py-1 text-xs font-semibold ${statusTone[decision.status] || statusTone.recommended}`}>{decisionStatuses[decision.status] || decision.status || 'Recommandée'}</span></td>
-                <td className="px-3 py-3 hidden xl:table-cell text-xs font-semibold text-earth">{prettyModule(decision.target_module)}<p className="text-slate font-normal">{String(decision.deadline || '').slice(0, 10) || '—'}</p></td>
+                <td className="px-3 py-3 hidden xl:table-cell text-xs font-semibold text-earth">{prettyModule(decision.target_module)}<p className="text-slate font-normal">{String(decision.deadline || '').slice(0, 10) || '-'}</p></td>
                 <td className="px-3 py-3 font-semibold text-earth">{fmtCurrency(decision.actual_investment)}</td>
                 <td className="px-3 py-3 font-semibold text-earth">{fmtCurrency(decision.actual_revenue)}</td>
-                <td className="px-3 py-3 font-semibold text-earth">{decision.roi_percent === null || decision.roi_percent === undefined ? '—' : `${decision.roi_percent}%`}</td>
+                <td className="px-3 py-3 font-semibold text-earth">{decision.roi_percent === null || decision.roi_percent === undefined ? '-' : `${decision.roi_percent}%`}</td>
                 <td className="px-3 py-3"><ProfitBadge status={decision.profitability_status} /></td>
                 <td className="px-3 py-3 text-xs text-slate max-w-[260px] line-clamp-3" title={justificationOf(decision)}>{justificationOf(decision)}</td>
               </tr>

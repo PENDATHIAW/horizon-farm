@@ -48,7 +48,7 @@ function DiagnosticCard({ diagnostic, invoice }) {
       <div className="grid grid-cols-2 gap-2 md:grid-cols-4">
         <div className="rounded-xl border border-line bg-white p-3 text-xs">
           <span className="text-slate">Fournisseur</span>
-          <p className="font-semibold text-earth">{invoice?.fournisseur || '—'}</p>
+          <p className="font-semibold text-earth">{invoice?.fournisseur || '-'}</p>
         </div>
         <div className="rounded-xl border border-line bg-white p-3 text-xs">
           <span className="text-slate">Total</span>
@@ -137,9 +137,9 @@ export default function InvoiceOcrIntelligentPanel({
       });
       setResult(analyzed);
       if (analyzed.empty) {
-        toast('Texte limité — complétez ci-dessous.', { icon: '⚠️' });
+        toast('Texte limité - complétez ci-dessous.', { icon: '⚠️' });
       } else {
-        toast.success('Diagnostic économique prêt — validez avant enregistrement.');
+        toast.success('Diagnostic économique prêt - validez avant enregistrement.');
       }
     } catch (e) {
       toast.error(e.message || 'Analyse impossible');
@@ -161,7 +161,7 @@ export default function InvoiceOcrIntelligentPanel({
     try {
       const validated = validateInvoiceDiagnosticDraft(result.draft);
       setValidatedDraft(validated);
-      toast.success('Brouillon validé — vous pouvez exécuter le workflow.');
+      toast.success('Brouillon validé - vous pouvez exécuter le workflow.');
     } catch (e) {
       toast.error(e.message || 'Validation impossible');
     }
@@ -207,7 +207,7 @@ export default function InvoiceOcrIntelligentPanel({
           Diagnostic facture fournisseur
         </h2>
         <p className="mt-1 text-sm text-slate">
-          Extraction + comparaison prix + impact marge & trésorerie. Brouillon validable — aucune écriture sans confirmation.
+          Extraction + comparaison prix + impact marge & trésorerie. Brouillon validable - aucune écriture sans confirmation.
         </p>
       </div>
 

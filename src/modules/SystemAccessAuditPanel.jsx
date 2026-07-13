@@ -55,7 +55,7 @@ export default function SystemAccessAuditPanel({ role = 'visiteur', auditLogs = 
             {adminLogs.map((log) => (
               <li key={log.id || `${log.action}-${log.created_at}`} className="rounded-xl border border-line bg-white px-3 py-2">
                 <b className="text-earth">{log.title || log.action}</b>
-                <p className="text-xs">{String(log.created_at || log.date || '—').slice(0, 19)} · {log.actor_email || log.actor || 'ERP'}</p>
+                <p className="text-xs">{String(log.created_at || log.date || '-').slice(0, 19)} · {log.actor_email || log.actor || 'ERP'}</p>
               </li>
             ))}
           </ul>

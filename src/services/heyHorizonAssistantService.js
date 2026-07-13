@@ -290,7 +290,7 @@ export function updateHeyHorizonDraftField(currentDraft, key, value) {
 export function processHeyHorizonCommand(rawText = '', { dataMap = {}, currentDraft = null, allowWeakDraft = false, conversationContext = null } = {}) {
   const cleaned = normalizeHeyHorizonText(rawText);
   if (!cleaned) {
-    return { kind: 'empty', assistantText: 'Je suis là. Dites-moi ce qui se passe sur la ferme — une vente, un stock, vos animaux, la trésorerie…' };
+    return { kind: 'empty', assistantText: 'Je suis là. Dites-moi ce qui se passe sur la ferme - une vente, un stock, vos animaux, la trésorerie…' };
   }
 
   const naturalLanguage = routeNaturalLanguageQuery(rawText, { dataMap, conversationContext });
@@ -562,7 +562,7 @@ export async function processHeyHorizonCommandAsync(rawText = '', options = {}) 
           kind: 'draft',
           strategic: null,
           draft: llmDraft,
-          assistantText: enhanced.text || buildHeyHorizonAssistantText(llmDraft) || 'Brouillon préparé — vérifie avant validation.',
+          assistantText: enhanced.text || buildHeyHorizonAssistantText(llmDraft) || 'Brouillon préparé - vérifie avant validation.',
           journalEntry,
           source: enhanced.source,
           llmEnhanced: true,

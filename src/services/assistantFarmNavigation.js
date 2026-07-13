@@ -1,5 +1,5 @@
 /**
- * Cartographie navigation ferme — alignée sur la sidebar ERP.
+ * Cartographie navigation ferme - alignée sur la sidebar ERP.
  * PILOTAGE · PRODUCTION · COMMERCE · FINANCE · SUIVI · RESSOURCES · ADMINISTRATION
  */
 
@@ -63,7 +63,7 @@ const SHOW_NAV_ALIASES = [
   { pattern: /^(?:va|aller)\s+(?:dans|en|vers)\s+(?:les|mes)\s+cultures/, moduleId: 'cultures' },
 ];
 
-/** Demandes de données chiffrées — rester dans le chat. */
+/** Demandes de données chiffrées - rester dans le chat. */
 const DATA_SHOW_PATTERN = /^(?:montre(?: moi)?|affiche(?: moi)?|donne(?: moi)?)\s+(?:mes|mon|ma|le|la|les|moi)\s+(?:ventes|stock|tresorerie|cheptel|bovins)/;
 
 /**

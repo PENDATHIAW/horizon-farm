@@ -92,7 +92,7 @@ export default function ActiviteWorkflowBridge({
     try {
       if (gap.repair === 'create_task') await createTaskForAlert(gap.record_id);
       else if (gap.repair === 'resolve_alert') await resolveAlertById(gap.record_id);
-      else toast('Écart signalé — action manuelle requise');
+      else toast('Écart signalé - action manuelle requise');
     } catch (error) {
       toast.error(error.message || 'Correction impossible');
     } finally {

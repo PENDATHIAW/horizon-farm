@@ -48,7 +48,7 @@ export default function VisionRisksTab({ data = {}, onNavigate, setTab, onCreate
   const riskToItem = (risk) => ({
     id: risk.id || `risk-${risk.title}`,
     title: `Risque : ${risk.title}`,
-    detail: `${risk.cause || '—'} → ${risk.impact || risk.action || '—'}`,
+    detail: `${risk.cause || '-'} → ${risk.impact || risk.action || '-'}`,
     message: `${risk.cause || ''} → ${risk.impact || ''}`.trim(),
     tone: risk.tone,
     sourceModule: risk.module || 'centre_decisionnel',
@@ -80,7 +80,7 @@ export default function VisionRisksTab({ data = {}, onNavigate, setTab, onCreate
         <TabIntro
           title={urgentOnly ? 'Urgences terrain & risques critiques' : 'Registre des risques'}
           detail={urgentOnly
-            ? 'Ventes urgentes, stock aliment, BFR et risques critiques — le registre complet reste dans Activité & Suivi.'
+            ? 'Ventes urgentes, stock aliment, BFR et risques critiques - le registre complet reste dans Activité & Suivi.'
             : 'Matrice d’analyse + risques opérationnels détectés sur alertes, stock, élevage, trésorerie et documents.'}
           action={onNavigate ? <Btn onClick={() => onNavigate('activite_suivi', { tab: 'Alertes' })}>Centre alertes</Btn> : null}
         />
@@ -105,7 +105,7 @@ export default function VisionRisksTab({ data = {}, onNavigate, setTab, onCreate
       ) : null}
 
       {sellNowItems.length ? (
-        <Section icon={TrendingDown} title={compact ? 'Ventes urgentes' : 'Urgences vente — QUAND VENDRE'}>
+        <Section icon={TrendingDown} title={compact ? 'Ventes urgentes' : 'Urgences vente - QUAND VENDRE'}>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             {sellNowItems.map((item) => (
               <StrategicDecisionCard
@@ -139,7 +139,7 @@ export default function VisionRisksTab({ data = {}, onNavigate, setTab, onCreate
         </Section>
       ) : null}
       {showBfr ? (
-        <Section icon={Wallet} title={compact ? 'Trésorerie — lancement bloqué' : 'Blocage BFR — trésorerie'}>
+        <Section icon={Wallet} title={compact ? 'Trésorerie - lancement bloqué' : 'Blocage BFR - trésorerie'}>
           <StrategicDecisionCard
             item={{ id: 'bfr-block', title: 'Lancement suspendu', message: strategicPlan.bfr.message, priority: 'critique', category: 'bfr', module: 'finance_pilotage', navTab: 'Trésorerie', coveragePct: strategicPlan.bfr.coveragePct }}
             onNavigate={onNavigate}
@@ -174,7 +174,7 @@ export default function VisionRisksTab({ data = {}, onNavigate, setTab, onCreate
               <DataRow
                 key={r.id}
                 title={`${r.domain} · ${r.title}`}
-                detail={`${r.cause} → ${r.impact}${r.financialImpact && r.financialImpact !== '—' ? ` · ${r.financialImpact}` : ''}`}
+                detail={`${r.cause} → ${r.impact}${r.financialImpact && r.financialImpact !== '-' ? ` · ${r.financialImpact}` : ''}`}
                 status={r.severity}
                 tone={r.tone}
                 onClick={() => navigateVisionRisk(onNavigate, r)}

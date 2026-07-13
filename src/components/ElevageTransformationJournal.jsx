@@ -57,7 +57,7 @@ export default function ElevageTransformationJournal({ rows = [], onNavigate, on
           <tbody>
             {list.map((row) => (
               <tr key={row.id} className="border-b border-line/60 last:border-0">
-                <td className="py-3 pr-3 whitespace-nowrap">{row.date || '—'}</td>
+                <td className="py-3 pr-3 whitespace-nowrap">{row.date || '-'}</td>
                 <td className="py-3 pr-3">
                   <span className={`inline-block rounded-lg px-2 py-1 text-xs font-semibold ${toneClass(row.tone)}`}>
                     {row.kindLabel}
@@ -65,15 +65,15 @@ export default function ElevageTransformationJournal({ rows = [], onNavigate, on
                 </td>
                 <td className="py-3 pr-3">
                   <p className="font-semibold text-earth">{row.label}</p>
-                  <p className="text-meta text-slate">{row.entityType} · {row.entityId || '—'}</p>
+                  <p className="text-meta text-slate">{row.entityType} · {row.entityId || '-'}</p>
                 </td>
                 <td className="py-3 pr-3">
                   {row.quantity != null && row.quantity > 0
                     ? `${fmtNumber(row.quantity)} ${row.unit || ''}`
-                    : '—'}
+                    : '-'}
                 </td>
-                <td className="py-3 pr-3 font-semibold">{row.amount > 0 ? fmtCurrency(row.amount) : '—'}</td>
-                <td className="py-3 pr-3 text-xs">{row.paymentStatus || '—'}</td>
+                <td className="py-3 pr-3 font-semibold">{row.amount > 0 ? fmtCurrency(row.amount) : '-'}</td>
+                <td className="py-3 pr-3 text-xs">{row.paymentStatus || '-'}</td>
                 <td className="py-3 text-xs text-slate max-w-xs">{row.detail}</td>
               </tr>
             ))}

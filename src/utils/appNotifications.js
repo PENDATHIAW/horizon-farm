@@ -99,7 +99,7 @@ export function markNotified(alert = {}, extra = {}) {
 
 export function buildAlertNotification(alert = {}) {
   const severity = String(alert.severity || 'info').toUpperCase();
-  const title = `${severity} — ${alert.title || 'Alerte Horizon Farm'}`;
+  const title = `${severity} - ${alert.title || 'Alerte Horizon Farm'}`;
   const body = [alert.message, alert.action_recommandee ? `Action: ${alert.action_recommandee}` : '', alert.module_source ? `Module: ${alert.module_source}` : ''].filter(Boolean).join('\n');
   return { title, body };
 }

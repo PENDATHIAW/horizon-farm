@@ -47,28 +47,28 @@ export default function ModuleGraphiquesTab({ moduleId, periodFiltered, ...props
         <div className="space-y-6">
           <section className="rounded-2xl border border-line bg-white p-4 shadow-card">
             <h2 className="text-sm font-semibold text-earth">Trésorerie & encaissements</h2>
-            <p className="mt-1 text-xs text-slate">Flux financiers — cliquez sur un point pour ouvrir Finance & Pilotage.</p>
+            <p className="mt-1 text-xs text-slate">Flux financiers - cliquez sur un point pour ouvrir Finance & Pilotage.</p>
             <div className="mt-3">
               <FinanceEvolution rows={arr(props.transactions || props.finances)} payments={arr(props.payments)} salesOrders={arr(props.salesOrders)} onNavigate={onNavigate} />
             </div>
           </section>
           <section className="rounded-2xl border border-line bg-white p-4 shadow-card">
             <h2 className="text-sm font-semibold text-earth">Ventes & créances</h2>
-            <p className="mt-1 text-xs text-slate">Évolution commerciale — relier aux relances clients et opportunités.</p>
+            <p className="mt-1 text-xs text-slate">Évolution commerciale - relier aux relances clients et opportunités.</p>
             <div className="mt-3">
               <SalesEvolution rows={arr(props.salesOrders)} payments={arr(props.payments)} opportunities={arr(props.opportunities)} onNavigate={onNavigate} />
             </div>
           </section>
           <section className="rounded-2xl border border-line bg-white p-4 shadow-card">
             <h2 className="text-sm font-semibold text-earth">Stock & alertes</h2>
-            <p className="mt-1 text-xs text-slate">Ruptures et tension inventaire — croiser avec l'onglet Risques.</p>
+            <p className="mt-1 text-xs text-slate">Ruptures et tension inventaire - croiser avec l'onglet Risques.</p>
             <div className="mt-3">
               <StockEvolution rows={arr(props.stocks || props.stock)} onNavigate={onNavigate} />
             </div>
           </section>
           <section className="rounded-2xl border border-line bg-white p-4 shadow-card">
             <h2 className="text-sm font-semibold text-earth">Production avicole</h2>
-            <p className="mt-1 text-xs text-slate">Lots et pontes — compléter l'onglet Cycles pour les décisions J+40.</p>
+            <p className="mt-1 text-xs text-slate">Lots et pontes - compléter l'onglet Cycles pour les décisions J+40.</p>
             <div className="mt-3">
               <AvicoleEvolution rows={arr(props.lots)} productionLogs={arr(props.productionLogs)} alimentationLogs={arr(props.alimentationLogs)} transactions={arr(props.transactions)} onNavigate={onNavigate} />
             </div>

@@ -111,7 +111,7 @@ export default function CommercialTab({
         onCreateAlert,
       });
       setMessage(
-        `Vente enregistrée — ${fmtNumber(preview.metrics.quantity)} kg · `
+        `Vente enregistrée - ${fmtNumber(preview.metrics.quantity)} kg · `
         + `${fmtCurrency(preview.metrics.total)} · marge estimée ${fmtCurrency(preview.metrics.margin)}.`,
       );
       setSaleForm((prev) => ({

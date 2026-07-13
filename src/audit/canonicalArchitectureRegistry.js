@@ -1,7 +1,7 @@
 /**
- * Horizon Farm — registre architecture canonique V1 (lecture seule).
+ * Horizon Farm - registre architecture canonique V1 (lecture seule).
  * Source de référence pour audits, assistants et documentation.
- * Ne recalcule pas les métriques — pointe vers les moteurs officiels.
+ * Ne recalcule pas les métriques - pointe vers les moteurs officiels.
  */
 
 /** @typedef {'canonical'|'secondary'|'legacy'|'deprecated'} EngineRole */
@@ -14,7 +14,7 @@ export const TABLE_CANONICAL_TRUTHS = [
     consommateurs: ['CommercialRecoveredModule', 'heyHorizonCommercialAnswers', 'commercialPilotageMetrics', 'commercialExport'],
     moteursConcurrents: ['computeCommercialKpis (dashboard)', 'consolidateFinance.caConsolide (ERP)'],
     risque: 'moyen',
-    action: 'CONSERVER — Commercial module vs ERP global documentés',
+    action: 'CONSERVER - Commercial module vs ERP global documentés',
   },
   {
     donnee: 'CA ERP global',
@@ -24,7 +24,7 @@ export const TABLE_CANONICAL_TRUTHS = [
     consommateurs: ['FinancePilotageRecoveredModule', 'buildOfficialTreasuryView', 'heyHorizonFinanceAnswers', 'Dashboard'],
     moteursConcurrents: ['buildConsolidatedCommercialKpis', 'computeCommercialKpis'],
     risque: 'moyen',
-    action: 'CONSERVER — périmètre ERP transversal',
+    action: 'CONSERVER - périmètre ERP transversal',
   },
   {
     donnee: 'Marge produit / vente',
@@ -33,7 +33,7 @@ export const TABLE_CANONICAL_TRUTHS = [
     consommateurs: ['CommercialPilotagePanel', 'commercialChartMetrics', 'Finance Rentabilité (aligné)'],
     moteursConcurrents: ['computeGlobalProfitability', 'elevageActivityPnl'],
     risque: 'élevé',
-    action: 'CONSERVER — ne pas recalculer marge parallèle',
+    action: 'CONSERVER - ne pas recalculer marge parallèle',
   },
   {
     donnee: 'Marge réelle ERP',
@@ -43,7 +43,7 @@ export const TABLE_CANONICAL_TRUTHS = [
     consommateurs: ['buildOfficialTreasuryView', 'FinanceExecutiveSituationPanel', 'heyHorizonFinanceAnswers'],
     moteursConcurrents: ['summarizeSalesMargins', 'operatingResult (globalProfitability)'],
     risque: 'élevé',
-    action: 'CONSERVER — sémantique distincte documentée',
+    action: 'CONSERVER - sémantique distincte documentée',
   },
   {
     donnee: 'Trésorerie disponible',
@@ -63,7 +63,7 @@ export const TABLE_CANONICAL_TRUTHS = [
     consommateurs: ['Finance Créances', 'heyHorizonFinanceAnswers'],
     moteursConcurrents: ['receivableFromOrders (commercial ops)'],
     risque: 'moyen-élevé',
-    action: 'CONSERVER — Finance vérité ; Commercial = opérationnel',
+    action: 'CONSERVER - Finance vérité ; Commercial = opérationnel',
   },
   {
     donnee: 'Créance écriture',
@@ -72,7 +72,7 @@ export const TABLE_CANONICAL_TRUTHS = [
     consommateurs: ['runNewSaleSideEffects', 'recordSalePayment'],
     moteursConcurrents: [],
     risque: 'faible',
-    action: 'CONSERVER — idempotence',
+    action: 'CONSERVER - idempotence',
   },
   {
     donnee: 'Dettes fournisseurs',
@@ -91,7 +91,7 @@ export const TABLE_CANONICAL_TRUTHS = [
     consommateurs: ['StocksV3', 'consolidateFinance.stockValue', 'commitStockPurchaseWorkflow'],
     moteursConcurrents: ['StockFlowPanel prix fiche'],
     risque: 'moyen',
-    action: 'CONSERVER — CMUP canonique',
+    action: 'CONSERVER - CMUP canonique',
   },
   {
     donnee: 'Mortalité élevage (écriture)',
@@ -100,7 +100,7 @@ export const TABLE_CANONICAL_TRUTHS = [
     consommateurs: ['ElevageWorkflowPanels', 'whatsappCommandParser'],
     moteursConcurrents: ['mortalityRateOf (4+ implémentations lecture)'],
     risque: 'élevé',
-    action: 'CONSERVER écriture — unifier lectures ultérieurement',
+    action: 'CONSERVER écriture - unifier lectures ultérieurement',
   },
   {
     donnee: 'Rendement cultures',
@@ -118,7 +118,7 @@ export const TABLE_CANONICAL_TRUTHS = [
     consommateurs: ['ObjectifsDecisionModule', 'VisionObjectifsEcartsTab'],
     moteursConcurrents: ['buildMonthlyTargetAttainment (commercial CA)'],
     risque: 'moyen-élevé',
-    action: 'CONSERVER — domaines distincts',
+    action: 'CONSERVER - domaines distincts',
   },
   {
     donnee: 'Rentabilité globale',
@@ -127,7 +127,7 @@ export const TABLE_CANONICAL_TRUTHS = [
     consommateurs: ['Finance Rentabilité', 'heyHorizonFinanceAnswers'],
     moteursConcurrents: ['summarizeSalesMargins', 'elevageActivityPnl', 'productionHubMetrics'],
     risque: 'élevé',
-    action: 'CONSERVER — lecture seule cross-module',
+    action: 'CONSERVER - lecture seule cross-module',
   },
 ];
 
@@ -138,7 +138,7 @@ export const WORKFLOW_CANONICAL_MATRIX = [
   { workflow: 'applySourceImpactFromSaleLines', fichier: 'saleSideEffects.js', role: 'canonical', usage: 'actif', risque: 'moyen', note: 'Stock à validation vente, pas livraison' },
   { workflow: 'confirmSaleDelivery', fichier: 'confirmSaleDelivery.js', role: 'canonical', usage: 'actif', risque: 'faible', note: 'Pas de 2e sortie stock' },
   { workflow: 'commitStockPurchaseWorkflow', fichier: 'stockPurchaseWorkflow.js', role: 'canonical', usage: 'actif', risque: 'faible', note: 'Réception achat Achats & Stock' },
-  { workflow: 'commitPurchaseWorkflow', fichier: 'workflowService.js', role: 'legacy', usage: 'actif', risque: 'moyen', note: 'WhatsApp achat simple — pas ledger mouvements' },
+  { workflow: 'commitPurchaseWorkflow', fichier: 'workflowService.js', role: 'legacy', usage: 'actif', risque: 'moyen', note: 'WhatsApp achat simple - pas ledger mouvements' },
   { workflow: 'runNewSaleSideEffects', fichier: 'saleSideEffects.js', role: 'canonical', usage: 'actif', risque: 'moyen', note: 'Hub finance+stock+client' },
   { workflow: 'convertQuoteToOrder', fichier: 'commercialQuoteWorkflow.js', role: 'canonical', usage: 'actif', risque: 'faible', note: 'Devis → commande' },
 ];
@@ -174,7 +174,7 @@ export const DEAD_COMPONENTS = [
   { composant: 'VentesV3.jsx', references: 0, statut: 'MASQUER', note: 'stub vide' },
   { composant: 'ImpactBusiness*.jsx', references: 0, statut: 'MASQUER', note: 'remplacé InvestisseursForums' },
   { composant: 'GestionSysteme.jsx', references: 0, statut: 'MASQUER', note: 'GestionSystemeV2 canonique' },
-  { composant: 'CorrectionDeploymentStatusPanel.jsx', references: 0, statut: 'CONSERVER', note: 'orphan — pas supprimé' },
+  { composant: 'CorrectionDeploymentStatusPanel.jsx', references: 0, statut: 'CONSERVER', note: 'orphan - pas supprimé' },
 ];
 
 export const ARCHITECTURE_SCORES = {

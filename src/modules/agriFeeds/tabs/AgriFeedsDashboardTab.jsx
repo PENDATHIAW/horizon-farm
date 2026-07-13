@@ -25,7 +25,7 @@ export default function AgriFeedsDashboardTab({ dataMap = {}, onNavigateTab }) {
       <section className="rounded-3xl border border-line bg-card p-6">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
-            <p className="text-lg font-semibold text-earth">État actuel — {readiness.modeShortLabel}</p>
+            <p className="text-lg font-semibold text-earth">État actuel - {readiness.modeShortLabel}</p>
             <p className="text-sm text-slate mt-1 max-w-2xl leading-relaxed">
               {readiness.modeLabel}. Score de préparation : <b>{readiness.readiness_score}/100</b>.
               {' '}{readiness.note}
@@ -136,7 +136,7 @@ export default function AgriFeedsDashboardTab({ dataMap = {}, onNavigateTab }) {
         />
         <Card
           title="Prix moyen / kg"
-          value={benchmark.totals.avg_price_per_kg > 0 ? fmtCurrency(benchmark.totals.avg_price_per_kg) : '—'}
+          value={benchmark.totals.avg_price_per_kg > 0 ? fmtCurrency(benchmark.totals.avg_price_per_kg) : '-'}
           hint="Référence marché"
         />
         <Card

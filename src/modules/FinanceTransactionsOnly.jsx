@@ -72,13 +72,13 @@ function buildFields(businessPlans = [], clients = [], fournisseurs = []) {
   }));
   return governFormFields('finances', MODULE_FORM_FIELDS.finances || []).map((field) => {
     if (field.key === 'business_plan_id' && bpOptions.length) {
-      return { ...field, type: 'select', options: [{ value: '', label: '— Aucun —' }, ...bpOptions] };
+      return { ...field, type: 'select', options: [{ value: '', label: '- Aucun -' }, ...bpOptions] };
     }
     if (field.key === 'client_id' && clientOptions.length) {
-      return { ...field, type: 'select', options: [{ value: '', label: '— Aucun —' }, ...clientOptions] };
+      return { ...field, type: 'select', options: [{ value: '', label: '- Aucun -' }, ...clientOptions] };
     }
     if (field.key === 'fournisseur_id' && supplierOptions.length) {
-      return { ...field, type: 'select', options: [{ value: '', label: '— Aucun —' }, ...supplierOptions] };
+      return { ...field, type: 'select', options: [{ value: '', label: '- Aucun -' }, ...supplierOptions] };
     }
     return field;
   });
@@ -160,7 +160,7 @@ export default function FinanceTransactionsOnly({
   const doExports = () => {
     exportToCsv({ rows: validRows, fileName: 'lignes-finance-manuelles.csv' });
     exportToExcel({ rows: validRows, fileName: 'lignes-finance-manuelles.xlsx', sheetName: 'Manuelles' });
-    exportToPdf({ rows: validRows, title: 'Lignes finance manuelles — Horizon Farm', fileName: 'lignes-finance-manuelles.pdf' });
+    exportToPdf({ rows: validRows, title: 'Lignes finance manuelles - Horizon Farm', fileName: 'lignes-finance-manuelles.pdf' });
     toast.success('Export lignes manuelles généré (hub PDF officiel : Résumé / Financement)');
   };
 

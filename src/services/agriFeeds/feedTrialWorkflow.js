@@ -1,5 +1,5 @@
 /**
- * AGRI FEEDS — essais internes + comparaison Phase 1 + confirmation.
+ * AGRI FEEDS - essais internes + comparaison Phase 1 + confirmation.
  *
  * Fournit :
  *   - prepareTrial / commitTrial              : ouvre un essai (lot × formule)
@@ -123,7 +123,7 @@ export function proposeTrialDecision({ trial = {}, comparison = null } = {}) {
       value: 'retest',
       label: 'Proposer un nouveau cycle',
       confidence: 'faible',
-      reasons: ['Aucun indicateur conclusif — cycle supplémentaire recommandé'],
+      reasons: ['Aucun indicateur conclusif - cycle supplémentaire recommandé'],
       warnings,
     };
   }
@@ -144,7 +144,7 @@ export function prepareTrial(payload = {}, dataMap = {}) {
 
   const formula = arr(dataMap.feed_formulas).find((f) => String(f.id) === String(version.formula_id));
   if (['abandoned', 'suspended'].includes(norm(formula?.status || ''))) {
-    return { ok: false, error: 'Formule suspendue ou abandonnée — essai bloqué.' };
+    return { ok: false, error: 'Formule suspendue ou abandonnée - essai bloqué.' };
   }
 
   const animalLotId = clean(payload.animal_lot_id);
@@ -160,7 +160,7 @@ export function prepareTrial(payload = {}, dataMap = {}) {
     return { ok: false, error: 'Lot produit fini introuvable.' };
   }
   if (finished && norm(finished.quality_status) === 'rejected') {
-    return { ok: false, error: 'Lot fini rejeté — utilisation en essai bloquée.' };
+    return { ok: false, error: 'Lot fini rejeté - utilisation en essai bloquée.' };
   }
 
   const id = clean(payload.id) || makeId('FTR');
@@ -218,7 +218,7 @@ export function prepareTrial(payload = {}, dataMap = {}) {
       module_source: 'agri_feeds',
       entity_type: 'feed_trial',
       entity_id: id,
-      title: `Essai ouvert — ${trialCode}`,
+      title: `Essai ouvert - ${trialCode}`,
       description: `${formula?.name || version.version_code} · lot ${animalLotId} · ${trial.starting_count} sujets`,
       event_date: trial.start_date,
       severity: 'info',
@@ -335,15 +335,15 @@ export function prepareCloseTrial(payload = {}, dataMap = {}) {
       module_source: 'agri_feeds',
       entity_type: 'feed_trial',
       entity_id: trial.id,
-      title: `Essai clôturé — ${trial.trial_code}`,
-      description: `${kpis.total_feed_consumed} kg · IC ${kpis.feed_conversion_ratio?.toFixed?.(2) || '—'} · `
+      title: `Essai clôturé - ${trial.trial_code}`,
+      description: `${kpis.total_feed_consumed} kg · IC ${kpis.feed_conversion_ratio?.toFixed?.(2) || '-'} · `
         + `Mort. ${kpis.mortality_rate?.toFixed?.(1) || '-'} % · Proposition : ${proposal.label}`,
       amount: kpis.total_feed_cost,
       event_date: endDate,
       severity: proposal.value === 'abandon' ? 'moyenne' : 'info',
     },
     alert: proposal.value === 'abandon' ? {
-      title: `Essai à revoir — ${trial.trial_code}`,
+      title: `Essai à revoir - ${trial.trial_code}`,
       message: `Suggestion : abandon (${proposal.reasons.join(' · ')}). Confirmation requise.`,
       severity: 'moyenne',
       module_source: 'agri_feeds',
@@ -417,7 +417,7 @@ export function prepareHumanValidation(payload = {}, dataMap = {}) {
       module_source: 'agri_feeds',
       entity_type: 'feed_trial',
       entity_id: trial.id,
-      title: `Essai validé humainement — ${trial.trial_code}`,
+      title: `Essai validé humainement - ${trial.trial_code}`,
       description: `Décision : ${decision} · Par : ${validator}`,
       event_date: new Date().toISOString().slice(0, 10),
       severity: 'info',

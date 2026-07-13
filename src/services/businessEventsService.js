@@ -7,7 +7,7 @@ const crud = createSupabaseCrudService('business_events');
 
 export const businessEventsService = crud;
 
-/** Idempotence — réexporté depuis le module pur businessEventDedup. */
+/** Idempotence - réexporté depuis le module pur businessEventDedup. */
 export { findDuplicateBusinessEvent };
 
 export const createBusinessEvent = async ({

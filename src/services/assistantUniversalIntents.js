@@ -1,5 +1,5 @@
 /**
- * ASSISTANT_UNIVERSAL_INTENTS — familles métier agricoles, sans commandes figées.
+ * ASSISTANT_UNIVERSAL_INTENTS - familles métier agricoles, sans commandes figées.
  * Salutation · Élevage · Cultures · Stock · Commercial · Finance · Objectifs · Décision · Investisseur · Déclarer
  */
 

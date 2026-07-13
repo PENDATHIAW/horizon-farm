@@ -95,7 +95,7 @@ export function normalizeDeliveryStatus(deliveryOrOrder = {}) {
 }
 
 export function statusLabel(status, options) {
-  return options.find((option) => option.value === status)?.label || status || '—';
+  return options.find((option) => option.value === status)?.label || status || '-';
 }
 
 export function enrichSalesOrderStatus(order = {}, payments = []) {

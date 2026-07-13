@@ -1,5 +1,5 @@
 /**
- * PHASE B étendue — Outils métier par module ERP (15 domaines).
+ * PHASE B étendue - Outils métier par module ERP (15 domaines).
  */
 
 import { normalizeAgriculturalText, classifyUniversalIntent, isQuestionIntent } from './assistantUniversalIntents.js';
@@ -51,7 +51,7 @@ const DIRECTOR_BY_INTENT = Object.freeze({
   centre_cycles: DIRECTOR_INTENTS.PRIORITES_DU_JOUR,
 });
 
-/** Catalogue complet — aligné sur MODULE_BUSINESS_QUESTIONS. */
+/** Catalogue complet - aligné sur MODULE_BUSINESS_QUESTIONS. */
 export const FARM_TOOL_CATALOG = Object.freeze([
   {
     id: FARM_TOOL_IDS.RECEIVABLES,

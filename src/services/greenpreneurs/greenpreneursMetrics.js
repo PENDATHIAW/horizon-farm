@@ -60,8 +60,8 @@ export function buildGreenpreneursCentreAlerts(metrics = {}) {
   if (orgaloopHybrid && circular.fumierBovin?.availableKg > 100 && circular.usedOnCulturesKg < circular.fumierBovin.availableKg * 0.2) {
     alerts.push({
       id: 'gp-fumier-priorite-cultures',
-      title: 'Fumier disponible — priorité fertilisation cultures',
-      detail: `${Math.round(circular.fumierBovin.availableKg)} kg — valoriser d'abord sur les parcelles Horizon Farm (argument DER/FJ agroécologie).`,
+      title: 'Fumier disponible - priorité fertilisation cultures',
+      detail: `${Math.round(circular.fumierBovin.availableKg)} kg - valoriser d'abord sur les parcelles Horizon Farm (argument DER/FJ agroécologie).`,
       severity: 'warn',
       navigate: { module: 'cultures', tab: 'Économie circulaire' },
     });
@@ -69,7 +69,7 @@ export function buildGreenpreneursCentreAlerts(metrics = {}) {
     alerts.push({
       id: 'gp-fumier-non-valorise',
       title: 'Fumier bovin disponible mais peu valorisé',
-      detail: `${Math.round(circular.fumierBovin.availableKg)} kg disponibles — enregistrer fertilisation cultures.`,
+      detail: `${Math.round(circular.fumierBovin.availableKg)} kg disponibles - enregistrer fertilisation cultures.`,
       severity: 'warn',
       navigate: { module: 'cultures', tab: 'Économie circulaire' },
     });
@@ -78,8 +78,8 @@ export function buildGreenpreneursCentreAlerts(metrics = {}) {
   if (orgaloopHybrid && effluentSurplusKg > 100) {
     alerts.push({
       id: 'gp-surplus-orgaloop',
-      title: `Surplus effluent — publier sur ${platformName}`,
-      detail: `~${effluentSurplusKg} kg au-delà des besoins cultures — vente surplus plateforme.`,
+      title: `Surplus effluent - publier sur ${platformName}`,
+      detail: `~${effluentSurplusKg} kg au-delà des besoins cultures - vente surplus plateforme.`,
       severity: 'info',
       navigate: { module: 'commercial', tab: 'Opportunités' },
     });
@@ -87,7 +87,7 @@ export function buildGreenpreneursCentreAlerts(metrics = {}) {
     alerts.push({
       id: 'gp-effluent-a-publier-orgaloop',
       title: `Effluents à publier sur ${platformName}`,
-      detail: `~${effluentSurplusKg} kg collectés — vente directe plateforme.`,
+      detail: `~${effluentSurplusKg} kg collectés - vente directe plateforme.`,
       severity: 'warn',
       navigate: { module: 'commercial', tab: 'Opportunités' },
     });
@@ -105,7 +105,7 @@ export function buildGreenpreneursCentreAlerts(metrics = {}) {
   if (!orgaloopPrimary && circular.parcellesFertilisees === 0 && circular.fertilisantStockKg > 200) {
     alerts.push({
       id: 'gp-parcelle-non-fertilisee',
-      title: 'Fertilisant disponible — parcelles non fertilisées',
+      title: 'Fertilisant disponible - parcelles non fertilisées',
       detail: 'Boucle élevage-cultures à activer dans Cultures.',
       severity: 'warn',
       navigate: { module: 'cultures', tab: 'Économie circulaire' },
@@ -123,7 +123,7 @@ export function buildGreenpreneursCentreAlerts(metrics = {}) {
   if (orgaloop.soldKg > 0) {
     alerts.push({
       id: 'gp-orgaloop-ventes-trackees',
-      title: `${platformName} — ventes effluents tracées`,
+      title: `${platformName} - ventes effluents tracées`,
       detail: `${Math.round(orgaloop.soldKg)} kg vendus · ${orgaloop.revenueFcfa > 0 ? `${Math.round(orgaloop.revenueFcfa).toLocaleString('fr-FR')} FCFA` : 'revenu à renseigner'}.`,
       severity: 'info',
       navigate: { module: 'commercial', tab: 'Ventes' },
@@ -135,7 +135,7 @@ export function buildGreenpreneursCentreAlerts(metrics = {}) {
 
 /**
  * Point d'entrée principal pour le score DER/FJ et la circularité.
- * @param {object} rawData — props ERP brutes ou dataMap
+ * @param {object} rawData - props ERP brutes ou dataMap
  * @param {{ simulatedMode?: boolean }} options
  */
 export function computeGreenpreneursMetrics(rawData = {}, options = {}) {

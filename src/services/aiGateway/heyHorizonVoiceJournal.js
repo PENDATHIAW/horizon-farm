@@ -41,8 +41,8 @@ export async function journalizeVoiceParse({
       source_module: 'assistant_erp',
       entity_type: 'voice_session',
       title: clarify
-        ? 'Saisie vocale — précision demandée'
-        : `Saisie vocale — ${drafts.length} brouillon(s)`,
+        ? 'Saisie vocale - précision demandée'
+        : `Saisie vocale - ${drafts.length} brouillon(s)`,
       description,
       event_date: today(),
       severity: clarify ? 'warning' : 'info',

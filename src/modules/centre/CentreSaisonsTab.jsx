@@ -34,19 +34,19 @@ function UpcomingMarketEventsPanel({ dataMap = {} }) {
           {upcoming.map((event) => (
             <article key={event.id || `${event.label}-${event.date}`} className="rounded-xl border border-line bg-card px-3 py-2 flex items-center justify-between gap-2">
               <p className="font-semibold text-earth text-sm">{event.label}</p>
-              <span className="shrink-0 text-meta font-semibold text-slate">{event.date ? toDateInput(event.date) : '—'}</span>
+              <span className="shrink-0 text-meta font-semibold text-slate">{event.date ? toDateInput(event.date) : '-'}</span>
             </article>
           ))}
         </div>
       ) : (
-        <p className="text-sm text-slate">Aucune fête majeure à venir — consultez le calendrier annuel ci-dessous.</p>
+        <p className="text-sm text-slate">Aucune fête majeure à venir - consultez le calendrier annuel ci-dessous.</p>
       )}
     </section>
   );
 }
 
 /**
- * Saisons & marchés — fêtes, dates pivot, vide sanitaire (sans urgences ni ROI).
+ * Saisons & marchés - fêtes, dates pivot, vide sanitaire (sans urgences ni ROI).
  */
 export default function CentreSaisonsTab({
   dataMap = {},
@@ -88,7 +88,7 @@ export default function CentreSaisonsTab({
       />
       <AccordionSection
         title="Calendrier annuel"
-        detail="Référence saisonnière par mois — lecture, pas une file d'actions."
+        detail="Référence saisonnière par mois - lecture, pas une file d'actions."
         open={calendarOpen}
         onToggle={() => setCalendarOpen((v) => !v)}
       >

@@ -15,7 +15,7 @@ export default function SanitaryWithdrawalBanner({ healthRows = [], className = 
     >
       <p className="flex items-center gap-2 font-semibold">
         <AlertTriangle size={18} className="shrink-0" />
-        Délai sanitaire en cours — vente et transformation bloquées
+        Délai sanitaire en cours - vente et transformation bloquées
       </p>
       <ul className="mt-2 space-y-1 text-urgent">
         {active.slice(0, 5).map((row) => (

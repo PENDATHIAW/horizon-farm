@@ -107,7 +107,7 @@ export async function runSupplierReceptionSideEffects({
       fournisseur_id: supplier.id,
       farm_id: stock.farm_id || supplier.farm_id,
       date: date || today(),
-      notes: `Réception fournisseur — ${supplier.nom || supplier.name || supplier.id}`,
+      notes: `Réception fournisseur - ${supplier.nom || supplier.name || supplier.id}`,
       entry_kind: ENTRY_KINDS.ACHAT_STOCKABLE,
     };
     const preview = prepareStockPurchaseWorkflow(payload, {

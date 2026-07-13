@@ -33,7 +33,7 @@ const seedRowsForTable = (table) => {
   return getModuleSeedRows(moduleKey);
 };
 
-/** Ne conserve que les lignes créées/modifiées localement — pas la copie complète du seed. */
+/** Ne conserve que les lignes créées/modifiées localement - pas la copie complète du seed. */
 const readSimulatedRows = (table) => {
   const seedById = new Map(seedRowsForTable(table).map((row) => [String(row.id), row]));
   let raw = safeJson(simulatedStorageKey(table), []);

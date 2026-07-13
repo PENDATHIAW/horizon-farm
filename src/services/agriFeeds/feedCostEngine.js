@@ -1,5 +1,5 @@
 /**
- * AGRI FEEDS — coûts théoriques / réels des formules et lots.
+ * AGRI FEEDS - coûts théoriques / réels des formules et lots.
  */
 import { toNumber } from '../../utils/format.js';
 
@@ -24,7 +24,7 @@ export function resolveLatestUnitCost(rawMaterialId, dataMap = {}) {
 
 /**
  * Calcule le coût théorique d'une version à partir de ses ingrédients.
- * @param {Array} ingredients — { raw_material_id, percentage, latest_unit_cost? }
+ * @param {Array} ingredients - { raw_material_id, percentage, latest_unit_cost? }
  */
 export function computeTheoreticalFormulaCost(ingredients = [], dataMap = {}) {
   const lines = arr(ingredients).map((ing) => {

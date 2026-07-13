@@ -126,7 +126,7 @@ export function getUpcomingMarketEvents(referenceDate = new Date(), dataMap = {}
     .filter((event) => event.date >= cutoff && event.date <= addDays(ref, horizonDays));
 }
 
-/** Fête déjà passée — ne plus l'afficher dans Cycles ni le calendrier contextuel. */
+/** Fête déjà passée - ne plus l'afficher dans Cycles ni le calendrier contextuel. */
 export function isPastFestival(event = {}, referenceDate = new Date(), graceDays = 1) {
   if (!event?.date) return true;
   return daysBetween(referenceDate, event.date) < -graceDays;

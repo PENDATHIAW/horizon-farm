@@ -38,7 +38,7 @@ function realLayingRate(lot, productionLogs = [], days = 7) {
   return birds && logs.length ? Math.round((eggs / (birds * d)) * 1000) / 10 : num(lot.taux_ponte);
 }
 
-/** Onglet 1 — Rentabilité par lot et cycle. */
+/** Onglet 1 - Rentabilité par lot et cycle. */
 export function buildRentabilityAnalysis(dataMap = {}, options = {}) {
   const lots = arr(dataMap.avicole || dataMap.lots);
   const animaux = arr(dataMap.animaux);
@@ -85,7 +85,7 @@ export function buildRentabilityAnalysis(dataMap = {}, options = {}) {
       mcaPct: mca,
       unitCost,
       unitLabel,
-      supplierHint: lot.fournisseur_aliment || lot.fournisseur || lot.code_souche || '—',
+      supplierHint: lot.fournisseur_aliment || lot.fournisseur || lot.code_souche || '-',
     };
   });
 
@@ -104,12 +104,12 @@ export function buildRentabilityAnalysis(dataMap = {}, options = {}) {
       mcaPct: mca,
       unitCost: cost.kg > 0 ? Math.round(cost.totalCost / cost.kg) : 0,
       unitLabel: 'kg',
-      supplierHint: animal.fournisseur || animal.provenance || '—',
+      supplierHint: animal.fournisseur || animal.provenance || '-',
     };
   });
 
   const supplierRanking = [...rows, ...bovinRows]
-    .filter((r) => r.supplierHint && r.supplierHint !== '—')
+    .filter((r) => r.supplierHint && r.supplierHint !== '-')
     .reduce((map, row) => {
       const key = row.supplierHint;
       if (!map[key]) map[key] = { supplier: key, lots: 0, avgMca: 0, totalCost: 0 };
@@ -127,7 +127,7 @@ export function buildRentabilityAnalysis(dataMap = {}, options = {}) {
   return { lots: [...rows, ...bovinRows], suppliers };
 }
 
-/** Onglet 2 — Efficacité technique & conversion. */
+/** Onglet 2 - Efficacité technique & conversion. */
 export function buildTechnicalEfficiencyAnalysis(dataMap = {}, options = {}) {
   const lots = arr(dataMap.avicole || dataMap.lots);
   const animaux = arr(dataMap.animaux);
@@ -170,7 +170,7 @@ export function buildTechnicalEfficiencyAnalysis(dataMap = {}, options = {}) {
       const revenueDay = eggsDay * eggPrice;
       if (revenueDay < feedCostDay * 0.8 && pivot.ageDays > 200) {
         gmqAlert = true;
-        optimalSaleHint = 'Envisager réforme — revenu journalier sous le coût alimentaire.';
+        optimalSaleHint = 'Envisager réforme - revenu journalier sous le coût alimentaire.';
       }
     }
 
@@ -206,7 +206,7 @@ export function buildTechnicalEfficiencyAnalysis(dataMap = {}, options = {}) {
       ic: null,
       gmq: Math.round(cost.gmq * 1000),
       gmqAlert,
-      optimalSaleHint: gmqAlert ? 'Point de vente optimal probable — GMQ ne compense plus le coût du jour.' : null,
+      optimalSaleHint: gmqAlert ? 'Point de vente optimal probable - GMQ ne compense plus le coût du jour.' : null,
       thermal: { alert: false },
     };
   });
@@ -214,7 +214,7 @@ export function buildTechnicalEfficiencyAnalysis(dataMap = {}, options = {}) {
   return { rows: [...lotRows, ...bovinRows], thermalAlerts: lotRows.filter((r) => r.thermal?.alert) };
 }
 
-/** Onglet 3 — Flux & équilibres logistiques. */
+/** Onglet 3 - Flux & équilibres logistiques. */
 export function buildFluxEquilibresAnalysis(dataMap = {}) {
   const lots = arr(dataMap.avicole || dataMap.lots);
   const stocks = arr(dataMap.stock || dataMap.stocks);
@@ -239,7 +239,7 @@ export function buildFluxEquilibresAnalysis(dataMap = {}) {
     return {
       lotId: lot.id,
       lotName: pivot.lotName,
-      building: lot.batiment || lot.building || '—',
+      building: lot.batiment || lot.building || '-',
       ageDays: pivot.ageDays,
       headCount: currentCount(lot),
       workshop: pivot.workshop,
@@ -275,7 +275,7 @@ export function buildFluxEquilibresAnalysis(dataMap = {}) {
   };
 }
 
-/** Onglet 4 — Maraîchage & diversification. */
+/** Onglet 4 - Maraîchage & diversification. */
 export function buildMaraichageAnalysis(dataMap = {}, options = {}) {
   const lots = arr(dataMap.avicole || dataMap.lots);
   const animaux = arr(dataMap.animaux);

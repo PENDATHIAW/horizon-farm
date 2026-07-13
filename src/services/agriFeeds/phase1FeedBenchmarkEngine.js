@@ -1,5 +1,5 @@
 /**
- * AGRI FEEDS — benchmark alimentation Phase 1 (aliments du marché).
+ * AGRI FEEDS - benchmark alimentation Phase 1 (aliments du marché).
  * Agrège alimentation_logs, stocks, lots, animaux, ponte, finances.
  */
 import { toNumber } from '../../utils/format.js';
@@ -200,7 +200,7 @@ export function buildPhase1FeedBenchmark(dataMap = {}) {
       label: lot?.nom || lot?.name || animal?.nom || animal?.identifiant || bucket.feedTypes.values().next().value || 'Référence',
       species,
       speciesLabel: species === 'layer' ? 'Pondeuse' : species === 'broiler' ? 'Chair' : species === 'cattle' ? 'Bovin' : 'Autre',
-      supplier: [...bucket.suppliers].join(', ') || '—',
+      supplier: [...bucket.suppliers].join(', ') || '-',
       feed_type: [...bucket.feedTypes].join(' · ') || 'Aliment marché',
       price_per_kg: avgPriceKg,
       quantity_consumed: bucket.qty,
@@ -242,7 +242,7 @@ export function buildPhase1FeedBenchmark(dataMap = {}) {
 
 /**
  * Compare une référence Phase 1 (lot) à une formule AGRI FEEDS (si données disponibles).
- * Étape 1 : comparaison partielle — KPI formule souvent absents tant que production/tests non livrés.
+ * Étape 1 : comparaison partielle - KPI formule souvent absents tant que production/tests non livrés.
  */
 export function compareMarketFeedToAgriFeedsFormula({
   dataMap = {},
