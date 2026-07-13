@@ -12,7 +12,7 @@ Onglets à ne jamais toucher : **Transformation (Élevage)** et **Risques dériv
 | Lot | Objet | Statut |
 |---|---|---|
 | B | Rejeu hors ligne idempotent (problème n° 2) | **FAIT** |
-| A | farm_id + RLS par ferme + script de vérification | **BLOQUÉ** (attend exécution du script par l'utilisateur) |
+| A | farm_id + RLS par ferme + script de vérification | **BLOQUÉ** (migration + script écrits ; attend résultat vide confirmé) |
 | C | Composants uniques + catalogue KPI généralisés | à venir |
 | D | Structure cible des onglets | à venir |
 | E | Langage et i18n | à venir |
@@ -64,8 +64,46 @@ exploitée. Un rejeu pouvait donc laisser un état incohérent.
 
 ---
 
-## Lot A · farm_id + RLS par ferme — BLOQUÉ (en préparation)
+## Lot A · farm_id + RLS par ferme — BLOQUÉ (livrables écrits, attente de vérification)
 
-Migrations et script de vérification en lecture seule à écrire ; le lot restera
-BLOQUÉ tant que l'utilisateur n'aura pas confirmé un résultat vide du script
-(aucune table métier sans farm_id ni RLS). Détail ajouté à la livraison du lot.
+### Livrables
+- **Migration** `supabase/migrations/20260713120000_farm_id_rls_all_business_tables.sql` :
+  bloc PL/pgSQL idempotent qui, pour chaque table métier existante, ajoute
+  `farm_id` (nullable), rattache les lignes existantes à la ferme Horizon Farm
+  par défaut (créée si absente), crée l'index, active la RLS et pose des
+  politiques de lecture/écriture par ferme (`can_read_farm` / `can_write_farm`).
+  ~100 tables métier couvertes ; `to_regclass` saute proprement les tables
+  absentes de l'environnement.
+- **Script de vérification lecture seule** `supabase/verify_farm_id_rls.sql` :
+  n'écrit rien, liste toute table métier sans `farm_id` ou sans RLS active, avec
+  la colonne `probleme`. **Doit renvoyer zéro ligne** une fois la migration
+  appliquée.
+
+### Frontière « tables métier »
+Le script et la migration partagent la même liste. Tables volontairement
+**exclues** (farm-agnostiques ou techniques) : `farms, companies,
+user_farm_access, profiles, module_role_permissions, system_settings,
+audit_logs, security_events, offline_queue, push_subscriptions, deleted_records,
+api_webhooks, automation_settings, market_prices, market_price_sources,
+market_calendar_events`. Si vous estimez qu'une de ces tables doit être
+farm-scopée (ou l'inverse), dites-le et j'ajuste les deux fichiers.
+
+### Ce que j'attends de vous
+1. Exécuter `supabase/verify_farm_id_rls.sql` **avant** la migration (état actuel).
+2. Appliquer `supabase/migrations/20260713120000_farm_id_rls_all_business_tables.sql`.
+3. Ré-exécuter le script de vérification et me renvoyer son résultat.
+4. Je corrige la migration tant que le script ne renvoie pas **zéro ligne**.
+
+**Statut : BLOQUÉ.** Le lot A ne sera marqué FAIT que lorsque vous m'aurez
+confirmé un résultat vide du script. Les migrations ne sont ni appliquées ni
+prouvées depuis cet environnement (aucun accès Supabase).
+
+### Réserve d'isolation
+La migration active la RLS et ajoute des politiques par ferme. Les politiques
+génériques existantes (`can_read_erp` / `can_write_erp`) restent en place et se
+combinent en OU : l'isolation stricte exigera, dans un second temps testé sur
+l'instance, de retirer les politiques génériques au profit des seules politiques
+par ferme, et de passer `farm_id` en NOT NULL une fois le backfill validé.
+
+### Retraits au nom de la pertinence
+**Aucun** dans ce lot.
