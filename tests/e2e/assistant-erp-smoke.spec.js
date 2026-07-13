@@ -10,7 +10,7 @@ test.describe('Assistant ERP — Horizon Chat Native V7', () => {
 
     await expect(page.getByText(/^Horizon$/).first()).toBeVisible();
     await expect(page.getByText(/Connecté à votre exploitation/i).first()).toBeVisible();
-    await expect(page.locator('header').getByText(/^Bonjour\b/i).first()).toBeVisible();
+    await expect(page.locator('.horizon-iphone-17').getByText(/^Bonjour\b/i).first()).toBeVisible();
     await expect(page.getByText(/De quoi voulez-vous qu.on parle/i)).toBeVisible();
     await expect(page.getByPlaceholder(/Parlez à votre ferme/i)).toBeVisible();
     await expect(page.getByText(/Hey Horizon/i)).toHaveCount(0);

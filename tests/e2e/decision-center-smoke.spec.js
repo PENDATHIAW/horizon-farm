@@ -14,7 +14,7 @@ test.describe('Centre décisionnel et Objectifs & Croissance', () => {
     await expect(page.getByText(/Actions critiques|actions à traiter|Actions prioritaires/i).first()).toBeVisible();
     await expect(page.getByRole('button', { name: /^Exporter Excel$/i })).toBeVisible();
 
-    await page.getByRole('button', { name: /^Décisions$/i }).click();
+    await page.getByRole('tab', { name: /^Décisions$/i }).click();
     await expect(page.getByText(/Où agir pour vendre plus|Commercial/i).first()).toBeVisible();
     await expect(page.getByText(/ROI des décisions|Aucune décision historisée/i).first()).toBeVisible();
 
@@ -28,17 +28,17 @@ test.describe('Centre décisionnel et Objectifs & Croissance', () => {
   test('onglet Risques affiche le registre dérivé', async ({ page }) => {
     await login(page);
     await goToModule(page, 'Centre décisionnel');
-    await page.getByRole('button', { name: /^Risques$/i }).click();
+    await page.getByRole('tab', { name: /^Risques$/i }).click();
     await expect(page.getByText(/Registre des risques structurels/i)).toBeVisible({ timeout: 15_000 });
-    await expect(page.getByText(/Sanitaire/i).first()).toBeVisible();
-    await expect(page.getByText(/Trésorerie/i).first()).toBeVisible();
+    await expect(page.getByRole('button', { name: /^Sanitaire\b/i }).first()).toBeVisible();
+    await expect(page.getByRole('button', { name: /^Trésorerie\b/i }).first()).toBeVisible();
   });
 
   test('onglet À traiter affiche les urgences à traiter', async ({ page }) => {
     await login(page);
     await goToModule(page, 'Centre décisionnel');
-    await expect(page.getByRole('button', { name: /^À traiter$/i })).toBeVisible({ timeout: 10_000 });
-    await expect(page.getByText(/DER\/FJ|actions à traiter|Trésorerie/i).first()).toBeVisible();
-    await expect(page.getByRole('button', { name: /^Ouvrir$/i }).first()).toBeVisible();
+    await expect(page.getByRole('tab', { name: /^À traiter$/i })).toBeVisible({ timeout: 10_000 });
+    await expect(page.getByRole('region', { name: /^Alertes à traiter$/i })).toBeVisible();
+    await expect(page.getByRole('region', { name: /^Tâches liées aux alertes$/i })).toBeVisible();
   });
 });
