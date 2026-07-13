@@ -1,5 +1,5 @@
 ﻿/* eslint-disable react-refresh/only-export-components */
-import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import { createModuleRefreshScheduler } from '../utils/moduleRefreshScheduler';
 import { isQuotaError, pruneHeavyLocalStorage } from '../utils/safeLocalStorage';
 import { useAuth } from './AuthContext';
@@ -30,7 +30,9 @@ import { sensorDevicesService } from '../services/sensorDevicesService';
 import { cameraDevicesService } from '../services/cameraDevicesService';
 import { smartfarmEventsService } from '../services/smartfarmEventsService';
 import { alertesCenterService } from '../services/alertesCenterService';
-import { businessEventsService, createBusinessEvent } from '../services/businessEventsService';
+import { businessEventsService, createBusinessEvent, findDuplicateBusinessEvent } from '../services/businessEventsService';
+import { buildCreateEvents, buildUpdateEvents } from '../services/businessEventBuilders.js';
+import { buildReplayEvents, dedupeFileHorsLigne, withStableIssueKey } from '../services/offlineReplayEvents.js';
 import {
   businessPlansService,
   bpFundingSourcesService,
@@ -132,7 +134,6 @@ const emptyInitialData = () => Object.fromEntries(['dashboard', ...Object.keys(s
 
 const initialData = emptyInitialData();
 
-const eventDateOf = (record, ...keys) => keys.map((key) => record?.[key]).find(Boolean) || new Date().toISOString();
 const friendlySaveError = (error, fallback) => {
   if (isQuotaError(error)) {
     pruneHeavyLocalStorage();
@@ -141,48 +142,6 @@ const friendlySaveError = (error, fallback) => {
   return error?.message || fallback;
 };
 
-const acquisitionEventType = (mode) => ({ achat: ['acquisition', 'Acquisition par achat'], naissance_ferme: ['naissance', 'Naissance sur la ferme'], reproduction_interne: ['reproduction', 'Naissance issue de reproduction interne'], don: ['acquisition', 'Entree par don'], autre: ['acquisition', 'Entree dans la ferme'] }[mode || 'achat'] || ['acquisition', 'Entree dans la ferme']);
-
-const buildCreateEvents = (moduleKey, record) => {
-  if (!record?.id) return [];
-  if (moduleKey === 'animaux') { const [eventType, title] = acquisitionEventType(record.mode_acquisition); return [{ event_type: eventType, module_source: 'animaux', entity_type: 'animal', entity_id: record.id, title, description: `${record.name || record.id} - ${record.type || 'animal'} entre dans la ferme.`, amount: Number(record.purchase_cost || 0) || null, event_date: eventDateOf(record, 'date_achat', 'date_naissance', 'date_entree_ferme'), severity: 'info' }]; }
-  if (moduleKey === 'avicole') return [{ event_type: 'creation_lot', module_source: 'avicole', entity_type: 'lot_avicole', entity_id: record.id, title: 'Creation lot avicole', description: `${record.name || record.id} - effectif initial ${record.initial_count || 0}.`, event_date: eventDateOf(record, 'date_debut'), severity: 'info' }];
-  if (moduleKey === 'production_oeufs_logs') return [{ event_type: 'production_oeufs', module_source: 'avicole', entity_type: 'lot_avicole', entity_id: record.lot_id || record.id, title: 'Production oeufs enregistree', description: `${record.oeufs_produits || 0} oeufs produits, ${record.oeufs_casses || 0} casses.`, event_date: eventDateOf(record, 'date'), severity: Number(record.oeufs_casses || 0) > Number(record.oeufs_produits || 0) * 0.08 ? 'warning' : 'info' }];
-  if (moduleKey === 'alimentation_logs') { const isLot = record.type_cible === 'lot_avicole' || Boolean(record.lot_id); return [{ event_type: isLot ? 'alimentation_lot' : 'alimentation', module_source: isLot ? 'avicole' : 'animaux', entity_type: isLot ? 'lot_avicole' : 'categorie_animale', entity_id: record.cible_id || record.lot_id || record.categorie || record.id, title: isLot ? 'Alimentation lot avicole' : 'Alimentation categorie animale', description: `${record.categorie || 'Aliment'} - ${record.quantite || 0} ${record.unite || ''} pour ${record.montant_total || 0} FCFA.`, amount: Number(record.montant_total || 0) || null, event_date: eventDateOf(record, 'date'), severity: 'info' }]; }
-  if (moduleKey === 'sante') { const done = record.statut === 'fait' || Boolean(record.effectuee); return [{ event_type: done ? 'vaccination' : 'soin', module_source: 'sante', entity_type: 'animal', entity_id: record.animal || record.id, title: done ? 'Vaccination effectuee' : 'Action sante planifiee', description: `${record.nom || 'Sante'} - veterinaire ${record.vet || 'non renseigne'}.`, event_date: eventDateOf(record, 'effectuee', 'prevue'), severity: record.statut === 'retard' ? 'warning' : 'info' }]; }
-  if (moduleKey === 'cultures') return [{ event_type: record.date_semis ? 'semis' : 'incident_culture', module_source: 'cultures', entity_type: 'culture', entity_id: record.id, title: 'Culture enregistree', description: `${record.nom || record.id} - ${record.type || 'culture'} sur ${record.parcelle || 'parcelle non renseignee'}.`, event_date: eventDateOf(record, 'date_semis', 'created_at'), severity: record.statut === 'perdu' ? 'critique' : 'info' }];
-  if (moduleKey === 'stock') return [{ event_type: Number(record.quantite || 0) <= Number(record.seuil || 0) ? 'stock_critique' : 'entree_stock', module_source: 'stocks', entity_type: 'stock', entity_id: record.id, title: Number(record.quantite || 0) <= Number(record.seuil || 0) ? 'Stock critique detecte' : 'Produit stock enregistre', description: `${record.produit || record.id}: ${record.quantite || 0} ${record.unite || ''}.`, amount: Number(record.quantite || 0) * Number(record.prixunit || record.prixUnit || 0) || null, severity: Number(record.quantite || 0) <= Number(record.seuil || 0) ? 'warning' : 'info' }];
-  if (moduleKey === 'finances') return [{ event_type: record.type === 'entree' ? 'recette' : 'depense', module_source: 'finances', entity_type: 'transaction', entity_id: record.id, title: record.type === 'entree' ? 'Recette enregistree' : 'Depense enregistree', description: record.libelle || record.description || record.categorie || 'Transaction financiere', amount: Number(record.montant || 0), event_date: eventDateOf(record, 'date'), linked_transaction_id: record.id, severity: record.statut === 'impaye' ? 'warning' : 'info' }];
-  if (moduleKey === 'documents') return [{ event_type: 'document_ajoute', module_source: 'documents', entity_type: record.entity_type || 'document', entity_id: record.entity_id || record.id, title: 'Document ajoute', description: `${record.title || record.id} - ${record.document_category || 'document'}.`, linked_document_id: record.id, severity: 'info' }];
-  if (moduleKey === 'sales_orders') return [{ event_type: record.type_document === 'devis' ? 'facture' : 'vente', module_source: 'ventes', entity_type: 'vente', entity_id: record.id, title: 'Commande commerciale enregistree', description: `${record.type_document || 'commande'} - client ${record.client_id || 'non renseigne'}.`, amount: Number(record.montant_total || 0) || null, event_date: eventDateOf(record, 'date'), linked_sale_id: record.id, severity: 'info' }];
-  if (moduleKey === 'sales_opportunities') return [{ event_type: 'opportunite_vente_detectee', module_source: 'ventes', entity_type: record.source_type || 'opportunite_vente', entity_id: record.source_id || record.id, title: record.title || 'Opportunite de vente detectee', description: record.reason || record.description || 'Opportunite commerciale a verifier.', amount: Number(record.estimated_value || 0) || null, event_date: eventDateOf(record, 'detected_at'), severity: 'info' }];
-  if (moduleKey === 'invoices') return [{ event_type: 'facture', module_source: 'ventes', entity_type: 'facture', entity_id: record.id, title: 'Facture emise', description: record.numero_facture || record.order_id || 'Facture commerciale', amount: Number(record.montant_total || 0) || null, linked_sale_id: record.order_id || null, severity: 'info' }];
-  if (moduleKey === 'payments') return [{ event_type: 'paiement', module_source: 'ventes', entity_type: 'paiement', entity_id: record.id, title: 'Paiement recu', description: `${record.moyen_paiement || 'paiement'} - commande ${record.order_id || 'non renseignee'}.`, amount: Number(record.montant || 0) || null, linked_sale_id: record.order_id || null, severity: 'info' }];
-  if (moduleKey === 'alertes_center' && ['critique', 'urgence'].includes(record.severity)) return [{ event_type: 'incident', module_source: record.module_source || 'alertes', entity_type: record.entity_type || 'alerte', entity_id: record.entity_id || record.id, title: record.title || 'Alerte critique', description: record.message || record.action_recommandee || '', severity: record.severity }];
-  return [];
-};
-
-const buildUpdateEvents = (moduleKey, previousRow, record) => {
-  if (!record?.id) return [];
-  const events = [];
-  if (moduleKey === 'animaux') {
-    if (previousRow?.status !== record.status && record.status === 'vendu') events.push({ event_type: 'vente', module_source: 'animaux', entity_type: 'animal', entity_id: record.id, title: 'Animal vendu', description: `${record.name || record.id} vendu a ${record.client_id || 'client non renseigne'}.`, amount: Number(record.prix_vente_reel || record.sale_price || 0) || null, event_date: eventDateOf(record, 'date_vente'), linked_transaction_id: record.linked_transaction_id || null, severity: 'info' });
-    if (previousRow?.status !== record.status && record.status === 'mort') events.push({ event_type: 'deces', module_source: 'animaux', entity_type: 'animal', entity_id: record.id, title: 'Deces animal', description: record.cause_deces || `${record.name || record.id} marque comme mort.`, event_date: eventDateOf(record, 'date_deces'), severity: 'critique' });
-    if (Number(previousRow?.poids || 0) !== Number(record.poids || 0)) events.push({ event_type: 'croissance', module_source: 'animaux', entity_type: 'animal', entity_id: record.id, title: 'Poids animal mis a jour', description: `Ancien poids ${previousRow?.poids || 0} kg, nouveau poids ${record.poids || 0} kg.`, severity: 'info' });
-    if (previousRow?.health_status !== record.health_status) events.push({ event_type: ['malade', 'blesse', 'a_surveiller'].includes(record.health_status) ? 'incident' : 'soin', module_source: 'animaux', entity_type: 'animal', entity_id: record.id, title: 'Etat de sante modifie', description: `${previousRow?.health_status || 'inconnu'} -> ${record.health_status || 'inconnu'}.`, severity: ['malade', 'blesse'].includes(record.health_status) ? 'warning' : 'info' });
-    if (!previousRow?.en_gestation && record.en_gestation) events.push({ event_type: 'gestation', module_source: 'animaux', entity_type: 'animal', entity_id: record.id, title: 'Debut gestation', description: `Femelle declaree en gestation. Mise bas prevue: ${record.date_prevue_mise_bas || 'non renseignee'}.`, event_date: eventDateOf(record, 'date_debut_gestation'), severity: 'info' });
-  }
-  if (moduleKey === 'avicole') {
-    if (Number(record.mortality || 0) > Number(previousRow?.mortality || 0)) events.push({ event_type: 'mortalite_lot', module_source: 'avicole', entity_type: 'lot_avicole', entity_id: record.id, title: 'Mortalite lot mise a jour', description: `${previousRow?.mortality || 0} -> ${record.mortality || 0} morts.`, severity: Number(record.initial_count || 0) && Number(record.mortality || 0) > Number(record.initial_count || 0) * 0.04 ? 'critique' : 'warning' });
-    if (previousRow?.health_status !== record.health_status) events.push({ event_type: 'soin_lot', module_source: 'avicole', entity_type: 'lot_avicole', entity_id: record.id, title: 'Etat sanitaire lot modifie', description: `${previousRow?.health_status || 'inconnu'} -> ${record.health_status || 'inconnu'}.`, severity: ['malade', 'critique'].includes(record.health_status) ? 'warning' : 'info' });
-    if (previousRow?.status !== record.status && ['vendu', 'termine', 'perdu'].includes(record.status)) events.push({ event_type: record.status === 'perdu' ? 'incident' : 'cloture_lot', module_source: 'avicole', entity_type: 'lot_avicole', entity_id: record.id, title: 'Statut lot modifie', description: `${previousRow?.status || 'inconnu'} -> ${record.status}.`, severity: record.status === 'perdu' ? 'critique' : 'info' });
-  }
-  if (moduleKey === 'stock' && Number(previousRow?.quantite || 0) !== Number(record.quantite || 0)) events.push({ event_type: Number(record.quantite || 0) <= Number(record.seuil || 0) ? 'stock_critique' : 'mouvement_stock', module_source: 'stocks', entity_type: 'stock', entity_id: record.id, title: Number(record.quantite || 0) <= Number(record.seuil || 0) ? 'Stock critique' : 'Mouvement stock', description: `${record.produit || record.id}: ${previousRow?.quantite || 0} -> ${record.quantite || 0} ${record.unite || ''}.`, severity: Number(record.quantite || 0) <= Number(record.seuil || 0) ? 'warning' : 'info' });
-  if (moduleKey === 'sante' && previousRow?.statut !== record.statut && record.statut === 'fait') events.push({ event_type: 'vaccination', module_source: 'sante', entity_type: 'animal', entity_id: record.animal || record.id, title: 'Vaccination effectuee', description: record.nom || 'Vaccination marquee comme faite.', event_date: eventDateOf(record, 'effectuee'), severity: 'info' });
-  if (moduleKey === 'cultures' && previousRow?.statut !== record.statut && record.statut === 'recolte') events.push({ event_type: 'recolte', module_source: 'cultures', entity_type: 'culture', entity_id: record.id, title: 'Culture en recolte', description: `${record.nom || record.id} - quantite recoltee ${record.quantite_recoltee || 0}.`, event_date: eventDateOf(record, 'date_recolte_reelle'), severity: 'info' });
-  if (moduleKey === 'sales_opportunities' && previousRow?.status !== record.status && record.status === 'converti') events.push({ event_type: 'opportunite_convertie', module_source: 'ventes', entity_type: record.source_type || 'opportunite_vente', entity_id: record.source_id || record.id, title: 'Opportunite convertie', description: record.title || 'Opportunite transformee en commande/vente.', amount: Number(record.estimated_value || 0) || null, linked_sale_id: record.converted_sale_id || null, severity: 'info' });
-  return events;
-};
 
 export function AppProvider({ children, initialDataMap = null }) {
   const { session, loading: authLoading } = useAuth();
@@ -233,7 +192,23 @@ export function AppProvider({ children, initialDataMap = null }) {
 
   const appendAnimalTraceStep = useCallback(async (animal, step) => { if (!animal?.id || !step) return; try { const traceId = `TRA-${animal.id}`; const traces = await tracabiliteService.getAll(); const existing = traces.find((trace) => trace.id === traceId || String(trace.animal || '').includes(animal.id)); if (existing) { const etapes = Array.isArray(existing.etapes) ? existing.etapes : []; const alreadyExists = etapes.some((item) => item.event_type === step.event_type && item.date === step.date && item.titre === step.titre); if (!alreadyExists) await tracabiliteService.update(existing.id, { etapes: [...etapes, step] }); } else { await tracabiliteService.create({ id: traceId, animal: getAnimalDisplayName(animal), type: animal.type || '', etapes: [step], margeFinale: 0, roi: 0 }); } await refreshModule('tracabilite'); } catch (error) { console.warn('Trace animal non enregistree', error.message); } }, [refreshModule]);
   const createAnimalFollowUpTaskAndAlert = useCallback(async (animal) => { const nextDate = animal?.date_prochaine_verification || animal?.next_action_date || animal?.prochaine_visite; if (!animal?.id || !nextDate) return; try { const taskId = `TSK-${animal.id}-${String(nextDate).replace(/-/g, '')}`; const alertDate = new Date(nextDate); alertDate.setDate(alertDate.getDate() - 3); await tachesService.create({ id: taskId, title: `Verification sanitaire ${animal.id} - ${animal.name || 'animal'}`, module_lie: 'animaux', assigned_to: animal.veterinaire_id || 'Equipe ferme', due_date: alertDate.toISOString().slice(0, 10), priority: 'haute', status: 'a_faire', checklist: 'Verifier etat sante; noter poids; mettre a jour fiche; contacter veterinaire si besoin' }); await supabase.from('alertes_center').insert({ id: `ALERT-${taskId}`, title: `Rappel sanitaire ${animal.id}`, message: `Controle sanitaire prevu le ${nextDate}. Alerte creee 3 jours avant.`, module_source: 'animaux', entity_type: 'animal', entity_id: animal.id, severity: 'warning', status: 'nouvelle', action_recommandee: 'Verifier la fiche animal et confirmer la visite veterinaire.', send_whatsapp: false }); await refreshModule('taches'); } catch (error) { console.warn('Rappel sanitaire non cree', error.message); } }, [refreshModule]);
-  const emitBusinessEvents = useCallback((events = [], moduleKey = '', record = {}) => { const filtered = filterAppContextBusinessEvents(events, moduleKey, record); const validEvents = filtered.filter((event) => event?.event_type && event?.title); if (validEvents.length === 0) return; markLocalWrite('business_events'); void Promise.allSettled(validEvents.map((event) => createBusinessEvent(event))).then(() => refreshModule('business_events')).catch((error) => { console.warn('Evenements metier non enregistres', error.message); }); }, [markLocalWrite, refreshModule]);
+  const businessEventsRef = useRef([]);
+  useEffect(() => { businessEventsRef.current = dataMap.business_events || []; }, [dataMap.business_events]);
+
+  const emitBusinessEvents = useCallback((events = [], moduleKey = '', record = {}) => {
+    const filtered = filterAppContextBusinessEvents(events, moduleKey, record);
+    const validEvents = filtered.filter((event) => event?.event_type && event?.title).map(withStableIssueKey);
+    if (validEvents.length === 0) return;
+    // Idempotence : on écarte les événements déjà connus (même issue_key), pour
+    // qu'un rejeu hors ligne ne produise pas un second effet inter-modules.
+    const connus = businessEventsRef.current || [];
+    const nouveaux = validEvents.filter((event) => !findDuplicateBusinessEvent(event, connus));
+    if (nouveaux.length === 0) return;
+    markLocalWrite('business_events');
+    void Promise.allSettled(nouveaux.map((event) => createBusinessEvent({ ...event, existingEvents: connus })))
+      .then(() => refreshModule('business_events'))
+      .catch((error) => { console.warn('Evenements metier non enregistres', error.message); });
+  }, [markLocalWrite, refreshModule]);
 
   useEffect(() => { if (authLoading || !session) return; refreshAllModules(); }, [authLoading, session, refreshAllModules]);
   useEffect(() => {
@@ -258,7 +233,36 @@ export function AppProvider({ children, initialDataMap = null }) {
 
   const deleteRecord = useCallback(async (moduleKey, id) => { const service = serviceMap[moduleKey]; const config = MODULE_CONFIG[moduleKey] || {}; const idField = config.idField || 'id'; let previousRows = []; setDataMap((prev) => { previousRows = prev[moduleKey] || []; return { ...prev, [moduleKey]: previousRows.filter((row) => row[idField] !== id) }; }); if (!service) return true; try { await service.remove(id); await writeAuditLog('suppression', moduleKey, id); return true; } catch (error) { if (isBrowserOffline()) { enqueueOfflineMutation({ moduleKey, action: 'delete', id }); setModuleError(moduleKey, 'Mode hors ligne: suppression mise en file de synchronisation'); return true; } setDataMap((prev) => ({ ...prev, [moduleKey]: previousRows })); setModuleError(moduleKey, error.message || 'Erreur suppression'); throw error; } }, [setModuleError, writeAuditLog]);
 
-  const syncOfflineQueue = useCallback(async () => { if (isBrowserOffline()) return; const queue = readOfflineQueue(); if (queue.length === 0) return; const pending = []; for (const item of queue) { const service = serviceMap[item.moduleKey]; if (!service) continue; try { if (item.action === 'create') await service.create(item.payload); if (item.action === 'update') await service.update(item.id, item.payload); if (item.action === 'delete') await service.remove(item.id); await writeAuditLog(`sync_${item.action}`, item.moduleKey, item.id); } catch (error) { pending.push({ ...item, last_error: error.message }); } } if (pending.length === 0) clearOfflineQueue(); else saveOfflineQueue(pending); Object.keys(serviceMap).forEach((moduleKey) => refreshModule(moduleKey, { immediate: true })); }, [refreshModule, writeAuditLog]);
+  const syncOfflineQueue = useCallback(async () => {
+    if (isBrowserOffline()) return;
+    // Déduplique la file par (module, action, id) : une même écriture rejouée
+    // n'apparaît qu'une fois, ce qui évite les doubles insertions.
+    const queue = dedupeFileHorsLigne(readOfflineQueue());
+    if (queue.length === 0) return;
+    const pending = [];
+    for (const item of queue) {
+      const service = serviceMap[item.moduleKey];
+      if (!service) continue;
+      try {
+        if (item.action === 'create') await service.create(item.payload);
+        if (item.action === 'update') await service.update(item.id, item.payload);
+        if (item.action === 'delete') await service.remove(item.id);
+        await writeAuditLog(`sync_${item.action}`, item.moduleKey, item.id);
+        // Réémission des événements métier avec leur issue_key : le rejeu passe
+        // par la même voie idempotente que l'écriture en ligne, donc un seul
+        // effet inter-modules même si la file est rejouée plusieurs fois.
+        if (item.action === 'create' || item.action === 'update') {
+          const record = item.payload || { id: item.id };
+          const events = buildReplayEvents(item.moduleKey, item.action, record, item.previousRow || null);
+          emitBusinessEvents(events, item.moduleKey, record);
+        }
+      } catch (error) {
+        pending.push({ ...item, last_error: error.message });
+      }
+    }
+    if (pending.length === 0) clearOfflineQueue(); else saveOfflineQueue(pending);
+    Object.keys(serviceMap).forEach((moduleKey) => refreshModule(moduleKey, { immediate: true }));
+  }, [emitBusinessEvents, refreshModule, writeAuditLog]);
   useEffect(() => { const handler = () => syncOfflineQueue(); window.addEventListener('online', handler); syncOfflineQueue(); return () => window.removeEventListener('online', handler); }, [syncOfflineQueue]);
 
   const value = useMemo(() => ({ dataMap, loadingMap, errorMap, refreshModule, createRecord, updateRecord, deleteRecord, syncOfflineQueue }), [dataMap, loadingMap, errorMap, refreshModule, createRecord, updateRecord, deleteRecord, syncOfflineQueue]);
