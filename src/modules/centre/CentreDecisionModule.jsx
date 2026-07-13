@@ -7,6 +7,9 @@ import { buildDecisionCenterPlan } from '../../services/growthDecisionEngine.js'
 import { buildStrategicDecisionPlan } from '../../services/strategicDecisionEngine.js';
 import { buildVisionData } from '../vision/visionUtils';
 import CentreUrgencesTab from './CentreUrgencesTab.jsx';
+import { CentreEcartsTab, CentreRisquesTab } from './CentreCibleTabs.jsx';
+import JournalEvenements from '../../components/uniques/JournalEvenements.jsx';
+import { runKpiEngine } from '../../services/kpiEngine/index.js';
 import CentreCroissanceTab from './CentreCroissanceTab.jsx';
 import CentreSaisonsTab from './CentreSaisonsTab.jsx';
 import PilotageSettingsPanel from './PilotageSettingsPanel.jsx';
@@ -29,7 +32,7 @@ const EMPTY_STRATEGIC_PLAN = {
   ith: null,
 };
 
-/** Centre décisionnel — 3 onglets : urgences terrain, croissance, saisons & marchés. */
+/** Centre décisionnel — onglets cibles : À traiter, Écarts, Risques, Décisions, Historique. */
 export default function CentreDecisionModule({
   dataMap = {},
   onNavigate,
@@ -117,20 +120,25 @@ export default function CentreDecisionModule({
     + (data.priorities?.length || 0);
 
   const tabBadges = useMemo(() => ({
-    'Urgences & risques': urgentCount,
-    'Croissance & opportunités': (decisionPlan.commercialRecommendations?.length || 0)
+    'À traiter': urgentCount,
+    'Décisions': (decisionPlan.commercialRecommendations?.length || 0)
       + (decisionPlan.recommendations?.filter((r) => r.should_recommend_investment || r.technical_rule).length || 0),
-    'Saisons & marchés': (strategicPlan.launch?.alerts?.length || 0)
-      + (strategicPlan.launch?.cycleDecisions?.filter((d) => d.priority === 'critique').length || 0)
-      + (strategicPlan.sanitary?.filter((s) => s.blocking).length || 0),
-  }), [decisionPlan, strategicPlan, urgentCount]);
+  }), [decisionPlan, urgentCount]);
+
+  const kpisCentre = useMemo(() => {
+    try {
+      return runKpiEngine(enrichedDataMap, { module: 'dashboard' });
+    } catch {
+      return null;
+    }
+  }, [enrichedDataMap]);
 
   const risksData = useMemo(() => ({
     ...data,
     risks: [...(data.risks || []), ...(strategicPlan.risks || [])],
   }), [data, strategicPlan.risks]);
 
-  const content = tab === 'Urgences & risques'
+  const content = tab === 'À traiter'
     ? (
       <CentreUrgencesTab
         data={data}
@@ -149,7 +157,13 @@ export default function CentreDecisionModule({
         enrichedDataMap={enrichedDataMap}
       />
     )
-    : tab === 'Croissance & opportunités'
+    : tab === 'Écarts'
+      ? <CentreEcartsTab dataMap={enrichedDataMap} onNavigate={onNavigate} />
+    : tab === 'Risques'
+      ? <CentreRisquesTab alertes={props.existingAlerts || enrichedDataMap.alertes_center || []} taches={enrichedDataMap.taches || []} kpis={kpisCentre} onNavigate={onNavigate} />
+    : tab === 'Historique'
+      ? <JournalEvenements evenements={props.businessEvents || enrichedDataMap.business_events || []} filtres={{ limite: 30 }} onNavigate={onNavigate} />
+    : tab === 'Décisions'
       ? (
         <CentreCroissanceTab
           plan={decisionPlan}
@@ -261,7 +275,7 @@ export default function CentreDecisionModule({
           ) : null}
         </div>
       </details>
-      <ModuleTabsBar moduleId="centre_ia" active={tab} onChange={setTab} tabBadges={tabBadges} />
+      <ModuleTabsBar moduleId="centre_decisionnel" active={tab} onChange={setTab} tabBadges={tabBadges} />
       {content}
     </div>
   );

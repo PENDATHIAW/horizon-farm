@@ -23,7 +23,7 @@ const MODULE_LABELS = [
 ];
 
 const MODULE_TABS = {
-  'Centre décisionnel': ['Urgences & risques', 'Écarts & cohérence', 'Actions prioritaires', 'Croissance & opportunités'],
+  'Centre décisionnel': ['À traiter', 'Écarts', 'Risques', 'Décisions', 'Historique'],
   'AGRI FEEDS': ['Tableau de bord', 'Référence Phase 1', 'Matières & fournisseurs', 'Formulations', 'Production', 'Tests & comparaison', 'Commercial', 'Qualité & reporting'],
   'Objectifs & Croissance': ['Suivi du Business Plan', 'Prévisionnel vs réel', 'Simulations', 'Capacité de remboursement'],
   Financements: ['Tableau de bord', 'Opportunités', 'Contacts', 'Dossiers & pièces', 'Fonds & justificatifs', 'Espace Financeurs'],
