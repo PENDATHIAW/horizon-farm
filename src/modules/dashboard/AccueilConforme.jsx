@@ -20,19 +20,21 @@ import ListeAlertes from '../../components/uniques/ListeAlertes.jsx';
 import CarteKPI from '../../components/uniques/CarteKPI.jsx';
 import { runKpiEngine } from '../../services/kpiEngine/index.js';
 import { resolveDashboardTab } from '../../utils/commercialNavigation.js';
+import { SAISIES_QUOTIDIENNES } from '../../config/formulaires20s.config.js';
 
 const ROLES_TERRAIN = new Set(['terrain', 'farm_agent', 'employe', 'farm_readonly']);
 
-/** Les 7 saisies quotidiennes : chaque bouton ouvre le formulaire de son module propriétaire. */
-export const ACTIONS_RAPIDES_QUOTIDIENNES = [
-  { id: 'distribution', libelle: "Distribuer l'aliment", module: 'elevage', tab: 'Alimentation' },
-  { id: 'ponte', libelle: 'Enregistrer la ponte', module: 'elevage', tab: 'Pondeuses' },
-  { id: 'mortalite', libelle: 'Déclarer une mortalité', module: 'elevage', tab: 'Lots & bandes' },
-  { id: 'pesee', libelle: 'Enregistrer une pesée', module: 'elevage', tab: 'Embouche bovine' },
-  { id: 'irrigation', libelle: "Noter l'irrigation", module: 'cultures', tab: 'Irrigation' },
-  { id: 'recolte', libelle: 'Enregistrer la récolte', module: 'cultures', tab: 'Récoltes' },
-  { id: 'vente', libelle: 'Enregistrer une vente', module: 'commercial', tab: 'Ventes' },
-];
+/**
+ * Les 7 saisies quotidiennes : boutons d'action rapide sur l'Accueil, dérivés du
+ * registre unique du contrat des 20 secondes. Chaque bouton ouvre le formulaire
+ * de son module propriétaire, sur son onglet.
+ */
+export const ACTIONS_RAPIDES_QUOTIDIENNES = SAISIES_QUOTIDIENNES.map((f) => ({
+  id: f.id,
+  libelle: f.libelleBouton,
+  module: f.module,
+  tab: f.onglet,
+}));
 
 /** Huit indicateurs maximum sur le Pilotage, tous lus du catalogue central. */
 export const CODES_KPI_PILOTAGE = [

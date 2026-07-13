@@ -15,7 +15,7 @@ Horizon Farm ERP V1 » (version corrigée et consolidée). L'inventaire préalab
 | 2 · Identifiants, alias et flags | PARTIEL | alias + flags testés (7 tests), commit 9527b3a ; volet base BLOQUÉ |
 | 3 · Structure cible des onglets | NON FAIT | écarts documentés ci-dessous |
 | 4 · Composants uniques | NON FAIT | composants cibles absents, existants listés |
-| 5 · Contrat des 20 secondes | NON FAIT | aucun harnais dédié exécuté |
+| 5 · Contrat des 20 secondes | PARTIEL | registre + test contrat (7 tests verts) ; chronométrage humain à consigner |
 | 6 · Nettoyages de pertinence | PARTIEL | retraits réels faits, autres cibles sans objet, commit 8d32052 |
 | 7 · Tests et rapport | PARTIEL | batteries exécutées ci-dessous |
 
@@ -102,13 +102,36 @@ uniques. Existants approchants recensés (KpiCard, MiniMetricCard, ModuleTimelin
 implémentations locales multiples confirmées. Créer les quatre composants sans migrer leurs
 consommateurs ajouterait une duplication de plus ; ce chantier doit être mené avec le chantier 3.
 
-## Chantier 5 · Contrat des 20 secondes (NON FAIT)
+## Chantier 5 · Contrat des 20 secondes (PARTIEL)
 
-Aucun harnais « 5 champs, 5 interactions, 20 secondes » n'a été créé ni exécuté. Les scénarios
-Playwright existants (tests/e2e/) n'ont pas été lancés dans cette session (pas de navigateur
-dans le budget de la session ; le dépôt fournit `npm run test:e2e`). Le test humain sur téléphone
-doit être chronométré et consigné séparément par l'équipe ; aucun résultat automatisé ne peut le
-remplacer (règle du prompt).
+Fait, avec preuves :
+
+- Registre unique `src/config/formulaires20s.config.js` : les 7 saisies quotidiennes (distribution,
+  ponte, mortalité, pesée, irrigation, récolte, vente) et les 10 saisies périodiques (réception,
+  dépense, encaissement client, paiement fournisseur, vaccination, nettoyage, transfert organique,
+  semis, panne, absence). Chaque entrée déclare : champs requis (cinq au maximum), champs repliés
+  sous « Détails », préremplissages (date du jour, utilisateur connecté, unités de la ferme, lot ou
+  parcelle unique auto, dernier fournisseur, dernier prix), filtres de contexte, clé d'idempotence
+  (issue_key : rejeu = un seul effet, en ligne comme hors ligne) et gabarit de confirmation à effets.
+- Confirmation à effets : `src/utils/confirmationAEffets.js` produit « {Saisie} enregistrée ·
+  {effet stock} · {effet coût ou KPI} » depuis le dictionnaire et le registre.
+- Boutons d'action rapide des 7 saisies quotidiennes sur l'Accueil, dérivés du même registre
+  (`ACTIONS_RAPIDES_QUOTIDIENNES` dans src/modules/dashboard/AccueilConforme.jsx).
+- Test contrat `tests/unit/contrat20Secondes.test.js` : 7 tests, 0 échec (7 quotidiennes et 10
+  périodiques présentes ; cinq champs requis maximum ; préremplissages date/utilisateur/unités
+  partout ; clé d'idempotence et confirmation à effets présentes ; libellés verbe + objet conformes
+  à la charte, « Soumettre » interdit ; gabarit de confirmation vérifié ; boutons de l'Accueil
+  alignés sur les 7 saisies quotidiennes).
+- Harnais de chronométrage `tests/e2e/contrat-20-secondes.spec.js` : ouvre chaque saisie quotidienne
+  depuis l'Accueil sur données de démonstration et vérifie une ouverture en moins de 20 secondes
+  (ignoré sans identifiants E2E ni navigateur).
+- Modèle de test humain sur téléphone `docs/test-humain-20-secondes.md` avec grille à consigner.
+
+Reste à faire (raison du PARTIEL) : l'exécution réelle du harnais Playwright dans un environnement
+avec navigateur et données de démonstration, et surtout le test humain chronométré sur téléphone,
+qui doit être consigné séparément. Le contrat est encodé et vérifié au niveau du registre ; le
+respect des cinq interactions et des moins de 20 secondes en usage réel se prouve par ces deux
+exécutions, non encore faites dans cette session.
 
 ## Chantier 6 · Nettoyages de pertinence (PARTIEL)
 
