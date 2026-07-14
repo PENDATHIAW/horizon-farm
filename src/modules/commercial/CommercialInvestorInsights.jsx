@@ -3,7 +3,7 @@ import { buildAutoCommercialOpportunities } from '../../utils/commercialAutoOppo
 import { buildCommercialClientSegmentationIA } from '../../services/commercialClientSegmentationIA.js';
 
 /**
- * Mode investisseur commercial — résumé max 3 lignes.
+ * Mode investisseur commercial - résumé max 3 lignes.
  */
 export default function CommercialInvestorInsights({
   orders = [],
@@ -48,7 +48,7 @@ export default function CommercialInvestorInsights({
     : growthSignal;
 
   const lines = [
-    `Croissance CA : ${report.summary?.split('·')[0] || '—'} · ${growthSignal}`,
+    `Croissance CA : ${report.summary?.split('·')[0] || '-'} · ${growthSignal}`,
     `${dependencyClient} · ${dependencyProduct} · ${opportunityLine}`,
     `${riskLine} · ${segmentation.silent?.length ? `${segmentation.silent.length} client(s) silencieux` : 'Relances sous contrôle'}`,
   ].slice(0, 3);

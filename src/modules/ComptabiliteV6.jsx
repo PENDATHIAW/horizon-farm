@@ -48,7 +48,7 @@ function DerivedChargesPanel({ finance, counts = {} }) {
         {rows.map(([label, value, count]) => (
           <div key={label} className={`rounded-xl border p-3 ${toNumber(value) > 0 ? 'border-urgent bg-white' : toNumber(count) > 0 ? 'border-vigilance bg-vigilance-bg' : 'border-line bg-card'}`}>
             <p className="text-xs font-semibold text-slate">{label}</p>
-            <p className="mt-1 font-semibold text-earth">{toNumber(value) > 0 ? fmtCurrency(value) : toNumber(count) > 0 ? 'À renseigner' : '—'}</p>
+            <p className="mt-1 font-semibold text-earth">{toNumber(value) > 0 ? fmtCurrency(value) : toNumber(count) > 0 ? 'À renseigner' : '-'}</p>
           </div>
         ))}
       </div>

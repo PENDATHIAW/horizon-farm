@@ -171,7 +171,7 @@ export default function CommercialDeliveriesPanel({
       <DeliverySection title="Livrées sans preuve" rows={queue.withoutProof} tone="warn" onMarkDelivered={markDelivered} onOpenProof={openProofModal} />
       <DeliverySection title="Livrées" rows={queue.delivered} tone="good" onMarkDelivered={markDelivered} onOpenProof={openProofModal} />
       {!queue.all.length ? (
-        <p className="rounded-xl border border-line bg-card px-4 py-6 text-center text-sm text-slate">Aucune livraison enregistrée — créez une vente avec livraison.</p>
+        <p className="rounded-xl border border-line bg-card px-4 py-6 text-center text-sm text-slate">Aucune livraison enregistrée - créez une vente avec livraison.</p>
       ) : null}
 
       <QuickInputModal

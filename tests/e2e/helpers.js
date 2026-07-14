@@ -2,6 +2,22 @@ import { expect } from '@playwright/test';
 
 export const USER_LOGIN = process.env.E2E_LOGIN;
 export const USER_PASSWORD = process.env.E2E_PASSWORD;
+export const LOCAL_DEMO = process.env.E2E_LOCAL_DEMO === '1';
+
+export async function prepareLocalDemo(page) {
+  if (!LOCAL_DEMO) return;
+  await page.addInitScript(() => {
+    window.localStorage.setItem('horizon:modules-actifs', JSON.stringify({
+      agri_feeds: true,
+      smartfarm: true,
+      financements: true,
+      assistant_erp: true,
+    }));
+    window.localStorage.setItem('horizon_farm_data_mode_choice', 'simulated');
+    window.localStorage.setItem('horizon_farm_show_simulated_data', '1');
+    window.localStorage.setItem('horizon_farm_show_demo_data', '1');
+  });
+}
 
 export const BAD_UI_TEXTS = [
   'undefined',
@@ -48,6 +64,13 @@ export const BAD_UI_TEXTS = [
 ];
 
 export async function login(page) {
+  if (LOCAL_DEMO) {
+    await prepareLocalDemo(page);
+    await page.goto('/?demo=1');
+    await expect(page.getByRole('navigation', { name: /Navigation principale/i })).toBeVisible({ timeout: 25_000 });
+    await waitForAppReady(page);
+    return;
+  }
   if (!USER_LOGIN || !USER_PASSWORD) {
     throw new Error('E2E_LOGIN and E2E_PASSWORD environment variables are required.');
   }
@@ -114,7 +137,7 @@ export async function closeTransientUi(page) {
 export async function waitForAppReady(page) {
   await page.waitForLoadState('domcontentloaded', { timeout: 10_000 }).catch(() => {});
   await page.waitForLoadState('networkidle', { timeout: 5_000 }).catch(() => {});
-  await page.getByText(/Chargement du module/i).waitFor({ state: 'detached', timeout: 25_000 }).catch(() => {});
+  await page.getByText(/Chargement du module/i).first().waitFor({ state: 'hidden', timeout: 25_000 }).catch(() => {});
   await closeTransientUi(page);
   await page.waitForTimeout(400);
 }

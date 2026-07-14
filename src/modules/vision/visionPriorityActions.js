@@ -83,7 +83,7 @@ export function buildTaskPayloadFromPriorityItem(item = {}, existingTasks = []) 
     const finding = item.finding;
     return {
       id: generateSequentialId('taches', existingTasks),
-      title: finding.title || item.title || 'Action IA',
+      title: finding.title || item.title || 'Action recommandée',
       module_lie: mapTaskModule(finding.module || item.sourceModule),
       entity_type: finding.category || 'finding',
       related_id: finding.source_records?.[0]?.id || finding.id || item.id,
@@ -188,14 +188,14 @@ export async function runPriorityTaskAction(item, handlers = {}) {
   }
   const existing = findOpenTaskByDedupe(existingTasks, payload.task_dedupe_key);
   if (existing) {
-    toast.success('Tâche déjà planifiée — ouverture Activité & Suivi');
+    toast.success('Tâche déjà planifiée - ouverture Activité & Suivi');
     onNavigate?.('activite_suivi', { tab: 'À traiter maintenant' });
     return true;
   }
   try {
     await onCreateTask(payload);
     await onRefreshTasks?.();
-    toast.success('Tâche créée — visible dans Activité & Suivi');
+    toast.success('Tâche créée - visible dans Activité & Suivi');
     onNavigate?.('activite_suivi', { tab: 'À traiter maintenant' });
     return true;
   } catch (error) {
@@ -222,14 +222,14 @@ export async function runPriorityAlertAction(item, handlers = {}) {
   }
   const existing = findOpenAlertByDedupe(existingAlerts, payload.alert_dedupe_key);
   if (existing) {
-    toast.success('Alerte déjà créée — ouverture Activité & Suivi');
+    toast.success('Alerte déjà créée - ouverture Activité & Suivi');
     onNavigate?.('activite_suivi', { tab: 'À traiter maintenant' });
     return true;
   }
   try {
     await onCreateAlert(payload);
     await onRefreshAlertes?.();
-    toast.success('Alerte créée — visible dans Activité & Suivi');
+    toast.success('Alerte créée - visible dans Activité & Suivi');
     onNavigate?.('activite_suivi', { tab: 'À traiter maintenant' });
     return true;
   } catch (error) {
@@ -240,7 +240,7 @@ export async function runPriorityAlertAction(item, handlers = {}) {
 
 export async function runPriorityFindingAction(item, handlers = {}) {
   if (!item.finding) {
-    toast.error('Action IA indisponible');
+    toast.error('Action recommandée indisponible');
     return false;
   }
   try {

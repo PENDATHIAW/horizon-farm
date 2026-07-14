@@ -1,5 +1,5 @@
 /**
- * Commercial V3 — abonnements / commandes récurrentes (metadata client légère).
+ * Commercial V3 - abonnements / commandes récurrentes (metadata client légère).
  */
 
 import { makeId } from './ids.js';

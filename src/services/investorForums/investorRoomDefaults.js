@@ -1,5 +1,5 @@
 /**
- * Investor Room — contenus par défaut et architecture merge manuel / ERP.
+ * Investor Room - contenus par défaut et architecture merge manuel / ERP.
  * Ne remplit que les champs vides pour ne pas écraser les données sauvegardées.
  */
 
@@ -20,14 +20,14 @@ Après près de neuf années chez Sonatel, elle a développé une expertise en p
 Animée par la volonté de contribuer au développement agricole africain, elle a choisi de quitter une carrière stable dans les télécommunications afin de consacrer pleinement son temps à la création de Horizon Farm.
 Son ambition est de démontrer qu'une agriculture moderne, pilotée par la donnée et l'intelligence artificielle, peut améliorer durablement la sécurité alimentaire, la rentabilité des exploitations et la création d'emplois.`;
 
-export const DEFAULT_FOUNDER_CV = `Ingénieure Télécommunications & Informatique — ESMT Dakar
-~9 ans Sonatel — performance, BI, automatisation, stratégie analytique
-Fondatrice & coordinatrice — Horizon Farm
+export const DEFAULT_FOUNDER_CV = `Ingénieure Télécommunications & Informatique - ESMT Dakar
+~9 ans Sonatel - performance, BI, automatisation, stratégie analytique
+Fondatrice & coordinatrice - Horizon Farm
 Compétences : pilotage de la performance, ERP, data, analyses appliquées à l'agriculture`;
 
-export const DEFAULT_FOUNDER_EDUCATION = 'Diplôme ingénieur — ESMT Dakar (Télécommunications & Informatique)';
+export const DEFAULT_FOUNDER_EDUCATION = 'Diplôme ingénieur - ESMT Dakar (Télécommunications & Informatique)';
 
-export const DEFAULT_FOUNDER_EXPERIENCE = 'Sonatel (~9 ans) — pilotage performance, BI, automatisation, stratégie analytique\nFondatrice Horizon Farm — entreprise agricole intégrée + ERP propriétaire';
+export const DEFAULT_FOUNDER_EXPERIENCE = 'Sonatel (~9 ans) - pilotage performance, BI, automatisation, stratégie analytique\nFondatrice Horizon Farm - entreprise agricole intégrée + ERP propriétaire';
 
 export const DEFAULT_FOUNDER_SKILLS = 'Business Intelligence · Automatisation · Stratégie data · Pilotage de la performance · Gestion de projet · Agriculture intelligente';
 
@@ -56,8 +56,8 @@ export const DEFAULT_WHY_INVEST = [
   { id: 'differentiation', title: 'Différenciation', body: 'Double compétence fondatrice tech + agricole ; stack ERP + analyses intégrées dès le jour 1.' },
   { id: 'impact', title: 'Impact', body: 'Sécurité alimentaire, emplois locaux, formalisation et preuves pour subventions.' },
   { id: 'scalabilite', title: 'Scalabilité', body: 'Modèle réplicable : production + logiciel + analyses pour d\'autres fermes africaines.' },
-  { id: 'technologie', title: 'Technologie', body: 'Horizon Farm ERP — ventes, stock, santé, finances, documents interconnectés.' },
-  { id: 'ia', title: 'Analyses', body: 'Hey Horizon AI Core — brief, OCR, forecast, advisor, WhatsApp terrain.' },
+  { id: 'technologie', title: 'Technologie', body: 'Horizon Farm ERP - ventes, stock, santé, finances, documents interconnectés.' },
+  { id: 'ia', title: 'Analyses', body: 'Hey Horizon AI Core - brief, OCR, forecast, advisor, WhatsApp terrain.' },
   { id: 'erp', title: 'ERP propriétaire', body: 'Pas de patchwork Excel : un système unique piloté par la fondatrice.' },
   { id: 'femmes', title: 'Impact femmes', body: 'Leadership féminin tech-agri ; modèle pour femmes entrepreneures.' },
   { id: 'jeunes', title: 'Impact jeunes', body: 'Emplois et formation terrain pour jeunes ruraux.' },
@@ -71,7 +71,7 @@ export const DEFAULT_SEEKING = {
   utilisation_fonds: 'Cheptel pondeuses · stock démarrage · matériel avicole/bovin · trésorerie de départ',
   priorite: 'Financement actifs productifs et trésorerie sécurisée',
   impact_attendu: 'Montée en charge production, emplois locaux, traçabilité ERP',
-  calendrier: 'Dossiers banque / subvention / investisseur — 2026',
+  calendrier: 'Dossiers banque / subvention / investisseur - 2026',
 };
 
 export const DEFAULT_TIMELINE = [
@@ -125,7 +125,7 @@ export const DEFAULT_FIELD_PRIORITIES = {
 
 const hasText = (v) => String(v || '').trim().length > 0;
 
-/** Applique les defaults uniquement sur champs vides — préserve données Supabase existantes. */
+/** Applique les defaults uniquement sur champs vides - préserve données Supabase existantes. */
 export function applyInvestorRoomDefaults(manual = {}) {
   const m = { ...(manual || {}) };
   const fill = (key, value) => {
@@ -146,7 +146,7 @@ export function applyInvestorRoomDefaults(manual = {}) {
   fill('objectives_6m', DEFAULT_OBJECTIVES_6M);
   fill('objectives_12m', DEFAULT_OBJECTIVES_12M);
   fill('objectives_3y', DEFAULT_OBJECTIVES_3Y);
-  fill('ai_headline', 'Hey Horizon AI — copilote décisionnel intégré à l\'ERP');
+  fill('ai_headline', 'Hey Horizon AI - copilote décisionnel intégré à l\'ERP');
   fill('ai_differentiator', 'Une entreprise agricole avec son propre ERP et modules d’analyse : pas seulement une ferme, un modèle reproductible.');
   fill('ai_modules', 'WhatsApp Horizon · OCR Intelligent · Brief vocal · Forecast Engine · Horizon Advisor');
 
@@ -176,7 +176,7 @@ export function resolveInvestorField(priority = 'manual_then_auto', manualValue,
   return hasText(manualValue) ? manualValue : autoValue;
 }
 
-/** KPI Investor Room — lecture ERP uniquement. */
+/** KPI Investor Room - lecture ERP uniquement. */
 export function buildInvestorKpiItems(profile = {}, readiness = {}) {
   const k = profile.keyFigures || {};
   const snap = profile.snapshot || {};
@@ -185,7 +185,7 @@ export function buildInvestorKpiItems(profile = {}, readiness = {}) {
   const sales = snap.sales?.ventes || snap.sales || {};
   const roi = k.besoin_bp > 0 && k.resultat_bp_an1 != null
     ? `${Math.round((Number(k.resultat_bp_an1) / Number(k.besoin_bp)) * 100)} %`
-    : '—';
+    : '-';
 
   return [
     { id: 'ca', label: 'CA', value: k.ca_erp, format: 'money', auto: true },

@@ -1,5 +1,5 @@
 /**
- * Extraction de texte depuis photo / PDF / fichier — sans écriture base.
+ * Extraction de texte depuis photo / PDF / fichier - sans écriture base.
  */
 
 const clean = (value) => String(value || '').trim();
@@ -94,7 +94,7 @@ export async function extractTextFromDocument(file = null, options = {}) {
     source: 'filename_hint',
     confidence: 0.25,
     fileName,
-    hint: 'Type de fichier non reconnu — précisez le type et collez le texte.',
+    hint: 'Type de fichier non reconnu - précisez le type et collez le texte.',
     needsManualText: true,
   };
 }

@@ -1,5 +1,5 @@
 /**
- * AGRI FEEDS — cycle de vie des formules + garde-fous commercialisation.
+ * AGRI FEEDS - cycle de vie des formules + garde-fous commercialisation.
  */
 import { FORMULA_STATUSES } from '../../config/agriFeeds.config.js';
 import { toNumber } from '../../utils/format.js';

@@ -178,7 +178,7 @@ export function getComputedFestivalDateList(referenceDate = new Date(), horizonD
 }
 
 export function formatFestivalDateFr(dateIso = '') {
-  if (!dateIso) return '—';
+  if (!dateIso) return '-';
   try {
     return new Date(dateIso).toLocaleDateString('fr-FR', {
       weekday: 'short',

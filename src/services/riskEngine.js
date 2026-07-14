@@ -39,7 +39,7 @@ export function buildRiskIssueGroups(data = {}) {
         source_records: [],
         financialImpact: payload.financialImpact ?? null,
         probability: payload.probability ?? 'Moyenne',
-        impact: payload.impact ?? '—',
+        impact: payload.impact ?? '-',
         action: payload.action || payload.recommended_action || 'Traiter',
       });
     }

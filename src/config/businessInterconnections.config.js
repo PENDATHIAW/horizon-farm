@@ -1,4 +1,4 @@
-// Horizon Farm ERP — carte officielle des événements métier et interconnexions.
+// Horizon Farm ERP - carte officielle des événements métier et interconnexions.
 // Objectif : une saisie terrain déclenche automatiquement les impacts stock, finance, production, traçabilité, tâches et reporting.
 
 export const BUSINESS_EVENT_WORKFLOWS = Object.freeze([

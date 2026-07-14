@@ -87,27 +87,27 @@ export default function ProductionHub({
     },
     {
       label: 'Taux casse (7 j)',
-      value: perf.eggBreakRate7d ? fmtPercent(perf.eggBreakRate7d) : '—',
+      value: perf.eggBreakRate7d ? fmtPercent(perf.eggBreakRate7d) : '-',
       tone: toneFromBreakRate(perf.eggBreakRate7d),
     },
     {
       label: 'IC chair (€/kg)',
-      value: perf.chairCostPerKgAvg > 0 ? fmtCurrency(perf.chairCostPerKgAvg) : '—',
+      value: perf.chairCostPerKgAvg > 0 ? fmtCurrency(perf.chairCostPerKgAvg) : '-',
       tone: perf.chairCostPerKgAvg > 0 ? 'neutral' : 'warn',
     },
     {
       label: 'GMQ bovins',
-      value: perf.bovinGmqAvg > 0 ? `${fmtNumber(perf.bovinGmqAvg)} g/j` : '—',
+      value: perf.bovinGmqAvg > 0 ? `${fmtNumber(perf.bovinGmqAvg)} g/j` : '-',
       tone: perf.bovinGmqAvg > 0 ? 'good' : 'warn',
     },
     {
       label: 'Stock viande (kg)',
-      value: perf.meatStockKg > 0 ? fmtNumber(perf.meatStockKg) : '—',
+      value: perf.meatStockKg > 0 ? fmtNumber(perf.meatStockKg) : '-',
       tone: perf.meatStockKg > 0 ? 'good' : 'warn',
     },
     {
       label: PRODUCTION_FINANCE_LABELS.marginGross,
-      value: perf.technicalMarginLabel || '—',
+      value: perf.technicalMarginLabel || '-',
       tone: perf.technicalMarginTotal > 0 ? 'good' : perf.technicalMarginTotal != null ? 'warn' : 'neutral',
     },
   ];
@@ -130,7 +130,7 @@ export default function ProductionHub({
         <div>
           <h2 className="text-lg font-semibold text-earth">Performances & rendements</h2>
           <p className="mt-2 text-sm leading-relaxed text-slate">
-            Œufs, lait/viande, rendement, indice de consommation et rentabilité technique — données issues d&apos;Alimentation, Avicole, Animaux et Transformation.
+            Œufs, lait/viande, rendement, indice de consommation et rentabilité technique - données issues d&apos;Alimentation, Avicole, Animaux et Transformation.
             Le registre cheptel et les lots sont sur <b>Animaux</b> et <b>Avicole</b>.
           </p>
         </div>
@@ -155,17 +155,17 @@ export default function ProductionHub({
       <CollapsibleBlock
         icon={Egg}
         title="Œufs & rendement ponte"
-        intro="Ramassages, casses, coût/œuf et taux de ponte — pas le registre pondeuses."
+        intro="Ramassages, casses, coût/œuf et taux de ponte - pas le registre pondeuses."
         defaultOpen={placement !== 'footer'}
       >
         <div className="grid grid-cols-2 gap-3 xl:grid-cols-4">
           {[
             { label: 'Produits (7 j)', value: fmtNumber(eggs.produced7d), tone: 'good' },
             { label: 'Vendables (7 j)', value: fmtNumber(eggs.sellable7d), tone: 'good' },
-            { label: 'Coût / œuf', value: perf.costPerEggAvg > 0 ? fmtCurrency(perf.costPerEggAvg) : '—', tone: perf.costPerEggAvg > 0 ? 'neutral' : 'warn' },
-            { label: 'Taux ponte moy.', value: perf.layingRateAvg > 0 ? fmtPercent(perf.layingRateAvg) : '—', tone: perf.layingRateAvg > 0 ? 'good' : 'warn' },
+            { label: 'Coût / œuf', value: perf.costPerEggAvg > 0 ? fmtCurrency(perf.costPerEggAvg) : '-', tone: perf.costPerEggAvg > 0 ? 'neutral' : 'warn' },
+            { label: 'Taux ponte moy.', value: perf.layingRateAvg > 0 ? fmtPercent(perf.layingRateAvg) : '-', tone: perf.layingRateAvg > 0 ? 'good' : 'warn' },
             { label: 'Tablettes est.', value: fmtNumber(eggs.tablettesEst), tone: 'good' },
-            { label: 'Marge œufs', value: perf.eggMarginAvg != null ? fmtCurrency(perf.eggMarginAvg) : '—', tone: perf.eggMarginAvg > 0 ? 'good' : 'warn' },
+            { label: 'Marge œufs', value: perf.eggMarginAvg != null ? fmtCurrency(perf.eggMarginAvg) : '-', tone: perf.eggMarginAvg > 0 ? 'good' : 'warn' },
           ].map((s) => (
             <ElevageStatCard key={s.label} label={s.label} value={s.value} tone={s.tone} />
           ))}
@@ -175,23 +175,23 @@ export default function ProductionHub({
             <p className="text-xs font-semibold uppercase tracking-normal text-slate">Derniers ramassages</p>
             {eggs.recentLogs.map((row) => (
               <div key={row.id || row.date} className="flex justify-between border-b border-line/70 py-2 text-sm last:border-b-0">
-                <span className="text-earth">{String(row.date || row.created_at || '—').slice(0, 10)}</span>
+                <span className="text-earth">{String(row.date || row.created_at || '-').slice(0, 10)}</span>
                 <span className="font-semibold text-slate">{fmtNumber(row.oeufs_produits || row.eggs_count || 0)} œufs</span>
               </div>
             ))}
           </div>
         ) : (
           <p className="rounded-xl border border-line bg-card px-3 py-2 text-sm text-slate">
-            Aucun ramassage sur 7 jours — enregistrez un ramassage pour suivre la ponte.
+            Aucun ramassage sur 7 jours - enregistrez un ramassage pour suivre la ponte.
           </p>
         )}
         <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
-          <ActionCard key="egg-log" title="Enregistrer ramassage" text="Workflow officiel — log, stock œufs." onClick={() => onOpenWorkflow?.('eggs')} />
+          <ActionCard key="egg-log" title="Enregistrer ramassage" text="Workflow officiel - log, stock œufs." onClick={() => onOpenWorkflow?.('eggs')} />
           <ActionCard key="egg-stock" title="Stock œufs & tablettes" text="Voir stock produit (Achats & Stock)." onClick={() => navigateToEggStock(onNavigate)} />
           {eggs.eggOpportunities ? (
             <ActionCard key="egg-sales" title="Ventes œufs / tablettes" text={`${eggs.eggOpportunities} opportunité(s) Commercial.`} onClick={() => onNavigate?.('commercial', { tab: 'Opportunités' })} />
           ) : null}
-          <ActionCard key="avicole-pondeuses" title="Registre pondeuses" text="Lots et effectifs — vue Avicole." onClick={() => setTab('avicole')} />
+          <ActionCard key="avicole-pondeuses" title="Registre pondeuses" text="Lots et effectifs - vue Avicole." onClick={() => setTab('avicole')} />
         </div>
       </CollapsibleBlock>
         </>
@@ -200,16 +200,16 @@ export default function ProductionHub({
       {(contextView === 'all' || contextView === 'avicole') ? (
       <CollapsibleBlock
         icon={Drumstick}
-        title="Chair — rendement & IC"
-        intro="Poids, mortalité, coût/kg et marge — lots prêts vente en lecture seule."
+        title="Chair - rendement & IC"
+        intro="Poids, mortalité, coût/kg et marge - lots prêts vente en lecture seule."
       >
         <div className="grid grid-cols-2 gap-3 xl:grid-cols-4">
           {[
-            { label: 'Poids moyen', value: chair.avgWeight > 0 ? `${chair.avgWeight.toFixed(2)} kg` : '—', tone: chair.avgWeight > 0 ? 'good' : 'warn' },
-            { label: 'Mortalité moy.', value: chair.avgMortality ? fmtNumber(chair.avgMortality) : '—', tone: toneFromMortality(perf.chairMortalityRateAvg) },
-            { label: 'IC (€/kg)', value: perf.chairCostPerKgAvg > 0 ? fmtCurrency(perf.chairCostPerKgAvg) : '—', tone: perf.chairCostPerKgAvg > 0 ? 'neutral' : 'warn' },
+            { label: 'Poids moyen', value: chair.avgWeight > 0 ? `${chair.avgWeight.toFixed(2)} kg` : '-', tone: chair.avgWeight > 0 ? 'good' : 'warn' },
+            { label: 'Mortalité moy.', value: chair.avgMortality ? fmtNumber(chair.avgMortality) : '-', tone: toneFromMortality(perf.chairMortalityRateAvg) },
+            { label: 'IC (€/kg)', value: perf.chairCostPerKgAvg > 0 ? fmtCurrency(perf.chairCostPerKgAvg) : '-', tone: perf.chairCostPerKgAvg > 0 ? 'neutral' : 'warn' },
             { label: 'Prêts vente', value: fmtNumber(chair.readyLots), tone: chair.readyLots ? 'good' : 'warn' },
-            { label: 'Marge chair', value: perf.chairMarginAvg != null ? fmtCurrency(perf.chairMarginAvg) : '—', tone: perf.chairMarginAvg > 0 ? 'good' : 'warn' },
+            { label: 'Marge chair', value: perf.chairMarginAvg != null ? fmtCurrency(perf.chairMarginAvg) : '-', tone: perf.chairMarginAvg > 0 ? 'good' : 'warn' },
           ].map((s) => (
             <ElevageStatCard key={s.label} label={s.label} value={s.value} tone={s.tone} />
           ))}
@@ -226,7 +226,7 @@ export default function ProductionHub({
           </ul>
         ) : null}
         <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
-          <ActionCard key="chair-lots" title="Registre lots chair" text="Fiches Avicole — effectifs, pesées." onClick={() => setTab('avicole')} />
+          <ActionCard key="chair-lots" title="Registre lots chair" text="Fiches Avicole - effectifs, pesées." onClick={() => setTab('avicole')} />
           {chair.readyLots > 0 ? (
             <ActionCard key="chair-sale" title="Préparer vente" text={`${chair.readyLots} lot(s) prêt(s).`} onClick={() => onNavigate?.('commercial', { tab: 'Ventes' })} />
           ) : null}
@@ -239,16 +239,16 @@ export default function ProductionHub({
         <>
       <CollapsibleBlock
         icon={Beef}
-        title="Bovins — GMQ & rentabilité"
-        intro="Gain quotidien, coût/kg et marge — pas le registre cheptel."
+        title="Bovins - GMQ & rentabilité"
+        intro="Gain quotidien, coût/kg et marge - pas le registre cheptel."
       >
         <div className="grid grid-cols-2 gap-3 xl:grid-cols-4">
           {[
-            { label: 'GMQ moyen', value: perf.bovinGmqAvg > 0 ? `${fmtNumber(perf.bovinGmqAvg)} g/j` : '—', tone: perf.bovinGmqAvg > 0 ? 'good' : 'warn' },
-            { label: 'Poids moyen', value: bovins.avgWeight > 0 ? `${bovins.avgWeight.toFixed(0)} kg` : '—', tone: bovins.avgWeight > 0 ? 'good' : 'warn' },
-            { label: 'Coût / kg', value: perf.bovinCostPerKgAvg > 0 ? fmtCurrency(perf.bovinCostPerKgAvg) : '—', tone: perf.bovinCostPerKgAvg > 0 ? 'neutral' : 'warn' },
+            { label: 'GMQ moyen', value: perf.bovinGmqAvg > 0 ? `${fmtNumber(perf.bovinGmqAvg)} g/j` : '-', tone: perf.bovinGmqAvg > 0 ? 'good' : 'warn' },
+            { label: 'Poids moyen', value: bovins.avgWeight > 0 ? `${bovins.avgWeight.toFixed(0)} kg` : '-', tone: bovins.avgWeight > 0 ? 'good' : 'warn' },
+            { label: 'Coût / kg', value: perf.bovinCostPerKgAvg > 0 ? fmtCurrency(perf.bovinCostPerKgAvg) : '-', tone: perf.bovinCostPerKgAvg > 0 ? 'neutral' : 'warn' },
             { label: 'Proches cible', value: fmtNumber(bovins.nearTargetCount), tone: bovins.nearTargetCount ? 'good' : 'warn' },
-            { label: 'Marge bovins', value: perf.bovinMarginAvg != null ? fmtCurrency(perf.bovinMarginAvg) : '—', tone: perf.bovinMarginAvg > 0 ? 'good' : 'warn' },
+            { label: 'Marge bovins', value: perf.bovinMarginAvg != null ? fmtCurrency(perf.bovinMarginAvg) : '-', tone: perf.bovinMarginAvg > 0 ? 'good' : 'warn' },
           ].map((s) => (
             <ElevageStatCard key={s.label} label={s.label} value={s.value} tone={s.tone} />
           ))}
@@ -268,7 +268,7 @@ export default function ProductionHub({
           </ul>
         ) : null}
         <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
-          <ActionCard key="bov-animaux" title="Registre bovins" text="Cheptel, pesées — vue Animaux." onClick={() => setTab('animaux')} />
+          <ActionCard key="bov-animaux" title="Registre bovins" text="Cheptel, pesées - vue Animaux." onClick={() => setTab('animaux')} />
           {bovins.nearTargetCount > 0 ? (
             <ActionCard key="bov-sale" title="Préparer vente" text={`${bovins.nearTargetCount} animal(aux) proche(s) cible.`} onClick={() => onNavigate?.('commercial', { tab: 'Ventes' })} />
           ) : null}
@@ -277,35 +277,35 @@ export default function ProductionHub({
       </CollapsibleBlock>
 
       {ovins.hasData ? (
-        <CollapsibleBlock icon={Beef} title="Ovins — GMQ & rentabilité" intro="Brebis, agneaux — poids et marge technique.">
+        <CollapsibleBlock icon={Beef} title="Ovins - GMQ & rentabilité" intro="Brebis, agneaux - poids et marge technique.">
           <div className="grid grid-cols-2 gap-3 xl:grid-cols-4">
             {[
               { label: 'Actifs', value: fmtNumber(ovins.activeCount) },
               { label: 'Proches cible', value: fmtNumber(ovins.nearTargetCount), tone: ovins.nearTargetCount ? 'good' : 'warn' },
-              { label: 'Poids moyen', value: ovins.avgWeight > 0 ? `${ovins.avgWeight.toFixed(0)} kg` : '—', tone: ovins.avgWeight > 0 ? 'good' : 'warn' },
+              { label: 'Poids moyen', value: ovins.avgWeight > 0 ? `${ovins.avgWeight.toFixed(0)} kg` : '-', tone: ovins.avgWeight > 0 ? 'good' : 'warn' },
             ].map((s) => (
               <ElevageStatCard key={s.label} label={s.label} value={s.value} tone={s.tone || 'neutral'} />
             ))}
           </div>
           <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
-            <ActionCard key="ov-animaux" title="Registre ovins" text="Cheptel — vue Animaux." onClick={() => setTab('animaux')} />
+            <ActionCard key="ov-animaux" title="Registre ovins" text="Cheptel - vue Animaux." onClick={() => setTab('animaux')} />
           </div>
         </CollapsibleBlock>
       ) : null}
 
       {caprins.hasData ? (
-        <CollapsibleBlock icon={Beef} title="Caprins — GMQ & rentabilité" intro="Chèvres, chevreaux — poids et marge technique.">
+        <CollapsibleBlock icon={Beef} title="Caprins - GMQ & rentabilité" intro="Chèvres, chevreaux - poids et marge technique.">
           <div className="grid grid-cols-2 gap-3 xl:grid-cols-4">
             {[
               { label: 'Actifs', value: fmtNumber(caprins.activeCount) },
               { label: 'Proches cible', value: fmtNumber(caprins.nearTargetCount), tone: caprins.nearTargetCount ? 'good' : 'warn' },
-              { label: 'Poids moyen', value: caprins.avgWeight > 0 ? `${caprins.avgWeight.toFixed(0)} kg` : '—', tone: caprins.avgWeight > 0 ? 'good' : 'warn' },
+              { label: 'Poids moyen', value: caprins.avgWeight > 0 ? `${caprins.avgWeight.toFixed(0)} kg` : '-', tone: caprins.avgWeight > 0 ? 'good' : 'warn' },
             ].map((s) => (
               <ElevageStatCard key={s.label} label={s.label} value={s.value} tone={s.tone || 'neutral'} />
             ))}
           </div>
           <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
-            <ActionCard key="cap-animaux" title="Registre caprins" text="Cheptel — vue Animaux." onClick={() => setTab('animaux')} />
+            <ActionCard key="cap-animaux" title="Registre caprins" text="Cheptel - vue Animaux." onClick={() => setTab('animaux')} />
           </div>
         </CollapsibleBlock>
       ) : null}
@@ -321,7 +321,7 @@ export default function ProductionHub({
         <div className="grid grid-cols-2 gap-3 xl:grid-cols-4">
           {[
             { label: 'Sorties récentes', value: fmtNumber(transform.recentCount), tone: transform.recentCount ? 'good' : 'warn' },
-            { label: 'Stock viande (kg)', value: transform.meatStockKg > 0 ? fmtNumber(transform.meatStockKg) : '—', tone: transform.meatStockKg ? 'good' : 'warn' },
+            { label: 'Stock viande (kg)', value: transform.meatStockKg > 0 ? fmtNumber(transform.meatStockKg) : '-', tone: transform.meatStockKg ? 'good' : 'warn' },
             { label: 'Lignes stock', value: fmtNumber(transform.meatStockLines) },
             { label: 'Docs sanitaires', value: fmtNumber(transform.sanitaryDocs?.length || 0) },
           ].map((s) => (
@@ -333,7 +333,7 @@ export default function ProductionHub({
             {transform.recent.map((row) => (
               <li key={row.id} className="flex justify-between border-b border-line/70 py-2 last:border-b-0">
                 <span className="text-earth">{row.kindLabel || row.kind} · {row.label || row.entityId}</span>
-                <span className="text-xs text-slate">{row.date || '—'}</span>
+                <span className="text-xs text-slate">{row.date || '-'}</span>
               </li>
             ))}
           </ul>

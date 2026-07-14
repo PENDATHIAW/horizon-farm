@@ -5,7 +5,7 @@ const clean = (value = '') => String(value || '').trim();
 const lower = (value = '') => clean(value).toLowerCase();
 const today = () => new Date().toISOString().slice(0, 10);
 
-/** Cibles de navigation explicites — pilotage → module métier source. */
+/** Cibles de navigation explicites - pilotage → module métier source. */
 export const PILOTAGE_NAV_TARGETS = {
   stock: { module: 'achats_stock', tab: 'Stock' },
   achats_stock: { module: 'achats_stock', tab: 'Stock' },
@@ -163,7 +163,7 @@ export function buildOpportunityFollowUpTask(opportunity = {}, options = {}) {
     title: `Suivre opportunité : ${opportunity.title || opportunity.client_nom || oppId}`,
     source_module: source.sourceModule,
     target_module: source.targetModule,
-    recommendation: 'Ouvrir le module Commercial et faire avancer le pipeline — pas de saisie vente depuis le Centre décisionnel.',
+    recommendation: 'Ouvrir le module Commercial et faire avancer le pipeline - pas de saisie vente depuis le Centre décisionnel.',
     severity: 'info',
     priority: 'moyenne',
   }, options);

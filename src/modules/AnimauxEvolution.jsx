@@ -65,31 +65,31 @@ export default function AnimauxEvolution({ rows = [], alimentationLogs = [], vac
     autres: costDetails.reduce((sum, item) => sum + toNumber(item.baseCost) + toNumber(item.otherDirectCost), 0),
   };
 
-  if (!animals.length) return <div className="rounded-2xl border border-line bg-card p-4 text-sm text-slate">Aucun animal — graphiques indisponibles.</div>;
+  if (!animals.length) return <div className="rounded-2xl border border-line bg-card p-4 text-sm text-slate">Aucun animal - graphiques indisponibles.</div>;
 
   return (
     <ChartsGrid>
-      <SmartEvolutionChart moduleName="Animaux" compact title="CA vs encaissé" subtitle="Histogramme — ventes embouche" months={labels(monthly)} leftUnit="FCFA" rightUnit="" series={[
+      <SmartEvolutionChart moduleName="Animaux" compact title="CA vs encaissé" subtitle="Histogramme - ventes embouche" months={labels(monthly)} leftUnit="FCFA" rightUnit="" series={[
         { name: 'CA ventes', type: 'bar', unit: 'FCFA', data: values(monthly, 'ca_ventes') },
         { name: 'Encaissé', type: 'bar', unit: 'FCFA', data: values(monthly, 'encaisse') },
       ]} />
-      <SmartEvolutionChart moduleName="Animaux" compact title="Marge mensuelle" subtitle="Courbe — CA − charges" months={labels(monthly)} leftUnit="FCFA" rightUnit="" series={[
+      <SmartEvolutionChart moduleName="Animaux" compact title="Marge mensuelle" subtitle="Courbe - CA − charges" months={labels(monthly)} leftUnit="FCFA" rightUnit="" series={[
         { name: 'Marge', type: 'line', unit: 'FCFA', data: values(monthly, 'marge') },
       ]} />
-      <SmartPieChart moduleName="Animaux" compact title="Structure des charges" subtitle="Camembert — aliment / santé / achat" unit="FCFA" items={[
+      <SmartPieChart moduleName="Animaux" compact title="Structure des charges" subtitle="Camembert - aliment / santé / achat" unit="FCFA" items={[
         { name: 'Alimentation', value: chargePie.aliment },
         { name: 'Santé', value: chargePie.sante },
         { name: 'Achat + frais', value: chargePie.autres },
       ]} />
-      <SmartEvolutionChart moduleName="Animaux" compact title="Poids moyen vs GMQ" subtitle="Courbes — performance croissance" months={labels(monthly)} leftUnit="kg" rightUnit="kg/j" series={[
+      <SmartEvolutionChart moduleName="Animaux" compact title="Poids moyen vs GMQ" subtitle="Courbes - performance croissance" months={labels(monthly)} leftUnit="kg" rightUnit="kg/j" series={[
         { name: 'Poids moyen', type: 'line', unit: 'kg', data: values(monthly, 'poids_moyen') },
         { name: 'GMQ moyen', type: 'line', axis: 'right', unit: 'kg/j', data: values(monthly, 'gmq_moyen') },
       ]} />
-      <SmartEvolutionChart moduleName="Animaux" compact title="Effectif vs malades" subtitle="Histogramme — cheptel actif" months={labels(monthly)} leftUnit="" rightUnit="" series={[
+      <SmartEvolutionChart moduleName="Animaux" compact title="Effectif vs malades" subtitle="Histogramme - cheptel actif" months={labels(monthly)} leftUnit="" rightUnit="" series={[
         { name: 'Effectif actif', type: 'bar', data: values(monthly, 'effectif') },
         { name: 'Malades', type: 'bar', data: values(monthly, 'malades') },
       ]} />
-      <SmartEvolutionChart moduleName="Animaux" compact title="Prêts vente vs pertes" subtitle="Histogramme — sorties cheptel" months={labels(monthly)} leftUnit="" rightUnit="" series={[
+      <SmartEvolutionChart moduleName="Animaux" compact title="Prêts vente vs pertes" subtitle="Histogramme - sorties cheptel" months={labels(monthly)} leftUnit="" rightUnit="" series={[
         { name: 'Prêts vente', type: 'bar', data: values(monthly, 'prets') },
         { name: 'Pertes', type: 'bar', data: values(monthly, 'pertes') },
       ]} />

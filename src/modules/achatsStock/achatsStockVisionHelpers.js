@@ -84,7 +84,7 @@ export function buildAchatsStockCoherenceRows(stocks = [], transactions = [], su
         id: `debt-${sup.id || name}`,
         supplierId: sup.id,
         type: 'dette',
-        title: `${name} — dette`,
+        title: `${name} - dette`,
         detail: fmtCurrency(debt),
         value: debt,
         finding: {

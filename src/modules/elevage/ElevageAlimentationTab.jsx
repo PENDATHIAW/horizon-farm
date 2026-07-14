@@ -19,7 +19,7 @@ export default function ElevageAlimentationTab({ data, onOpenWorkflow, onNavigat
         </div>
         <div className={ELEVAGE_KPI_GRID}>
           <ElevageStatCard label="Stocks aliment" value={fmtNumber(data.feedStocks.length)} tone={data.feedStocks.length ? 'good' : 'warn'} />
-          <ElevageStatCard label="Quantité disponible" value={feedStockQuantity ? fmtNumber(feedStockQuantity) : '—'} tone={feedStockQuantity ? 'good' : 'warn'} />
+          <ElevageStatCard label="Quantité disponible" value={feedStockQuantity ? fmtNumber(feedStockQuantity) : '-'} tone={feedStockQuantity ? 'good' : 'warn'} />
           <ElevageStatCard label="Distributions enregistrées" value={fmtNumber(data.feedLogs.length)} tone={data.feedLogs.length ? 'good' : 'warn'} />
           <ElevageStatCard label="Coût alimentation" value={fmtCurrency(data.feedCost)} tone="neutral" />
           <ElevageStatCard label="Alertes santé liées" value={fmtNumber(healthPredictionCount)} tone={healthPredictionCount ? 'warn' : 'good'} />

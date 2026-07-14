@@ -1,5 +1,5 @@
 /**
- * Modèle assistant création ferme — Phase 4 Multi-Fermes.
+ * Modèle assistant création ferme - Phase 4 Multi-Fermes.
  */
 
 import { FARM_ACTIVITY_KEYS } from './farmActivities.js';

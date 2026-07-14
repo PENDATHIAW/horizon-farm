@@ -1,5 +1,5 @@
 /**
- * OCR Intelligent Horizon — diagnostic économique + brouillon validable (AI Gateway).
+ * OCR Intelligent Horizon - diagnostic économique + brouillon validable (AI Gateway).
  */
 
 import {
@@ -34,7 +34,7 @@ export async function analyzeInvoiceDiagnostic({
   const missing = [...arr(invoice.missing_fields)];
   const warnings = [...arr(diagnostic.recommendation?.bullets || [])];
   if (extraction.needsManualText) {
-    warnings.unshift('Texte OCR incomplet — vérifiez ou collez le contenu de la facture.');
+    warnings.unshift('Texte OCR incomplet - vérifiez ou collez le contenu de la facture.');
   }
   if (diagnostic.price_comparison.trend === 'hausse' && (diagnostic.price_comparison.delta_pct || 0) >= 5) {
     warnings.unshift(`Hausse prix ${Math.abs(diagnostic.price_comparison.delta_pct)} % vs dernier achat.`);

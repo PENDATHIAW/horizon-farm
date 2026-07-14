@@ -1,5 +1,5 @@
 /**
- * Commercial V3 — relances planifiées (via tâches Activité & Suivi).
+ * Commercial V3 - relances planifiées (via tâches Activité & Suivi).
  */
 
 import { makeId } from './ids.js';

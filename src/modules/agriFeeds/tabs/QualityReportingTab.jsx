@@ -39,7 +39,7 @@ export default function QualityReportingTab({
   return (
     <div className="space-y-4">
       <section className="rounded-3xl border border-line bg-white p-6 space-y-2">
-        <p className="text-lg font-semibold text-earth">Infrastructures — zones AGRI FEEDS prévues</p>
+        <p className="text-lg font-semibold text-earth">Infrastructures - zones AGRI FEEDS prévues</p>
         <p className="text-sm text-slate leading-relaxed max-w-3xl">
           Dès la Phase 1, ces espaces sont réservés sur le site. L’activation opérationnelle se fait selon la préparation réelle du site et le passage en Phase 2.
         </p>

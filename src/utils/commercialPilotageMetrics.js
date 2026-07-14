@@ -1,5 +1,5 @@
 /**
- * Commercial V1 — pilotage (produits rentables, clients stratégiques, objectifs).
+ * Commercial V1 - pilotage (produits rentables, clients stratégiques, objectifs).
  * Marge : summarizeSalesMargins uniquement (aligné Finance Rentabilité).
  */
 
@@ -22,7 +22,7 @@ function ordersForClient(clientId, orders = []) {
   return arr(orders).filter((o) => String(o.client_id) === String(clientId) && !isQuoteOrder(o));
 }
 
-/** Produits les plus rentables — source summarizeSalesMargins (pas de recalcul CA). */
+/** Produits les plus rentables - source summarizeSalesMargins (pas de recalcul CA). */
 export function buildTopProfitableProducts(orders = [], marginContext = {}, limit = 8) {
   const sales = arr(orders).filter((o) => !isQuoteOrder(o));
   const summary = summarizeSalesMargins(sales, marginContext);

@@ -5,7 +5,7 @@ const n = (v = 0) => Number(v || 0);
 const low = (v) => String(v || '').toLowerCase();
 const amount = (r = {}) => n(r.montant ?? r.amount ?? r.total ?? r.montant_total);
 
-/** Encaissements ventes / flux liés — pas de justificatif séparé requis. */
+/** Encaissements ventes / flux liés - pas de justificatif séparé requis. */
 function isSalesLinkedFinance(trx = {}) {
   const label = low(trx.libelle || trx.title || trx.description || '');
   const cat = low(trx.categorie || trx.category || '');

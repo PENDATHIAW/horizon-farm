@@ -40,7 +40,7 @@ export default function AssistantPanel({ open, onClose, dataMap, onNavigate, onC
   const [terrainMode, setTerrainMode] = useState(false);
   const [query, setQuery] = useState('');
   const [isThinking, setIsThinking] = useState(false);
-  const [messages, setMessages] = useState([{ role: 'assistant', text: 'Hey Horizon — actions terrain uniquement. Dis : vente, vaccin, stock, œufs, tâche, dépense. Pour bandes, objectifs ou risques, j’ouvre le Centre décisionnel.' }]);
+  const [messages, setMessages] = useState([{ role: 'assistant', text: 'Hey Horizon - actions terrain uniquement. Dis : vente, vaccin, stock, œufs, tâche, dépense. Pour bandes, objectifs ou risques, j’ouvre le Centre décisionnel.' }]);
   const silenceTimerRef = useRef(null);
   const lastHeardRef = useRef('');
   const speech = useSpeechSynthesis();

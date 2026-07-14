@@ -31,7 +31,7 @@ export function buildFinanceSummaryTodos({ receivables = [], payables = [], miss
     todos.push({
       id: `proof-${row.id}`,
       title: `Sans justificatif : ${row.title}`,
-      detail: `${String(row.date || '—').slice(0, 10)} · ${fmtCurrency(row.amount)}`,
+      detail: `${String(row.date || '-').slice(0, 10)} · ${fmtCurrency(row.amount)}`,
       tab: 'Trésorerie',
     });
   });

@@ -1,5 +1,5 @@
 /**
- * Écarts chantier 6 — maintenance, smart farm, paie RH.
+ * Écarts chantier 6 - maintenance, smart farm, paie RH.
  */
 
 import { toNumber } from './format.js';

@@ -41,15 +41,15 @@ export default function ClientsEvolution({ salesOrders = [], payments = [] }) {
 
   return (
     <ChartsGrid>
-      <SmartEvolutionChart moduleName="Clients" compact title="CA vs encaissé" subtitle="Histogramme — ventes clients" months={data.map((row) => row.month)} leftUnit="FCFA" rightUnit="" series={[
+      <SmartEvolutionChart moduleName="Clients" compact title="CA vs encaissé" subtitle="Histogramme - ventes clients" months={data.map((row) => row.month)} leftUnit="FCFA" rightUnit="" series={[
         { name: 'CA clients', type: 'bar', unit: 'FCFA', data: data.map((row) => row.ca) },
         { name: 'Encaissé', type: 'bar', unit: 'FCFA', data: data.map((row) => row.encaisse) },
       ]} />
-      <SmartEvolutionChart moduleName="Clients" compact title="Créances vs commandes" subtitle="Barres + courbe — créances et volume" months={data.map((row) => row.month)} leftUnit="FCFA" rightUnit="cmd" series={[
+      <SmartEvolutionChart moduleName="Clients" compact title="Créances vs commandes" subtitle="Barres + courbe - créances et volume" months={data.map((row) => row.month)} leftUnit="FCFA" rightUnit="cmd" series={[
         { name: 'Créances', type: 'bar', unit: 'FCFA', data: data.map((row) => row.creances) },
         { name: 'Commandes', type: 'line', axis: 'right', unit: 'cmd', data: data.map((row) => row.commandes) },
       ]} />
-      <SmartPieChart moduleName="Clients" compact title="Encaissé vs créances" subtitle="Camembert — solde clients global" unit="FCFA" items={[
+      <SmartPieChart moduleName="Clients" compact title="Encaissé vs créances" subtitle="Camembert - solde clients global" unit="FCFA" items={[
         { name: 'Encaissé', value: encaisse },
         { name: 'Créances', value: creances },
       ]} />

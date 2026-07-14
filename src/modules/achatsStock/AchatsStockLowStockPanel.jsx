@@ -16,7 +16,7 @@ export default function AchatsStockLowStockPanel({ items = [], compact = false, 
   return (
     <AchatsStockSection
       title={compact ? 'Produits sous seuil' : 'Réapprovisionnement prioritaire'}
-      subtitle={compact ? 'Alertes actives — détail complet sur cet onglet.' : 'Produits à commander ou réapprovisionner en priorité.'}
+      subtitle={compact ? 'Alertes actives - détail complet sur cet onglet.' : 'Produits à commander ou réapprovisionner en priorité.'}
     >
       <div className="divide-y divide-line/60">
         {items.map((row) => {

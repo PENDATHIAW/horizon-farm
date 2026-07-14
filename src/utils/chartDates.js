@@ -1,4 +1,4 @@
-/** Dates pour graphiques d'évolution — évite le bucket « Sans date ». */
+/** Dates pour graphiques d'évolution - évite le bucket « Sans date ». */
 
 export function asChartDate(value) {
   if (!value) return null;

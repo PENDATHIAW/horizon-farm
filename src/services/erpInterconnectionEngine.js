@@ -158,7 +158,7 @@ export async function runErpInterconnectionRepair({
     await handlers.onCreateAlert?.({
       id: makeId('ALT'),
       title: `Stock critique : ${stock.produit || stock.nom || stock.id}`,
-      message: `Quantité ${stock.quantite ?? stock.quantity} — seuil ${stock.seuil ?? stock.threshold}`,
+      message: `Quantité ${stock.quantite ?? stock.quantity} - seuil ${stock.seuil ?? stock.threshold}`,
       module_source: 'stock',
       entity_type: 'stock',
       entity_id: stock.id,

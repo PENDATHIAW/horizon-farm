@@ -1,5 +1,5 @@
 /**
- * Achats & Stock V2 — transfert inter-fermes simple (préparatoire + exécution).
+ * Achats & Stock V2 - transfert inter-fermes simple (préparatoire + exécution).
  */
 
 import { makeId } from './ids.js';

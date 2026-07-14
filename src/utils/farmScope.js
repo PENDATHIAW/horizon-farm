@@ -1,12 +1,12 @@
 import { normalizeErpRole } from '../config/erpRoles.js';
 
-/** Scope ferme global — calqué sur periodScope.js (Phase 2 fondations). */
+/** Scope ferme global - calqué sur periodScope.js (Phase 2 fondations). */
 
 export const FARM_SCOPE_KEY = 'horizon_farm_scope';
 export const FARM_SCOPE_CHANGED = 'horizon-farm-scope-changed';
 export const FARMS_CACHE_KEY = 'horizon_farm_accessible_farms';
 
-/** UUID stable — aligné migration 20260606120000_multi_farm_foundations.sql */
+/** UUID stable - aligné migration 20260606120000_multi_farm_foundations.sql */
 export const DEFAULT_FARM_ID = 'a0000000-0000-4000-8000-000000000001';
 
 export const DEFAULT_FARM = Object.freeze({
@@ -99,7 +99,7 @@ export function shouldShowFarmSelector(accessibleFarms = []) {
   return arr(accessibleFarms).filter((farm) => farm.status !== 'archived').length > 1;
 }
 
-/** Filtrage actif uniquement si explicitement activé (Phase 2 — pas de régression mono-ferme). */
+/** Filtrage actif uniquement si explicitement activé (Phase 2 - pas de régression mono-ferme). */
 export function isFarmScopeFilteringEnabled(options = {}) {
   if (options.forceFilter === true) return true;
   if (options.filteringEnabled === true) return true;

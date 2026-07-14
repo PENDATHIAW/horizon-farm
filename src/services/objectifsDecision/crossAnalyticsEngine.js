@@ -268,7 +268,7 @@ export function buildSeasonalityWeatherAnalysis(dataMap = {}, options = {}) {
     insights.push({
       id: 'seasonality-current-heat',
       type: 'alerte_immédiate',
-      message: `Température actuelle ${currentTemp}°C, humidité ${currentHumidity}%. Risque IC et mortalité élevés — surveiller consommation et ponte quotidiennement.`,
+      message: `Température actuelle ${currentTemp}°C, humidité ${currentHumidity}%. Risque IC et mortalité élevés - surveiller consommation et ponte quotidiennement.`,
     });
   }
 
@@ -305,7 +305,7 @@ export function buildStockShrinkageAnalysis(dataMap = {}) {
           actual: Math.round(soldEggs),
           shrinkPct: Math.round(shrinkPct * 10) / 10,
           lossValue: Math.round((theoreticalEggs - soldEggs) * num(lot.prix_oeuf ?? 25)),
-          message: `Écart ponte/vente ${shrinkPct.toFixed(1)}% sur ${lot.name || lot.id} — casse, vol ou coulage possible.`,
+          message: `Écart ponte/vente ${shrinkPct.toFixed(1)}% sur ${lot.name || lot.id} - casse, vol ou coulage possible.`,
         });
       }
     }
@@ -385,7 +385,7 @@ export function buildLotQualityByClient(dataMap = {}) {
         marginScore,
         alert: triStrict && marginScore === 'faible',
         message: triStrict && marginScore === 'faible'
-          ? `${clientName} exige un tri strict pour seulement +${Math.round(unitPrice)} FCFA/unité — rentabilité faible.`
+          ? `${clientName} exige un tri strict pour seulement +${Math.round(unitPrice)} FCFA/unité - rentabilité faible.`
           : null,
       };
     });

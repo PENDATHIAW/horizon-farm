@@ -23,7 +23,7 @@ export const JUSTIFIED_EXCEPTION_REASONS = [
 const clean = (value) => String(value ?? '').trim();
 
 export function reasonLabel(value = '') {
-  return JUSTIFIED_EXCEPTION_REASONS.find((item) => item.value === value)?.label || value || '—';
+  return JUSTIFIED_EXCEPTION_REASONS.find((item) => item.value === value)?.label || value || '-';
 }
 
 export function buildInterconnectionIssueKey(issue = {}) {

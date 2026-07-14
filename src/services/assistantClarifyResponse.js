@@ -1,5 +1,5 @@
 /**
- * Clarification guidée — choix explicites pour formulations ambiguës.
+ * Clarification guidée - choix explicites pour formulations ambiguës.
  */
 
 import { classifyBySemanticPhrases } from './assistantSemanticMatcher.js';
@@ -68,7 +68,7 @@ export function buildAssistantClarifyResponse(query = '', dataMap = {}) {
       answer: {
         title: 'Précision',
         situation: 'Je peux vous aider sur plusieurs sujets proches.',
-        cause: 'Mot seul — précisez ce que vous cherchez.',
+        cause: 'Mot seul - précisez ce que vous cherchez.',
         action: buildGuidedAction(guided.choices),
         sources: ['Horizon'],
         confidence: 58,
@@ -100,7 +100,7 @@ export function buildAssistantClarifyResponse(query = '', dataMap = {}) {
         title: 'Proposition',
         situation: `Je pense que vous parlez de « ${semantic.label} ».`,
         cause: 'Votre formulation est proche d\'une question que je comprends.',
-        action: `Confirmez ou précisez — par exemple : « ${semantic.matchedPhrase || semantic.label} ».`,
+        action: `Confirmez ou précisez - par exemple : « ${semantic.matchedPhrase || semantic.label} ».`,
         sources: ['Horizon'],
         confidence: Math.max(70, Math.round((semantic.score || 0.2) * 100)),
       },

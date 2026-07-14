@@ -1,5 +1,5 @@
 /**
- * Commercial V3 — questions Hey Horizon commerciales.
+ * Commercial V3 - questions Hey Horizon commerciales.
  */
 
 export const COMMERCIAL_HEY_HORIZON_QUESTIONS = [

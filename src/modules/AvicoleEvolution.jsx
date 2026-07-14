@@ -182,7 +182,7 @@ export default function AvicoleEvolution({ rows = [], productionLogs = [], alime
 
 
 
-  if (!activeRows.length) return <div className="rounded-2xl border border-line bg-card p-4 text-sm text-slate">Aucun lot avicole — graphiques indisponibles.</div>;
+  if (!activeRows.length) return <div className="rounded-2xl border border-line bg-card p-4 text-sm text-slate">Aucun lot avicole - graphiques indisponibles.</div>;
 
   const chargePieChair = showChair ? [
     { name: 'Coût bande', value: chair.reduce((s, r) => s + toNumber(r.charges_aliments), 0) },
@@ -197,38 +197,38 @@ export default function AvicoleEvolution({ rows = [], productionLogs = [], alime
   return (
     <ChartsGrid>
       {showChair ? <>
-        <SmartEvolutionChart moduleName="Avicole" compact title="Chair — CA vs coût" subtitle="Histogramme — économie bande" months={labels(chair)} leftUnit="FCFA" rightUnit="" series={[
+        <SmartEvolutionChart moduleName="Avicole" compact title="Chair - CA vs coût" subtitle="Histogramme - économie bande" months={labels(chair)} leftUnit="FCFA" rightUnit="" series={[
           { name: 'Coût bande', type: 'bar', unit: 'FCFA', data: values(chair, 'charges_aliments') },
           { name: 'CA ventes', type: 'bar', unit: 'FCFA', data: values(chair, 'ca') },
         ]} />
-        <SmartEvolutionChart moduleName="Avicole" compact title="Chair — marge vs poids" subtitle="Barres + courbe — marge et poids moyen" months={labels(chair)} leftUnit="FCFA" rightUnit="kg" series={[
+        <SmartEvolutionChart moduleName="Avicole" compact title="Chair - marge vs poids" subtitle="Barres + courbe - marge et poids moyen" months={labels(chair)} leftUnit="FCFA" rightUnit="kg" series={[
           { name: 'Marge', type: 'bar', unit: 'FCFA', data: values(chair, 'marge') },
           { name: 'Poids moyen', type: 'line', axis: 'right', unit: 'kg', data: values(chair, 'poids_moyen') },
         ]} />
-        <SmartPieChart moduleName="Avicole" compact title="Chair — coût vs CA" subtitle="Camembert — structure bande" unit="FCFA" items={chargePieChair} />
-        <SmartEvolutionChart moduleName="Avicole" compact title="Chair — effectifs vs morts" subtitle="Histogramme — suivi effectif" months={labels(chair)} leftUnit="" rightUnit="" series={[
+        <SmartPieChart moduleName="Avicole" compact title="Chair - coût vs CA" subtitle="Camembert - structure bande" unit="FCFA" items={chargePieChair} />
+        <SmartEvolutionChart moduleName="Avicole" compact title="Chair - effectifs vs morts" subtitle="Histogramme - suivi effectif" months={labels(chair)} leftUnit="" rightUnit="" series={[
           { name: 'Vendables', type: 'bar', data: values(chair, 'vendables') },
           { name: 'Morts', type: 'bar', data: values(chair, 'morts') },
         ]} />
-        <SmartEvolutionChart moduleName="Avicole" compact title="Chair — taux mortalité" subtitle="Courbe — % pertes" months={labels(chair)} leftUnit="%" rightUnit="" series={[
+        <SmartEvolutionChart moduleName="Avicole" compact title="Chair - taux mortalité" subtitle="Courbe - % pertes" months={labels(chair)} leftUnit="%" rightUnit="" series={[
           { name: 'Taux mortalité', type: 'line', unit: '%', data: values(chair, 'taux_mortalite') },
         ]} />
       </> : null}
       {showPonte ? <>
-        <SmartEvolutionChart moduleName="Avicole" compact title="Ponte — CA vs coût" subtitle="Histogramme — économie mensuelle" months={labels(ponte)} leftUnit="FCFA" rightUnit="" series={[
+        <SmartEvolutionChart moduleName="Avicole" compact title="Ponte - CA vs coût" subtitle="Histogramme - économie mensuelle" months={labels(ponte)} leftUnit="FCFA" rightUnit="" series={[
           { name: 'Coût production', type: 'bar', unit: 'FCFA', data: values(ponte, 'charges_aliments') },
           { name: 'CA tablettes', type: 'bar', unit: 'FCFA', data: values(ponte, 'ca') },
         ]} />
-        <SmartEvolutionChart moduleName="Avicole" compact title="Ponte — taux ponte vs casse" subtitle="Courbes — performance ponte" months={labels(ponte)} leftUnit="%" rightUnit="%" series={[
+        <SmartEvolutionChart moduleName="Avicole" compact title="Ponte - taux ponte vs casse" subtitle="Courbes - performance ponte" months={labels(ponte)} leftUnit="%" rightUnit="%" series={[
           { name: 'Taux ponte', type: 'line', unit: '%', data: values(ponte, 'taux_ponte') },
           { name: 'Taux casse', type: 'line', unit: '%', data: values(ponte, 'taux_casse') },
         ]} />
-        <SmartPieChart moduleName="Avicole" compact title="Ponte — structure coûts" subtitle="Camembert — production / emballage / CA" unit="FCFA" items={chargePiePonte} />
-        <SmartEvolutionChart moduleName="Avicole" compact title="Ponte — œufs vs tablettes" subtitle="Histogramme — production vendable" months={labels(ponte)} leftUnit="" rightUnit="" series={[
+        <SmartPieChart moduleName="Avicole" compact title="Ponte - structure coûts" subtitle="Camembert - production / emballage / CA" unit="FCFA" items={chargePiePonte} />
+        <SmartEvolutionChart moduleName="Avicole" compact title="Ponte - œufs vs tablettes" subtitle="Histogramme - production vendable" months={labels(ponte)} leftUnit="" rightUnit="" series={[
           { name: 'Œufs vendables', type: 'bar', data: values(ponte, 'vendables') },
           { name: 'Tablettes', type: 'bar', data: values(ponte, 'tablettes') },
         ]} />
-        <SmartEvolutionChart moduleName="Avicole" compact title="Ponte — marge mensuelle" subtitle="Courbe — CA − charges" months={labels(ponte)} leftUnit="FCFA" rightUnit="" series={[
+        <SmartEvolutionChart moduleName="Avicole" compact title="Ponte - marge mensuelle" subtitle="Courbe - CA − charges" months={labels(ponte)} leftUnit="FCFA" rightUnit="" series={[
           { name: 'Marge ponte', type: 'line', unit: 'FCFA', data: values(ponte, 'marge') },
         ]} />
       </> : null}

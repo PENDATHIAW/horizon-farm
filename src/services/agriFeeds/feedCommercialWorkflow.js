@@ -1,5 +1,5 @@
 /**
- * AGRI FEEDS — ventes progressives, réachats, feedback et signaux commerciaux.
+ * AGRI FEEDS - ventes progressives, réachats, feedback et signaux commerciaux.
  * Réutilise clients, sales_orders, sales_order_items, stock, finances et business_events.
  */
 import { AGRI_FEEDS_ALERT_THRESHOLDS } from '../../config/agriFeeds.config.js';
@@ -70,7 +70,7 @@ export function assertFeedBatchCanBeSold(batch = {}, formula = {}, dataMap = {})
   const base = assertFinishedBatchSellable(batch, formula);
   if (!base.ok) return base;
   if (norm(formula?.status) !== 'commercializable') {
-    return { ok: false, message: 'Formule non commercialisable — vente bloquée.' };
+    return { ok: false, message: 'Formule non commercialisable - vente bloquée.' };
   }
   if (norm(batch?.destination) !== 'commercial_sale') {
     return { ok: false, message: 'Lot non destiné à la vente commerciale.' };
@@ -80,7 +80,7 @@ export function assertFeedBatchCanBeSold(batch = {}, formula = {}, dataMap = {})
     && String(qc.related_id || '') === String(batch.id)
     && ['accepted', 'pass', 'conforme'].includes(norm(qc.result || qc.status))
   ));
-  if (!qcOk) return { ok: false, message: 'QC minimum manquant — vente bloquée.' };
+  if (!qcOk) return { ok: false, message: 'QC minimum manquant - vente bloquée.' };
   return { ok: true };
 }
 
@@ -196,7 +196,7 @@ export function prepareFeedSaleOrder(payload = {}, dataMap = {}) {
     categorie: 'vente_agri_feeds',
     montant: paidAmount,
     date: saleDate,
-    description: `Vente AGRI FEEDS — ${customerName}`,
+    description: `Vente AGRI FEEDS - ${customerName}`,
     source_type: 'sales_order',
     source_id: orderId,
     module_source: 'agri_feeds',
@@ -213,7 +213,7 @@ export function prepareFeedSaleOrder(payload = {}, dataMap = {}) {
   };
 
   const lowStockAlert = nextBatchQty <= AGRI_FEEDS_ALERT_THRESHOLDS.finished_stock_critical_kg ? {
-    title: `Stock AGRI FEEDS bas — ${batch.batch_code || batch.id}`,
+    title: `Stock AGRI FEEDS bas - ${batch.batch_code || batch.id}`,
     message: `Il reste ${Math.round(nextBatchQty)} kg après la vente à ${customerName}.`,
     severity: 'moyenne',
     module_source: 'agri_feeds',
@@ -227,7 +227,7 @@ export function prepareFeedSaleOrder(payload = {}, dataMap = {}) {
     module_source: 'agri_feeds',
     entity_type: 'sales_order',
     entity_id: orderId,
-    title: `Vente AGRI FEEDS — ${customerName}`,
+    title: `Vente AGRI FEEDS - ${customerName}`,
     description: `${quantity} kg · ${Math.round(unitPrice)} FCFA/kg · marge estimée ${Math.round(margin)} FCFA`,
     amount: total,
     event_date: saleDate,
@@ -377,7 +377,7 @@ export function prepareCustomerFeedback(payload = {}, dataMap = {}) {
     module_source: 'agri_feeds',
     entity_type: 'feed_finished_batch',
     entity_id: batch?.id || payload.feed_finished_batch_id || null,
-    title: hasComplaint ? `Réclamation AGRI FEEDS — ${customerName}` : `Retour AGRI FEEDS — ${customerName}`,
+    title: hasComplaint ? `Réclamation AGRI FEEDS - ${customerName}` : `Retour AGRI FEEDS - ${customerName}`,
     description: `${formula?.name || 'Formule'} ${version?.version_code || ''} · ${description}`,
     event_date: feedbackDate,
     severity: hasComplaint ? 'haute' : 'info',
@@ -392,7 +392,7 @@ export function prepareCustomerFeedback(payload = {}, dataMap = {}) {
     },
   };
   const alert = hasComplaint ? {
-    title: `Réclamation AGRI FEEDS — ${customerName}`,
+    title: `Réclamation AGRI FEEDS - ${customerName}`,
     message: description,
     severity: 'haute',
     module_source: 'agri_feeds',

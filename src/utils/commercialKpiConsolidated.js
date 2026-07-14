@@ -1,5 +1,5 @@
 /**
- * Commercial V2 — source unique KPI commerciaux (Commercial + Dashboard + Finance).
+ * Commercial V2 - source unique KPI commerciaux (Commercial + Dashboard + Finance).
  */
 
 import {
@@ -26,7 +26,7 @@ function activityOf(order = {}) {
   return lower(order.source_module || order.activite || order.source_type || 'autre');
 }
 
-/** KPI consolidés — source officielle module Commercial. */
+/** KPI consolidés - source officielle module Commercial. */
 export function buildConsolidatedCommercialKpis({
   orders = [],
   payments = [],

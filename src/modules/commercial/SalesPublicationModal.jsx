@@ -102,24 +102,24 @@ export default function SalesPublicationModal({
     if (!text.trim()) return toast.error('Générez d’abord un contenu');
     if (channel === 'facebook') {
       await copyContactMessage(text);
-      toast.success('Post copié — collez-le sur Facebook après relecture.');
+      toast.success('Post copié - collez-le sur Facebook après relecture.');
       return;
     }
     if (channel === 'sms') {
       await copyContactMessage(text);
       const body = encodeURIComponent(text);
       window.location.href = contactPhone ? `sms:${contactPhone}?body=${body}` : `sms:?body=${body}`;
-      toast.success('SMS préparé — validez l’envoi sur votre téléphone.');
+      toast.success('SMS préparé - validez l’envoi sur votre téléphone.');
       return;
     }
     if (!contactPhone) {
       await copyContactMessage(text);
-      return toast('Message copié — ajoutez un numéro client ou collez dans WhatsApp.');
+      return toast('Message copié - ajoutez un numéro client ou collez dans WhatsApp.');
     }
     try {
       await onWhatsAppLog?.({ nom: 'Publication stock', whatsapp: contactPhone }, text);
       await openWhatsAppApp({ phone: contactPhone, message: text, fallbackWeb: true });
-      toast.success('WhatsApp ouvert — validez l’envoi après relecture.');
+      toast.success('WhatsApp ouvert - validez l’envoi après relecture.');
     } catch {
       /* toast géré */
     }
@@ -129,7 +129,7 @@ export default function SalesPublicationModal({
     <BaseModal
       open={open}
       onClose={onClose}
-      title="Publication commerciale IA"
+      title="Publication commerciale"
       footer={(
         <div className="flex flex-wrap gap-2 justify-end">
           <Btn variant="outline" onClick={onClose}>Fermer</Btn>
@@ -200,7 +200,7 @@ export default function SalesPublicationModal({
                     {fmtCurrency(publication.promotional_offer.suggested_unit_price)} / {unit}
                     {' '}
                     (−{publication.promotional_offer.discount_percent} % vs {fmtCurrency(price)})
-                    {' — '}
+                    {' - '}
                     {publication.promotional_offer.note}
                   </p>
                 ) : (

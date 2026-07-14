@@ -71,14 +71,14 @@ export default function FinanceEvolution({ rows = [], salesOrders = [], payments
 
   return (
     <ChartsGrid>
-      <SmartEvolutionChart moduleName="Finances" compact title="Cash encaissé vs sorties" subtitle="Histogramme — flux mensuels" months={labels(monthly)} leftUnit="FCFA" rightUnit="" series={[
+      <SmartEvolutionChart moduleName="Finances" compact title="Cash encaissé vs sorties" subtitle="Histogramme - flux mensuels" months={labels(monthly)} leftUnit="FCFA" rightUnit="" series={[
         { name: 'Cash encaissé', type: 'bar', unit: 'FCFA', data: values(monthly, 'cash') },
         { name: 'Sorties', type: 'bar', unit: 'FCFA', data: values(monthly, 'sorties') },
       ]} />
-      <SmartEvolutionChart moduleName="Finances" compact title="Marge cash" subtitle="Courbe — encaissements − dépenses" months={labels(monthly)} leftUnit="FCFA" rightUnit="" series={[
+      <SmartEvolutionChart moduleName="Finances" compact title="Marge cash" subtitle="Courbe - encaissements − dépenses" months={labels(monthly)} leftUnit="FCFA" rightUnit="" series={[
         { name: 'Marge cash', type: 'line', unit: 'FCFA', data: values(monthly, 'marge') },
       ]} />
-      <SmartPieChart moduleName="Finances" compact title="Structure des charges" subtitle="Camembert — répartition des sorties" unit="FCFA" items={[
+      <SmartPieChart moduleName="Finances" compact title="Structure des charges" subtitle="Camembert - répartition des sorties" unit="FCFA" items={[
         { name: 'Alimentation', value: chargeTotals.alimentation },
         { name: 'Santé', value: chargeTotals.sante },
         { name: 'Stock / fournisseurs', value: chargeTotals.stock },
@@ -86,7 +86,7 @@ export default function FinanceEvolution({ rows = [], salesOrders = [], payments
         { name: 'Équipements', value: chargeTotals.equipement },
         { name: 'Autres', value: chargeTotals.autres },
       ]} />
-      <SmartEvolutionChart moduleName="Finances" compact title="Créances vs recouvrement" subtitle="Barres + courbe — créances et taux %" months={labels(monthly)} leftUnit="FCFA" rightUnit="%" series={[
+      <SmartEvolutionChart moduleName="Finances" compact title="Créances vs recouvrement" subtitle="Barres + courbe - créances et taux %" months={labels(monthly)} leftUnit="FCFA" rightUnit="%" series={[
         { name: 'Créances', type: 'bar', unit: 'FCFA', data: values(monthly, 'creances') },
         { name: 'Taux recouvrement', type: 'line', axis: 'right', unit: '%', data: values(monthly, 'taux_recouvrement') },
       ]} />

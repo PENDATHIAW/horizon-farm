@@ -63,7 +63,7 @@ export function buildFinanceReconciliationRows({
         id: `recon-pay-${payId}`,
         kind: 'payment_without_finance',
         title: `Paiement sans ligne finance · ${orderId}`,
-        detail: `${amt} FCFA · ${paymentDate(payment) || '—'}`,
+        detail: `${amt} FCFA · ${paymentDate(payment) || '-'}`,
         payment,
         order: order || { id: orderId },
         canCreate: true,
@@ -179,7 +179,7 @@ export function reconciliationWouldDuplicate(kind = '', ctx = {}) {
 }
 
 /**
- * Workflow rapprochement — crée la ligne finance manquante pour un paiement existant.
+ * Workflow rapprochement - crée la ligne finance manquante pour un paiement existant.
  * Seule voie d'écriture autorisée pour les brouillons IA de rapprochement.
  */
 export async function commitFinanceReconciliationRepair({

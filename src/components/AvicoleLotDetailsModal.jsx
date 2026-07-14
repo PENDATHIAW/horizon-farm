@@ -17,6 +17,7 @@ import { computeAvicoleLivingTarget } from '../services/avicoleLivingTargets';
 import { buildPondeuseProductionProfile, saleOpportunityGuard } from '../services/growthProjectionService';
 import { PondeuseProductionPanel, SaleOpportunityGuardPanel, WeightProjectionPanel } from './GrowthProjectionPanel';
 import { avicoleActiveCount, avicoleCalculatedActiveCount, avicoleDeadCount, avicoleHasCountMismatch, avicoleInitialCount, avicoleOtherExitCount, avicoleRegisteredActiveCount, avicoleSickCount, avicoleSoldCount } from '../utils/avicoleMetrics';
+import { t } from '../i18n/fr/index.js';
 
 const Field = ({ label, value, children, danger = false }) => (
   <div className={`rounded-xl border px-3 py-2 ${danger ? 'border-urgent bg-urgent-bg' : 'border-line bg-white'}`}>
@@ -45,7 +46,7 @@ const orderAmount = (row = {}) => toNumber(row.montant_total ?? row.total ?? row
 const paymentAmount = (row = {}) => toNumber(row.montant_paye ?? row.montant ?? row.amount ?? row.paid_amount ?? 0);
 const purchaseCost = (lot = {}) => toNumber(lot.cout_total_achat ?? lot.cout_achat_bande ?? lot.purchase_cost ?? lot.cout_poussins ?? lot.cout_achat);
 const tabletsFromEggs = (value = 0) => ({ tablettes: Math.floor(Math.max(0, toNumber(value)) / EGGS_PER_TABLET), oeufs_restants: Math.max(0, toNumber(value)) % EGGS_PER_TABLET });
-const eggTabletLabel = (value = 0) => { const converted = tabletsFromEggs(value); return `${fmtNumber(value)} œufs · ${fmtNumber(converted.tablettes)} tablette(s) + ${fmtNumber(converted.oeufs_restants)} œuf(s)`; };
+const eggTabletLabel = (value = 0) => { const converted = tabletsFromEggs(value); return t('avicoleLot.oeufsTablettes', { oeufs: fmtNumber(value), tablettes: fmtNumber(converted.tablettes), restants: fmtNumber(converted.oeufs_restants) }); };
 const estimatedSale = (lot = {}, active = 0, layer = false) => {
   const direct = toNumber(lot.prix_vente_estime ?? lot.estimated_sale_price ?? lot.valeur_vente_estimee ?? lot.sale_value_estimated);
   if (direct > 0) return direct;
@@ -101,18 +102,18 @@ function consolidatedLotFinance({ lot, metrics, layer, active, businessEvents = 
   const totalCost = baseCalculated + healthOrOther;
   const eventSale = saleEvents.reduce((sum, event) => sum + money(event), 0);
   const revenue = sales.total || estimated || eventSale;
-  const revenueSource = sales.total > 0 ? 'commande liée' : estimated > 0 ? 'estimation fiche' : eventSale > 0 ? 'événement vente' : 'non renseigné';
+  const revenueSource = sales.total > 0 ? t('avicoleLot.sourceRevenu.commande') : estimated > 0 ? t('avicoleLot.sourceRevenu.estimation') : eventSale > 0 ? t('avicoleLot.sourceRevenu.evenement') : t('avicoleLot.sourceRevenu.aucune');
   const warnings = [];
   const closed = !active || ['vendu', 'vendu_partiellement', 'abattu', 'reforme', 'réformé', 'cloture', 'clôturé'].some((word) => clean(`${lot.status || ''} ${lot.statut || ''} ${lot.phase || ''}`).includes(word));
-  if (closed && !sales.orders.length && revenue > 0) warnings.push('Lot sorti/vendu sans commande de vente liée.');
-  if (sales.orders.length && sales.paid <= 0) warnings.push('Commande liée détectée mais aucun paiement rattaché.');
-  if (saleEvents.length && !sales.orders.length) warnings.push('Événement de vente/valorisation détecté sans commande : vérifier le module Ventes.');
-  if (!sales.orders.length && revenue <= 0) warnings.push('Aucune vente liée ou estimation de vente pour ce lot.');
+  if (closed && !sales.orders.length && revenue > 0) warnings.push(t('avicoleLot.avertissements.sortiSansCommande'));
+  if (sales.orders.length && sales.paid <= 0) warnings.push(t('avicoleLot.avertissements.commandeSansPaiement'));
+  if (saleEvents.length && !sales.orders.length) warnings.push(t('avicoleLot.avertissements.evenementSansCommande'));
+  if (!sales.orders.length && revenue <= 0) warnings.push(t('avicoleLot.avertissements.aucuneVente'));
   return { achat, alimentation, eventCharges, financeCharges, totalCost, revenue, revenueSource, paid: sales.paid, remaining: sales.orders.length ? sales.remaining : 0, ordersCount: sales.orders.length, margin: revenue - totalCost, warnings };
 }
 const existingOpportunityFor = (lot = {}, opportunities = []) => opportunities.find((opp) => String(opp.source_id || opp.entity_id || opp.related_id || '') === String(lot.id) && !['converti', 'converted', 'annule', 'annulé', 'ignore', 'ignoré', 'perdu', 'cloture', 'clôturé'].some((status) => clean(opp.status || opp.statut).includes(status)));
 function livingAsProjection(living) {
-  return { status: living.status, label: living.status?.replaceAll('_', ' ') || 'Suivi en cours', currentWeight: living.currentWeight || 0, targetWeight: living.livingTarget || living.defaultTargetWeight || 0, projectedWeight: living.projectedWeight || 0, targetDays: living.targetDays || 45, gainPerDay: living.adaptiveGainPerDay || living.realGainPerDay || 0, action: living.action, history: living.history || [] };
+  return { status: living.status, label: living.status?.replaceAll('_', ' ') || t('avicoleLot.suivi.enCours'), currentWeight: living.currentWeight || 0, targetWeight: living.livingTarget || living.defaultTargetWeight || 0, projectedWeight: living.projectedWeight || 0, targetDays: living.targetDays || 45, gainPerDay: living.adaptiveGainPerDay || living.realGainPerDay || 0, action: living.action, history: living.history || [] };
 }
 
 export default function AvicoleLotDetailsModal({ open, onClose, lot, productionLogs = [], alimentationLogs = [], opportunities = [], salesOrders = [], payments = [], transactions = [], businessEvents = [], onCreateOpportunity, onUpdateOpportunity, onRefreshOpportunities, onCreateBusinessEvent, onRefreshBusinessEvents, onNavigate, marketPrices = [] }) {
@@ -122,7 +123,7 @@ export default function AvicoleLotDetailsModal({ open, onClose, lot, productionL
     if (open) queueMicrotask(() => setTab('situation'));
   }, [open, lot?.id]);
 
-  if (!lot) return <BaseModal open={open} onClose={onClose} title="Fiche lot avicole"><p className="text-slate">Aucun lot sélectionné.</p></BaseModal>;
+  if (!lot) return <BaseModal open={open} onClose={onClose} title={t('avicoleLot.titreGenerique')}><p className="text-slate">{t('avicoleLot.aucunLot')}</p></BaseModal>;
   const layer = isPondeuse(lot);
   const decision = buildAvicoleLotDecision(lot, productionLogs);
   const metrics = calculateLotMetrics({ lot, feedingLogs: alimentationLogs, productionLogs });
@@ -142,22 +143,22 @@ export default function AvicoleLotDetailsModal({ open, onClose, lot, productionL
   const proposed = buildAvicoleProposedSaleDisplay(salePricing, lot);
 
   const confirmOpportunity = async () => {
-    if (!onCreateOpportunity && !onUpdateOpportunity) return toast.error('Création opportunité non disponible pour ce module');
-    const title = layer ? `Réforme / vente pondeuses : ${lot.name || lot.id}` : `Poulets de chair prêts : ${lot.name || lot.id}`;
+    if (!onCreateOpportunity && !onUpdateOpportunity) return toast.error(t('avicoleLot.opportunite.indisponible'));
+    const title = layer ? t('avicoleLot.opportunite.titrePondeuses', { nom: lot.name || lot.id }) : t('avicoleLot.opportunite.titreChair', { nom: lot.name || lot.id });
     const unitPrice = Number(lot.prix_vente_estime || lot.prix_unitaire_vente || salePricing.recommendedUnitPrice || 0) || 0;
-    const payload = { opportunity_key: saleOpportunityKey('avicole', lot.id), source_module: 'avicole', source_type: layer ? 'lot_pondeuses' : 'lot_chair', source_id: lot.id, related_id: lot.id, title, product_name: `${lot.name || lot.id} · ${lot.type || 'Avicole'}`, quantity: active, unit: layer ? 'sujet reforme' : 'sujet', unit_price: unitPrice, estimated_amount: active * unitPrice, status: 'ouverte', statut: 'ouverte', priority: decision.priority || 'moyenne', notes: `${decision.decision || 'Opportunité confirmée'} · ${livingTarget.action}`, created_from: 'avicole_lot_details', updated_at: new Date().toISOString() };
+    const payload = { opportunity_key: saleOpportunityKey('avicole', lot.id), source_module: 'avicole', source_type: layer ? 'lot_pondeuses' : 'lot_chair', source_id: lot.id, related_id: lot.id, title, product_name: `${lot.name || lot.id} · ${lot.type || t('avicoleLot.opportunite.especeParDefaut')}`, quantity: active, unit: layer ? 'sujet reforme' : 'sujet', unit_price: unitPrice, estimated_amount: active * unitPrice, status: 'ouverte', statut: 'ouverte', priority: decision.priority || 'moyenne', notes: `${decision.decision || t('avicoleLot.opportunite.noteConfirmee')} · ${livingTarget.action}`, created_from: 'avicole_lot_details', updated_at: new Date().toISOString() };
     try {
-      if (existingOpportunity?.id && onUpdateOpportunity) { await onUpdateOpportunity(existingOpportunity.id, payload); toast.success('Opportunité existante mise à jour'); }
-      else if (!existingOpportunity?.id && onCreateOpportunity) { await onCreateOpportunity({ id: makeId('OPP'), ...payload, created_at: new Date().toISOString() }); toast.success('Opportunité de vente créée'); }
-      else { toast.error('Opportunité existante détectée, mais modification indisponible'); return; }
+      if (existingOpportunity?.id && onUpdateOpportunity) { await onUpdateOpportunity(existingOpportunity.id, payload); toast.success(t('avicoleLot.opportunite.majReussie')); }
+      else if (!existingOpportunity?.id && onCreateOpportunity) { await onCreateOpportunity({ id: makeId('OPP'), ...payload, created_at: new Date().toISOString() }); toast.success(t('avicoleLot.opportunite.creeeReussie')); }
+      else { toast.error(t('avicoleLot.opportunite.majIndisponible')); return; }
       await onCreateBusinessEvent?.({ id: makeId('EVT'), event_type: existingOpportunity?.id ? 'opportunite_vente_mise_a_jour' : 'opportunite_vente_creee', module_source: 'avicole', entity_type: 'lot_avicole', entity_id: lot.id, source_id: lot.id, related_id: lot.id, title, description: payload.notes, event_date: today(), severity: 'info', saisies_evitees: 2 });
       await Promise.allSettled([onRefreshOpportunities?.(), onRefreshBusinessEvents?.()]);
-    } catch (error) { toast.error(error.message || 'Création opportunité impossible'); }
+    } catch (error) { toast.error(error.message || t('avicoleLot.opportunite.creationImpossible')); }
   };
 
-  return <BaseModal open={open} onClose={onClose} title={`Fiche ${layer ? 'pondeuses' : 'poulets de chair'} · ${lot.name || lot.id}`}>
+  return <BaseModal open={open} onClose={onClose} title={t('avicoleLot.titreFiche', { espece: layer ? t('avicoleLot.especePondeuses') : t('avicoleLot.especeChair'), nom: lot.name || lot.id })}>
     <div className="space-y-4">
-      <div className="rounded-2xl border border-line bg-earth p-4 text-white"><p className="text-xs uppercase tracking-normal text-horizon">{layer ? 'Lot pondeuses' : 'Lot poulets de chair'}</p><h2 className="mt-1 text-2xl font-semibold">{lot.name || lot.id}</h2><p className="mt-1 text-sm text-line">{lot.type || 'Type non renseigné'} · {active} sujet(s) actif(s)</p><div className="mt-3 flex flex-wrap gap-2"><Badge status={lot.status || 'actif'} /><Badge status={lot.health_status || 'sain'} /><span className="rounded-full bg-white/10 border border-white/10 px-3 py-1 text-xs text-line">{livingTarget.status?.replaceAll('_', ' ') || decision.decision}</span></div></div>
+      <div className="rounded-2xl border border-line bg-earth p-4 text-white"><p className="text-xs uppercase tracking-normal text-horizon">{layer ? t('avicoleLot.entete.lotPondeuses') : t('avicoleLot.entete.lotChair')}</p><h2 className="mt-1 text-2xl font-semibold">{lot.name || lot.id}</h2><p className="mt-1 text-sm text-line">{lot.type || t('avicoleLot.entete.typeNonRenseigne')} · {t('avicoleLot.entete.sujetsActifs', { n: active })}</p><div className="mt-3 flex flex-wrap gap-2"><Badge status={lot.status || 'actif'} /><Badge status={lot.health_status || 'sain'} /><span className="rounded-full bg-white/10 border border-white/10 px-3 py-1 text-xs text-line">{livingTarget.status?.replaceAll('_', ' ') || decision.decision}</span></div></div>
 
       <SalePricingSummaryCard
         variant="avicole_lot"
@@ -170,25 +171,25 @@ export default function AvicoleLotDetailsModal({ open, onClose, lot, productionL
 
       <FicheTabsBar
         tabs={[
-          { id: 'situation', label: 'Situation' },
-          { id: 'production', label: layer ? 'Ponte & objectifs' : 'Poids & croissance' },
-          { id: 'decision', label: 'Décision suggérée' },
-          { id: 'finances', label: 'Finances' },
+          { id: 'situation', label: t('avicoleLot.onglets.situation') },
+          { id: 'production', label: layer ? t('avicoleLot.onglets.ponteObjectifs') : t('avicoleLot.onglets.poidsCroissance') },
+          { id: 'decision', label: t('avicoleLot.onglets.decision') },
+          { id: 'finances', label: t('avicoleLot.onglets.finances') },
         ]}
         active={tab}
         onChange={setTab}
       />
 
       {tab === 'situation' ? (
-        <Section title="Situation du lot" note="Règle terrain : effectif actuel = initial - morts - vendus - pertes/sorties. Les malades restent présents et sont affichés à surveiller.">
-          <Field label="Effectif initial" value={fmtNumber(avicoleInitialCount(lot))} />
-          <Field label="Morts" value={fmtNumber(deadCount(lot))} />
-          <Field label="Malades / à surveiller" value={fmtNumber(sickCount(lot))} />
-          <Field label="Vendus / sortis" value={fmtNumber(avicoleSoldCount(lot) + avicoleOtherExitCount(lot))} />
-          <Field label="Effectif actuel calculé" value={fmtNumber(active)} />
-          <Field label="Effectif actuel enregistré" value={fmtNumber(avicoleRegisteredActiveCount(lot))} danger={avicoleHasCountMismatch(lot)}>{fmtNumber(avicoleRegisteredActiveCount(lot))}{avicoleHasCountMismatch(lot) ? <p className="mt-1 text-meta text-urgent">Incohérence : le calcul donne {fmtNumber(avicoleCalculatedActiveCount(lot))}.</p> : null}</Field>
-          <Field label="Date entrée" value={lot.date_debut || lot.entry_date || '-'} />
-          <Field label="Phase" value={lot.phase || '-'} />
+        <Section title={t('avicoleLot.situation.titre')} note={t('avicoleLot.situation.note')}>
+          <Field label={t('avicoleLot.situation.effectifInitial')} value={fmtNumber(avicoleInitialCount(lot))} />
+          <Field label={t('avicoleLot.situation.morts')} value={fmtNumber(deadCount(lot))} />
+          <Field label={t('avicoleLot.situation.malades')} value={fmtNumber(sickCount(lot))} />
+          <Field label={t('avicoleLot.situation.vendusSortis')} value={fmtNumber(avicoleSoldCount(lot) + avicoleOtherExitCount(lot))} />
+          <Field label={t('avicoleLot.situation.effectifCalcule')} value={fmtNumber(active)} />
+          <Field label={t('avicoleLot.situation.effectifEnregistre')} value={fmtNumber(avicoleRegisteredActiveCount(lot))} danger={avicoleHasCountMismatch(lot)}>{fmtNumber(avicoleRegisteredActiveCount(lot))}{avicoleHasCountMismatch(lot) ? <p className="mt-1 text-meta text-urgent">{t('avicoleLot.situation.incoherence', { n: fmtNumber(avicoleCalculatedActiveCount(lot)) })}</p> : null}</Field>
+          <Field label={t('avicoleLot.situation.dateEntree')} value={lot.date_debut || lot.entry_date || '-'} />
+          <Field label={t('avicoleLot.situation.phase')} value={lot.phase || '-'} />
         </Section>
       ) : null}
 
@@ -196,30 +197,30 @@ export default function AvicoleLotDetailsModal({ open, onClose, lot, productionL
         layer ? (
           <>
             <PondeuseProductionPanel profile={ponteProfile} />
-            <Section title="Objectif ponte vivant" note="Objectif calculé selon âge du lot, effectif actif, historique des ramassages, casses et baisse éventuelle de ponte.">
-              <Field label="Objectif initial" value={`${livingTarget.objectiveInitial || 0}%`} />
-              <Field label="Objectif âge" value={`${livingTarget.ageExpectedPct || 0}%`} />
-              <Field label="Objectif vivant" value={`${livingTarget.livingObjectivePct || 0}%`} />
-              <Field label="Taux réel récent" value={`${livingTarget.realLayingPct || 0}%`} />
-              <Field label="Œufs attendus / jour" value={eggTabletLabel(expectedEggsDay)} />
-              <Field label="Œufs réels / jour" value={eggTabletLabel(recentEggsDay)} />
-              <Field label="Écart / jour" value={`${gapEggsDay >= 0 ? '+' : ''}${eggTabletLabel(Math.abs(gapEggsDay))}`} />
-              <Field label="Action IA" value={livingTarget.action} />
+            <Section title={t('avicoleLot.ponte.titre')} note={t('avicoleLot.ponte.note')}>
+              <Field label={t('avicoleLot.ponte.objectifInitial')} value={`${livingTarget.objectiveInitial || 0}%`} />
+              <Field label={t('avicoleLot.ponte.objectifAge')} value={`${livingTarget.ageExpectedPct || 0}%`} />
+              <Field label={t('avicoleLot.ponte.objectifVivant')} value={`${livingTarget.livingObjectivePct || 0}%`} />
+              <Field label={t('avicoleLot.ponte.tauxReel')} value={`${livingTarget.realLayingPct || 0}%`} />
+              <Field label={t('avicoleLot.ponte.oeufsAttendus')} value={eggTabletLabel(expectedEggsDay)} />
+              <Field label={t('avicoleLot.ponte.oeufsReels')} value={eggTabletLabel(recentEggsDay)} />
+              <Field label={t('avicoleLot.ponte.ecartJour')} value={`${gapEggsDay >= 0 ? '+' : ''}${eggTabletLabel(Math.abs(gapEggsDay))}`} />
+              <Field label={t('avicoleLot.ponte.action')} value={livingTarget.action} />
             </Section>
           </>
         ) : (
           <>
-            <WeightProjectionPanel title="Objectif poids vivant & vente" projection={growthProjection} />
-            <Section title="Objectif poids vivant chair" note="L'objectif se recalcule après chaque pesée selon le gain moyen réel du lot.">
-              <Field label="Poids moyen actuel" value={livingTarget.currentWeight ? `${livingTarget.currentWeight} kg` : 'À renseigner via suivi'} />
-              <Field label="Objectif initial" value={`${livingTarget.defaultTargetWeight || 0} kg`} />
-              <Field label="Objectif vivant" value={`${livingTarget.livingTarget || 0} kg`} />
-              <Field label="Projection J45" value={`${livingTarget.projectedWeight || 0} kg`} />
-              <Field label="Gain réel / jour" value={`${livingTarget.realGainPerDay || 0} kg/j`} />
-              <Field label="Prochaine pesée" value={livingTarget.nextWeighingDate || '-'} />
-              <Field label="Rappel pesée J-1" value={reminderWeighingDate || '-'} />
-              <Field label="Statut" value={livingTarget.status?.replaceAll('_', ' ') || '-'} />
-              <Field label="Action IA" value={livingTarget.action} />
+            <WeightProjectionPanel title={t('avicoleLot.poids.titrePanneau')} projection={growthProjection} />
+            <Section title={t('avicoleLot.poids.titre')} note={t('avicoleLot.poids.note')}>
+              <Field label={t('avicoleLot.poids.poidsActuel')} value={livingTarget.currentWeight ? `${livingTarget.currentWeight} kg` : t('avicoleLot.poids.aRenseigner')} />
+              <Field label={t('avicoleLot.poids.objectifInitial')} value={`${livingTarget.defaultTargetWeight || 0} kg`} />
+              <Field label={t('avicoleLot.poids.objectifVivant')} value={`${livingTarget.livingTarget || 0} kg`} />
+              <Field label={t('avicoleLot.poids.projectionJ45')} value={`${livingTarget.projectedWeight || 0} kg`} />
+              <Field label={t('avicoleLot.poids.gainReel')} value={`${livingTarget.realGainPerDay || 0} kg/j`} />
+              <Field label={t('avicoleLot.poids.prochainePesee')} value={livingTarget.nextWeighingDate || '-'} />
+              <Field label={t('avicoleLot.poids.rappelPesee')} value={reminderWeighingDate || '-'} />
+              <Field label={t('avicoleLot.poids.statut')} value={livingTarget.status?.replaceAll('_', ' ') || '-'} />
+              <Field label={t('avicoleLot.poids.action')} value={livingTarget.action} />
             </Section>
           </>
         )
@@ -228,30 +229,30 @@ export default function AvicoleLotDetailsModal({ open, onClose, lot, productionL
       {tab === 'decision' ? (
         <>
           <SaleOpportunityGuardPanel guard={guard} />
-          <div className="flex flex-wrap gap-2 rounded-2xl border border-line bg-white p-3"><Btn small onClick={confirmOpportunity}>{existingOpportunity ? 'Mettre à jour opportunité' : 'Confirmer opportunité de vente'}</Btn><Btn small variant="outline" onClick={() => onNavigate?.('ventes')}>Voir opportunités / ventes</Btn></div>
-          <Section title="Décision suggérée" note="Décision affichée, à valider par l'utilisateur avant création d'opportunité."><Field label="Décision" value={decision.decision} /><Field label="Priorité" value={decision.priority || '-'} /><Field label="Prochaine action" value={decision.nextWeighingDate || decision.reformStart || livingTarget.nextWeighingDate || '-'} /><Field label="Poids / ponte attendu" value={decision.expectedWeight ? `${decision.expectedWeight} kg` : decision.expectedEggsDay ? eggTabletLabel(decision.expectedEggsDay) : livingTarget.expectedEggsDay ? eggTabletLabel(livingTarget.expectedEggsDay) : '-'} /></Section>
+          <div className="flex flex-wrap gap-2 rounded-2xl border border-line bg-white p-3"><Btn small onClick={confirmOpportunity}>{existingOpportunity ? t('avicoleLot.decision.majOpportunite') : t('avicoleLot.decision.confirmerOpportunite')}</Btn><Btn small variant="outline" onClick={() => onNavigate?.('ventes')}>{t('avicoleLot.decision.voirVentes')}</Btn></div>
+          <Section title={t('avicoleLot.decision.titre')} note={t('avicoleLot.decision.note')}><Field label={t('avicoleLot.decision.decision')} value={decision.decision} /><Field label={t('avicoleLot.decision.priorite')} value={decision.priority || '-'} /><Field label={t('avicoleLot.decision.prochaineAction')} value={decision.nextWeighingDate || decision.reformStart || livingTarget.nextWeighingDate || '-'} /><Field label={t('avicoleLot.decision.poidsPonteAttendu')} value={decision.expectedWeight ? `${decision.expectedWeight} kg` : decision.expectedEggsDay ? eggTabletLabel(decision.expectedEggsDay) : livingTarget.expectedEggsDay ? eggTabletLabel(livingTarget.expectedEggsDay) : '-'} /></Section>
         </>
       ) : null}
 
       {tab === 'finances' ? (
-        <Section title="Coûts, ventes et marge consolidés" note={SALE_PRICE_HELP_AVICOLE}>
+        <Section title={t('avicoleLot.finances.titre')} note={SALE_PRICE_HELP_AVICOLE}>
           {finance.warnings.length ? <div className="md:col-span-2 rounded-xl border border-vigilance bg-vigilance-bg p-3 text-sm text-horizon-dark"><AlertTriangle size={15} className="inline" /> {finance.warnings.join(' ')}</div> : null}
-          <Field label="Coût achat bande" value={fmtCurrency(finance.achat)} />
-          <Field label="Alimentation calculée" value={fmtCurrency(finance.alimentation)} />
-          <Field label="Événements de charge" value={fmtCurrency(finance.eventCharges)} />
-          <Field label="Transactions Finance liées" value={fmtCurrency(finance.financeCharges)} />
-          <Field label="Coût total consolidé" value={fmtCurrency(finance.totalCost)} />
-          <Field label={finance.ordersCount > 0 ? 'Vente liée' : 'Vente estimée'} value={fmtCurrency(finance.revenue)}>{fmtCurrency(finance.revenue)}<p className="mt-1 text-meta text-slate">{finance.revenueSource}</p></Field>
-          <Field label="Payé" value={fmtCurrency(finance.paid)} />
-          <Field label="Reste à encaisser" value={fmtCurrency(finance.remaining)} danger={finance.remaining > 0} />
-          <Field label="Commandes liées" value={fmtNumber(finance.ordersCount)} />
-          <Field label="Prix proposé total (moteur)" value={fmtCurrency(proposed.proposedTotal)} />
-          <Field label="Prix proposé / sujet" value={fmtCurrency(proposed.proposedUnit)} />
-          <Field label="Base du calcul" value={proposed.pricingBasis || '—'} />
-          <Field label="Plancher unitaire (cout)" value={fmtCurrency(proposed.minimumUnit || salePricing.minimumUnitPrice)} />
-          <Field label="Prix marche observe" value={salePricing.marketPrice ? fmtCurrency(salePricing.marketPrice) : 'Non renseigne'} />
-          <Field label={PROPOSED_PRICE_MARGIN_LABEL} value={proposed.marginOnProposed != null ? fmtCurrency(proposed.marginOnProposed) : '—'} />
-          <Field label="Marge consolidée (revenu fiche)" value={fmtCurrency(finance.margin)} danger={finance.margin < 0} />
+          <Field label={t('avicoleLot.finances.coutAchat')} value={fmtCurrency(finance.achat)} />
+          <Field label={t('avicoleLot.finances.alimentation')} value={fmtCurrency(finance.alimentation)} />
+          <Field label={t('avicoleLot.finances.evenementsCharge')} value={fmtCurrency(finance.eventCharges)} />
+          <Field label={t('avicoleLot.finances.transactionsFinance')} value={fmtCurrency(finance.financeCharges)} />
+          <Field label={t('avicoleLot.finances.coutTotal')} value={fmtCurrency(finance.totalCost)} />
+          <Field label={finance.ordersCount > 0 ? t('avicoleLot.finances.venteLiee') : t('avicoleLot.finances.venteEstimee')} value={fmtCurrency(finance.revenue)}>{fmtCurrency(finance.revenue)}<p className="mt-1 text-meta text-slate">{finance.revenueSource}</p></Field>
+          <Field label={t('avicoleLot.finances.paye')} value={fmtCurrency(finance.paid)} />
+          <Field label={t('avicoleLot.finances.resteEncaisser')} value={fmtCurrency(finance.remaining)} danger={finance.remaining > 0} />
+          <Field label={t('avicoleLot.finances.commandesLiees')} value={fmtNumber(finance.ordersCount)} />
+          <Field label={t('avicoleLot.finances.prixProposeTotal')} value={fmtCurrency(proposed.proposedTotal)} />
+          <Field label={t('avicoleLot.finances.prixProposeSujet')} value={fmtCurrency(proposed.proposedUnit)} />
+          <Field label={t('avicoleLot.finances.baseCalcul')} value={proposed.pricingBasis || '-'} />
+          <Field label={t('avicoleLot.finances.plancherUnitaire')} value={fmtCurrency(proposed.minimumUnit || salePricing.minimumUnitPrice)} />
+          <Field label={t('avicoleLot.finances.prixMarche')} value={salePricing.marketPrice ? fmtCurrency(salePricing.marketPrice) : t('avicoleLot.finances.marchePasRenseigne')} />
+          <Field label={PROPOSED_PRICE_MARGIN_LABEL} value={proposed.marginOnProposed != null ? fmtCurrency(proposed.marginOnProposed) : '-'} />
+          <Field label={t('avicoleLot.finances.margeConsolidee')} value={fmtCurrency(finance.margin)} danger={finance.margin < 0} />
           {salePricing.alerts?.length ? <div className="md:col-span-2 rounded-xl border border-vigilance bg-vigilance-bg p-3 text-sm text-horizon-dark">{salePricing.alerts.join(' ')}</div> : null}
         </Section>
       ) : null}

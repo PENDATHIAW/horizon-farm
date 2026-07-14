@@ -1,5 +1,5 @@
 /**
- * Chantier 8 — Activité & Suivi : regrouper alertes, tâches et suggestions par problème métier.
+ * Chantier 8 - Activité & Suivi : regrouper alertes, tâches et suggestions par problème métier.
  */
 
 import { makeId } from './ids.js';
@@ -251,7 +251,7 @@ export async function completeActiviteTask({
   };
 }
 
-/** Résout une alerte — plus de push ensuite. */
+/** Résout une alerte - plus de push ensuite. */
 export async function resolveActiviteAlert({ alert = {}, handlers = {} } = {}) {
   if (!alert?.id) throw new Error('Alerte introuvable');
   const enriched = enrichAlertPatch(alert);

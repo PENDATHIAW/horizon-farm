@@ -146,7 +146,7 @@ function extraInterconnectionFindings(data = {}) {
   return findings;
 }
 
-/** Audit inter-modules complet — checklist document audit §5.2. */
+/** Audit inter-modules complet - checklist document audit §5.2. */
 export function runErpAuditEngine(data = {}) {
   const base = computeErpAuditFindings(data).map(withIssueKey);
   const coverage = evaluateModuleDataCoverage(data);

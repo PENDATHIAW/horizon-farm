@@ -1,5 +1,5 @@
 /**
- * Commercial V2 — mode démarrage (checklist onboarding).
+ * Commercial V2 - mode démarrage (checklist onboarding).
  */
 
 const arr = (value) => (Array.isArray(value) ? value : []);

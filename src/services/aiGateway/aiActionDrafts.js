@@ -1,5 +1,5 @@
 /**
- * Contrat standard des brouillons IA — aucune écriture base sans validation utilisateur.
+ * Contrat standard des brouillons IA - aucune écriture base sans validation utilisateur.
  */
 
 export const AI_DRAFT_VERSION = '1.0';

@@ -93,7 +93,7 @@ export function buildFinanceCoherenceRows(transactions = [], salesOrders = [], p
         id: `sale-unpaid-${order.id}`,
         orderId: order.id,
         type: 'creance',
-        title: `${name} — créance`,
+        title: `${name} - créance`,
         detail: fmtCurrency(rest),
         value: rest,
         finding: {

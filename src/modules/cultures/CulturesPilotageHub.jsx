@@ -49,14 +49,14 @@ export default function CulturesPilotageHub({
 
   const iaBrief = risky
     ? `La parcelle/culture « ${risky.row.nom || risky.row.parcelle || risky.row.id} » : ${risky.profile.decision}. ${risky.profile.risk || 'Suivi recommandé sous 48h.'}`
-    : 'Aucun signal critique — cultures dans la norme. Consultez Intrants & Météo si stress hydrique suspecté.';
+    : 'Aucun signal critique - cultures dans la norme. Consultez Intrants & Météo si stress hydrique suspecté.';
 
   return (
     <div className="space-y-6">
       <section className="rounded-3xl border border-line bg-neutral-bg p-4 text-sm text-neutral">
         <p className="flex items-center gap-2 font-semibold"><BrainCircuit size={16} /> Brief décision terrain</p>
         <p className="mt-2">{iaBrief}</p>
-        <p className="mt-1 text-xs text-neutral">Règles métier locales — lecture seule, aucune donnée stockée ici.</p>
+        <p className="mt-1 text-xs text-neutral">Règles métier locales - lecture seule, aucune donnée stockée ici.</p>
       </section>
 
       <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-3">

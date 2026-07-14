@@ -1,5 +1,5 @@
 /**
- * AGRI FEEDS — configuration métier centrale (Phase 2 Horizon Farm).
+ * AGRI FEEDS - configuration métier centrale (Phase 2 Horizon Farm).
  * Ne remplace pas les modules Achats / Stock / Élevage / Commercial.
  */
 
@@ -9,7 +9,7 @@ export const AGRI_FEEDS_MODULE = {
   description: 'Production d’aliments animaux pilotée par la donnée.',
 };
 
-/** Modes de déploiement — progression data-driven, pas une date fixe. */
+/** Modes de déploiement - progression data-driven, pas une date fixe. */
 export const AGRI_FEEDS_DEPLOYMENT_MODES = Object.freeze({
   REFERENCE: {
     id: 'REFERENCE',
@@ -104,7 +104,7 @@ export const FACILITY_ZONE_STATUSES = Object.freeze([
   { value: 'in_use', label: 'En service' },
 ]);
 
-/** Zones site à réserver dès la Phase 1 — séparées animaux / fientes / fumiers / vétérinaire. */
+/** Zones site à réserver dès la Phase 1 - séparées animaux / fientes / fumiers / vétérinaire. */
 export const DEFAULT_PLANNED_FACILITY_ZONES = Object.freeze([
   {
     id: 'zone-mp-prevue',
@@ -120,7 +120,7 @@ export const DEFAULT_PLANNED_FACILITY_ZONES = Object.freeze([
     zone_type: 'production_area',
     status: 'planned',
     capacity: null,
-    notes: 'Broyeur, mélangeur, ensachage — à activer en Phase 2A.',
+    notes: 'Broyeur, mélangeur, ensachage - à activer en Phase 2A.',
   },
   {
     id: 'zone-pf-prevue',
@@ -144,7 +144,7 @@ export const DEFAULT_PLANNED_FACILITY_ZONES = Object.freeze([
     zone_type: 'loading_area',
     status: 'planned',
     capacity: null,
-    notes: 'Chargement clients éleveurs — Phase 2B.',
+    notes: 'Chargement clients éleveurs - Phase 2B.',
   },
   {
     id: 'zone-office-prevue',

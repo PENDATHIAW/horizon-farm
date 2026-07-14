@@ -134,7 +134,7 @@ export const WORKFLOW_QUALITY_RECIPES = [
   {
     id: 'document_orphelin',
     title: 'Document orphelin',
-    description: 'Justificatif sans source métier — liaison ou résolution attendue.',
+    description: 'Justificatif sans source métier - liaison ou résolution attendue.',
     expectedObjects: ['preuve_liee', 'ecart_resolu'],
     sourceModule: 'documents_rapports',
     sourceTab: 'Documents',
@@ -422,7 +422,7 @@ function verifyEggProduction(dataMap = {}) {
     anchor: candidate,
     createdObjects: created,
     missingObjects: missing,
-    details: `${num(candidate.oeufs_produits)} œufs · lot ${lotId || '—'}`,
+    details: `${num(candidate.oeufs_produits)} œufs · lot ${lotId || '-'}`,
   });
 }
 
@@ -564,7 +564,7 @@ export function computeWorkflowQualityScore(results = []) {
 }
 
 export function formatWorkflowQualityDate(value = '') {
-  if (!value) return '—';
+  if (!value) return '-';
   try {
     return new Intl.DateTimeFormat('fr-FR', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }).format(new Date(value));
   } catch {

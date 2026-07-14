@@ -1,5 +1,5 @@
 /**
- * Canonical Execution Enforcement V1 — audit runtime lecture seule.
+ * Canonical Execution Enforcement V1 - audit runtime lecture seule.
  * Vérifie workflows, events, KPI (statique), finance, stock, traçabilité.
  * Ne modifie pas consolidateFinance, buildConsolidatedCommercialKpis, summarizeSalesMargins.
  */
@@ -229,8 +229,8 @@ function scoreFromCounts(base, penalties) {
 }
 
 /**
- * Audit runtime complet — lecture seule.
- * @param {object} data — dataMap ou props module (sales_orders, payments, finances, …)
+ * Audit runtime complet - lecture seule.
+ * @param {object} data - dataMap ou props module (sales_orders, payments, finances, …)
  */
 export function runCanonicalExecutionAudit(data = {}) {
   const orders = arr(data.sales_orders || data.salesOrders);

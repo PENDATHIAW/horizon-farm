@@ -211,7 +211,7 @@ export default function Fournisseurs({ rows = [], stocks = [], tasks = [], finan
   const prepareOrder = async (supplier) => {
     try {
       const taskId = makeId('TSK');
-      await (onCreateTask || tachesCrud.create)?.({ id: taskId, title: `Commande fournisseur — ${supplierName(supplier)}`, module_lie: 'fournisseurs', related_id: supplier.id, due_date: today(), priority: 'moyenne', status: 'a_faire', checklist: 'Vérifier besoin stock; demander disponibilité; confirmer prix; enregistrer réception', source_module: 'fournisseurs' });
+      await (onCreateTask || tachesCrud.create)?.({ id: taskId, title: `Commande fournisseur - ${supplierName(supplier)}`, module_lie: 'fournisseurs', related_id: supplier.id, due_date: today(), priority: 'moyenne', status: 'a_faire', checklist: 'Vérifier besoin stock; demander disponibilité; confirmer prix; enregistrer réception', source_module: 'fournisseurs' });
       await (onCreateBusinessEvent || eventsCrud.create)?.({ id: makeId('EVT'), event_type: 'commande_fournisseur_preparee', module_source: 'fournisseurs', entity_type: 'fournisseur', entity_id: supplier.id, title: 'Commande fournisseur préparée', description: supplierName(supplier), event_date: today(), severity: 'info', linked_task_id: taskId });
       await onUpdate?.(supplier.id, { livraisons: Number(supplier.livraisons || 0) + 1, derniere_commande: today(), last_order_task_id: taskId });
       await Promise.allSettled([(onRefreshTasks || tachesCrud.refresh)?.(), (onRefreshBusinessEvents || eventsCrud.refresh)?.(), onRefresh?.()]);
@@ -268,11 +268,11 @@ export default function Fournisseurs({ rows = [], stocks = [], tasks = [], finan
         (onRefreshTasks || tachesCrud.refresh)?.(),
         (onRefreshAlertes || alertesCrud.refresh)?.(),
       ]);
-      toast.success(`Paiement enregistré — ${label}`, { duration: 5000 });
+      toast.success(`Paiement enregistré - ${label}`, { duration: 5000 });
       setModal(null);
       setSelected(null);
     } catch (error) {
-      toast.error(error.message || 'Paiement fournisseur impossible — vérifiez Finance & dettes ouvertes', { duration: 6000 });
+      toast.error(error.message || 'Paiement fournisseur impossible - vérifiez Finance & dettes ouvertes', { duration: 6000 });
     } finally {
       setSaving(false);
     }

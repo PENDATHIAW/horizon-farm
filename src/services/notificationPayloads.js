@@ -32,7 +32,7 @@ export function buildNotificationPayloadFromAlert(alert = {}, options = {}) {
   const emoji = severityEmoji(severity);
 
   const titleBase = clean(alert.title) || clean(alert.action_recommandee) || 'Alerte Horizon Farm';
-  const title = `${emoji} ${severity === 'urgence' ? 'Urgence' : severity === 'critique' ? 'Critique' : severity.toUpperCase()} — ${titleBase}`;
+  const title = `${emoji} ${severity === 'urgence' ? 'Urgence' : severity === 'critique' ? 'Critique' : severity.toUpperCase()} - ${titleBase}`;
 
   const message = clean(alert.message);
   const actionText = clean(alert.action_recommandee || alert.action);

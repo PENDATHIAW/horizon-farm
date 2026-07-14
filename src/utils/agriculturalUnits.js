@@ -1,5 +1,5 @@
 /**
- * Achats & Stock V2 — registre unités agricoles partagé (Stock + Commercial).
+ * Achats & Stock V2 - registre unités agricoles partagé (Stock + Commercial).
  */
 
 import {

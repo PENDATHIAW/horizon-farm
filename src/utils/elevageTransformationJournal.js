@@ -103,7 +103,7 @@ export function buildElevageTransformationRows({
         quantity: toNumber(animal.poids_carcasse ?? animal.poids),
         unit: 'kg',
         amount: toNumber(animal.cout_abattage),
-        paymentStatus: animal.produit_stock ? 'stock_viande' : '—',
+        paymentStatus: animal.produit_stock ? 'stock_viande' : '-',
         detail: animal.produit_stock ? `Stock : ${animal.produit_stock}` : 'Abattage animal',
         tone: 'good',
       });
@@ -120,7 +120,7 @@ export function buildElevageTransformationRows({
         quantity: 1,
         unit: 'tête',
         amount: toNumber(animal.valeur_residuelle),
-        paymentStatus: '—',
+        paymentStatus: '-',
         detail: animal.motif_reforme || 'Réforme',
         tone: 'warn',
       });
@@ -137,7 +137,7 @@ export function buildElevageTransformationRows({
         quantity: 1,
         unit: 'tête',
         amount: toNumber(animal.valeur_perte_estimee),
-        paymentStatus: '—',
+        paymentStatus: '-',
         detail: status === 'mort' ? animal.cause_deces || 'Décès' : 'Vol / perte',
         tone: 'bad',
       });
@@ -193,7 +193,7 @@ export function buildElevageTransformationRows({
       quantity: toNumber(evt.quantity) || null,
       unit: evt.unit || '',
       amount: toNumber(evt.amount ?? evt.montant),
-      paymentStatus: evt.status || '—',
+      paymentStatus: evt.status || '-',
       detail: evt.description || evt.message || type,
       tone: kind === 'vente' ? 'good' : kind === 'mortalite' || kind === 'perte' ? 'bad' : 'warn',
     });

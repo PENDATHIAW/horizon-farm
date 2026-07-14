@@ -1,5 +1,5 @@
 /**
- * AI Gateway — point d'entrée unique pour l'IA générative future.
+ * AI Gateway - point d'entrée unique pour l'IA générative future.
  * Produits : brouillons structurés. Écritures : workflows métier validés uniquement.
  */
 

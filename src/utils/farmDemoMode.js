@@ -1,5 +1,5 @@
 /**
- * Mode démo multi-fermes léger — localStorage / flag env uniquement.
+ * Mode démo multi-fermes léger - localStorage / flag env uniquement.
  * N’insère pas de fausses données métier en production.
  */
 

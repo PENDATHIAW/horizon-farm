@@ -1,5 +1,5 @@
 /**
- * Hey Horizon Finance — system prompt et format de réponse officiel.
+ * Hey Horizon Finance - system prompt et format de réponse officiel.
  * Vérités canoniques : lecture via buildOfficialTreasuryView / consolidateFinance (jamais recalculées ici).
  */
 

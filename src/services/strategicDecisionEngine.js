@@ -194,7 +194,7 @@ function dailyFeedKgForEntity(entity, alimentationLogs = [], workshop) {
   return birds * feedStandardKgPerBird(workshop || inferWorkshopFromLot(entity), pivot.ageDays);
 }
 
-/** 1. ALGORITHME QUAND VENDRE — loi des rendements décroissants. */
+/** 1. ALGORITHME QUAND VENDRE - loi des rendements décroissants. */
 export function evaluateSellNowDecisions(dataMap = {}, options = {}) {
   const lots = arr(dataMap.avicole || dataMap.lots);
   const animaux = arr(dataMap.animaux);
@@ -233,8 +233,8 @@ export function evaluateSellNowDecisions(dataMap = {}, options = {}) {
         navModule: 'elevage',
         navTab: 'Animaux',
         openLabel: 'Ouvrir animal',
-        status: `URGENCE VENTE — ${displayName}`,
-        title: `URGENCE VENTE — ${displayName}`,
+        status: `URGENCE VENTE - ${displayName}`,
+        title: `URGENCE VENTE - ${displayName}`,
         gainValeurJour: Math.round(gainValeurJour),
         coutRationJour: Math.round(coutRationJour),
         gmqSmoothedKg: Math.round(gmqSmoothed * 1000) / 1000,
@@ -267,8 +267,8 @@ export function evaluateSellNowDecisions(dataMap = {}, options = {}) {
         navModule: 'elevage',
         navTab: 'Avicole',
         openLabel: 'Ouvrir bande',
-        status: `URGENCE VENTE — ${displayName}`,
-        title: `URGENCE VENTE — ${displayName}`,
+        status: `URGENCE VENTE - ${displayName}`,
+        title: `URGENCE VENTE - ${displayName}`,
         gainValeurJour: Math.round(gainValeurJour),
         coutRationJour: Math.round(coutRationJour),
         priority: 'critique',
@@ -283,7 +283,7 @@ export function evaluateSellNowDecisions(dataMap = {}, options = {}) {
   return alerts;
 }
 
-/** 2. ALGORITHME QUAND LANCER — calendrier religieux, climat, ITH. */
+/** 2. ALGORITHME QUAND LANCER - calendrier religieux, climat, ITH. */
 export function evaluateLaunchTimingDecisions(dataMap = {}, options = {}) {
   const ps = pilotageSettings(dataMap);
 
@@ -325,7 +325,7 @@ export function evaluateLaunchTimingDecisions(dataMap = {}, options = {}) {
 
     const lineMessages = activityLines.map((line) => {
       const suffix = line.daysUntilPivot <= 0 && !line.hasActiveLot
-        ? `(date pivot ${line.pivotDate} dépassée — rien en place)`
+        ? `(date pivot ${line.pivotDate} dépassée - rien en place)`
         : `(pivot ${line.pivotDate}, cycle ${line.cycleDays} j)`;
       return `${line.label} : ${line.action} ${suffix}`;
     });
@@ -389,7 +389,7 @@ export function evaluateLaunchTimingDecisions(dataMap = {}, options = {}) {
   return { alerts, cycleDecisions, ith, currentTemp: temp };
 }
 
-/** 3. Audit stock aliment — détection coulage/vol. */
+/** 3. Audit stock aliment - détection coulage/vol. */
 export function auditFeedStockConsumption(dataMap = {}, options = {}) {
   const lots = arr(dataMap.avicole || dataMap.lots);
   const alimentationLogs = arr(dataMap.alimentation_logs || dataMap.alimentationLogs);
@@ -523,7 +523,7 @@ export function validateCycleBfrCoverage(dataMap = {}, options = {}) {
     plannedHeadcount,
     message: blocked
       ? `Lancement suspendu : Trésorerie insuffisante pour garantir l'achat des aliments de la bande (couverture ${Math.round(coveragePct)}% < ${ps.bfrMinCoveragePct}%). Relancer d'abord les créances${vipPending.length ? ` des clients ${vipPending.map((v) => v.client).join(', ')}` : ' en souffrance'}.`
-      : `Couverture BFR OK (${Math.round(coveragePct)}%) — trésorerie + créances VIP couvrent le cycle.`,
+      : `Couverture BFR OK (${Math.round(coveragePct)}%) - trésorerie + créances VIP couvrent le cycle.`,
   };
 
   if (blocked) console.warn('[validateCycleBfrCoverage] BLOQUÉ', result);
@@ -543,7 +543,7 @@ function enrichSanitaryAlert(alert, refDate = new Date()) {
     return {
       ...alert,
       type: 'historique_pathologique',
-      title: `Bâtiment ${alert.building} — mortalité élevée sur bande précédente`,
+      title: `Bâtiment ${alert.building} - mortalité élevée sur bande précédente`,
       explanation: `La dernière bande dans ${alert.building} a enregistré ${alert.mortalityRate}% de mortalité (seuil alerte : 5 %). Des germes peuvent persister dans le sol. Il faut prolonger le vide sanitaire avant toute nouvelle bande.`,
       actions: [
         `Attendre ${totalWait} jours minimum sans animaux (${required} j standard + ${extra} j supplémentaires)`,
@@ -561,7 +561,7 @@ function enrichSanitaryAlert(alert, refDate = new Date()) {
   return {
     ...alert,
     type: 'vide_insuffisant',
-    title: `Bâtiment ${alert.building} — pause entre bandes trop courte`,
+    title: `Bâtiment ${alert.building} - pause entre bandes trop courte`,
     explanation: `Seulement ${alert.gapDays} jours entre la bande précédente et le lot « ${alert.lotName || alert.lotId} ». Le vide sanitaire minimum est de ${required} jours pour désinfecter le bâtiment.`,
     actions: [
       delayDays > 0 ? `Reporter la mise en place du lot ${alert.lotName || alert.lotId} de ${delayDays} jours` : 'Vérifier les dates de fin de bande précédente',
@@ -618,7 +618,7 @@ export function buildExtendedSanitaryAlerts(dataMap = {}) {
   return alerts;
 }
 
-/** Effet ciseau — hausse prix intrants aliment. */
+/** Effet ciseau - hausse prix intrants aliment. */
 export function buildScissorsEffectAlert(dataMap = {}) {
   const marketPrices = arr(dataMap.market_prices || dataMap.marketPrices);
   const transactions = arr(dataMap.finances || dataMap.transactions);
@@ -734,7 +734,7 @@ export function buildStrategicDecisionPlan(dataMap = {}, options = {}) {
     })),
     ...(bfr.blocked ? [{
       id: 'bfr-block',
-      title: 'Lancement suspendu — BFR',
+      title: 'Lancement suspendu - BFR',
       activity: 'global',
       priority: 'haute',
       timing: 'Avant toute commande',
@@ -744,7 +744,7 @@ export function buildStrategicDecisionPlan(dataMap = {}, options = {}) {
     }] : []),
     ...stockAudit.alerts.map((a) => ({
       id: a.id,
-      title: `Audit stock — ${a.building}`,
+      title: `Audit stock - ${a.building}`,
       activity: 'stock',
       priority: 'moyenne',
       timing: `${a.consecutiveDays} jours consécutifs`,
@@ -764,7 +764,7 @@ export function buildStrategicDecisionPlan(dataMap = {}, options = {}) {
     })),
     ...(scissors ? [{
       id: scissors.id,
-      title: 'Effet ciseau — intrants',
+      title: 'Effet ciseau - intrants',
       activity: 'achats_stock',
       priority: scissors.priority,
       timing: '3 mois',
@@ -789,7 +789,7 @@ export function buildStrategicDecisionPlan(dataMap = {}, options = {}) {
       id: a.id,
       domain: 'Technico-économique',
       title: a.title || a.status,
-      cause: `${a.subjectLabel || a.lotName || 'Entité'} — gain ${a.gainValeurJour} FCFA/j < coût ${a.coutRationJour} FCFA/j`,
+      cause: `${a.subjectLabel || a.lotName || 'Entité'} - gain ${a.gainValeurJour} FCFA/j < coût ${a.coutRationJour} FCFA/j`,
       impact: 'Perte nette si maintien en élevage',
       action: 'Vendre immédiatement',
       module: a.navModule || 'elevage',

@@ -164,7 +164,7 @@ export default function AppNotificationManager({ dataMap = {}, onNavigate }) {
 
   if (hidden || notificationPermission() === 'granted') return null;
   return (
-    <div className="fixed bottom-4 right-4 z-40 max-w-sm rounded-2xl bg-earth text-white shadow-float border border-horizon p-3 space-y-2">
+    <div className="fixed inset-x-3 bottom-24 z-40 space-y-2 rounded-card border border-horizon bg-earth p-3 text-white shadow-float sm:inset-x-auto sm:bottom-4 sm:right-4 sm:max-w-sm">
       <p className="text-sm font-semibold">Notifications</p>
       <p className="text-xs text-line">Recevoir les alertes critiques sur cet appareil.</p>
       <div className="flex flex-wrap gap-2">

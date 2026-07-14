@@ -1,5 +1,5 @@
 /**
- * Chantier 5 — Cultures : récolte → stock vendable → vente Commercial.
+ * Chantier 5 - Cultures : récolte → stock vendable → vente Commercial.
  */
 
 import { makeId } from './ids.js';

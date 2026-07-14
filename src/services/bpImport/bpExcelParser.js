@@ -490,8 +490,8 @@ export function parseBpExcelWorkbookToOfficialBp(arrayBuffer, fileName = '') {
     operatingStrategy: HORIZON_FARM_OFFICIAL_BP.operatingStrategy,
     integrationWarnings: [
       ...(HORIZON_FARM_OFFICIAL_BP.integrationWarnings || []),
-      ...(startupNeeds.lines.length < 5 ? ['Peu de lignes besoins de démarrage détectées — vérifier l’onglet Données à saisir.'] : []),
-      ...(monthly.length < 12 ? ['Périodicité mensuelle incomplète — vérifier l’onglet Périodicité.'] : []),
+      ...(startupNeeds.lines.length < 5 ? ['Peu de lignes besoins de démarrage détectées - vérifier l’onglet Données à saisir.'] : []),
+      ...(monthly.length < 12 ? ['Périodicité mensuelle incomplète - vérifier l’onglet Périodicité.'] : []),
     ],
   };
 

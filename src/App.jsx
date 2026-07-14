@@ -928,6 +928,6 @@ export default function App() {
     </ErrorBoundary>
     <AssistantPanel open={assistantOpen} onClose={() => setAssistantOpen(false)} dataMap={scopedAssistantDataMap} onNavigate={setActive} onCreateBusinessEvent={c.business_events.create} />
     <ErpInterconnectionBridge cruds={c} />
-    <AppNotificationManager />
+    <AppNotificationManager dataMap={overviewDataMap} onNavigate={setActive} />
   </AppLayout></>;
 }

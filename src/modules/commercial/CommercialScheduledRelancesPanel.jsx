@@ -63,7 +63,7 @@ export default function CommercialScheduledRelancesPanel({
       <section className="rounded-2xl border border-line bg-white p-4">
         <p className="text-xs uppercase tracking-normal text-slate font-semibold">Relances planifiées</p>
         <p className="mt-1 text-sm text-slate">
-          Niveaux {RELANCE_LEVELS.map((l) => l.label).join(', ')} — messages WhatsApp, SMS et Email générés automatiquement.
+          Niveaux {RELANCE_LEVELS.map((l) => l.label).join(', ')} - messages WhatsApp, SMS et Email générés automatiquement.
         </p>
         {rows.length ? (
           <div className="mt-3 space-y-2">

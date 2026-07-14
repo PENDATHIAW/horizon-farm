@@ -56,7 +56,7 @@ export function DashboardAllFarmsPanel({ context = null, onNavigate, onManageFar
         <div>
           <p className="text-meta font-semibold uppercase tracking-normal text-positive">Vue toutes les fermes</p>
           <h2 className="mt-1 text-xl font-semibold text-earth">Consolidation groupe</h2>
-          <p className="mt-1 text-sm text-slate">{context.activeFarmCount} ferme(s) active(s) — pilotage direction.</p>
+          <p className="mt-1 text-sm text-slate">{context.activeFarmCount} ferme(s) active(s) - pilotage direction.</p>
         </div>
         {onManageFarms ? (
           <button type="button" onClick={onManageFarms} className="rounded-xl border border-positive bg-white px-3 py-2 text-xs font-semibold text-positive">
@@ -217,7 +217,7 @@ export function FarmLocationGrid({ cards = [], onNavigate }) {
               </ul>
             ) : null}
             <div className="mt-3 flex items-center justify-between text-xs">
-              <span className="font-semibold text-earth">Score {card.score ?? '—'}/100</span>
+              <span className="font-semibold text-earth">Score {card.score ?? '-'}/100</span>
               <span className="text-slate">{card.alerts} alerte(s)</span>
             </div>
           </article>
@@ -258,7 +258,7 @@ export function FarmDemoModeBanner({ enabled = false, onToggle }) {
   if (!enabled) return null;
   return (
     <div className="rounded-2xl border border-line bg-neutral-bg px-4 py-3 text-sm text-neutral flex flex-wrap items-center justify-between gap-2">
-      <span>Mode démo multi-fermes actif — fermes fictives ajoutées pour démonstration uniquement.</span>
+      <span>Mode démo multi-fermes actif - fermes fictives ajoutées pour démonstration uniquement.</span>
       {onToggle ? (
         <button type="button" onClick={onToggle} className="rounded-lg border border-line bg-white px-3 py-1 text-xs font-semibold">
           Désactiver

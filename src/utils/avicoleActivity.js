@@ -8,7 +8,7 @@ export const isPondeuseLot = (lot = {}) =>
 export const isChairLot = (lot = {}) =>
   lot.type === 'Chair' || ['chair', 'poulet_chair'].includes(String(lot.type || '').toLowerCase());
 
-/** Chair vs pondeuses — tous lots confondus (texte + type). */
+/** Chair vs pondeuses - tous lots confondus (texte + type). */
 export function resolveAvicoleLotKind(lot = {}) {
   const text = lotText(lot);
   if (isPondeuseLot(lot) || text.includes('pondeuse') || text.includes('ponte') || text.includes('oeuf') || text.includes('œuf')) {

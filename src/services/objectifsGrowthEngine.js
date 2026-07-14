@@ -118,7 +118,7 @@ function buildPondeuseRows({ lots, productionLogs, alimentationLogs, sante, acha
     const correlations = tone === 'bad' ? correlateRedZone({ lotId: lot.id, alimentationLogs, sante, achats }) : [];
     const correlationText = correlations.length
       ? `Alerte : Chute suite à ${correlations.join(' / ')}`
-      : tone === 'bad' ? 'Alerte : écart ≥ 5% — contrôler alimentation et santé récentes.' : null;
+      : tone === 'bad' ? 'Alerte : écart ≥ 5% - contrôler alimentation et santé récentes.' : null;
     return {
       id: lot.id,
       label: lotLabel(lot),
@@ -170,7 +170,7 @@ function buildChairBovinRows({ lots, animaux, alimentationLogs, sante, stocks })
       theoretical,
       devPct,
       tone,
-      message: tone === 'warn' ? 'Croissance légèrement en retard' : tone === 'bad' ? 'Retard significatif — surcoût estimé' : 'GMQ conforme',
+      message: tone === 'warn' ? 'Croissance légèrement en retard' : tone === 'bad' ? 'Retard significatif - surcoût estimé' : 'GMQ conforme',
       surcout,
       delayDays,
       correlations: tone === 'bad' ? correlateRedZone({ lotId: lot.id, alimentationLogs, sante }) : [],
@@ -200,7 +200,7 @@ function buildChairBovinRows({ lots, animaux, alimentationLogs, sante, stocks })
       theoretical,
       devPct,
       tone,
-      message: tone === 'warn' ? 'GMQ sous la cible souche' : tone === 'bad' ? 'Retard embouche — surcoût aliment' : 'Embouche conforme',
+      message: tone === 'warn' ? 'GMQ sous la cible souche' : tone === 'bad' ? 'Retard embouche - surcoût aliment' : 'Embouche conforme',
       surcout,
       delayDays,
       correlations: tone === 'bad' ? correlateRedZone({ animalId: animal.id, alimentationLogs, sante }) : [],
@@ -301,7 +301,7 @@ function buildCapacityAlerts(lots = []) {
             exitDate,
             freeDate: freeDate.toISOString().slice(0, 10),
             nextStart,
-            message: `Erreur : Capacité saturée sur le Bâtiment ${building} — vide sanitaire ${SANITARY_VACUUM_DAYS} j non respecté.`,
+            message: `Erreur : Capacité saturée sur le Bâtiment ${building} - vide sanitaire ${SANITARY_VACUUM_DAYS} j non respecté.`,
             tone: 'bad',
           });
         }
@@ -326,7 +326,7 @@ export function validateBuildingCapacityForChickOrder({ lots = [], building, pla
     if (planned < freeDate) {
       return {
         ok: false,
-        message: `Erreur : Capacité saturée sur le Bâtiment ${building} — vide sanitaire ${SANITARY_VACUUM_DAYS} j non respecté (libre après ${freeDate.toISOString().slice(0, 10)}).`,
+        message: `Erreur : Capacité saturée sur le Bâtiment ${building} - vide sanitaire ${SANITARY_VACUUM_DAYS} j non respecté (libre après ${freeDate.toISOString().slice(0, 10)}).`,
         alerts: conflicts,
       };
     }

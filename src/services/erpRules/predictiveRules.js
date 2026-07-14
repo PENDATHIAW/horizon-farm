@@ -80,7 +80,7 @@ export function evaluatePredictiveRules(data = {}) {
       module: 'commercial',
       severity: 'haute',
       title: 'Retards paiement clients',
-      description: `${unpaidOrders.length} vente(s) non soldées — risque de tension trésorerie`,
+      description: `${unpaidOrders.length} vente(s) non soldées - risque de tension trésorerie`,
       recommended_action: 'Relancer les clients avec créances',
       confidence_score: 0.86,
     });

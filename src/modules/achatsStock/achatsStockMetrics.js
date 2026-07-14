@@ -30,7 +30,7 @@ export function buildAchatsStockSummaryTodos({ lowStock = [], purchasesWithoutSt
   arr(supplierDebts).slice(0, 2).forEach((sup) => {
     todos.push({
       id: `debt-${sup.id || sup.name}`,
-      title: `${sup.name} — dette fournisseur`,
+      title: `${sup.name} - dette fournisseur`,
       detail: fmtCurrency(sup.total),
       tab: 'Fournisseurs',
       actionType: 'relance',

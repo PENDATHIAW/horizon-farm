@@ -74,7 +74,7 @@ function correlatePonteDrop(lot, productionLogs, alimentationLogs, sante, dropPc
   });
   const causes = [];
   if (feedDeliveries.length === 0) causes.push('Aucune livraison aliment enregistrée sur 5 jours');
-  else if (feedDeliveries.length < 2) causes.push(`${feedDeliveries.length} livraison(s) aliment sur 5 jours — ration à vérifier`);
+  else if (feedDeliveries.length < 2) causes.push(`${feedDeliveries.length} livraison(s) aliment sur 5 jours - ration à vérifier`);
   if (vetEvents.length) causes.push(`${vetEvents.length} intervention(s) vétérinaire récente(s)`);
   return {
     dropPct,
@@ -151,7 +151,7 @@ export function buildZootechnicalAnalysis(dataMap = {}, referenceDate = new Date
       };
     }
 
-    return { ...pivot, workshop, metricLabel: '—', alertLevel: 'neutral' };
+    return { ...pivot, workshop, metricLabel: '-', alertLevel: 'neutral' };
   });
 
   return rows.filter((r) => r.workshop);
@@ -246,7 +246,7 @@ export function buildSanitaryVacuumAlerts(lots = []) {
   return alerts;
 }
 
-/** Seuil de rentabilité mensuel — calculé le 28 ou à la demande. */
+/** Seuil de rentabilité mensuel - calculé le 28 ou à la demande. */
 export function computeMonthlyBreakEven(dataMap = {}, referenceDate = new Date()) {
   const fixedAnnual = num(HORIZON_FARM_OFFICIAL_BP.fixedCosts?.annualByYear?.[0]) + num(HORIZON_FARM_OFFICIAL_BP.payroll?.annualTotal);
   const fixedMonthly = fixedAnnual / 12;

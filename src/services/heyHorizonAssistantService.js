@@ -17,6 +17,7 @@ import { enhanceHeyHorizonQuestion, isHeyHorizonLlmEnabled, normalizeLlmDraft } 
 import { queryFarmAgentAsync } from './heyHorizonAgentService.js';
 import { buildAssistantClarifyResponse } from './assistantClarifyResponse.js';
 import { updateConversationContext } from './assistantConversationContext.js';
+import { openFormModal } from './formModalManager.js';
 
 function buildGracefulFallback(rawText, dataMap, conversationContext) {
   const clarify = buildAssistantClarifyResponse(rawText, dataMap);
@@ -138,9 +139,7 @@ export function openHeyHorizonForm(draft = {}, onNavigate) {
   const navTab = draft.navigation_tab || draft.draft_fields?.navigation_tab;
   const navOpts = navTab ? { tab: navTab } : (draft.primary_module === 'elevage' && draft.form_type?.startsWith('reproduction_') ? { tab: 'Reproduction' } : undefined);
   onNavigate?.(draft.primary_module, navOpts);
-  window.setTimeout(() => {
-    window.dispatchEvent(new CustomEvent('horizon-open-form', { detail: { module: draft.primary_module, draft } }));
-  }, 220);
+  openFormModal({ module: draft.primary_module, draft });
 }
 
 export function isWeakHeyHorizonDraft(draft = {}, text = '') {
@@ -290,7 +289,7 @@ export function updateHeyHorizonDraftField(currentDraft, key, value) {
 export function processHeyHorizonCommand(rawText = '', { dataMap = {}, currentDraft = null, allowWeakDraft = false, conversationContext = null } = {}) {
   const cleaned = normalizeHeyHorizonText(rawText);
   if (!cleaned) {
-    return { kind: 'empty', assistantText: 'Je suis là. Dites-moi ce qui se passe sur la ferme — une vente, un stock, vos animaux, la trésorerie…' };
+    return { kind: 'empty', assistantText: 'Je suis là. Dites-moi ce qui se passe sur la ferme - une vente, un stock, vos animaux, la trésorerie…' };
   }
 
   const naturalLanguage = routeNaturalLanguageQuery(rawText, { dataMap, conversationContext });
@@ -562,7 +561,7 @@ export async function processHeyHorizonCommandAsync(rawText = '', options = {}) 
           kind: 'draft',
           strategic: null,
           draft: llmDraft,
-          assistantText: enhanced.text || buildHeyHorizonAssistantText(llmDraft) || 'Brouillon préparé — vérifie avant validation.',
+          assistantText: enhanced.text || buildHeyHorizonAssistantText(llmDraft) || 'Brouillon préparé - vérifie avant validation.',
           journalEntry,
           source: enhanced.source,
           llmEnhanced: true,
@@ -584,7 +583,7 @@ export async function processHeyHorizonCommandAsync(rawText = '', options = {}) 
       kind: enhanced.source === 'llm' ? 'llm' : 'fallback',
       strategic: enhanced.source === 'llm' ? {
         type: 'llm_answer',
-        title: 'Hey Horizon IA',
+        title: 'Hey Horizon',
         summary: enhanced.text,
         rows: [],
         route: enhanced.moduleKey || 'assistant_erp',

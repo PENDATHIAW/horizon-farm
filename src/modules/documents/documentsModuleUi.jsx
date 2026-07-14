@@ -2,10 +2,10 @@ import { fmtCurrency } from '../../utils/format.js';
 
 export const arr = (v) => (Array.isArray(v) ? v : []);
 export const low = (v) => String(v || '').toLowerCase();
-export const dateOf = (r = {}) => r.date || r.created_at || r.updated_at || r.event_date || '—';
+export const dateOf = (r = {}) => r.date || r.created_at || r.updated_at || r.event_date || '-';
 export const labelOf = (r = {}) => r.title || r.nom || r.name || r.filename || r.libelle || r.id || 'Document';
 export const typeOf = (r = {}) => r.type || r.categorie || r.category || r.module_source || 'Document';
-export const detailOf = (r = {}) => r.description || r.notes || r.module_source || r.related_type || r.entity_type || '—';
+export const detailOf = (r = {}) => r.description || r.notes || r.module_source || r.related_type || r.entity_type || '-';
 export const amountOf = (r = {}) => Number(r.montant || r.amount || r.total || r.montant_total || 0);
 export const hasProof = (r = {}) => Boolean(r.document_id || r.proof_url || r.justificatif_id || r.file_url || r.url);
 export const docIsProof = (r = {}) => /preuve|recu|reçu|facture|paiement|justificatif|finance|achat|vente/.test(low(`${typeOf(r)} ${labelOf(r)}`));

@@ -50,7 +50,7 @@ export function buildCycleOverview({ lots = [], animaux = [], productionLogs = [
     .sort((a, b) => String(a.targetDate).localeCompare(String(b.targetDate)))
     .slice(0, 12);
   const mortalityAlerts = activeLots.filter((lot) => mortalityRate(lot) >= 4);
-  const nextTarget = cycles.all.find((row) => row.targetDate && row.targetDate >= today())?.targetDate || '—';
+  const nextTarget = cycles.all.find((row) => row.targetDate && row.targetDate >= today())?.targetDate || '-';
   const lateCount = lateRows.length;
   const dueSoonCount = dueSoonRows.length;
   const warningCount = lateCount + dueSoonCount + mortalityAlerts.length;

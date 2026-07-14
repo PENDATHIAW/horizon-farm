@@ -1,5 +1,5 @@
 /**
- * Écarts chantier 8 — Activité & Suivi.
+ * Écarts chantier 8 - Activité & Suivi.
  */
 
 import {

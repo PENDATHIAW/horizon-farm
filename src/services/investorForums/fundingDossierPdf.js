@@ -1,5 +1,5 @@
 /**
- * Dossier de financement institutionnel — PDF professionnel (15–20 pages).
+ * Dossier de financement institutionnel - PDF professionnel (15–20 pages).
  * Document cabinet de conseil : banque, investisseur, ONG, incubateur.
  */
 
@@ -113,7 +113,7 @@ export function sanitizeInstitutionalText(text = '') {
 function pick(...values) {
   for (const v of values) {
     const c = clean(v);
-    if (c && c !== '—' && c !== '0') return c;
+    if (c && c !== '-' && c !== '0') return c;
   }
   return '';
 }
@@ -171,7 +171,7 @@ function drawFooter(doc, pageNum, totalPages, packLabel = 'Dossier de financemen
   setColor(doc, COL.muted);
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(8);
-  doc.text(`${packLabel} — confidentiel`, MARGIN.left, h - 10);
+  doc.text(`${packLabel} - confidentiel`, MARGIN.left, h - 10);
   doc.text(`${pageNum} / ${totalPages}`, w - MARGIN.right, h - 10, { align: 'right' });
 }
 
@@ -254,7 +254,7 @@ function buildFounderJourney(profile) {
     `${f.name || 'Penda THIAW'} est ingénieure en Télécommunications et Informatique, diplômée de l'ESMT de Dakar.`,
     'Pendant près de neuf années chez Sonatel, elle a occupé des fonctions exigeantes en pilotage de la performance, analyse financière, reporting et conduite de projets transverses. Elle y a appris à structurer l\'information, à prendre des décisions sous contrainte et à rendre des comptes à des instances exigeantes.',
     'Au fil des années, une conviction s\'est imposée : l\'agriculture sénégalaise peut être plus productive, plus rentable et plus structurée si elle est conduite avec la même rigueur qu\'une grande entreprise de services.',
-    'Plutôt que de rester observatrice, elle a choisi de quitter une carrière stable pour consacrer son énergie à Horizon Farm — non pas comme un hobby, mais comme un projet entrepreneurial à part entière, porté avec méthode et engagement personnel.',
+    'Plutôt que de rester observatrice, elle a choisi de quitter une carrière stable pour consacrer son énergie à Horizon Farm - non pas comme un hobby, mais comme un projet entrepreneurial à part entière, porté avec méthode et engagement personnel.',
     'Son parcours lui apporte une crédibilité rare dans le secteur agricole : la capacité de planifier, de suivre les chiffres, de négocier avec des partenaires et de tenir dans la durée. Elle ne présente pas seulement une ferme : elle présente un projet qu\'elle sait piloter.',
     f.education ? `Formation : ${f.education}.` : '',
     f.experience ? `Expérience : ${f.experience.replace(/\n/g, ' ')}.` : '',
@@ -268,7 +268,7 @@ function buildWhyHorizonFarm(profile) {
   return sanitizeInstitutionalText([
     'Pourquoi ce projet existe',
     probleme || 'Au Sénégal, de nombreuses exploitations agricoles restent fragmentées : peu de traçabilité, des décisions prises au feeling, des difficultés d\'accès au financement et une commercialisation peu structurée. Les producteurs travaillent dur sans toujours disposer des outils pour sécuriser leurs marges.',
-    'Horizon Farm répond à ce constat en construisant une exploitation intégrée — aviculture, bovins, cultures — pensée dès l\'origine comme une entreprise agricole professionnelle.',
+    'Horizon Farm répond à ce constat en construisant une exploitation intégrée - aviculture, bovins, cultures - pensée dès l\'origine comme une entreprise agricole professionnelle.',
     'Quel problème il cherche à résoudre',
     'Produire localement des œufs, de la volaille et de la viande bovine de qualité, avec des coûts maîtrisés, des débouchés identifiés et une organisation capable de rassurer un financeur ou un partenaire.',
     'Pourquoi maintenant',
@@ -295,7 +295,7 @@ function buildWhyFinance(profile, audience) {
     marche || "La consommation d'œufs, de volaille et de viande bovine progresse avec l'urbanisation et la restauration locale. Les débouchés ne sont pas théoriques : ménages, revendeurs, restaurants et marchés de proximité constituent un réservoir de demande régulier.",
     'Pourquoi le projet mérite un accompagnement',
     amount
-      ? `Un financement de ${amount} permettrait de sécuriser les actifs productifs, le stock de démarrage et la trésorerie nécessaire aux premiers cycles — phase où le risque est le plus élevé sans apui externe.`
+      ? `Un financement de ${amount} permettrait de sécuriser les actifs productifs, le stock de démarrage et la trésorerie nécessaire aux premiers cycles - phase où le risque est le plus élevé sans apui externe.`
       : 'Un financement permettrait de sécuriser les actifs productifs et la trésorerie de démarrage, phase critique pour toute exploitation naissante.',
     emplois || 'Le projet prévoit la création d\'emplois locaux directs (gardien, agents avicoles et bovins) et contribue à la sécurité alimentaire et aux revenus agricoles de proximité.',
     audience?.id === 'banque'
@@ -373,23 +373,23 @@ function buildForecastTables(profile) {
 
   const summaryRows = [
     ['Chiffre d\'affaires prévisionnel (année 1)', formatFundingAmount(revenueY1) || PH.afterStart],
-    ['Charges variables (année 1)', formatFundingAmount(chargesVar) || '—'],
-    ['Charges fixes (année 1)', formatFundingAmount(chargesFix) || '—'],
-    ['Masse salariale (année 1)', formatFundingAmount(payroll) || '—'],
-    ['Total charges (année 1)', formatFundingAmount(chargesTotal) || '—'],
-    ['Résultat net prévisionnel (année 1)', formatFundingAmount(resultY1) || '—'],
+    ['Charges variables (année 1)', formatFundingAmount(chargesVar) || '-'],
+    ['Charges fixes (année 1)', formatFundingAmount(chargesFix) || '-'],
+    ['Masse salariale (année 1)', formatFundingAmount(payroll) || '-'],
+    ['Total charges (année 1)', formatFundingAmount(chargesTotal) || '-'],
+    ['Résultat net prévisionnel (année 1)', formatFundingAmount(resultY1) || '-'],
     ['Emplois directs prévus', jobs > 0 ? String(jobs) : PH.afterStart],
   ];
 
   const productionRows = arr(official.revenue?.byActivity).map((row) => [
     row.label || row.activity,
-    row.quantity ? fmtNumber(row.quantity) : '—',
-    formatFundingAmount(row.annual) || '—',
+    row.quantity ? fmtNumber(row.quantity) : '-',
+    formatFundingAmount(row.annual) || '-',
   ]);
 
   const yearRows = arr(official.revenue?.annualByYear).slice(0, 5).map((ca, i) => {
     const res = official.forecast?.resultByYear?.[i];
-    return [`Année ${i + 1}`, formatFundingAmount(ca) || '—', formatFundingAmount(res) || '—'];
+    return [`Année ${i + 1}`, formatFundingAmount(ca) || '-', formatFundingAmount(res) || '-'];
   });
 
   return { summaryRows, productionRows, yearRows };
@@ -471,13 +471,13 @@ export function buildFundingDossierSections(pack = {}) {
       const amount = formatFundingAmount(profile.investorRoom?.seeking?.montant_recherche || profile.keyFigures?.besoin_bp);
       return amount ? `Montant recherché : ${amount}.` : 'Montant à valider avec le financeur.';
     })() },
-    { id: 'use', title: 'Utilisation des fonds', body: 'Ventilation détaillée par poste — voir tableau en annexe du dossier PDF.' },
-    { id: 'forecasts', title: 'Prévisions financières et de production', body: 'Tableaux prévisionnels sur 5 ans — voir dossier PDF.' },
+    { id: 'use', title: 'Utilisation des fonds', body: 'Ventilation détaillée par poste - voir tableau en annexe du dossier PDF.' },
+    { id: 'forecasts', title: 'Prévisions financières et de production', body: 'Tableaux prévisionnels sur 5 ans - voir dossier PDF.' },
     { id: 'impact_economic', title: 'Impact économique', body: buildImpactEconomic(profile) },
     { id: 'impact_social', title: 'Impact social', body: buildImpactSocial(profile) },
     { id: 'risks', title: 'Risques et mesures prévues', body: INSTITUTIONAL_RISKS.map((r) => r.label).join(' · ') },
     { id: 'conclusion', title: 'Conclusion', body: sanitizeInstitutionalText(`Horizon Farm invite ${audience.label || 'le financeur'} à rencontrer ${profile.founderProfile?.name || 'la fondatrice'} et à étudier ce dossier en détail.`) },
-    { id: 'annexes', title: 'Annexes', body: buildAnnexesList(profile).map((a) => `${a.ref} — ${a.label}`).join('\n') },
+    { id: 'annexes', title: 'Annexes', body: buildAnnexesList(profile).map((a) => `${a.ref} - ${a.label}`).join('\n') },
   ];
   return sections.map((s) => ({ ...s, body: stripZeroAmounts(sanitizeInstitutionalText(s.body)) }));
 }
@@ -510,7 +510,7 @@ function renderCoverPage(doc, pack) {
   setColor(doc, COL.text);
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(12);
-  doc.text('Entreprise agricole intégrée — Aviculture · Bovins · Cultures', w / 2, 86, { align: 'center' });
+  doc.text('Entreprise agricole intégrée - Aviculture · Bovins · Cultures', w / 2, 86, { align: 'center' });
 
   setColor(doc, COL.muted);
   doc.setFontSize(11);
@@ -525,7 +525,7 @@ function renderCoverPage(doc, pack) {
   doc.line(25, h - 45, w - 25, h - 45);
   setColor(doc, COL.muted);
   doc.setFontSize(9);
-  doc.text('Document confidentiel — usage institutionnel', w / 2, h - 35, { align: 'center' });
+  doc.text('Document confidentiel - usage institutionnel', w / 2, h - 35, { align: 'center' });
   doc.text('Ne pas diffuser sans autorisation de la porteuse du projet', w / 2, h - 28, { align: 'center' });
 }
 
@@ -577,7 +577,7 @@ function renderFullDossierBody(doc, pack) {
     { number: 4, title: 'Vision', render: (y) => writeParagraphs(doc, y, [sanitizeInstitutionalText(profile.projectSummary?.vision) || PH.launching]) },
     { number: 5, title: 'Mission', render: (y) => writeParagraphs(doc, y, [sanitizeInstitutionalText(profile.projectSummary?.mission) || PH.launching]) },
     { number: 6, title: 'Pourquoi Horizon Farm ?', render: (y) => writeParagraphs(doc, y, splitParagraphs(buildWhyHorizonFarm(profile))) },
-    { number: 7, title: 'Activités', render: (y) => writeParagraphs(doc, y, arr(profile.activities).map((a) => `${a.label} — ${sanitizeInstitutionalText(a.detail)}`)) },
+    { number: 7, title: 'Activités', render: (y) => writeParagraphs(doc, y, arr(profile.activities).map((a) => `${a.label} - ${sanitizeInstitutionalText(a.detail)}`)) },
     { number: 8, title: 'Opportunité de marché', render: (y) => writeParagraphs(doc, y, splitParagraphs(sanitizeInstitutionalText(whyCard(profile, 'marche')?.body || 'Demande locale soutenue en œufs, volaille et viande.'))) },
     { number: 9, title: 'Pourquoi financer Horizon Farm ?', render: (y) => writeParagraphs(doc, y, splitParagraphs(buildWhyFinance(profile, audience))) },
     {
@@ -613,7 +613,7 @@ function renderFullDossierBody(doc, pack) {
       title: 'Prévisions financières et de production',
       render: (y) => {
         const { summaryRows, productionRows, yearRows } = buildForecastTables(profile);
-        let cy = writeParagraphs(doc, y, ['Synthèse prévisionnelle — année 1 et trajectoire quinquennale (source : business plan Horizon Farm).']);
+        let cy = writeParagraphs(doc, y, ['Synthèse prévisionnelle - année 1 et trajectoire quinquennale (source : business plan Horizon Farm).']);
         cy = writeTable(doc, cy, ['Indicateur', 'Montant / valeur'], summaryRows, { columnStyles: { 1: { halign: 'right' } } });
         if (productionRows.length) {
           cy = writeParagraphs(doc, cy, ['Production et chiffre d\'affaires par activité (année 1).']);
@@ -696,9 +696,9 @@ function renderOnePager(doc, pack) {
   const { profile, adapted, audience } = pack;
   doc.addPage();
   fillWhite(doc);
-  let y = newSectionPage(doc, 'Synthèse — One Pager', { numbered: false });
+  let y = newSectionPage(doc, 'Synthèse - One Pager', { numbered: false });
   y = writeParagraphs(doc, y, splitParagraphs(buildExecutiveSummary(profile, adapted)));
-  y = writeParagraphs(doc, y, ['—', buildWhyFinance(profile, audience)].flatMap(splitParagraphs));
+  y = writeParagraphs(doc, y, ['-', buildWhyFinance(profile, audience)].flatMap(splitParagraphs));
   const rows = buildFundUseTableRows(profile).slice(0, 6);
   if (rows.length) writeTable(doc, y, ['Poste', 'Montant'], rows, { columnStyles: { 1: { halign: 'right' } } });
 }

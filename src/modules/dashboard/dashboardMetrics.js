@@ -40,7 +40,7 @@ function surfaceToM2(row = {}) {
   return surface;
 }
 
-/** Surface totale des parcelles de la ferme (m²) — fiches parcelle ou déduction cultures actives. */
+/** Surface totale des parcelles de la ferme (m²) - fiches parcelle ou déduction cultures actives. */
 export function computeFarmParcelSurfaceM2(cultures = []) {
   const rows = arr(cultures);
   const parcelRecords = rows.filter((row) => cultureRecordType(row) === 'parcelle' && isActiveParcelRecord(row));
@@ -61,7 +61,7 @@ export function computeFarmParcelSurfaceM2(cultures = []) {
 }
 
 /**
- * Effectifs exploitation — animaux unitaires, lots avicoles actifs, surface parcelles.
+ * Effectifs exploitation - animaux unitaires, lots avicoles actifs, surface parcelles.
  * Se met à jour via les CRUD animaux / avicole / cultures (ventes, mortalités, naissances, achats…).
  */
 export function computeFarmHeadcount({ animaux = [], lots = [], cultures = [] } = {}) {
@@ -121,7 +121,7 @@ const stockQty = (row = {}) => toNumber(row.quantite ?? row.quantity ?? row.stoc
 const stockThreshold = (row = {}) => toNumber(row.seuil ?? row.threshold ?? row.stock_min ?? row.minimum_stock);
 const stockUnitPrice = (row = {}) => toNumber(row.prixUnit ?? row.prixunit ?? row.prix_unitaire ?? row.unit_price);
 
-/** Résumé stock — même logique que Stocks / Achats & Stock (seuil > 0 pour « sous seuil »). */
+/** Résumé stock - même logique que Stocks / Achats & Stock (seuil > 0 pour « sous seuil »). */
 export function computeStockSummary(stocks = []) {
   const rows = arr(stocks);
   const lowStock = rows.filter((row) => {
@@ -146,7 +146,7 @@ export function formatStockDetail(summary = {}) {
   return parts.join(' · ');
 }
 
-/** Cultures — parcelles, surface et fiches actives (sans alourdir le Dashboard). */
+/** Cultures - parcelles, surface et fiches actives (sans alourdir le Dashboard). */
 export function computeCultureSummary(cultures = []) {
   const rows = arr(cultures);
   const parcelRecords = rows.filter((row) => cultureRecordType(row) === 'parcelle' && isActiveParcelRecord(row));
@@ -184,7 +184,7 @@ export function formatCultureDetail(summary = {}) {
   return parts.length ? parts.join(' · ') : 'Configurer les parcelles';
 }
 
-/** Phase de lancement — aucune activité commerciale, stock, production ou encaissement. */
+/** Phase de lancement - aucune activité commerciale, stock, production ou encaissement. */
 export function isDashboardStartupMode(props = {}) {
   const salesAll = arr(props.salesOrdersAll?.length ? props.salesOrdersAll : props.salesOrders);
   const paymentsAll = arr(props.paymentsAll?.length ? props.paymentsAll : props.payments);
@@ -261,7 +261,7 @@ function sumTabletSales(orders = [], monthKeys = null) {
     .reduce((sum, row) => sum + tabletsFromSale(row), 0);
 }
 
-/** Ponte — période sélectionnée, cumuls ramassage/vente, delta vs mois précédent. */
+/** Ponte - période sélectionnée, cumuls ramassage/vente, delta vs mois précédent. */
 export function computeEggProductionSummary(productionLogs = [], salesOrders = [], periodScope = {}) {
   const { mode, monthKeys, compareMonthKey, isSingleMonth } = resolvePeriodContextLocal(periodScope);
   const logs = arr(productionLogs);

@@ -7,7 +7,7 @@ export function buildActiviteSummaryTodos({ priorityQueue = [], coherenceRows = 
     todos.push({
       id: item.id,
       title: item.title,
-      detail: `${item.detail || '—'} · ${item.severity}`,
+      detail: `${item.detail || '-'} · ${item.severity}`,
       tab: item.kind === 'alerte' ? 'À traiter maintenant' : 'À traiter maintenant',
       kind: item.kind,
       sourceId: item.sourceId,

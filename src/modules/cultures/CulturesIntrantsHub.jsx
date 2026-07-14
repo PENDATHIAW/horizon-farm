@@ -12,7 +12,7 @@ export default function CulturesIntrantsHub(props) {
         <div>
           <h2 className="text-lg font-semibold text-earth">Intrants & météo</h2>
           <p className="mt-1 text-sm text-slate">
-            Utilisation terrain uniquement — chaque intrant validé décrémente le stock et met à jour le coût culture (Finance).
+            Utilisation terrain uniquement - chaque intrant validé décrémente le stock et met à jour le coût culture (Finance).
           </p>
         </div>
         <CultureInputsWeatherPanel stocks={props.stocks} meteo={meteo} weatherLoading={liveWeatherLoading} onNavigate={props.onNavigate} />

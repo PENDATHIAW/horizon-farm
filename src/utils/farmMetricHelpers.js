@@ -1,5 +1,5 @@
 /**
- * Métriques ferme légères — partagées Dashboard et consolidation multi-fermes.
+ * Métriques ferme légères - partagées Dashboard et consolidation multi-fermes.
  */
 
 import { avicoleActiveCount, avicoleHasActiveBirds } from './avicoleMetrics.js';

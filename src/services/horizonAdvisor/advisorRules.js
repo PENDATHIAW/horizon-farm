@@ -1,5 +1,5 @@
 /**
- * Règles complémentaires Horizon Advisor — enrichit erpHealthEngine sans dupliquer Alertes.
+ * Règles complémentaires Horizon Advisor - enrichit erpHealthEngine sans dupliquer Alertes.
  */
 
 import { daysUntilDlc, dlcAlertLevel, requiresDlc } from '../../utils/stockFreshProduct.js';

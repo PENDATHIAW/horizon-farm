@@ -56,7 +56,7 @@ function OpportunityCard({ row, match, onConvert, onContactClient, onContactAll,
             <p className="mt-1 text-sm font-semibold text-horizon-dark">{match.label}</p>
             {qty ? <p className="text-xs text-slate">Qté {qty} {row.unit || ''}</p> : null}
             {row.reason ? <p className="mt-1 text-xs text-slate line-clamp-2">{row.reason}</p> : null}
-            {row.recommendation ? <p className="mt-1 text-xs font-semibold text-earth">IA : {row.recommendation}</p> : null}
+            {row.recommendation ? <p className="mt-1 text-xs font-semibold text-earth">Suggestion : {row.recommendation}</p> : null}
           </div>
         </div>
         <span className="shrink-0 text-lg font-semibold text-positive">{fmtCurrency(amount)}</span>
@@ -138,7 +138,7 @@ export default function CommercialOpportunitiesPanel({
       window.open(`tel:${phone}`, '_self');
       return;
     }
-    setContact({ client, message: opportunityMessageForClient(opportunity, client), title: `Proposer — ${client.nom || client.name}` });
+    setContact({ client, message: opportunityMessageForClient(opportunity, client), title: `Proposer - ${client.nom || client.name}` });
   };
 
   const openContactAll = (opportunity, clientList) => {
@@ -205,7 +205,7 @@ export default function CommercialOpportunitiesPanel({
 
       <SellableStockPublicationBridge
         rows={stocks}
-        title="Stock vendable — publications IA"
+        title="Stock vendable : publications"
         subtitle="Messages WhatsApp, Facebook, SMS et offres promo (DLC urgente) sans envoi automatique."
         onWhatsAppLog={onWhatsAppLog}
       />
@@ -214,7 +214,7 @@ export default function CommercialOpportunitiesPanel({
         <div>
           <p className="text-meta font-semibold uppercase tracking-normal text-slate">Pipeline</p>
           <p className="text-2xl font-semibold text-earth">{fmtCurrency(pipeline)}</p>
-          <p className="text-sm text-slate">{mergedOpportunities.length} opportunité(s) · stock, cultures, élevage — clients ciblés automatiquement</p>
+          <p className="text-sm text-slate">{mergedOpportunities.length} opportunité(s) · stock, cultures, élevage - clients ciblés automatiquement</p>
         </div>
         <div className="flex flex-wrap gap-2">
           <button type="button" onClick={openDirectSale} className="min-h-[44px] rounded-xl bg-earth px-4 py-2 text-sm font-semibold text-white">+ Vente directe</button>

@@ -1,5 +1,5 @@
 /**
- * Commercial V1 P0 — backfill idempotent farm_id sur ventes historiques.
+ * Commercial V1 P0 - backfill idempotent farm_id sur ventes historiques.
  * Ne modifie que les lignes sans farm_id.
  */
 

@@ -15,7 +15,7 @@ export default function FinanceDataQualityPanel({ dataQuality = null, onNavigate
 
       {dataQuality.insufficientData ? (
         <p className="mt-4 rounded-2xl border border-vigilance bg-vigilance-bg px-4 py-3 text-sm text-horizon-dark">
-          En attente de données — les contrôles qualité s'activent après la première vente, paiement ou dépense.
+          En attente de données - les contrôles qualité s'activent après la première vente, paiement ou dépense.
         </p>
       ) : dataQuality.empty ? (
         <p className="mt-4 rounded-2xl border border-positive bg-positive-bg px-4 py-3 text-sm text-positive">

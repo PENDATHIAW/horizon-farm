@@ -11,7 +11,7 @@ import {
 const fmtMoney = (n) => `${Number(n || 0).toLocaleString('fr-FR')} FCFA`;
 
 /**
- * Brouillon message client (relance, confirmation) — pas d'envoi automatique.
+ * Brouillon message client (relance, confirmation) - pas d'envoi automatique.
  */
 export function proposeClientMessageDraft({
   clientName = '',
@@ -47,7 +47,7 @@ export function proposeClientMessageDraft({
 }
 
 /**
- * Brouillon vente terrain — exécution via commitSaleWorkflow / commitCommercialSale après validation.
+ * Brouillon vente terrain - exécution via commitSaleWorkflow / commitCommercialSale après validation.
  */
 export function proposeSaleDraft({
   clientName = '',
@@ -108,7 +108,7 @@ export function proposeSaleDraft({
 }
 
 /**
- * Brouillon encaissement — recordSalePayment après validation.
+ * Brouillon encaissement - recordSalePayment après validation.
  */
 export function proposePaymentDraft({
   saleId = '',

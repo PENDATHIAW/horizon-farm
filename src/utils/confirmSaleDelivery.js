@@ -36,7 +36,7 @@ function orderTotal(sale = {}, fee = 0) {
 }
 
 /**
- * Confirme ou planifie une livraison vente — création livraison + MAJ commande + tâches.
+ * Confirme ou planifie une livraison vente - création livraison + MAJ commande + tâches.
  */
 export async function confirmSaleDelivery({
   sale = {},

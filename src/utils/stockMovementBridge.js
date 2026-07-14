@@ -1,5 +1,5 @@
 /**
- * Commercial V3 — pont stock_movements : planifie et matérialise les sorties vente.
+ * Commercial V3 - pont stock_movements : planifie et matérialise les sorties vente.
  */
 
 const clean = (value) => String(value || '').trim();
@@ -16,7 +16,7 @@ export function planStockMovementFromSaleLine({
       ready: Boolean(patchPlan?.id),
       movement: null,
       note: patchPlan?.id
-        ? 'Impact appliqué — mouvement stock enregistrable'
+        ? 'Impact appliqué - mouvement stock enregistrable'
         : 'Aucun impact stock (service/autre ou non appliqué)',
     };
   }

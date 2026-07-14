@@ -1,5 +1,5 @@
 /**
- * Génération des dossiers exportables (PDF) — architecture extensible.
+ * Génération des dossiers exportables (PDF) - architecture extensible.
  * Dossiers institutionnels via fundingDossierPdf ; rapports module pour impact/financier.
  */
 
@@ -66,7 +66,7 @@ export function buildForumPack(profile = {}, { audienceKey = 'investisseur_prive
     profile,
     adapted,
     readiness,
-    title: `${packDef.label} — ${audience.label}`,
+    title: `${packDef.label} - ${audience.label}`,
     subtitle: sanitizeInstitutionalText(adapted.executiveSummary || profile.tagline),
   };
 
@@ -134,7 +134,7 @@ export function downloadForumPackPdf(pack = {}) {
   return { blob, filename };
 }
 
-/** Export PDF — dossiers multi-pages ou rapports module (legacy). */
+/** Export PDF - dossiers multi-pages ou rapports module (legacy). */
 export function exportForumPackPdf(pack = {}) {
   return downloadForumPackPdf(pack);
 }

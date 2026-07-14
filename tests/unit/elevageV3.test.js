@@ -114,7 +114,7 @@ test('V3 — marge non fiable si données manquantes', () => {
   assert.ok(row);
   assert.equal(row.reliable, false);
   const formatted = formatActivityPnlRow(row);
-  assert.match(formatted, /partielle|—/i);
+  assert.match(formatted, /partielle|-/i);
 });
 
 test('V3 — formatActivityPnlRow n\'affiche pas marge fiable si non fiable', () => {

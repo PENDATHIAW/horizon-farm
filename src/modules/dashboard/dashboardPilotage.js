@@ -53,7 +53,7 @@ function supplierDebts(fournisseurs = []) {
     .filter((row) => row.amount > 0);
 }
 
-/** Mes priorités — 3 à 5 actions dirigeant, messages actionnables. */
+/** Mes priorités - 3 à 5 actions dirigeant, messages actionnables. */
 export function buildDashboardPriorities(summary = {}, props = {}, health = {}) {
   const items = [];
   const salesAll = arr(props.salesOrdersAll?.length ? props.salesOrdersAll : props.salesOrders);
@@ -83,7 +83,7 @@ export function buildDashboardPriorities(summary = {}, props = {}, health = {}) 
       id: 'debts',
       priority: summary.cashNet < debtTotal ? 8 : 18,
       tone: summary.cashNet < debtTotal ? 'red' : 'amber',
-      title: debts.length > 1 ? `${debts.length} dettes fournisseurs à régler` : `Dette fournisseur : ${debts[0]?.name || '—'}`,
+      title: debts.length > 1 ? `${debts.length} dettes fournisseurs à régler` : `Dette fournisseur : ${debts[0]?.name || '-'}`,
       detail: `${fmtCurrency(debtTotal)} reste à payer`,
       moduleKey: 'finance_pilotage',
       tab: 'Créances & dettes',
@@ -181,7 +181,7 @@ export function buildDashboardPriorities(summary = {}, props = {}, health = {}) 
     .map(({ action, finding, ...item }) => ({ ...item, action, finding }));
 }
 
-/** Synthèse narrative — règles métier simples, sans LLM. */
+/** Synthèse narrative - règles métier simples, sans LLM. */
 export function buildDashboardNarrative(summary = {}, props = {}) {
   const lines = [];
   const salesAll = arr(props.salesOrdersAll?.length ? props.salesOrdersAll : props.salesOrders);
@@ -194,7 +194,7 @@ export function buildDashboardNarrative(summary = {}, props = {}) {
     if (attainment >= 100) lines.push('Les ventes dépassent l\'objectif de la période.');
     else if (attainment >= 70) lines.push('Les ventes progressent vers l\'objectif.');
     else if (attainment > 0) lines.push('Les ventes restent en retard sur le plan.');
-    else lines.push('Les ventes sont enregistrées — objectif à calibrer.');
+    else lines.push('Les ventes sont enregistrées - objectif à calibrer.');
   } else {
     lines.push('Aucune vente sur la période sélectionnée.');
   }
@@ -294,7 +294,7 @@ const STARTUP_STEPS = [
   },
 ];
 
-/** Parcours progressif mode lancement — 6 étapes. */
+/** Parcours progressif mode lancement - 6 étapes. */
 export function buildDashboardStartupJourney(props = {}, summary = {}) {
   const steps = STARTUP_STEPS.map((def) => ({
     id: def.id,
@@ -317,7 +317,7 @@ export function buildDashboardStartupJourney(props = {}, summary = {}) {
   };
 }
 
-/** Score exploitation — finances, production, ventes, conformité, qualité données. */
+/** Score exploitation - finances, production, ventes, conformité, qualité données. */
 export function buildExploitationScore(summary = {}, health = {}, props = {}) {
   const healthScore = n(health.score ?? 100);
   const financeScore = (() => {
@@ -377,7 +377,7 @@ export function buildExploitationScore(summary = {}, health = {}, props = {}) {
   };
 }
 
-/** Score préparation investisseur — réutilise getInvestorReadySummary. */
+/** Score préparation investisseur - réutilise getInvestorReadySummary. */
 export function buildDashboardInvestorReadiness(props = {}) {
   const dataMap = {
     sales_orders: props.salesOrdersAll || props.salesOrders || [],
@@ -419,7 +419,7 @@ export function buildDashboardInvestorReadiness(props = {}) {
   };
 }
 
-/** Bloc agricole synthétique — aviculture, bovins, cultures. */
+/** Bloc agricole synthétique - aviculture, bovins, cultures. */
 export function buildFarmOverview(summary = {}) {
   const head = summary.headcount || {};
   const culture = summary.cultureSummary || {};
@@ -455,7 +455,7 @@ export function buildFarmOverview(summary = {}) {
   };
 }
 
-/** Rapport météo — composant existant via AppLayout + hook useLiveWeather. */
+/** Rapport météo - composant existant via AppLayout + hook useLiveWeather. */
 export function buildDashboardWeatherReport(meteo = {}, weatherLoading = false) {
   const hasData = Boolean(meteo && (meteo.temp != null || meteo.temperature != null));
   return {
@@ -463,7 +463,7 @@ export function buildDashboardWeatherReport(meteo = {}, weatherLoading = false) 
     location: 'AppLayout header + useLiveWeather hook',
     dashboardStrip: hasData,
     absent: false,
-    futureCost: hasData ? null : 'Réutiliser useLiveWeather (déjà branché) — coût marginal nul',
+    futureCost: hasData ? null : 'Réutiliser useLiveWeather (déjà branché) - coût marginal nul',
     loading: weatherLoading,
     temp: meteo.temp ?? meteo.temperature ?? null,
     condition: meteo.condition || meteo.weather || null,

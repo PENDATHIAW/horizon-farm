@@ -107,7 +107,7 @@ async function createSupplierDebt(row, amount, props) {
   });
   await props.tachesCrud?.create?.({
     id: makeId('TSK'),
-    title: `Paiement fournisseur — ${supplierName(supplier)}`,
+    title: `Paiement fournisseur - ${supplierName(supplier)}`,
     module_lie: 'fournisseurs',
     related_id: id,
     due_date: today(),

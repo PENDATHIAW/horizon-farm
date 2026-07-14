@@ -27,7 +27,7 @@ export default function FinancialPlanLightPanel({ dataMap = {}, salesOrders = []
       <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
         <div>
           <p className="text-xs uppercase tracking-normal text-horizon-dark font-semibold flex items-center gap-2"><PiggyBank size={15} aria-hidden="true" /> Fichier financier intégré</p>
-          <h2 className="mt-1 text-xl font-semibold text-earth">Plan Horizon Farm — objectifs officiels</h2>
+          <h2 className="mt-1 text-xl font-semibold text-earth">Plan Horizon Farm - objectifs officiels</h2>
           <p className="mt-1 text-sm text-slate leading-relaxed">
             Année 1 d&apos;activité · démarrage {model.activityYear?.startDate ? new Date(model.activityYear.startDate).toLocaleDateString('fr-FR') : 'non renseigné'}
             {' · '}

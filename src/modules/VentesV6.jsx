@@ -70,7 +70,7 @@ export default function VentesV6(props) {
         return null;
       }
       if (result?.skipped && result.reason === 'duplicate_payment') {
-        toast.success('Encaissement déjà enregistré — aucun doublon créé.');
+        toast.success('Encaissement déjà enregistré - aucun doublon créé.');
         return result.payment;
       }
       void props.onRefreshWorkflow?.();

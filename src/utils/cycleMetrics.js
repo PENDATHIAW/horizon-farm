@@ -1,5 +1,5 @@
 /**
- * Cycles V1 — KPI, alertes panel, export investisseur.
+ * Cycles V1 - KPI, alertes panel, export investisseur.
  * Pas d'entité cycle : projections J+40 / J+90 / J+510.
  */
 
@@ -34,7 +34,7 @@ const TYPE_LABEL = {
   pondeuses: 'Pondeuses',
 };
 
-/** Synthèse blocages lancement (BFR + vide sanitaire) — sans nouveau moteur IA. */
+/** Synthèse blocages lancement (BFR + vide sanitaire) - sans nouveau moteur IA. */
 export function summarizeLaunchBlocks(strategicPlan = {}) {
   const bfr = strategicPlan.bfr || {};
   const sanitary = arr(strategicPlan.sanitary).filter((row) => row.blocking);
@@ -67,8 +67,8 @@ export function buildCycleV1Kpis({
   const next = upcoming[0];
   const nextExitLabel = next
     ? `${TYPE_LABEL[next.type] || next.type || 'Cycle'} · ${next.label || next.id}`
-    : '—';
-  const nextExitDate = next?.targetDate || overview.nextTarget || '—';
+    : '-';
+  const nextExitDate = next?.targetDate || overview.nextTarget || '-';
 
   return {
     dueSoonCount: overview.dueSoonCount,
@@ -144,7 +144,7 @@ export function isCycleRelatedAlert(alert = {}, cycleEntityIds = new Set()) {
   return false;
 }
 
-/** Alertes cycles pour l'onglet — alignées AlertesCenter, sans dupliquer le module Alertes. */
+/** Alertes cycles pour l'onglet - alignées AlertesCenter, sans dupliquer le module Alertes. */
 export function buildCycleAlertsForPanel({
   lots = [],
   animaux = [],

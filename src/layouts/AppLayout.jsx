@@ -270,7 +270,7 @@ export default function AppLayout({
                 </div>
               ) : null}
             </div>
-            <button type="button" onClick={() => setQuickEntryOpen(true)} className="hidden min-h-11 items-center gap-2 rounded-control bg-horizon px-4 py-2 text-sm font-semibold text-earth shadow-card hover:bg-horizon-dark hover:text-pure md:inline-flex">
+            <button type="button" onClick={() => setQuickEntryOpen(true)} className="hidden min-h-11 shrink-0 items-center gap-2 whitespace-nowrap rounded-control bg-horizon px-4 py-2 text-sm font-semibold text-earth shadow-card hover:bg-horizon-dark hover:text-pure md:inline-flex">
               <Zap size={17} aria-hidden="true" /> Saisie rapide
             </button>
             <div className="flex items-center gap-1">

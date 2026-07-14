@@ -95,8 +95,8 @@ export default function DocumentScannerPanel({
       setDraft(nextDraft);
       setEditFields({ ...(nextDraft.draft?.fields || {}) });
       setExtractionHint(extraction.hint || (empty ? 'Ajoutez le texte extrait pour améliorer la détection.' : ''));
-      if (empty) toast('Texte limité — complétez ci-dessous puis relancez.', { icon: '⚠️' });
-      else toast.success('Brouillon préparé — vérifiez avant validation.');
+      if (empty) toast('Texte limité - complétez ci-dessous puis relancez.', { icon: '⚠️' });
+      else toast.success('Brouillon préparé - vérifiez avant validation.');
     } catch (e) {
       toast.error(e.message || 'Analyse impossible');
     } finally {
@@ -139,7 +139,7 @@ export default function DocumentScannerPanel({
         toast.error(result.error || 'Exécution refusée');
         return;
       }
-      toast.success('Document validé — opération enregistrée via le workflow métier.');
+      toast.success('Document validé - opération enregistrée via le workflow métier.');
       setDraft(null);
       setFile(null);
       setPastedText('');
@@ -162,7 +162,7 @@ export default function DocumentScannerPanel({
   return (
     <section className="rounded-3xl border border-line bg-white p-6 shadow-card space-y-6">
       <div>
-        <p className="text-xs uppercase tracking-normal text-horizon-dark font-semibold">Scanner IA</p>
+        <p className="text-xs uppercase tracking-normal text-horizon-dark font-semibold">Scanner</p>
         <h2 className="mt-1 flex items-center gap-2 text-lg font-semibold text-earth">
           <FileScan size={22} />
           Scanner document

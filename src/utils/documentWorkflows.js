@@ -28,7 +28,7 @@ export function buildDocumentProofFollowUp({ document = {}, transaction = {}, da
     key,
     task: {
       id: taskId,
-      title: `Joindre preuve / facture — ${label}`,
+      title: `Joindre preuve / facture - ${label}`,
       module_lie: 'documents',
       related_id: document.id || targetId,
       document_id: document.id,

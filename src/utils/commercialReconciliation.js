@@ -1,6 +1,6 @@
 /**
- * Commercial V2 — réconciliation Commercial ↔ Finance V3.
- * Détection read-only — pas de correction automatique.
+ * Commercial V2 - réconciliation Commercial ↔ Finance V3.
+ * Détection read-only - pas de correction automatique.
  */
 
 import { buildCommercialSaleGapRows } from './commercialSaleIntegrity.js';

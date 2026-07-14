@@ -53,6 +53,7 @@ import ModuleProjectionsStrip from '../components/module/ModuleProjectionsStrip.
 import { buildCommercialModuleProjections } from '../utils/moduleProjections.js';
 import VentesV5 from './VentesV5.jsx';
 import ClientsReadable from './ClientsReadable';
+import { subscribeFormModal } from '../services/formModalManager.js';
 
 
 
@@ -125,7 +126,7 @@ function Summary({ data, setTab, onNavigate, onApplyFinding, busyId }) {
           <div className="mb-3 flex items-center justify-between gap-2">
             <div>
               <h2 className="text-sm font-semibold text-earth">À traiter aujourd&apos;hui</h2>
-              <p className="text-meta text-slate">Encaissements, livraisons, factures — actions directes.</p>
+              <p className="text-meta text-slate">Encaissements, livraisons, factures - actions directes.</p>
             </div>
             {data.todoCount > 0 ? (
               <button type="button" onClick={() => setTab('Ventes')} className="text-xs font-semibold text-horizon-dark">Tout voir →</button>
@@ -146,7 +147,7 @@ function Summary({ data, setTab, onNavigate, onApplyFinding, busyId }) {
             </div>
           ) : (
             <div className="rounded-xl border border-positive bg-positive-bg px-4 py-6 text-center text-sm text-positive">
-              Rien d&apos;urgent — ventes, factures et livraisons sont à jour.
+              Rien d&apos;urgent - ventes, factures et livraisons sont à jour.
             </div>
           )}
         </section>
@@ -190,16 +191,15 @@ export default function CommercialRecoveredModule(props) {
   }, [controlled, initialTab]);
 
   useEffect(() => {
-    const handler = (event) => {
-      const draft = event.detail?.draft;
-      const module = event.detail?.module;
-      if ((module === 'commercial' || module === 'ventes') && draft?.form_type === 'sale_record') {
-        setPendingSaleDraft(draft);
-        setTab('Ventes');
-      }
+    const handler = (detail = {}) => {
+      const draft = detail.draft;
+      const module = detail.module;
+      if (!['commercial', 'ventes'].includes(module) || draft?.form_type !== 'sale_record') return false;
+      setPendingSaleDraft(draft);
+      setTab('Ventes');
+      return true;
     };
-    window.addEventListener('horizon-open-form', handler);
-    return () => window.removeEventListener('horizon-open-form', handler);
+    return subscribeFormModal(handler, { modules: ['commercial', 'ventes'] });
   }, [setTab]);
   const ordersCrud = useCrudModule('sales_orders');
   const itemsCrud = useCrudModule('sales_order_items');
@@ -535,7 +535,7 @@ export default function CommercialRecoveredModule(props) {
     await whatsappLogsCrud.create?.(payload);
     await whatsappLogsCrud.refresh?.();
     setTab('Clients & créances');
-    toast.success('Message préparé — confirmez l\'envoi depuis la fiche client');
+    toast.success('Message préparé - confirmez l\'envoi depuis la fiche client');
   };
 
   const openClientTab = () => setTab('Clients & créances');
@@ -565,7 +565,7 @@ export default function CommercialRecoveredModule(props) {
     );
     setPendingSaleDraft({ form_type: 'sale_record', intent_label: `Convertir: ${opp.title || opp.libelle || 'Opportunité'}`, ...formDraft });
     setTab('Ventes');
-    toast.success('Formulaire vente prérempli — validez pour clôturer l\'opportunité');
+    toast.success('Formulaire vente prérempli - validez pour clôturer l\'opportunité');
   };
 
   const todoBadge = data.todoCount;

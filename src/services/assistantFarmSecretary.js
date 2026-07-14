@@ -1,5 +1,5 @@
 /**
- * Contexte secrétaire agricole — lecture seule via moteurs de calcul existants.
+ * Contexte secrétaire agricole - lecture seule via moteurs de calcul existants.
  * consolidateFinance · buildConsolidatedCommercialKpis · buildObjectifsCroissanceData · carnetHorizon
  */
 
@@ -77,7 +77,7 @@ export function buildAssistantSecretaryContext(props = {}) {
   return { summary, secretaryProps };
 }
 
-/** En-tête « Ferme Horizon » — texte uniquement, pas de KPI/cartes. */
+/** En-tête « Ferme Horizon » - texte uniquement, pas de KPI/cartes. */
 export function buildAssistantFarmHeader(props = {}) {
   const { summary, secretaryProps } = buildAssistantSecretaryContext(props);
   const cards = buildCarnetDomainCards(summary, secretaryProps);
@@ -97,7 +97,7 @@ export function buildAssistantFarmHeader(props = {}) {
   };
 }
 
-/** Message d'accueil conversationnel — ton directeur d'exploitation, zéro liste ERP. */
+/** Message d'accueil conversationnel - ton directeur d'exploitation, zéro liste ERP. */
 export function buildAssistantWelcomeMessage(displayName = 'Exploitant', props = {}) {
   const { summary, secretaryProps } = buildAssistantSecretaryContext(props);
   const firstName = String(displayName || 'Exploitant').trim().split(/\s+/)[0];

@@ -46,7 +46,7 @@ function formatRecommendations(recommendations = []) {
   return section(
     'recommandations',
     'Recommandations',
-    `${recommendations.length} signal(aux) IA`,
+    `${recommendations.length} signal(aux) d’analyse`,
     top.join(' · ') || MISSING,
     recommendations.length > 2 ? 'warn' : 'ok',
   );
@@ -199,7 +199,7 @@ export function formatVoiceBrief({
     || (queryType === 'encaissements' && snapshot.finance?.treasury?.encaissements > 0
       ? `Encaissements : ${fmtCurrency(snapshot.finance.treasury.encaissements)}${periodLabel !== MISSING ? ` sur ${periodLabel}` : ''}.`
       : queryType === 'low_stock' && snapshot.inventory?.stock?.sous_seuil > 0
-        ? `${snapshot.inventory.stock.sous_seuil} stock(s) sous seuil — vérifie les réapprovisionnements.`
+        ? `${snapshot.inventory.stock.sous_seuil} stock(s) sous seuil - vérifie les réapprovisionnements.`
         : `${farmName !== MISSING ? `${farmName} · ` : ''}${title}${periodLabel !== MISSING ? ` · ${periodLabel}` : ''}.`);
 
   const bodyLines = visibleSections.map((s) => sectionToLine(s));
@@ -215,7 +215,7 @@ export function formatVoiceBrief({
     '',
     ...bodyLines,
     '',
-    'Lecture seule — aucune écriture ERP sans validation.',
+    'Lecture seule - aucune écriture ERP sans validation.',
   ].join('\n');
 
   const ttsText = [

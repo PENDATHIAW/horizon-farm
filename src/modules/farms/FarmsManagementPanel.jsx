@@ -236,8 +236,8 @@ export default function FarmsManagementPanel({
                     {formatFarmActivitiesLabel(farm.activity_type)}
                   </p>
                   <div className="grid grid-cols-1 gap-2 text-sm text-slate md:grid-cols-3">
-                    <p><b className="text-earth">Localisation :</b> {[farm.region, farm.location, farm.country].filter(Boolean).join(', ') || '—'}</p>
-                    <p><b className="text-earth">Responsable :</b> {farm.settings?.manager_name || '—'}</p>
+                    <p><b className="text-earth">Localisation :</b> {[farm.region, farm.location, farm.country].filter(Boolean).join(', ') || '-'}</p>
+                    <p><b className="text-earth">Responsable :</b> {farm.settings?.manager_name || '-'}</p>
                     <p><b className="text-earth">Statut :</b> {farm.status}</p>
                   </div>
                 </div>

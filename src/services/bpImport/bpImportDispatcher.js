@@ -1,5 +1,5 @@
 /**
- * Import BP — répartit le contenu des 4 onglets vers les bons modules ERP.
+ * Import BP - répartit le contenu des 4 onglets vers les bons modules ERP.
  * Source principale : horizonFarmOfficialBusinessPlan (transcription du xlsx).
  * Option : parseBpExcelWorkbook() pour import fichier direct.
  */
@@ -203,7 +203,7 @@ export function dispatchOfficialBpImport(businessPlanId = '', bp = HORIZON_FARM_
     module_cible: BP_TARGET_MODULES.DOCUMENTS,
     source_bp_sheet: BP_SHEET_KEYS.PLAN_IMPRIMABLE,
     read_only: true,
-    title: 'Plan financier à imprimer — synthèse BP',
+    title: 'Plan financier à imprimer - synthèse BP',
     forecast: bp.forecast,
     workingCapital: bp.workingCapital,
     revenueByYear: bp.revenue.annualByYear,
@@ -221,7 +221,7 @@ export function dispatchOfficialBpImport(businessPlanId = '', bp = HORIZON_FARM_
 }
 
 /**
- * Parse un classeur xlsx BP — détection onglets + métadonnées brutes (sans dispatch).
+ * Parse un classeur xlsx BP - détection onglets + métadonnées brutes (sans dispatch).
  */
 export function parseBpExcelWorkbook(arrayBuffer, fileName = '') {
   const { parsedMeta } = parseBpExcelWorkbookToOfficialBp(arrayBuffer, fileName);

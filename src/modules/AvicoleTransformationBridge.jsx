@@ -82,6 +82,6 @@ export default function AvicoleTransformationBridge({ rows = [], alimentationLog
       <Field label="Autres"><Input type="number" min="0" value={form.autres_frais || ''} onChange={(e) => update('autres_frais', e.target.value)} /></Field>
       <div className="flex items-end"><button type="submit" className="inline-flex items-center gap-2 rounded-xl bg-earth px-3 py-2 text-xs font-semibold text-white"><Plus size={14} /> Ajouter</button></div>
     </form>
-    <div className="rounded-2xl border border-line bg-card p-3 text-sm text-slate">Prévision coût/kg : <b className="text-earth">{unitKg ? fmtCurrency(unitKg) : '—'}</b> · frais transformation : <b>{fmtCurrency(extra)}</b></div>
+    <div className="rounded-2xl border border-line bg-card p-3 text-sm text-slate">Prévision coût/kg : <b className="text-earth">{unitKg ? fmtCurrency(unitKg) : '-'}</b> · frais transformation : <b>{fmtCurrency(extra)}</b></div>
   </section>;
 }

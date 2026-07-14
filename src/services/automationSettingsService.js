@@ -51,7 +51,7 @@ export const defaultAutomationSettings = [
   {
     id: 'taches_alertes_critiques',
     key: 'taches_alertes_critiques',
-    label: 'Tâches auto — alertes critiques',
+    label: 'Tâches auto - alertes critiques',
     description: 'Crée une tâche terrain dès qu’une alerte critique ou urgence est enregistrée',
     enabled: true,
     category: 'terrain',

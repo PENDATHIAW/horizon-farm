@@ -64,6 +64,7 @@ export default function GlobalQuickEntryMenu({ open, onClose, onNavigate }) {
               <button
                 key={entry.id}
                 type="button"
+                data-testid={`global-quick-entry-${entry.id}`}
                 onClick={() => select(entry)}
                 className="flex min-h-16 items-center gap-3 rounded-control border border-line bg-pure px-3 py-3 text-left text-sm font-semibold text-ink hover:border-leaf hover:bg-positive-bg"
               >

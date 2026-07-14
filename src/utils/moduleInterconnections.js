@@ -2,7 +2,7 @@ const arr = (value) => Array.isArray(value) ? value : [];
 const low = (value) => String(value || '').toLowerCase();
 const n = (value = 0) => Number(value || 0);
 const amount = (row = {}) => n(row.montant ?? row.amount ?? row.total ?? row.montant_total ?? row.total_amount ?? row.cout ?? row.cost ?? 0);
-const dateOf = (row = {}) => row.event_date || row.date || row.created_at || row.updated_at || '—';
+const dateOf = (row = {}) => row.event_date || row.date || row.created_at || row.updated_at || '-';
 const labelOf = (row = {}) => row.title || row.nom || row.name || row.libelle || row.produit || row.id || 'Élément';
 
 export const MODULE_ROUTES = {

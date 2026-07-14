@@ -74,7 +74,7 @@ export default function GreenpreneursReadinessCard({
           <p className="text-xs uppercase tracking-normal text-slate font-semibold">{profile.program}</p>
           <h3 className="text-lg font-semibold text-earth flex items-center gap-2 mt-1">
             <Leaf size={18} className="text-positive" />
-            Score Greenpreneurs — {readiness.profile.projectName}
+            Score Greenpreneurs - {readiness.profile.projectName}
           </h3>
           <p className="text-sm text-slate mt-1">
             {readiness.profile.ownerName} · {readiness.profile.location}

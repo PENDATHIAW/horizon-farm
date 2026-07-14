@@ -1,5 +1,5 @@
 /**
- * Commercial V2 — WhatsApp fiable (statuts explicites, pas de faux envoi API).
+ * Commercial V2 - WhatsApp fiable (statuts explicites, pas de faux envoi API).
  */
 
 const clean = (value) => String(value || '').trim();

@@ -57,7 +57,7 @@ export default function ChartExplainPanel({ payload, disabled = false }) {
         <Lightbulb size={14} />
         {open ? 'Masquer l\'explication' : 'Expliquer cette courbe'}
       </button>
-      <p className="mt-1 text-meta text-slate">Aide à l'interprétation — aucune modification des données.</p>
+      <p className="mt-1 text-meta text-slate">Aide à l'interprétation - aucune modification des données.</p>
 
       {open ? (
         <div className="mt-3 rounded-2xl border border-line bg-card p-4 text-sm text-earth space-y-3">

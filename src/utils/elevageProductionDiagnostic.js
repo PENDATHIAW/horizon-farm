@@ -87,7 +87,7 @@ function scorePondeuseLot(lot, ctx) {
   const hints = [];
   if (['baisse_ponte', 'casses_elevees', 'ramassage_manquant'].includes(decision.status)) {
     score += 70;
-    if (decision.status === 'baisse_ponte') hints.push(`baisse de ponte (${decision.layingRateLabel || '—'})`);
+    if (decision.status === 'baisse_ponte') hints.push(`baisse de ponte (${decision.layingRateLabel || '-'})`);
     else if (decision.status === 'casses_elevees') hints.push('casses élevées');
     else hints.push('ramassage manquant');
   }
@@ -261,12 +261,12 @@ export function buildProductionDiagnostic(target, marginContext = {}) {
       actionRecommandee: 'Ouvrir Transformation, vérifier abattages et stock viande (Achats & Stock).',
       financial: {
         costLabel: PRODUCTION_FINANCE_LABELS.costTotal,
-        costValue: '—',
+        costValue: '-',
         revenueLabel: PRODUCTION_FINANCE_LABELS.revenue,
-        revenueValue: '—',
+        revenueValue: '-',
         margin: {
           label: PRODUCTION_FINANCE_LABELS.marginGross,
-          value: '—',
+          value: '-',
           tone: 'neutral',
           note: PRODUCTION_FINANCE_LABELS.marginNote,
         },
@@ -292,11 +292,11 @@ export function buildProductionDiagnostic(target, marginContext = {}) {
     const decision = buildBroilerLotDecision(row);
     const lag = growthLagPct(decision);
     const kpi = buildChairKpis(row, ctx);
-    constat = `Poids moyen ${kpi.avgWeight?.toFixed(2) || '—'} kg · mortalité ${fmtNumber(kpi.mortality)} · statut ${decision.status || '—'}.`;
+    constat = `Poids moyen ${kpi.avgWeight?.toFixed(2) || '-'} kg · mortalité ${fmtNumber(kpi.mortality)} · statut ${decision.status || '-'}.`;
     if (decision.status === 'retard_croissance' || lag >= 8) {
       causeProbable = `Gain quotidien inférieur à la cible adaptative (écart ~${lag || 10} %).`;
       impact = 'Allongement du cycle et hausse de l’IC si la vente est retardée.';
-      actionRecommandee = 'Vérifier ration, eau, température et Santé — pesée dans Avicole.';
+      actionRecommandee = 'Vérifier ration, eau, température et Santé - pesée dans Avicole.';
     } else if (kpi.mortalityRate > 5) {
       causeProbable = 'Mortalité élevée sur la bande.';
       impact = 'Perte d’effectif et coût de production unitaire en hausse.';
@@ -313,28 +313,28 @@ export function buildProductionDiagnostic(target, marginContext = {}) {
   } else if (target.type === 'lot_pondeuse') {
     const decision = buildLayerLotDecision(row, ctx.productionLogs || []);
     const kpi = buildPondeuseKpis(row, ctx);
-    constat = `Taux ponte ${decision.layingRateLabel || '—'} · œufs vendables période ${fmtNumber(kpi.eggsSellable)}.`;
+    constat = `Taux ponte ${decision.layingRateLabel || '-'} · œufs vendables période ${fmtNumber(kpi.eggsSellable)}.`;
     if (decision.status === 'baisse_ponte') {
       causeProbable = 'Production d’œufs sous l’objectif vivant ou âge du lot.';
       impact = 'Baisse de revenus œufs et hausse du coût par œuf.';
-      actionRecommandee = 'Contrôler alimentation, lumière, eau et santé — Avicole journal ponte.';
+      actionRecommandee = 'Contrôler alimentation, lumière, eau et santé - Avicole journal ponte.';
     } else if (kpi.margin != null && kpi.margin < 0) {
       causeProbable = 'Coût unifié pondeuses supérieur aux ventes enregistrées.';
       impact = `Marge brute technique ${fmtCurrency(kpi.margin)}.`;
       actionRecommandee = 'Optimiser ration ou renégocier prix tablettes/œufs.';
     } else {
-      causeProbable = 'Bande stable — surveiller casses et ramassages.';
+      causeProbable = 'Bande stable - surveiller casses et ramassages.';
       impact = 'Rendement ponte à maintenir.';
       actionRecommandee = 'Enregistrer les ramassages et suivre le stock œufs.';
     }
   } else {
     const kpi = buildBovinKpis(row, ctx);
-    constat = `Poids ${fmtNumber(kpi.weight)} kg · GMQ ${kpi.gmq ? `${fmtNumber(kpi.gmq)} g/j` : '—'} · cible ${kpi.targetWeight || '—'} kg.`;
+    constat = `Poids ${fmtNumber(kpi.weight)} kg · GMQ ${kpi.gmq ? `${fmtNumber(kpi.gmq)} g/j` : '-'} · cible ${kpi.targetWeight || '-'} kg.`;
     const lag = kpi.gmq && kpi.gmq < 700 ? Math.round((1 - kpi.gmq / 800) * 100) : 0;
     if (lag >= 10) {
       causeProbable = `GMQ en retard (~${lag} % sous référence embouche).`;
       impact = 'Délai avant poids cible et coût alimentation accru.';
-      actionRecommandee = 'Vérifier ration et santé — pesée sur Animaux.';
+      actionRecommandee = 'Vérifier ration et santé - pesée sur Animaux.';
     } else if (margin != null && margin < 0) {
       causeProbable = 'Coût unifié animal supérieur au revenu fiche.';
       impact = `Marge brute technique ${fmtCurrency(margin)}.`;
@@ -358,12 +358,12 @@ export function buildProductionDiagnostic(target, marginContext = {}) {
     actionRecommandee,
     financial: {
       costLabel: PRODUCTION_FINANCE_LABELS.costTotal,
-      costValue: totalCost > 0 ? fmtCurrency(totalCost) : '—',
+      costValue: totalCost > 0 ? fmtCurrency(totalCost) : '-',
       revenueLabel: PRODUCTION_FINANCE_LABELS.revenue,
-      revenueValue: revenue > 0 ? fmtCurrency(revenue) : '—',
+      revenueValue: revenue > 0 ? fmtCurrency(revenue) : '-',
       margin: {
         label: PRODUCTION_FINANCE_LABELS.marginGross,
-        value: margin != null ? fmtCurrency(margin) : '—',
+        value: margin != null ? fmtCurrency(margin) : '-',
         tone: margin > 0 ? 'good' : margin < 0 ? 'bad' : 'warn',
         note: PRODUCTION_FINANCE_LABELS.marginNote,
       },

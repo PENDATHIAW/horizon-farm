@@ -1,5 +1,5 @@
 /**
- * Élevage V3 — P&L par activité (pondeuses, chair, bovins, ovins, caprins, etc.)
+ * Élevage V3 - P&L par activité (pondeuses, chair, bovins, ovins, caprins, etc.)
  */
 
 import { calculateUnifiedAnimalCost, calculateUnifiedLotCost } from '../services/unifiedCostService.js';
@@ -334,7 +334,7 @@ export function buildBovinKpis(animal = {}, context = {}) {
 }
 
 export function formatActivityPnlRow(row = {}) {
-  if (!row.totalCost && !row.revenue) return '—';
+  if (!row.totalCost && !row.revenue) return '-';
   if (row.reliable && row.grossMargin != null) {
     return `${fmtCurrency(row.grossMargin)} (${fmtPercent(row.marginRate)})`;
   }
@@ -342,6 +342,6 @@ export function formatActivityPnlRow(row = {}) {
 }
 
 export function formatKpiValue(value, suffix = '') {
-  if (value == null || !Number(value)) return '—';
+  if (value == null || !Number(value)) return '-';
   return `${fmtNumber(value)}${suffix}`;
 }

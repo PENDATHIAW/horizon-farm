@@ -8,8 +8,8 @@ const low = (value = '') => String(value ?? '').trim().toLowerCase();
 const isCancelled = (row = {}) => ['annule', 'annulé', 'cancelled', 'canceled'].includes(low(row.statut || row.status));
 
 /**
- * Synthèse commercial — ventes, encaissements liés, pipeline.
- * Aligne sur `buildConsolidatedCommercialKpis` — source unique KPI Commercial/Accueil/Investisseurs.
+ * Synthèse commercial - ventes, encaissements liés, pipeline.
+ * Aligne sur `buildConsolidatedCommercialKpis` - source unique KPI Commercial/Accueil/Investisseurs.
  */
 export function getSalesSummary(dataMap = {}) {
   const salesOrders = pickRows(dataMap, 'sales_orders', 'salesOrders');

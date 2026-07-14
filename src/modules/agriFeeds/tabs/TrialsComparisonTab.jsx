@@ -195,7 +195,7 @@ export default function TrialsComparisonTab({
         onUpdateComparison: onUpdateFeedPhase1Comparison,
         onCreateBusinessEvent,
       });
-      setMessage(`Confirmation enregistrée — décision ${DECISION_LABEL[validationForm.decision] || validationForm.decision}.`);
+      setMessage(`Confirmation enregistrée - décision ${DECISION_LABEL[validationForm.decision] || validationForm.decision}.`);
       setValidationForm({ trial_id: '', decision: '', reviewed_by: '', decision_notes: '' });
     } catch (err) {
       setMessage(err?.message || 'Validation impossible.');
@@ -247,7 +247,7 @@ export default function TrialsComparisonTab({
                 <option value="">Choisir…</option>
                 {lots.map((l) => (
                   <option key={l.id} value={l.id}>
-                    {l.nom || l.name || l.id} ({l.type || '—'})
+                    {l.nom || l.name || l.id} ({l.type || '-'})
                   </option>
                 ))}
               </select>
@@ -259,7 +259,7 @@ export default function TrialsComparisonTab({
                 onChange={(e) => setOpenForm((p) => ({ ...p, finished_batch_id: e.target.value }))}
                 className="w-full min-h-[44px] rounded-xl border border-line px-3 text-sm"
               >
-                <option value="">—</option>
+                <option value="">-</option>
                 {finished.map((b) => (
                   <option key={b.id} value={b.id}>{b.batch_code} · {b.quality_status}</option>
                 ))}
@@ -309,11 +309,11 @@ export default function TrialsComparisonTab({
           {livePreview?.market ? (
             <div className="rounded-2xl border border-line bg-card p-3 text-xs text-earth">
               <p className="font-semibold">Référence Phase 1 disponible pour ce lot :</p>
-              <p>{livePreview.market.feed_type} — {fmtNumber(livePreview.market.quantity_consumed)} kg · {fmtCurrency(livePreview.market.price_per_kg)}/kg</p>
-              <p>Mortalité {livePreview.market.mortality_rate?.toFixed?.(1) || '—'} % · Coût / sujet {fmtCurrency(livePreview.market.cost_feed_per_subject)}</p>
+              <p>{livePreview.market.feed_type} - {fmtNumber(livePreview.market.quantity_consumed)} kg · {fmtCurrency(livePreview.market.price_per_kg)}/kg</p>
+              <p>Mortalité {livePreview.market.mortality_rate?.toFixed?.(1) || '-'} % · Coût / sujet {fmtCurrency(livePreview.market.cost_feed_per_subject)}</p>
             </div>
           ) : (
-            <p className="text-xs text-slate">Aucune référence Phase 1 pour ce lot — la comparaison sera partielle.</p>
+            <p className="text-xs text-slate">Aucune référence Phase 1 pour ce lot - la comparaison sera partielle.</p>
           )}
           <button
             type="submit"
@@ -457,7 +457,7 @@ export default function TrialsComparisonTab({
             return (
               <div key={t.id} className="rounded-2xl border border-vigilance bg-white p-3 space-y-1">
                 <p className="text-sm font-semibold text-earth">
-                  {t.trial_code} — {t.animal_lot_id}
+                  {t.trial_code} - {t.animal_lot_id}
                 </p>
                 <p className="text-xs text-slate">
                   Suggestion : <b>{proposal.label}</b> ({proposal.confidence}) · {proposal.reasons.join(' · ')}
@@ -563,17 +563,17 @@ export default function TrialsComparisonTab({
                       <p className="text-xs">{STATUS_LABEL[t.status] || t.status}</p>
                     </div>
                     <p className="text-xs">
-                      IC {t.feed_conversion_ratio ? Number(t.feed_conversion_ratio).toFixed(2) : '—'} · Mort. {t.mortality_rate ? `${Number(t.mortality_rate).toFixed(1)} %` : '—'}
+                      IC {t.feed_conversion_ratio ? Number(t.feed_conversion_ratio).toFixed(2) : '-'} · Mort. {t.mortality_rate ? `${Number(t.mortality_rate).toFixed(1)} %` : '-'}
                       {' · '}Aliment {fmtNumber(t.total_feed_consumed)} kg
                     </p>
                     {comp ? (
                       <p className="text-xs mt-1">
-                        Comparaison Phase 1 — {comp.overall_message} ({comp.favorable_count} favorables, {comp.worse_count} moins performants)
+                        Comparaison Phase 1 - {comp.overall_message} ({comp.favorable_count} favorables, {comp.worse_count} moins performants)
                       </p>
                     ) : null}
                     <p className="text-xs mt-1">
                       {t.reviewed_by_human
-                        ? `✓ Validé par ${t.reviewed_by} — décision : ${DECISION_LABEL[t.decision] || t.decision || '—'}`
+                        ? `✓ Validé par ${t.reviewed_by} - décision : ${DECISION_LABEL[t.decision] || t.decision || '-'}`
                         : t.status === 'closed'
                           ? '! En attente de confirmation'
                           : ''}

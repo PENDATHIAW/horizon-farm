@@ -16,7 +16,7 @@ function Tabs({ active, onChange, criticalBadge = 0 }) {
     <div className="space-y-2">
       <ModuleTabsBar moduleId="smartfarm" active={active} onChange={onChange} />
       {criticalBadge > 0 && active === 'SmartFarmDevicesView' ? (
-        <p className="text-xs font-semibold text-horizon-dark">{criticalBadge} signal(aux) critique(s) — consultez Dispositifs ou Activité & Suivi.</p>
+        <p className="text-xs font-semibold text-horizon-dark">{criticalBadge} signal(aux) critique(s) - consultez Dispositifs ou Activité & Suivi.</p>
       ) : null}
     </div>
   );

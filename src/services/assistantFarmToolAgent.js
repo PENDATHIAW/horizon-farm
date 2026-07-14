@@ -1,5 +1,5 @@
 /**
- * Agent à outils — Phase B Hey Horizon.
+ * Agent à outils - Phase B Hey Horizon.
  * Route les questions libres vers les 5 outils métier prioritaires.
  */
 

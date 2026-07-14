@@ -35,7 +35,7 @@ export function analyzeForecastRisks(engineResult = {}, dataMap = {}) {
     risks.push(risk(
       'forecast-treasury-tight',
       'Marge de trésorerie faible',
-      'Le projet consomme presque toute la trésorerie disponible — prévoir un coussin.',
+      'Le projet consomme presque toute la trésorerie disponible - prévoir un coussin.',
       'moyen',
       'finance_pilotage',
     ));
@@ -53,7 +53,7 @@ export function analyzeForecastRisks(engineResult = {}, dataMap = {}) {
     risks.push(risk(
       'forecast-thin-margin',
       'Marge très faible',
-      'ROI estimé sous 10 % — sensibilité forte aux hausses aliment ou mortalité.',
+      'ROI estimé sous 10 % - sensibilité forte aux hausses aliment ou mortalité.',
       'moyen',
       'finance_pilotage',
     ));
@@ -63,7 +63,7 @@ export function analyzeForecastRisks(engineResult = {}, dataMap = {}) {
     risks.push(risk(
       'forecast-no-sale-price',
       'Prix de vente non renseigné',
-      'Aucun prix de vente historique fiable — compléter Commercial avant décision.',
+      'Aucun prix de vente historique fiable - compléter Commercial avant décision.',
       'moyen',
       'commercial',
     ));
@@ -73,7 +73,7 @@ export function analyzeForecastRisks(engineResult = {}, dataMap = {}) {
     risks.push(risk(
       'forecast-no-feed-price',
       'Prix aliment absent',
-      'Estimation aliment basée sur hypothèse — vérifier Achats & Stock.',
+      'Estimation aliment basée sur hypothèse - vérifier Achats & Stock.',
       'moyen',
       'achats_stock',
     ));
@@ -94,7 +94,7 @@ export function analyzeForecastRisks(engineResult = {}, dataMap = {}) {
     risks.push(risk(
       'forecast-capacity-lots',
       'Charge lots déjà élevée',
-      `${lots.length} lot(s) actif(s) — vérifier capacité bâtiment, main-d’œuvre et biosecurité.`,
+      `${lots.length} lot(s) actif(s) - vérifier capacité bâtiment, main-d’œuvre et biosecurité.`,
       'moyen',
       'elevage',
     ));
@@ -116,7 +116,7 @@ export function analyzeForecastRisks(engineResult = {}, dataMap = {}) {
     risks.push(risk(
       'forecast-receivables',
       'Créances clients élevées',
-      'Encaissements en attente — lancer un projet augmente le risque de tension cash.',
+      'Encaissements en attente - lancer un projet augmente le risque de tension cash.',
       'moyen',
       'commercial',
     ));

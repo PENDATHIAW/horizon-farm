@@ -1,4 +1,4 @@
-/** Grilles responsive — module Activité & Suivi */
+/** Grilles responsive - module Activité & Suivi */
 
 export const ACTIVITE_STAT_GRID = 'grid min-w-0 grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4';
 export const ACTIVITE_ACTION_GRID = 'grid min-w-0 grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4';

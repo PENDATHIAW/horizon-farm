@@ -12,7 +12,7 @@ import { evaluateModuleDataCoverage } from '../moduleDataCoverageAudit.js';
 const arr = (v) => (Array.isArray(v) ? v : []);
 const hasRows = (data = {}) => Object.values(data || {}).some((value) => Array.isArray(value) && value.length > 0);
 
-/** Phase 1 — audit automatique sans IA générative. Préférer runErpAuditEngine pour l'audit complet. */
+/** Phase 1 - audit automatique sans IA générative. Préférer runErpAuditEngine pour l'audit complet. */
 export function computeErpAuditFindings(data = {}) {
   const findings = [
     ...evaluateStockRules(arr(data.stock || data.stocks)),

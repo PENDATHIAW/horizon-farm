@@ -84,7 +84,7 @@ export function buildHorizonFarmBusinessPlan() {
     source_module: BP_TARGET_MODULES.INVESTISSEMENTS,
     source_document: HORIZON_FARM_OFFICIAL_BP.sourceDocument,
     activite: 'ferme_mixte',
-    description: 'Business plan Horizon Farm — import réparti par onglet xlsx vers les modules ERP (Investissements = lignes actionnables uniquement).',
+    description: 'Business plan Horizon Farm - import réparti par onglet xlsx vers les modules ERP (Investissements = lignes actionnables uniquement).',
     identite_projet: HORIZON_FARM_OFFICIAL_BP.identity,
     besoin_demarrage_total: HORIZON_FARM_OFFICIAL_BP.startupNeeds.officialTotal,
     financement_total: HORIZON_FARM_OFFICIAL_BP.funding.officialTotal,

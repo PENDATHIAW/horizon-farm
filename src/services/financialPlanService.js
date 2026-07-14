@@ -29,7 +29,7 @@ const mapActivityName = (category = '') => {
 
 export const defaultFinancialPlan = {
   id: FINANCIAL_PLAN_ID,
-  name: 'Horizon Farm — Plan financier prévisionnel 5 ans',
+  name: 'Horizon Farm - Plan financier prévisionnel 5 ans',
   sourceWorkbook: HORIZON_FARM_OFFICIAL_BP.sourceDocument,
   year: currentYear(),
   annualRevenueTarget: HORIZON_FARM_OFFICIAL_BP.revenue.annualTotal,

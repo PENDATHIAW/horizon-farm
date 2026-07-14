@@ -30,7 +30,7 @@ function ProjectionCard({ item, onNavigate }) {
 
 export default function ModuleProjectionsStrip({
   title = 'Projections & pilotage',
-  subtitle = 'Anticipation basée sur vos données ERP — même logique que l\'Accueil dirigeant.',
+  subtitle = 'Anticipation basée sur vos données ERP - même logique que l\'Accueil dirigeant.',
   projections = {},
   onNavigate,
   className = '',

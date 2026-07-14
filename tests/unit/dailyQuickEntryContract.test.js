@@ -24,6 +24,12 @@ import {
   commitCommercialSale,
   prepareCommercialSaleCommit,
 } from '../../src/utils/commercialSaleWorkflow.js';
+import { SAISIES_QUOTIDIENNES } from '../../src/config/formulaires20s.config.js';
+import { DAILY_FORM_TYPES, openDailyQuickEntry } from '../../src/utils/dailyQuickEntry.js';
+import {
+  clearPendingFormModals,
+  subscribeFormModal,
+} from '../../src/services/formModalManager.js';
 
 const root = new URL('../../', import.meta.url);
 const source = (path) => readFileSync(new URL(path, root), 'utf8');
@@ -38,6 +44,56 @@ test('les sept saisies respectent cinq champs et cinq interactions maximum', () 
     assert.ok(row.maxInteractions <= 5);
   });
   assert.equal(Object.keys(DAILY_ENTRY_CONTRACTS).length, 7);
+});
+
+test('chaque saisie rapide navigue puis transmet directement le bon formulaire', () => {
+  clearPendingFormModals();
+  const navigation = [];
+  const received = [];
+  const unsubscribe = subscribeFormModal((detail) => {
+    received.push(detail);
+    return true;
+  }, { modules: SAISIES_QUOTIDIENNES.map((entry) => entry.module), replayPending: false });
+
+  SAISIES_QUOTIDIENNES.forEach((entry) => {
+    assert.equal(openDailyQuickEntry(entry, (module, options) => navigation.push({ module, options })), true);
+  });
+  unsubscribe();
+
+  assert.equal(navigation.length, 7);
+  assert.equal(received.length, 7);
+  SAISIES_QUOTIDIENNES.forEach((entry, index) => {
+    assert.deepEqual(navigation[index], { module: entry.module, options: { tab: entry.onglet } });
+    assert.equal(received[index].module, entry.module);
+    assert.equal(received[index].draft.form_type, DAILY_FORM_TYPES[entry.id]);
+    assert.equal(received[index].draft.draft_fields.source, 'saisie_rapide_globale');
+  });
+});
+
+test('un module chargé après le clic rejoue une seule fois le formulaire en attente', async () => {
+  clearPendingFormModals();
+  const entry = SAISIES_QUOTIDIENNES.find((item) => item.id === 'vente');
+  assert.equal(openDailyQuickEntry(entry, () => {}), true);
+
+  const received = [];
+  const unsubscribe = subscribeFormModal((detail) => {
+    received.push(detail);
+    return true;
+  }, { modules: ['commercial'] });
+  await new Promise((resolve) => queueMicrotask(resolve));
+  unsubscribe();
+
+  assert.equal(received.length, 1);
+  assert.equal(received[0].draft.form_type, 'sale_record');
+
+  const replay = [];
+  const unsubscribeReplay = subscribeFormModal((detail) => {
+    replay.push(detail);
+    return true;
+  }, { modules: ['commercial'] });
+  await new Promise((resolve) => queueMicrotask(resolve));
+  unsubscribeReplay();
+  assert.equal(replay.length, 0);
 });
 
 test('date, unité, utilisateur, cible unique et identité sont déterministes', () => {

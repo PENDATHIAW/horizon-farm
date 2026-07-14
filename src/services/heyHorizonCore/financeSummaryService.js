@@ -7,7 +7,7 @@ const isExpense = (row = {}) => ['sortie', 'expense', 'depense', 'dépense', 'ac
 );
 
 /**
- * Synthèse finance & trésorerie — lecture seule depuis dataMap.
+ * Synthèse finance & trésorerie - lecture seule depuis dataMap.
  * KPI ventes/créances alignés sur `buildConsolidatedCommercialKpis` (source unique Commercial).
  */
 export function getFinancialSummary(dataMap = {}) {

@@ -1,5 +1,5 @@
 /**
- * Démo investisseur — commande WhatsApp multi-produits (Hôtel Terminus).
+ * Démo investisseur - commande WhatsApp multi-produits (Hôtel Terminus).
  * Pipeline : client → lignes → stock → commitCommercialSale (créance virement).
  */
 
@@ -105,7 +105,7 @@ export function buildHotelTerminusOrderDraft(raw = '', dataMap = {}) {
   if (lines.length < 2) {
     return {
       drafts: [],
-      clarify: 'Commande investisseur incomplète — précisez quantités (plateaux œufs + kg poulets).',
+      clarify: 'Commande investisseur incomplète - précisez quantités (plateaux œufs + kg poulets).',
       phrase: raw,
       scenario: 'investor_hotel_order',
     };
@@ -135,7 +135,7 @@ export function buildHotelTerminusOrderDraft(raw = '', dataMap = {}) {
   const warnings = [];
   if (stockCheck) warnings.push(stockCheck);
   if (createClient) warnings.push('Client « Hôtel Terminus » sera créé à la validation.');
-  if (lines.some((l) => !l.source_id)) warnings.push('Certaines lignes sans stock lié — vérifiez disponibilité avant validation.');
+  if (lines.some((l) => !l.source_id)) warnings.push('Certaines lignes sans stock lié - vérifiez disponibilité avant validation.');
 
   const missing = [];
   if (createClient) missing.push('confirm_create_client');
@@ -159,7 +159,7 @@ export function buildHotelTerminusOrderDraft(raw = '', dataMap = {}) {
           nom: 'Hôtel Terminus',
           type_client: clientType,
           type: 'hotel',
-          notes: 'Client démo investisseur — créé depuis WhatsApp',
+          notes: 'Client démo investisseur - créé depuis WhatsApp',
         } : null,
       },
       primary_module: 'commercial',

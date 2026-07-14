@@ -58,7 +58,7 @@ export default function FinanceReconciliationPanel({
       transactions,
     });
     if (built.duplicate) {
-      toast.error('Doublon détecté — actualisez la liste.');
+      toast.error('Doublon détecté - actualisez la liste.');
       return;
     }
     if (!built.row || !onCreateFinanceTransaction) {
@@ -107,7 +107,7 @@ export default function FinanceReconciliationPanel({
             <p className="mt-2 text-xs text-slate">
               {reconciliationView?.count ?? rows.length}
               {' '}
-              élément(s) à rapprocher — aucune écriture automatique sans validation.
+              élément(s) à rapprocher - aucune écriture automatique sans validation.
             </p>
           </div>
         </div>

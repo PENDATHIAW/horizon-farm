@@ -169,7 +169,7 @@ export function buildModuleReportPdf({ module = 'Module', title = 'Rapport', per
   const filename = `${String(module).toLowerCase().replace(/[^a-z0-9]+/gi, '-')}-${String(title).toLowerCase().replace(/[^a-z0-9]+/gi, '-')}-${now.toISOString().slice(0, 10)}.pdf`;
 
   doc.setFontSize(18);
-  doc.text('Horizon Farm — Rapport module', 40, 42);
+  doc.text('Horizon Farm - Rapport module', 40, 42);
   doc.setFontSize(13);
   doc.text(`${module} · ${title}`, 40, 66);
   doc.setFontSize(10);

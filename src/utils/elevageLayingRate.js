@@ -47,7 +47,7 @@ export function logsForLot(productionLogs = [], lotId = '') {
   return arr(productionLogs).filter((log) => String(log.lot_id || log.related_id || '') === id);
 }
 
-/** Taux officiel lot — dernier ramassage ou date ciblée. */
+/** Taux officiel lot - dernier ramassage ou date ciblée. */
 export function computeLotOfficialLayingRate(lot = {}, productionLogs = [], options = {}) {
   const active = activeLayersFromLot(lot);
   const logs = logsForLot(productionLogs, lot.id);
@@ -77,7 +77,7 @@ export function computeLotOfficialLayingRate(lot = {}, productionLogs = [], opti
   };
 }
 
-/** Moyenne fenêtre glissante (jours) — œufs cumulés / (pondeuses × jours). */
+/** Moyenne fenêtre glissante (jours) - œufs cumulés / (pondeuses × jours). */
 export function computeWindowLayingRate(lot = {}, productionLogs = [], windowDays = 7) {
   const active = activeLayersFromLot(lot);
   const logs = logsForLot(productionLogs, lot.id);
@@ -104,7 +104,7 @@ export function formatOfficialLayingRate(result = {}) {
   return `${result.rate}%`;
 }
 
-/** Agrégat résumé Élevage — lots pondeuses actifs. */
+/** Agrégat résumé Élevage - lots pondeuses actifs. */
 export function aggregateSummaryLayingRate(lots = [], productionLogs = [], windowDays = 7) {
   const layers = arr(lots).filter((lot) => {
     const type = String(lot.type || lot.type_lot || lot.categorie || '').toLowerCase();

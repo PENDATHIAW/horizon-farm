@@ -134,30 +134,64 @@ export default function ObjectifsDecisionModule({
   }, [dataMap, enrichedDataMap, growthObjectiveContext, props.activeFarm, props.equipements, props.team]);
 
   const emittedGrowthObjectiveKeys = useRef(new Set());
+  const taskRows = props.existingTasks || props.taches;
+  const alertRows = props.existingAlerts || props.alertes;
+  const businessEventRows = props.existingBusinessEvents || props.businessEvents || enrichedDataMap.business_events;
+  const {
+    onCreateTask,
+    onCreateAlert,
+    onCreateBusinessEvent,
+    onRefreshTasks,
+    onRefreshAlertes,
+    onRefreshBusinessEvents,
+  } = props;
 
   useEffect(() => {
-    const existingTasks = new Set(arr(props.existingTasks || props.taches).map((task) => String(task.task_dedupe_key || task.issue_key || '')));
-    const existingAlerts = new Set(arr(props.existingAlerts || props.alertes).map((alert) => String(alert.alert_dedupe_key || alert.issue_key || '')));
+    const existingTasks = new Set(arr(taskRows).map((task) => String(task.task_dedupe_key || task.issue_key || '')));
+    const existingAlerts = new Set(arr(alertRows).map((alert) => String(alert.alert_dedupe_key || alert.issue_key || '')));
+    const existingBusinessEvents = new Set(arr(businessEventRows).map((event) => String(event.issue_key || '')));
     const run = async () => {
+      let taskCreated = false;
+      let alertCreated = false;
+      let eventCreated = false;
       for (const workflow of growthObjectiveWorkflows) {
         const activity = workflow?.simulation?.activity || workflow?.progress?.source_indicator || 'global';
         const key = `growth-objective:${activity}`;
         if (emittedGrowthObjectiveKeys.current.has(key)) continue;
         emittedGrowthObjectiveKeys.current.add(key);
-        if (workflow.task && !existingTasks.has(String(workflow.task.task_dedupe_key || ''))) await props.onCreateTask?.(workflow.task);
-        if (workflow.alert && !existingAlerts.has(String(workflow.alert.alert_dedupe_key || ''))) await props.onCreateAlert?.(workflow.alert);
-        if (workflow.event) await props.onCreateBusinessEvent?.({ ...workflow.event, issue_key: key });
+        if (workflow.task && onCreateTask && !existingTasks.has(String(workflow.task.task_dedupe_key || ''))) {
+          await onCreateTask(workflow.task);
+          taskCreated = true;
+        }
+        if (workflow.alert && onCreateAlert && !existingAlerts.has(String(workflow.alert.alert_dedupe_key || ''))) {
+          await onCreateAlert(workflow.alert);
+          alertCreated = true;
+        }
+        if (workflow.event && onCreateBusinessEvent && !existingBusinessEvents.has(key)) {
+          await onCreateBusinessEvent({ ...workflow.event, issue_key: key });
+          existingBusinessEvents.add(key);
+          eventCreated = true;
+        }
       }
-      if (growthObjectiveWorkflows.length) {
-        await Promise.allSettled([
-          props.onRefreshTasks?.(),
-          props.onRefreshAlertes?.(),
-          props.onRefreshBusinessEvents?.(),
-        ]);
-      }
+      const refreshes = [];
+      if (taskCreated && onRefreshTasks) refreshes.push(onRefreshTasks());
+      if (alertCreated && onRefreshAlertes) refreshes.push(onRefreshAlertes());
+      if (eventCreated && onRefreshBusinessEvents) refreshes.push(onRefreshBusinessEvents());
+      if (refreshes.length) await Promise.allSettled(refreshes);
     };
     void run();
-  }, [growthObjectiveWorkflows, props]);
+  }, [
+    alertRows,
+    businessEventRows,
+    growthObjectiveWorkflows,
+    onCreateAlert,
+    onCreateBusinessEvent,
+    onCreateTask,
+    onRefreshAlertes,
+    onRefreshBusinessEvents,
+    onRefreshTasks,
+    taskRows,
+  ]);
 
   const objectifsChartPlan = useMemo(() => {
     try {

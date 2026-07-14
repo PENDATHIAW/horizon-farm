@@ -142,25 +142,25 @@ function Section({ icon: Icon, title, subtitle, children }) {
 }
 
 function Table({ rows, columns }) {
-  return <div className="overflow-x-auto rounded-2xl border border-line"><table className="w-full min-w-[760px] text-sm"><thead><tr className="bg-card text-left text-xs uppercase text-slate">{columns.map((c) => <th key={c.label} className="px-3 py-2">{c.label}</th>)}</tr></thead><tbody>{rows.map((r, i) => <tr key={r.id || i} className="border-t border-line">{columns.map((c) => <td key={c.label} className="px-3 py-2 align-top">{c.render ? c.render(r, i) : (r[c.key] ?? '—')}</td>)}</tr>)}{!rows.length ? <tr><td colSpan={columns.length} className="px-3 py-6 text-center text-slate">Aucune ligne.</td></tr> : null}</tbody></table></div>;
+  return <div className="overflow-x-auto rounded-2xl border border-line"><table className="w-full min-w-[760px] text-sm"><thead><tr className="bg-card text-left text-xs uppercase text-slate">{columns.map((c) => <th key={c.label} className="px-3 py-2">{c.label}</th>)}</tr></thead><tbody>{rows.map((r, i) => <tr key={r.id || i} className="border-t border-line">{columns.map((c) => <td key={c.label} className="px-3 py-2 align-top">{c.render ? c.render(r, i) : (r[c.key] ?? '-')}</td>)}</tr>)}{!rows.length ? <tr><td colSpan={columns.length} className="px-3 py-6 text-center text-slate">Aucune ligne.</td></tr> : null}</tbody></table></div>;
 }
 
 function HelpSteps() {
   return <div className="rounded-2xl border border-line bg-card p-4 text-sm text-slate space-y-3">
     <p className="font-semibold text-earth">Comment lire ces lignes ?</p>
     <ul className="space-y-2 text-xs leading-relaxed">
-      <li><b>Lignes issues du BP / Excel</b> — contenu importé depuis votre fichier ou le BP intégré Horizon Farm. Jamais supprimé automatiquement.</li>
-      <li><b>Lignes synchronisées en base</b> — copie actionnable dans Supabase (id réel, pas <code>off-*</code>). Nécessaire pour Concrétiser.</li>
-      <li><b>Aperçu non synchronisé</b> (<code>off-*</code>) — lecture seule jusqu’à sync explicite (bouton Concrétiser ou Resynchroniser).</li>
+      <li><b>Lignes issues du BP / Excel</b> - contenu importé depuis votre fichier ou le BP intégré Horizon Farm. Jamais supprimé automatiquement.</li>
+      <li><b>Lignes synchronisées en base</b> - copie actionnable dans Supabase (id réel, pas <code>off-*</code>). Nécessaire pour Concrétiser.</li>
+      <li><b>Aperçu non synchronisé</b> (<code>off-*</code>) - lecture seule jusqu’à sync explicite (bouton Concrétiser ou Resynchroniser).</li>
     </ul>
     <p className="font-semibold text-earth">Actions disponibles</p>
     <ul className="space-y-1 text-xs leading-relaxed">
-      <li><b>Concrétiser</b> — transforme la ligne en action concrète dans le module cible (Avicole, Stock…).</li>
-      <li><b>Modifier</b> — ajuste la ligne actionnable (pas la source Excel sans confirmation).</li>
-      <li><b>Reporter</b> — conserve la trace, change le statut, exclut des projections actives.</li>
-      <li><b>Annuler</b> — conserve la trace, exclut des projections actives.</li>
+      <li><b>Concrétiser</b> - transforme la ligne en action concrète dans le module cible (Avicole, Stock…).</li>
+      <li><b>Modifier</b> - ajuste la ligne actionnable (pas la source Excel sans confirmation).</li>
+      <li><b>Reporter</b> - conserve la trace, change le statut, exclut des projections actives.</li>
+      <li><b>Annuler</b> - conserve la trace, exclut des projections actives.</li>
     </ul>
-    <p className="text-meta text-slate">Aucune synchronisation automatique au chargement — utilisez « Resynchroniser le BP officiel » pour une mise à jour visible.</p>
+    <p className="text-meta text-slate">Aucune synchronisation automatique au chargement - utilisez « Resynchroniser le BP officiel » pour une mise à jour visible.</p>
   </div>;
 }
 
@@ -275,7 +275,7 @@ async function finalizeBpCostCompletion(detail, props) {
     ]);
     const merged = { ...cost, ...linePatch };
     const audit = auditBpLineLinkage(merged, { kind: 'cost' });
-    if (audit.linkageIssue) toast.error(audit.linkageMessage || 'Opération créée mais non liée — réparer la liaison.', { duration: 6000 });
+    if (audit.linkageIssue) toast.error(audit.linkageMessage || 'Opération créée mais non liée - réparer la liaison.', { duration: 6000 });
     else toast.success(`Charge enregistrée · ${bpCostLabel(cost)}`);
   } catch (error) {
     toast.error(error.message || 'Mise à jour charge impossible');
@@ -315,7 +315,7 @@ async function finalizeBpLineCompletion(detail, props) {
     ]);
     const merged = { ...line, ...linePatch };
     const audit = auditBpLineLinkage(merged, { kind: 'investment' });
-    if (audit.linkageIssue) toast.error(audit.linkageMessage || 'Opération créée mais non liée — réparer la liaison.', { duration: 6000 });
+    if (audit.linkageIssue) toast.error(audit.linkageMessage || 'Opération créée mais non liée - réparer la liaison.', { duration: 6000 });
     else toast.success(`C’est fait · ${investmentLabel(line)}`);
   } catch (error) {
     toast.error(error.message || 'Mise à jour impossible');
@@ -382,7 +382,7 @@ export default function InvestissementsV9(props) {
     const synced = syncResult?.resolveLine?.(line)
       || arr(props.bpInvestmentLines).find((row) => key(row) === key(line));
     if (!synced?.id || String(synced.id).startsWith('off-')) {
-      throw new Error('Synchronisation BP requise — réessayez ou cliquez « Resynchroniser le BP officiel ».');
+      throw new Error('Synchronisation BP requise - réessayez ou cliquez « Resynchroniser le BP officiel ».');
     }
     return synced;
   };
@@ -406,7 +406,7 @@ export default function InvestissementsV9(props) {
       const mod = route?.navigate?.module;
       toast.success(`Ouverture ${MODULE_LABELS[mod] || mod || 'module'}…`);
     } catch (error) {
-      toast.error(error.message || 'Synchronisation BP impossible — vérifiez votre connexion.');
+      toast.error(error.message || 'Synchronisation BP impossible - vérifiez votre connexion.');
     }
   };
 
@@ -421,7 +421,7 @@ export default function InvestissementsV9(props) {
         recurringCosts: tagExcelImportLines(imported.recurringCosts || [], file.name),
       };
       await syncBp(props, { force: true, payload: taggedPayload });
-      toast.success(`Fichier ${file.name} importé — les lignes Excel source sont conservées (${taggedPayload.investmentLines?.length ?? 0} investissements).`);
+      toast.success(`Fichier ${file.name} importé - les lignes Excel source sont conservées (${taggedPayload.investmentLines?.length ?? 0} investissements).`);
     } catch (error) {
       toast.error(error.message || 'Import Excel impossible');
     }
@@ -441,7 +441,7 @@ export default function InvestissementsV9(props) {
   const linkLineFinance = (line) => {
     const result = launchBpFinanceLink(line, { onNavigate: props.onNavigate });
     if (!result.ok) return toast.error('Liaison finance impossible pour cette ligne.');
-    toast.success(result.linked ? 'Trésorerie ouverte — opération déjà liée' : 'Réparation avancée — validez la fiche Trésorerie');
+    toast.success(result.linked ? 'Trésorerie ouverte - opération déjà liée' : 'Réparation avancée - validez la fiche Trésorerie');
   };
 
   const repairAutoLink = async (line, transaction, kind = 'investment') => {
@@ -559,13 +559,13 @@ export default function InvestissementsV9(props) {
 
   const lineColumns = [
     { label: 'Poste', key: 'designation' },
-    { label: 'Nature', render: (r) => r.nature || r.categorie || '—' },
+    { label: 'Nature', render: (r) => r.nature || r.categorie || '-' },
     { label: 'Prévu', render: (r) => money(r.montant_prevu ?? totalLine(r)) },
     { label: 'Payé', render: (r) => money(r.montant_paye ?? r.montant_reel) },
     { label: 'Reste', render: (r) => money(r.reste_a_realiser ?? Math.max(0, totalLine(r) - toNumber(r.montant_paye ?? r.montant_reel))) },
     {
       label: 'Module cible',
-      render: (r) => MODULE_LABELS[r.module_cible] || r.module_cible || (investmentAssetKind(r) ? MODULE_LABELS[investmentAssetKind(r)] : '—'),
+      render: (r) => MODULE_LABELS[r.module_cible] || r.module_cible || (investmentAssetKind(r) ? MODULE_LABELS[investmentAssetKind(r)] : '-'),
     },
     {
       label: 'Statut',
@@ -603,10 +603,10 @@ export default function InvestissementsV9(props) {
         <div>
           <p className="text-xs uppercase tracking-normal text-slate font-semibold">Business Plan</p>
           <h2 className="mt-1 text-2xl font-semibold text-earth">{plan?.nom || HORIZON_FARM_BP_NAME}</h2>
-          <p className="mt-1 text-sm text-slate">Lignes d’investissement actionnables — source BP/Excel conservée, sync explicite uniquement.</p>
+          <p className="mt-1 text-sm text-slate">Lignes d’investissement actionnables - source BP/Excel conservée, sync explicite uniquement.</p>
         </div>
         <div className="flex flex-col gap-2 sm:items-end">
-          {!dbLinesCount ? <p className="text-xs font-semibold text-horizon-dark rounded-xl border border-vigilance bg-vigilance-bg px-3 py-2 max-w-xs text-right">Aperçu BP intégré — cliquez Resynchroniser ou Concrétiser pour créer les lignes en base.</p> : null}
+          {!dbLinesCount ? <p className="text-xs font-semibold text-horizon-dark rounded-xl border border-vigilance bg-vigilance-bg px-3 py-2 max-w-xs text-right">Aperçu BP intégré - cliquez Resynchroniser ou Concrétiser pour créer les lignes en base.</p> : null}
           {plan?.source_document ? <p className="text-xs text-positive rounded-xl border border-positive bg-positive-bg px-3 py-2 max-w-xs text-right">Source Excel : {plan.source_document}</p> : null}
           <button type="button" onClick={() => syncBp(props, { force: true })} className="rounded-2xl bg-earth px-4 py-2 text-xs font-semibold text-white"><RefreshCw size={14} className="inline" /> Resynchroniser le BP officiel</button>
           <button type="button" onClick={() => setShowExcelImport((v) => !v)} className="text-xs font-semibold text-slate underline-offset-2 hover:underline">
@@ -631,7 +631,7 @@ export default function InvestissementsV9(props) {
 
     <div className="flex flex-wrap gap-2 rounded-3xl border border-line bg-white p-3">{tabs.map(([k, label]) => <button key={k} type="button" onClick={() => setTab(k)} className={`rounded-2xl px-4 py-2 text-sm font-semibold ${tab === k ? 'bg-earth text-white' : 'bg-card text-slate border border-line'}`}>{label}</button>)}</div>
 
-    {tab === 'overview' ? <Section icon={FileSpreadsheet} title="Vue d’ensemble" subtitle="Investissements actionnables — charges, revenus et synthèse BP sont dans leurs modules respectifs.">
+    {tab === 'overview' ? <Section icon={FileSpreadsheet} title="Vue d’ensemble" subtitle="Investissements actionnables - charges, revenus et synthèse BP sont dans leurs modules respectifs.">
       <HelpSteps />
       {pendingLines.length ? <div className="space-y-2">
         <p className="text-sm font-semibold text-earth">À concrétiser maintenant ({pendingLines.length})</p>
@@ -640,9 +640,9 @@ export default function InvestissementsV9(props) {
           <span className="flex items-center gap-1 text-xs font-semibold text-positive">Concrétiser <ArrowRight size={14} /></span>
         </button>)}
         {pendingLines.length > 6 ? <p className="text-xs text-slate">+ {pendingLines.length - 6} autre(s) ligne(s) dans l’onglet Mes investissements.</p> : null}
-      </div> : <div className="rounded-2xl border border-positive bg-positive-bg p-4 text-sm text-positive"><CheckCircle2 size={16} className="inline" /> Rien en attente — toutes les lignes éligibles sont traitées ou annulées.</div>}
+      </div> : <div className="rounded-2xl border border-positive bg-positive-bg p-4 text-sm text-positive"><CheckCircle2 size={16} className="inline" /> Rien en attente - toutes les lignes éligibles sont traitées ou annulées.</div>}
       {costsNeedDbSync ? <div className="rounded-2xl border border-vigilance bg-vigilance-bg p-4 text-sm text-horizon-dark"><b>Charges BP :</b> resynchronisez le plan pour activer les boutons Concrétiser sur les charges ({dbCostsCount ? `${dbCostsCount} en base` : 'aperçu seul'}).</div> : null}
-      {linesNeedDbSync ? <div className="rounded-2xl border border-vigilance bg-vigilance-bg p-4 text-sm text-horizon-dark"><b>Investissements BP :</b> lignes en aperçu intégré — cliquez <b>Concrétiser</b> sur une ligne (sync automatique) ou « Resynchroniser le BP officiel » ({dbLinesCount ? `${dbLinesCount} en base` : 'aucune en base'}).</div> : null}
+      {linesNeedDbSync ? <div className="rounded-2xl border border-vigilance bg-vigilance-bg p-4 text-sm text-horizon-dark"><b>Investissements BP :</b> lignes en aperçu intégré - cliquez <b>Concrétiser</b> sur une ligne (sync automatique) ou « Resynchroniser le BP officiel » ({dbLinesCount ? `${dbLinesCount} en base` : 'aucune en base'}).</div> : null}
       {pendingCosts.length ? <div className="space-y-2">
         <p className="text-sm font-semibold text-earth">Charges à concrétiser ({pendingCosts.length})</p>
         {pendingCosts.slice(0, 4).map((cost) => <button type="button" key={cost.id} onClick={() => openCostConcretization(cost)} className="flex w-full items-center justify-between gap-3 rounded-xl border border-line bg-neutral-bg px-4 py-3 text-left hover:border-line">
@@ -654,7 +654,7 @@ export default function InvestissementsV9(props) {
       {brokenLinks.length ? <div className="rounded-2xl border border-urgent bg-urgent-bg p-4 space-y-2">
         <p className="flex items-center gap-2 text-sm font-semibold text-urgent">
           <AlertTriangle size={16} />
-          Opération créée mais non liée — réparer la liaison ({brokenLinks.length})
+          Opération créée mais non liée - réparer la liaison ({brokenLinks.length})
         </p>
         {brokenLinks.slice(0, 5).map(({ line, kind, audit }) => (
           <div key={`${kind}-${line.id}`} className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-urgent bg-white px-3 py-2">
@@ -690,7 +690,7 @@ export default function InvestissementsV9(props) {
       </div>
     </Section> : null}
 
-    {tab === 'budget' ? <Section icon={Coins} title="Mes investissements" subtitle="Besoins de démarrage, équipements, stock initial, trésorerie de départ — lignes actionnables à concrétiser.">
+    {tab === 'budget' ? <Section icon={Coins} title="Mes investissements" subtitle="Besoins de démarrage, équipements, stock initial, trésorerie de départ - lignes actionnables à concrétiser.">
       <HelpSteps />
       {linesNeedDbSync ? <div className="rounded-2xl border border-vigilance bg-vigilance-bg p-4 text-sm text-horizon-dark"><b>Aperçu BP :</b> les boutons <b>Concrétiser</b> synchronisent le plan puis ouvrent le module cible ({dbLinesCount ? `${dbLinesCount} ligne(s) déjà en base` : 'aucune ligne en base pour l’instant'}).</div> : null}
       <Table rows={lines} columns={lineColumns} />
@@ -714,13 +714,13 @@ export default function InvestissementsV9(props) {
 
     {tab === 'forecasts' ? <BpRevenueForecastsPanel projections={projections} /> : null}
 
-    {tab === 'repartition' ? <Section icon={FileSpreadsheet} title="Mapping des 4 onglets Excel" subtitle="Chaque onglet alimente le bon module ERP — Investissements n’affiche que les lignes actionnables.">
+    {tab === 'repartition' ? <Section icon={FileSpreadsheet} title="Mapping des 4 onglets Excel" subtitle="Chaque onglet alimente le bon module ERP - Investissements n’affiche que les lignes actionnables.">
       {BP_SHEET_MAPPING.map((sheet) => <div key={sheet.key} className="rounded-2xl border border-line bg-card p-4 space-y-2">
         <p className="font-semibold text-earth">{sheet.label}</p>
         <p className="text-xs text-slate">{sheet.role}</p>
         {sheet.sections ? <ul className="text-xs space-y-1">{sheet.sections.map((sec) => <li key={sec.key}>• {sec.label} → <b>{MODULE_LABELS[sec.module] || sec.module}</b>{sec.display_in_investissements ? ' (visible Investissements)' : ''}</li>)}</ul> : null}
         {sheet.targets ? <ul className="text-xs space-y-1">{sheet.targets.map((t) => <li key={`${t.module}-${t.tab}`}>→ {MODULE_LABELS[t.module] || t.module}{t.tab ? ` / ${t.tab}` : ''}</li>)}</ul> : null}
-        {sheet.read_only_summary ? <p className="text-meta text-horizon-dark">Rapport de synthèse — ne crée pas de lignes, reprend les calculs des autres onglets.</p> : null}
+        {sheet.read_only_summary ? <p className="text-meta text-horizon-dark">Rapport de synthèse - ne crée pas de lignes, reprend les calculs des autres onglets.</p> : null}
       </div>)}
       <div className="rounded-2xl border border-positive bg-positive-bg p-4 text-sm text-positive">
         <CheckCircle2 size={16} className="inline" /> Compteur sync : {JSON.stringify(HORIZON_FARM_BP_DISTRIBUTION?.routedTo || {})}

@@ -1,6 +1,6 @@
 import { buildPondeusesIntelligence } from './aiPondeusesService';
 
-/** Règles vocales / questions ERP — source unique client + serveur (/api/assistant/enhance). */
+/** Règles vocales / questions ERP - source unique client + serveur (/api/assistant/enhance). */
 
 const normalizeText = (value = '') =>
   String(value)

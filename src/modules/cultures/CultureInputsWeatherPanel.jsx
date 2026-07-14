@@ -21,7 +21,7 @@ function Mini({ label, value, danger = false }) {
   );
 }
 
-/** Intrants cultures (lecture stock) + météo contextuelle — pas de stock ici, uniquement utilisation via workflow Intrants. */
+/** Intrants cultures (lecture stock) + météo contextuelle - pas de stock ici, uniquement utilisation via workflow Intrants. */
 export default function CultureInputsWeatherPanel({ stocks = [], meteo = null, weatherLoading = false, onNavigate }) {
   const cultureInputs = stocks.filter(isCultureInput);
   const criticalInputs = cultureInputs.filter((row) => stockThreshold(row) > 0 && stockQty(row) <= stockThreshold(row));
@@ -35,7 +35,7 @@ export default function CultureInputsWeatherPanel({ stocks = [], meteo = null, w
     <div className="grid grid-cols-1 xl:grid-cols-3 gap-3">
       <article className="rounded-2xl border border-line bg-card p-4">
         <p className="flex items-center gap-2 font-semibold text-earth"><Package size={17} className="text-horizon-dark" /> Intrants cultures</p>
-        <p className="mt-1 text-sm text-slate">Semences, engrais, traitements et irrigation — stock géré dans Achats & Stock.</p>
+        <p className="mt-1 text-sm text-slate">Semences, engrais, traitements et irrigation - stock géré dans Achats & Stock.</p>
         <div className="mt-3 grid grid-cols-2 gap-2 text-sm">
           <Mini label="Intrants suivis" value={cultureInputs.length} />
           <Mini label="Sous seuil" value={criticalInputs.length} danger={criticalInputs.length > 0} />
@@ -53,12 +53,12 @@ export default function CultureInputsWeatherPanel({ stocks = [], meteo = null, w
 
       <article className="rounded-2xl border border-line bg-card p-4">
         <p className="flex items-center gap-2 font-semibold text-earth"><CloudSun size={17} className="text-horizon-dark" /> Météo (contexte actions)</p>
-        <p className="mt-1 text-sm text-slate">Intégrée aux décisions irrigation et traitements — pas d&apos;onglet météo séparé.</p>
+        <p className="mt-1 text-sm text-slate">Intégrée aux décisions irrigation et traitements - pas d&apos;onglet météo séparé.</p>
         <div className="mt-3 grid grid-cols-2 gap-2 text-sm">
           <Mini label="État" value={weatherLoading ? 'Chargement' : weatherLabel} />
-          <Mini label="Température" value={temp !== undefined && temp !== null ? `${fmtNumber(temp)}°C` : '—'} />
-          <Mini label="Humidité" value={humidity !== undefined && humidity !== null ? `${fmtNumber(humidity)}%` : '—'} />
-          <Mini label="Pluie" value={rain !== undefined && rain !== null ? `${fmtNumber(rain)} mm` : '—'} />
+          <Mini label="Température" value={temp !== undefined && temp !== null ? `${fmtNumber(temp)}°C` : '-'} />
+          <Mini label="Humidité" value={humidity !== undefined && humidity !== null ? `${fmtNumber(humidity)}%` : '-'} />
+          <Mini label="Pluie" value={rain !== undefined && rain !== null ? `${fmtNumber(rain)} mm` : '-'} />
         </div>
         <div className="mt-3 flex justify-end"><Btn small variant="outline" onClick={() => onNavigate?.('smartfarm')}>Capteurs Smart Farm</Btn></div>
       </article>

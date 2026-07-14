@@ -1,5 +1,5 @@
 /**
- * Commercial V3 — segmentation clients (grossistes, restaurants, etc.).
+ * Commercial V3 - segmentation clients (grossistes, restaurants, etc.).
  */
 
 import { saleAmount, receivableFromOrders } from '../modules/commercial/commercialMetrics.js';

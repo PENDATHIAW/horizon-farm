@@ -13,6 +13,7 @@ import BpKpiHealth from './BpKpiHealth.jsx';
 import FinanceAccountingHealth from './FinanceAccountingHealth.jsx';
 import FinanceCashPilotPanel from './FinanceCashPilotPanel.jsx';
 import FinancesV11 from './FinancesV11.jsx';
+import { subscribeFormModal } from '../services/formModalManager.js';
 
 const today = () => new Date().toISOString().slice(0, 10);
 const num = (value = 0) => Number(value || 0) || 0;
@@ -59,7 +60,7 @@ function HeyHorizonFinanceCard({ draft, onCreate, onCreateBusinessEvent, onRefre
     } catch (error) { toast.error(error.message || 'Création finance impossible'); } finally { setSaving(false); }
   };
   return <section className="rounded-3xl border border-positive bg-positive-bg p-6 shadow-card space-y-4">
-    <div className="flex items-start justify-between gap-3"><div><p className="text-xs uppercase tracking-normal text-positive font-semibold flex items-center gap-2"><CreditCard size={15} /> Fiche préparée par Hey Horizon</p><h3 className="mt-1 text-xl font-semibold text-earth">{kindLabel(type)} à enregistrer</h3><p className="mt-1 text-sm text-positive">{isPartial ? `Concrétisation partielle de la charge BP — prévu ${planned.toLocaleString('fr-FR')} FCFA. Saisis le montant réellement engagé.` : 'Complète si besoin, puis valide. La ligne finance et la charge BP seront mises à jour.'}</p></div><button type="button" onClick={onClose} className="rounded-full border border-positive bg-white p-2 text-positive"><X size={16} /></button></div>
+    <div className="flex items-start justify-between gap-3"><div><p className="text-xs uppercase tracking-normal text-positive font-semibold flex items-center gap-2"><CreditCard size={15} /> Fiche préparée par Hey Horizon</p><h3 className="mt-1 text-xl font-semibold text-earth">{kindLabel(type)} à enregistrer</h3><p className="mt-1 text-sm text-positive">{isPartial ? `Concrétisation partielle de la charge BP - prévu ${planned.toLocaleString('fr-FR')} FCFA. Saisis le montant réellement engagé.` : 'Complète si besoin, puis valide. La ligne finance et la charge BP seront mises à jour.'}</p></div><button type="button" onClick={onClose} className="rounded-full border border-positive bg-white p-2 text-positive"><X size={16} /></button></div>
     <div className="grid grid-cols-1 md:grid-cols-3 gap-3"><label className="space-y-1"><span className="text-xs font-semibold text-positive">Type</span><select value={type} onChange={(e) => setType(e.target.value)} className="w-full min-h-[44px] rounded-xl border border-positive bg-white px-3 py-2 text-sm"><option value="sortie">Argent dépensé</option><option value="entree">Argent reçu</option></select></label><label className="space-y-1"><span className="text-xs font-semibold text-positive">Montant</span><input type="number" value={amount} onChange={(e) => setAmount(e.target.value)} className="w-full min-h-[44px] rounded-xl border border-positive bg-white px-3 py-2 text-sm" /></label><label className="space-y-1"><span className="text-xs font-semibold text-positive">Date</span><input type="date" value={date} onChange={(e) => setDate(e.target.value)} className="w-full min-h-[44px] rounded-xl border border-positive bg-white px-3 py-2 text-sm" /></label><label className="space-y-1 md:col-span-2"><span className="text-xs font-semibold text-positive">Libellé simple</span><input value={label} onChange={(e) => setLabel(e.target.value)} className="w-full min-h-[44px] rounded-xl border border-positive bg-white px-3 py-2 text-sm" /></label><label className="space-y-1"><span className="text-xs font-semibold text-positive">Statut</span><select value={paymentStatus} onChange={(e) => setPaymentStatus(e.target.value)} className="w-full min-h-[44px] rounded-xl border border-positive bg-white px-3 py-2 text-sm"><option value="paye">Payé</option><option value="a_payer">À payer</option><option value="partiel">Partiel</option></select></label><label className="space-y-1"><span className="text-xs font-semibold text-positive">Catégorie</span><select value={category} onChange={(e) => setCategory(e.target.value)} className="w-full min-h-[44px] rounded-xl border border-positive bg-white px-3 py-2 text-sm">{categorieOptions.map((option) => { const value = typeof option === 'object' ? option.value : option; const label = typeof option === 'object' ? option.label : option; return <option key={value} value={value}>{label}</option>; })}</select></label><label className="space-y-1 md:col-span-2"><span className="text-xs font-semibold text-positive">Note</span><input value={note} onChange={(e) => setNote(e.target.value)} className="w-full min-h-[44px] rounded-xl border border-positive bg-white px-3 py-2 text-sm" /></label></div>
     <div className="rounded-xl border border-positive bg-white p-3 text-sm text-positive"><CheckCircle2 size={14} className="inline" /> Montant : <b>{num(amount).toLocaleString('fr-FR')} FCFA</b> · Type : <b>{kindLabel(type)}</b></div>
     <div className="flex justify-end"><button type="button" onClick={submit} disabled={saving} className="rounded-xl bg-earth px-6 py-2 text-sm font-semibold text-white disabled:opacity-60">{saving ? 'Création...' : 'Enregistrer la ligne finance'}</button></div>
@@ -87,15 +88,14 @@ export default function FinancesV12(props) {
           draft_fields: pending.draft_fields,
         }));
     }
-    const handler = (event) => {
-      const draft = event.detail?.draft;
-      const module = event.detail?.module;
-      if ((module === 'finances' || module === 'finance') && draft?.form_type === 'finance_entry') {
-        openFinanceDraft(draft);
-      }
+    const handler = (detail = {}) => {
+      const draft = detail.draft;
+      const module = detail.module;
+      if (!['finances', 'finance', 'finance_pilotage'].includes(module) || draft?.form_type !== 'finance_entry') return false;
+      openFinanceDraft(draft);
+      return true;
     };
-    window.addEventListener('horizon-open-form', handler);
-    return () => window.removeEventListener('horizon-open-form', handler);
+    return subscribeFormModal(handler, { modules: ['finances', 'finance', 'finance_pilotage'] });
   }, []);
   return <div className="space-y-6">
     {horizonDraft ? <div id="hey-horizon-finance-card"><HeyHorizonFinanceCard draft={horizonDraft} onCreate={props.onCreate} onCreateBusinessEvent={props.onCreateBusinessEvent || businessEventsCrud.create} onRefresh={props.onRefresh} onRefreshBusinessEvents={props.onRefreshBusinessEvents || businessEventsCrud.refresh} onClose={() => setHorizonDraft(null)} /></div> : null}

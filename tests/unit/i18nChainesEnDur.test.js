@@ -49,6 +49,9 @@ const FICHIERS_EXCLUS = {
 const CHEMINS_MIGRES = [
   'i18n/',
   'components/shared/',
+  'components/SettingsPanel.jsx',
+  'components/FarmCostSettingsPanel.jsx',
+  'components/AvicoleLotDetailsModal.jsx',
   'modules/commercial/DailySaleModal.jsx',
   'modules/cultures/CulturesHarvestPanel.jsx',
   'modules/cultures/CulturesIrrigationQuickForm.jsx',

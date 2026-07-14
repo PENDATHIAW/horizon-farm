@@ -52,6 +52,7 @@ import { commitElevageEggProduction } from '../utils/elevageWorkflow.js';
 import ElevageOverviewTab from './elevage/ElevageOverviewTab.jsx';
 import ElevageAlimentationTab from './elevage/ElevageAlimentationTab.jsx';
 import ProductionHub from './elevage/ProductionHub.jsx';
+import { subscribeFormModal } from '../services/formModalManager.js';
 
 const lower = (value) => String(value || '').toLowerCase();
 const isClosedAnimal = (row = {}) => ['vendu', 'mort', 'vole', 'volé', 'perdu', 'abattu', 'cloture', 'clôture', 'sorti'].some((word) => lower(row.status || row.statut).includes(word));
@@ -146,8 +147,7 @@ export default function ElevageRecoveredModule(props) {
   }, [setTab]);
 
   useEffect(() => {
-    const handler = (event) => {
-      const detail = event.detail || {};
+    const handler = (detail = {}) => {
       const draft = detail.draft;
       const moduleKey = String(detail.module || draft?.primary_module || '').toLowerCase();
       const formType = draft?.form_type || '';
@@ -156,7 +156,7 @@ export default function ElevageRecoveredModule(props) {
         setWorkflowScope(draft?.draft_fields?.scope || 'avicole');
         setTab('Production élevage');
         setActiveModal(dailyModal);
-        return;
+        return true;
       }
       const requestedTab = String(detail.tab || detail.initialTab || '').toLowerCase();
       const isTransformationDraft = moduleKey === 'transformation'
@@ -177,7 +177,7 @@ export default function ElevageRecoveredModule(props) {
         });
         setTab('Transformation');
         window.setTimeout(scrollToTransformationForm, 120);
-        return;
+        return true;
       }
       const birthModes = ['naissance_ferme', 'reproduction_interne'];
       const mode = String(draft?.draft_fields?.mode_acquisition || '').toLowerCase();
@@ -196,19 +196,21 @@ export default function ElevageRecoveredModule(props) {
         setHealthDraft(draft);
         setTab('Santé');
         window.setTimeout(() => document.getElementById('hey-horizon-sante-card')?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 120);
-        return;
+        return true;
       }
 
-      if (!isReproModule && !isBirthCreation && !isReproWorkflow) return;
+      if (!isReproModule && !isBirthCreation && !isReproWorkflow) return false;
       setReproductionHorizonDraft(draft);
       setTab('Cycles & Reproduction');
       window.setTimeout(() => {
         if (isReproWorkflow || isReproModule) scrollToReproductionWorkflowForm();
         else document.getElementById('hey-horizon-animal-card')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
       }, 120);
+      return true;
     };
-    window.addEventListener('horizon-open-form', handler);
-    return () => window.removeEventListener('horizon-open-form', handler);
+    return subscribeFormModal(handler, {
+      modules: ['elevage', 'transformation', 'sante', 'reproduction', 'animaux'],
+    });
   }, [setTab, setHealthDraft]);
   const animauxCrud = useCrudModule('animaux');
   const avicoleCrud = useCrudModule('avicole');
@@ -409,7 +411,7 @@ export default function ElevageRecoveredModule(props) {
       },
       onAfterOpen: () => {
         scrollToTransformationForm();
-        toast.success('Transformation — formulaire officiel ouvert');
+        toast.success('Transformation - formulaire officiel ouvert');
       },
     });
   }, [setTab]);
@@ -422,7 +424,7 @@ export default function ElevageRecoveredModule(props) {
       context,
       onAfterOpen: () => {
         scrollToReproductionWorkflowForm();
-        toast.success('Reproduction — workflow officiel ouvert');
+        toast.success('Reproduction - workflow officiel ouvert');
       },
     });
   }, [setTab]);
@@ -451,7 +453,7 @@ export default function ElevageRecoveredModule(props) {
           toast.error(block.message);
           return;
         }
-        toast('Exception terrain — vente avec délai sanitaire actif', { icon: '⚠️' });
+        toast('Exception terrain - vente avec délai sanitaire actif', { icon: '⚠️' });
       }
     }
     props.onNavigate?.(module, opts);
@@ -478,7 +480,7 @@ export default function ElevageRecoveredModule(props) {
         },
         onAfterOpen: () => {
           scrollToHealthInterventionForm();
-          toast.success('Intervention santé — formulaire complet ouvert');
+          toast.success('Intervention santé - formulaire complet ouvert');
         },
       });
       return;
@@ -593,7 +595,7 @@ export default function ElevageRecoveredModule(props) {
       window.setTimeout(() => {
         document.getElementById('hey-horizon-animal-card')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
       }, 120);
-      if (ctx?.animalId) toast.success('Fiche jeune — complétez la création animal');
+      if (ctx?.animalId) toast.success('Fiche jeune - complétez la création animal');
     },
   };
 

@@ -1,4 +1,4 @@
-/** Types d'activité par ferme — Phase 2 fondations Multi-Fermes. */
+/** Types d'activité par ferme - Phase 2 fondations Multi-Fermes. */
 
 export const FARM_ACTIVITY_TYPES = Object.freeze([
   { key: 'aviculture_pondeuses', label: 'Aviculture pondeuses' },
@@ -19,7 +19,7 @@ export const FARM_ACTIVITY_TYPES = Object.freeze([
 
 export const FARM_ACTIVITY_KEYS = FARM_ACTIVITY_TYPES.map((entry) => entry.key);
 
-/** Modules toujours accessibles — contenu adapté selon la ferme. */
+/** Modules toujours accessibles - contenu adapté selon la ferme. */
 export const FARM_COMMON_MODULES = Object.freeze([
   'dashboard',
   'assistant_erp',
@@ -189,7 +189,7 @@ export function getFarmModuleAdaptation(farm = {}) {
   };
 }
 
-/** Message d’adaptation activité — Phase 3/4. */
+/** Message d’adaptation activité - Phase 3/4. */
 export function getFarmActivityNoticeDetail(moduleId = '', farm = {}, filteringEnabled = false) {
   if (!filteringEnabled || !farm?.id || !moduleId) return null;
   const activities = normalizeFarmActivities(farm.activity_type);
@@ -228,7 +228,7 @@ export function getFarmActivityNoticeDetail(moduleId = '', farm = {}, filteringE
   return null;
 }
 
-/** Compatibilité Phase 3 — retourne le message texte uniquement. */
+/** Compatibilité Phase 3 - retourne le message texte uniquement. */
 export function getFarmActivityNotice(moduleId = '', farm = {}, filteringEnabled = false) {
   return getFarmActivityNoticeDetail(moduleId, farm, filteringEnabled)?.message || null;
 }

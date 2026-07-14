@@ -133,7 +133,7 @@ export function buildProductionAnswer(type, dataMap = {}) {
         rows: (layers.bands || []).slice(0, 3).map((band) => ({
           title: band.label,
           detail: `Entrée ${band.launchDate}`,
-          value: band.reformWatchDate ? `Surveiller dès ${band.reformWatchDate}` : '—',
+          value: band.reformWatchDate ? `Surveiller dès ${band.reformWatchDate}` : '-',
         })),
         priority: 'moyenne',
         confidence: 86,
@@ -152,7 +152,7 @@ export function buildProductionAnswer(type, dataMap = {}) {
         targetDate: next?.launchDate || next?.expectedSaleDate,
         rows: (bovins.cycles || []).slice(0, 4).map((row) => ({
           title: row.label || `Cycle ${row.month || ''}`,
-          detail: `Achat ${row.launchDate || '—'} · vente ${row.expectedSaleDate || '—'}`,
+          detail: `Achat ${row.launchDate || '-'} · vente ${row.expectedSaleDate || '-'}`,
           value: `${fmtNumber(row.qty || 5)} tête(s)`,
         })),
         priority: 'moyenne',
@@ -199,7 +199,7 @@ export function buildProductionAnswer(type, dataMap = {}) {
         title: 'Continuité des œufs',
         summary: gap > 0
           ? `Écart estimé : ${fmtNumber(gap)} œufs/jour sous l'objectif BP (${fmtNumber(layers.targetEggsDay)}/j visés).`
-          : `Production vendable ~${fmtNumber(sellable)}/j — alignée ou au-dessus de l'objectif.`,
+          : `Production vendable ~${fmtNumber(sellable)}/j - alignée ou au-dessus de l'objectif.`,
         recommendation: gap > 0
           ? 'Vérifier ponte, mortalité et alimentation. Envisager bande complémentaire ou réforme ciblée.'
           : 'Maintenir biosécurité et alimentation. Pas de rupture prévue à court terme.',

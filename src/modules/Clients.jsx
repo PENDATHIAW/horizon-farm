@@ -208,10 +208,10 @@ export default function Clients({ rows = [], loading, salesOrders = [], payments
   const openContact = (client, message, title = 'Contacter le client') => setContactModal({ client, message, title });
   const openProfile = (client) => setProfileClient(client);
   const matchedOppsFor = (client) => opportunitiesForClient(client, opportunities, salesOrders, 50);
-  const proposeOpportunity = (client, opportunity, message) => openContact(client, message, `Proposer — ${clientName(client)}`);
+  const proposeOpportunity = (client, opportunity, message) => openContact(client, message, `Proposer - ${clientName(client)}`);
   const relanceCreance = (client) => {
     const summary = salesSummaryFor(client);
-    openContact(client, relanceMessageForClient(client, summary), summary.resteAPayer > 0 ? 'Relancer — créance' : 'Relancer le client');
+    openContact(client, relanceMessageForClient(client, summary), summary.resteAPayer > 0 ? 'Relancer - créance' : 'Relancer le client');
   };
   const openMaps = (client) => { const query = encodeURIComponent(buildSenegalMapQuery(client, 'client Dakar Senegal')); window.open(`https://www.google.com/maps/search/?api=1&query=${query}`, '_blank', 'noopener,noreferrer'); };
 

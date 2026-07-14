@@ -70,7 +70,7 @@ function Summary({ data, setTab, onApply, onRelance, busyId, onNavigate, onMarkE
         <AchatsStockStartupPanel progress={data.startupProgress} setTab={setTab} onNavigate={onNavigate} />
       ) : null}
 
-      <AchatsStockSection title="Vue d'ensemble" subtitle="6 KPI essentiels — détail dans les onglets dédiés.">
+      <AchatsStockSection title="Vue d'ensemble" subtitle="6 KPI essentiels - détail dans les onglets dédiés.">
         <div className={ACHATS_STOCK_STAT_GRID}>
           <AchatsStockKpi label="Santé stock" value={`${data.healthScore}/100`} tone={data.healthScore >= 75 ? 'good' : 'warn'} onClick={() => setTab('Stock')} />
           <AchatsStockKpi label="Produits" value={fmtNumber(data.stocks.length)} onClick={() => setTab('Stock')} />
@@ -314,7 +314,7 @@ export default function AchatsStockRecoveredModule(props) {
       if (alertOnly) {
         await (props.onCreateAlert || alertsCrud.create)?.({
           title: `Péremption proche : ${row.label}`,
-          message: `DLC ${row.dlc || '—'} · ${row.daysLeft} jour(s) restant(s)`,
+          message: `DLC ${row.dlc || '-'} · ${row.daysLeft} jour(s) restant(s)`,
           module_source: 'stock',
           entity_id: row.id,
           severity: 'warning',
@@ -323,7 +323,7 @@ export default function AchatsStockRecoveredModule(props) {
         return;
       }
       const stock = stocks.find((s) => String(s.id) === String(row.id));
-      const patch = buildExpiryLossPatch(stock, 'Péremption — marqué perdu');
+      const patch = buildExpiryLossPatch(stock, 'Péremption - marqué perdu');
       if (!patch) throw new Error('Stock introuvable');
       await (props.onUpdateStock || stockCrud.update)?.(row.id, patch);
       toast.success('Perte enregistrée');

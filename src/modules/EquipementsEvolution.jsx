@@ -35,7 +35,7 @@ export default function EquipementsEvolution({ rows = [], tasks = [], transactio
         { name: 'Valeur achats', type: 'bar', unit: 'FCFA', data: data.map((row) => row.valeur) },
         { name: 'Coûts Finance', type: 'bar', unit: 'FCFA', data: data.map((row) => row.coutsFinance) },
       ]} />
-      <SmartEvolutionChart moduleName="Équipements" compact title="Maintenances vs pannes" subtitle="Courbes — suivi maintenance" months={data.map((row) => row.month)} leftUnit="nb" rightUnit="" series={[
+      <SmartEvolutionChart moduleName="Équipements" compact title="Maintenances vs pannes" subtitle="Courbes - suivi maintenance" months={data.map((row) => row.month)} leftUnit="nb" rightUnit="" series={[
         { name: 'Maintenances', type: 'line', unit: 'nb', data: data.map((row) => row.maintenance) },
         { name: 'Pannes', type: 'line', unit: 'nb', data: data.map((row) => row.pannes) },
       ]} />

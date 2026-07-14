@@ -16,7 +16,7 @@ export default function CulturesEconomieHub({ stocks = [], salesOrders = [], row
   return (
     <div className="space-y-6">
       <section className="rounded-3xl border border-positive bg-positive-bg p-4 text-sm text-positive">
-        <b>Économie circulaire</b> — fumier, compost, résidus Élevage ↔ Cultures. Valorisation affichée pour investisseurs (sacs engrais remplacés, impact marge).
+        <b>Économie circulaire</b> - fumier, compost, résidus Élevage ↔ Cultures. Valorisation affichée pour investisseurs (sacs engrais remplacés, impact marge).
       </section>
       <CircularEconomyKpiPanel
         dataMap={mergedMap}

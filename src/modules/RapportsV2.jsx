@@ -6,6 +6,7 @@ import FinancingFinancialStatementGuide from './FinancingFinancialStatementGuide
 import Rapports from './Rapports.jsx';
 import { makeId } from '../utils/ids';
 import { exportFinanceurReportPdf } from '../services/financeurReportService.js';
+import { subscribeFormModal } from '../services/formModalManager.js';
 
 const today = () => new Date().toISOString().slice(0, 10);
 const lower = (value = '') => String(value || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
@@ -106,15 +107,14 @@ export default function RapportsV2(props) {
   const [horizonDraft, setHorizonDraft] = useState(null);
   const data = props.data || {};
   useEffect(() => {
-    const handler = (event) => {
-      const draft = event.detail?.draft;
-      if (event.detail?.module === 'rapports' && draft?.form_type === 'financing_file') {
-        setHorizonDraft(draft);
-        window.setTimeout(() => document.getElementById('hey-horizon-financing-card')?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 80);
-      }
+    const handler = (detail = {}) => {
+      const draft = detail.draft;
+      if (!['rapports', 'documents_rapports'].includes(detail.module) || draft?.form_type !== 'financing_file') return false;
+      setHorizonDraft(draft);
+      window.setTimeout(() => document.getElementById('hey-horizon-financing-card')?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 80);
+      return true;
     };
-    window.addEventListener('horizon-open-form', handler);
-    return () => window.removeEventListener('horizon-open-form', handler);
+    return subscribeFormModal(handler, { modules: ['rapports', 'documents_rapports'] });
   }, []);
   return <div className="space-y-6">
     {horizonDraft ? <div id="hey-horizon-financing-card"><HorizonFinancingFileCard draft={horizonDraft} data={data} onCreateDocument={props.onCreateDocument} onRefreshDocuments={props.onRefreshDocuments} onCreateBusinessEvent={props.onCreateBusinessEvent} onRefreshBusinessEvents={props.onRefreshBusinessEvents} onClose={() => setHorizonDraft(null)} /></div> : null}

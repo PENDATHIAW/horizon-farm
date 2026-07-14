@@ -1,5 +1,5 @@
 /**
- * Achats & Stock V2 — péremption / DLC opérationnelle.
+ * Achats & Stock V2 - péremption / DLC opérationnelle.
  */
 
 import {

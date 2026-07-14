@@ -31,7 +31,7 @@ export function buildLotPivotContext(lot = {}, referenceDate = new Date()) {
     lotName: lot.name || lot.nom || lot.id,
     workshop: inferWorkshopFromLot(lot),
     breedCode,
-    breedLabel: breed?.label || '—',
+    breedLabel: breed?.label || '-',
     pivotDate: resolvePivotDate(lot),
     ageDays,
     theoretical,

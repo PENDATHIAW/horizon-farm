@@ -35,7 +35,7 @@ export default function ClientFicheModal({ open, onClose, client, metrics = {}, 
   ];
 
   return (
-    <BaseModal open={open} onClose={onClose} title={`Fiche client — ${client.nom || client.name || client.id}`} size="4xl">
+    <BaseModal open={open} onClose={onClose} title={`Fiche client - ${client.nom || client.name || client.id}`} size="4xl">
       <div className="space-y-4">
         <div className="rounded-2xl border border-line bg-earth p-4 text-white flex flex-wrap items-center gap-3">
           {client.photo_url ? <img src={client.photo_url} alt="" className="h-16 w-16 rounded-full object-cover border border-white/20" /> : <div className="h-16 w-16 rounded-full bg-white/10 flex items-center justify-center text-2xl font-semibold">{client.nom?.[0] || 'C'}</div>}

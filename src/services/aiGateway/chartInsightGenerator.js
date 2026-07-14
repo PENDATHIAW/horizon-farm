@@ -1,5 +1,5 @@
 /**
- * Insights graphiques — narration uniquement, aucune écriture workflow.
+ * Insights graphiques - narration uniquement, aucune écriture workflow.
  */
 
 import {

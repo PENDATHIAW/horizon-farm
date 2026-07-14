@@ -75,11 +75,11 @@ export default function ObjectifsGraphiquesTab({ plan = {} }) {
   return (
     <div className="space-y-4">
       <p className="text-sm text-slate rounded-xl border border-line bg-card px-4 py-2">
-        Tableau de bord décisionnel — 7 graphiques G1 à G7 alimentés par lots, ventes, BP et prix marché.
+        Tableau de bord décisionnel - 7 graphiques G1 à G7 alimentés par lots, ventes, BP et prix marché.
       </p>
 
       <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
-        <ChartCard title="G1 — Taux de ponte théorique vs réel" subtitle="Courbes superposées par âge (souche Rhode)">
+        <ChartCard title="G1 - Taux de ponte théorique vs réel" subtitle="Courbes superposées par âge (souche Rhode)">
           <SmartEvolutionChart
             compact
             title=""
@@ -92,7 +92,7 @@ export default function ObjectifsGraphiquesTab({ plan = {} }) {
           />
         </ChartCard>
 
-        <ChartCard title="G2 — Écarts de poids chair" subtitle="Vert = conforme, Rouge = retard vs souche">
+        <ChartCard title="G2 - Écarts de poids chair" subtitle="Vert = conforme, Rouge = retard vs souche">
           <SmartEvolutionChart
             compact
             title=""
@@ -105,7 +105,7 @@ export default function ObjectifsGraphiquesTab({ plan = {} }) {
           />
         </ChartCard>
 
-        <ChartCard title="G3 — CA réel vs seuil de rentabilité (12 mois)" subtitle="Ligne droite = seuil mensuel">
+        <ChartCard title="G3 - CA réel vs seuil de rentabilité (12 mois)" subtitle="Ligne droite = seuil mensuel">
           <SmartEvolutionChart
             compact
             title=""
@@ -119,11 +119,11 @@ export default function ObjectifsGraphiquesTab({ plan = {} }) {
           />
         </ChartCard>
 
-        <ChartCard title="G4 — Occupation bâtiments & cycles" subtitle="Durée des lots (proxy Gantt)">
+        <ChartCard title="G4 - Occupation bâtiments & cycles" subtitle="Durée des lots (proxy Gantt)">
           <ReactECharts option={g4Option} style={{ height: 260 }} opts={{ renderer: 'svg' }} />
         </ChartCard>
 
-        <ChartCard title="G5 — Marges par atelier" subtitle="Objectif vs réalisé">
+        <ChartCard title="G5 - Marges par atelier" subtitle="Objectif vs réalisé">
           <SmartEvolutionChart
             compact
             title=""
@@ -136,13 +136,13 @@ export default function ObjectifsGraphiquesTab({ plan = {} }) {
           />
         </ChartCard>
 
-        <ChartCard title="G6 — Progression CA annuel" subtitle={`Objectif ${fmtCurrency(g6.annualTarget)}`}>
+        <ChartCard title="G6 - Progression CA annuel" subtitle={`Objectif ${fmtCurrency(g6.annualTarget)}`}>
           <ReactECharts option={g6Option} style={{ height: 260 }} opts={{ renderer: 'svg' }} />
           <p className="text-center text-xs text-slate mt-2">Réalisé : {fmtCurrency(g6.annualReal)}</p>
         </ChartCard>
       </div>
 
-      <ChartCard title="G7 — Coût / Marché / Prix pratiqué (année)" subtitle="Triple courbe par activité" tall>
+      <ChartCard title="G7 - Coût / Marché / Prix pratiqué (année)" subtitle="Triple courbe par activité" tall>
         <ReactECharts option={g7Option} style={{ height: 300 }} opts={{ renderer: 'svg' }} />
       </ChartCard>
     </div>

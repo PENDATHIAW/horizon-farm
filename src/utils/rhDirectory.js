@@ -79,7 +79,7 @@ const simulationPeople = (horizonFarmSimulationSeed.rh || []).map((person) => ({
   salaire_mensuel: Number(person.salaire || person.salaire_mensuel || 0),
   prime_mensuelle: 0,
   avance_mois: 0,
-  remuneration: `Simulation BP Horizon Farm — ${person.affectation || 'global'}`,
+  remuneration: `Simulation BP Horizon Farm - ${person.affectation || 'global'}`,
   notes: 'Personne injectée par le scénario financeur Horizon Farm.',
 }));
 

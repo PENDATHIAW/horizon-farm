@@ -79,7 +79,7 @@ export default function DocumentsLinkPanel({
   if (!orphans.length && !preselectedDocumentId) {
     return compact ? null : (
       <div className="rounded-2xl border border-positive bg-positive-bg p-4 text-sm text-positive">
-        Aucun document orphelin — les preuves sont rattachées depuis les formulaires source.
+        Aucun document orphelin - les preuves sont rattachées depuis les formulaires source.
       </div>
     );
   }
@@ -93,7 +93,7 @@ export default function DocumentsLinkPanel({
           </p>
           <h3 className="mt-1 text-lg font-semibold text-earth">Rattacher une preuve orpheline</h3>
           <p className="mt-1 text-sm text-slate">
-            Documents sert à la bibliothèque et aux réparations — les opérations métier restent le point de départ normal.
+            Documents sert à la bibliothèque et aux réparations - les opérations métier restent le point de départ normal.
           </p>
         </div>
         {!compact ? (
@@ -148,7 +148,7 @@ export default function DocumentsLinkPanel({
 
       {selectedDoc ? (
         <p className="mt-3 text-xs text-slate">
-          Fichier : {selectedDoc.file_url || selectedDoc.url || '—'} · Montant doc : {fmtCurrency(selectedDoc.montant ?? selectedDoc.amount)}
+          Fichier : {selectedDoc.file_url || selectedDoc.url || '-'} · Montant doc : {fmtCurrency(selectedDoc.montant ?? selectedDoc.amount)}
         </p>
       ) : null}
 

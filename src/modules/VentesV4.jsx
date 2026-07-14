@@ -11,6 +11,7 @@ import SalesFollowUpPanel from './SalesFollowUpPanel.jsx';
 import SalesWorkflowHealth from './SalesWorkflowHealth.jsx';
 import CommercialSaleRepairPanel from './commercial/CommercialSaleRepairPanel.jsx';
 import { SaleModal } from './VentesTerrainV3.jsx';
+import { subscribeFormModal } from '../services/formModalManager.js';
 
 const deliveryStatus = (sale = {}) => sale.statut_livraison || sale.delivery_status || sale.status_livraison || 'a_livrer';
 const statusBadge = (text = '', tone = 'amber') => <span className={`rounded-full px-2 py-1 text-meta font-semibold border ${tone === 'green' ? 'bg-positive-bg text-positive border-positive' : tone === 'red' ? 'bg-urgent-bg text-urgent border-urgent' : 'bg-vigilance-bg text-horizon-dark border-vigilance'}`}>{text}</span>;
@@ -85,9 +86,9 @@ function SalesDesk({ props, payments, onShowFollowup, embedded = false }) {
       </p>
     ) : null}
     <div className="space-y-2">
-      {!embedded ? <p className="text-sm font-semibold text-earth">Actions rapides — ventes ouvertes</p> : null}
+      {!embedded ? <p className="text-sm font-semibold text-earth">Actions rapides - ventes ouvertes</p> : null}
       {!embedded ? <p className="text-xs text-slate">Encaisser, livrer ou facturer. L&apos;historique complet et les marges sont dans l&apos;onglet Suivi & marges.</p> : null}
-      {openSales.length ? <div className="grid grid-cols-1 xl:grid-cols-2 gap-3">{openSales.map((sale) => { const remaining = remainingForOrder(sale, linked);  const total = saleAmount(sale); const margin = calculateSalesMargin(sale, marginContext); const needsPay = remaining > 0; const needsDelivery = !isDelivered(sale); return <article key={sale.id} className={`rounded-2xl border bg-white p-4 space-y-3 ${needsPay ? 'border-vigilance' : 'border-line'}`}><div className="flex items-start justify-between gap-3"><div><p className="font-semibold text-earth">{sale.product_name || sale.produit || sale.id}</p><p className="text-xs text-slate">{sale.client_label || sale.client_name || 'Client'} · {sale.date || 'date non renseignée'}</p></div><div className="flex flex-wrap gap-1 justify-end">{statusBadge(remaining <= 0 ? 'Payé' : remaining < total ? 'Partiel' : 'À encaisser', remaining <= 0 ? 'green' : 'amber')}{statusBadge(needsDelivery ? 'À livrer' : 'Livré', needsDelivery ? 'red' : 'green')}</div></div><div className={`grid gap-2 text-sm ${embedded ? 'grid-cols-2' : 'grid-cols-2 md:grid-cols-4'}`}><div><span className="text-slate">Total</span><b className="block text-earth">{fmtCurrency(total)}</b></div><div><span className="text-slate">Reste</span><b className={`block ${needsPay ? 'text-horizon-dark' : 'text-earth'}`}>{fmtCurrency(remaining)}</b></div>{!embedded ? <><div className="hidden md:block"><span className="text-slate">Coût</span><b className="block text-earth">{margin.cout_a_completer ? 'À compléter' : fmtCurrency(margin.cout_revient)}</b></div><div className="hidden md:block"><span className="text-slate">Marge</span><b className={`block ${margin.cout_a_completer ? 'text-horizon-dark' : margin.marge_directe < 0 ? 'text-urgent' : 'text-positive'}`}>{margin.cout_a_completer ? 'Non fiable' : fmtCurrency(margin.marge_directe)}</b></div></> : null}</div><div className="grid grid-cols-2 md:grid-cols-4 gap-2"><button type="button" onClick={() => openSale(sale, 'edit')} className="rounded-xl border border-line px-3 py-2 text-xs font-semibold text-slate"><Edit3 size={13} className="inline" /> Modifier</button>{needsPay ? <button type="button" onClick={() => openSale(sale, 'pay')} className="rounded-xl border border-positive bg-positive-bg px-3 py-2 text-xs font-semibold text-positive"><ReceiptText size={13} className="inline" /> Encaisser</button> : null}{needsDelivery ? <button type="button" onClick={() => quickDeliver(sale)} disabled={deliveringId === sale.id} className="rounded-xl border border-vigilance bg-vigilance-bg px-3 py-2 text-xs font-semibold text-horizon-dark"><Truck size={13} className="inline" /> Livrer</button> : null}<button type="button" onClick={() => openSale(sale, 'invoice')} className="rounded-xl border border-line bg-card px-3 py-2 text-xs font-semibold text-slate"><FileText size={13} className="inline" /> Facture</button></div></article>; })}</div> : <div className="rounded-2xl border border-positive bg-positive-bg p-4 text-sm text-positive">Aucune vente à traiter — tout est à jour.</div>}
+      {openSales.length ? <div className="grid grid-cols-1 xl:grid-cols-2 gap-3">{openSales.map((sale) => { const remaining = remainingForOrder(sale, linked);  const total = saleAmount(sale); const margin = calculateSalesMargin(sale, marginContext); const needsPay = remaining > 0; const needsDelivery = !isDelivered(sale); return <article key={sale.id} className={`rounded-2xl border bg-white p-4 space-y-3 ${needsPay ? 'border-vigilance' : 'border-line'}`}><div className="flex items-start justify-between gap-3"><div><p className="font-semibold text-earth">{sale.product_name || sale.produit || sale.id}</p><p className="text-xs text-slate">{sale.client_label || sale.client_name || 'Client'} · {sale.date || 'date non renseignée'}</p></div><div className="flex flex-wrap gap-1 justify-end">{statusBadge(remaining <= 0 ? 'Payé' : remaining < total ? 'Partiel' : 'À encaisser', remaining <= 0 ? 'green' : 'amber')}{statusBadge(needsDelivery ? 'À livrer' : 'Livré', needsDelivery ? 'red' : 'green')}</div></div><div className={`grid gap-2 text-sm ${embedded ? 'grid-cols-2' : 'grid-cols-2 md:grid-cols-4'}`}><div><span className="text-slate">Total</span><b className="block text-earth">{fmtCurrency(total)}</b></div><div><span className="text-slate">Reste</span><b className={`block ${needsPay ? 'text-horizon-dark' : 'text-earth'}`}>{fmtCurrency(remaining)}</b></div>{!embedded ? <><div className="hidden md:block"><span className="text-slate">Coût</span><b className="block text-earth">{margin.cout_a_completer ? 'À compléter' : fmtCurrency(margin.cout_revient)}</b></div><div className="hidden md:block"><span className="text-slate">Marge</span><b className={`block ${margin.cout_a_completer ? 'text-horizon-dark' : margin.marge_directe < 0 ? 'text-urgent' : 'text-positive'}`}>{margin.cout_a_completer ? 'Non fiable' : fmtCurrency(margin.marge_directe)}</b></div></> : null}</div><div className="grid grid-cols-2 md:grid-cols-4 gap-2"><button type="button" onClick={() => openSale(sale, 'edit')} className="rounded-xl border border-line px-3 py-2 text-xs font-semibold text-slate"><Edit3 size={13} className="inline" /> Modifier</button>{needsPay ? <button type="button" onClick={() => openSale(sale, 'pay')} className="rounded-xl border border-positive bg-positive-bg px-3 py-2 text-xs font-semibold text-positive"><ReceiptText size={13} className="inline" /> Encaisser</button> : null}{needsDelivery ? <button type="button" onClick={() => quickDeliver(sale)} disabled={deliveringId === sale.id} className="rounded-xl border border-vigilance bg-vigilance-bg px-3 py-2 text-xs font-semibold text-horizon-dark"><Truck size={13} className="inline" /> Livrer</button> : null}<button type="button" onClick={() => openSale(sale, 'invoice')} className="rounded-xl border border-line bg-card px-3 py-2 text-xs font-semibold text-slate"><FileText size={13} className="inline" /> Facture</button></div></article>; })}</div> : <div className="rounded-2xl border border-positive bg-positive-bg p-4 text-sm text-positive">Aucune vente à traiter - tout est à jour.</div>}
     </div>
   </div>;
 }
@@ -103,16 +104,15 @@ export default function VentesV4(props) {
   const openCount = sales.filter((sale) => !isSaleClosed(sale, payments)).length;
 
   useEffect(() => {
-    const handler = (event) => {
-      const draft = event.detail?.draft;
-      if ((event.detail?.module === 'ventes' || event.detail?.module === 'commercial') && draft?.form_type === 'sale_record') {
-        setModalDraft(draft);
-        setModalOpen(true);
-        setView('register');
-      }
+    const handler = (detail = {}) => {
+      const draft = detail.draft;
+      if (!['ventes', 'commercial'].includes(detail.module) || draft?.form_type !== 'sale_record') return false;
+      setModalDraft(draft);
+      setModalOpen(true);
+      setView('register');
+      return true;
     };
-    window.addEventListener('horizon-open-form', handler);
-    return () => window.removeEventListener('horizon-open-form', handler);
+    return subscribeFormModal(handler, { modules: ['ventes', 'commercial'] });
   }, []);
 
   useEffect(() => {

@@ -8,7 +8,7 @@ function marginFinding(id, module, title, missing, entityId) {
     severity: 'moyenne',
     category: 'rentabilite',
     title,
-    description: `Données manquantes : ${missing.join(', ')} — marge non affichée volontairement`,
+    description: `Données manquantes : ${missing.join(', ')} - marge non affichée volontairement`,
     recommended_action: 'Compléter les coûts pour calcul fiable',
     confidence_score: 0.9,
     margin_reliable: false,
@@ -16,7 +16,7 @@ function marginFinding(id, module, title, missing, entityId) {
   };
 }
 
-/** Rentabilité — ne jamais afficher une marge non fiable ; signaler les données manquantes. */
+/** Rentabilité - ne jamais afficher une marge non fiable ; signaler les données manquantes. */
 export function evaluateProfitabilityRules(data = {}) {
   const findings = [];
   arr(data.animaux).forEach((a) => {

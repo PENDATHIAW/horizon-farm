@@ -1,5 +1,6 @@
 import { AlertTriangle, CheckCircle, Edit3, Layers, X } from 'lucide-react';
 import { HORIZON } from '../modules/assistant/horizonDesignTokens.js';
+import { openFormModal } from '../services/formModalManager.js';
 
 const labels = {
   product_name: 'Produit', quantity: 'Quantité', unit: 'Unité', unit_weight_kg: 'Poids unitaire kg', total_weight_kg: 'Poids total kg', supplier_name: 'Fournisseur', supplier_id: 'ID fournisseur', payment_status: 'Paiement', payment_amount: 'Montant payé', date: 'Date', notes: 'Notes', source_id: 'Source', client_name: 'Client',
@@ -74,7 +75,7 @@ function FullDraftPanel({ draft, onChangeField, onValidate, onCancel, onOpenModu
   const editModule = draftTargetModule(draft);
   const openForm = () => {
     onOpenModule?.(editModule);
-    window.setTimeout(() => window.dispatchEvent(new CustomEvent('horizon-open-form', { detail: { module: editModule, draft } })), 180);
+    openFormModal({ module: editModule, draft });
   };
 
   return (

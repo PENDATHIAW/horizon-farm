@@ -1,4 +1,4 @@
-/** Grilles et cartes responsive pour le module Élevage — évite les colonnes trop étroites. */
+/** Grilles et cartes responsive pour le module Élevage - évite les colonnes trop étroites. */
 
 export const ELEVAGE_STAT_GRID = 'grid min-w-0 grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4';
 export const ELEVAGE_ACTION_GRID = 'grid min-w-0 grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3';

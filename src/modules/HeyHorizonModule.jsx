@@ -224,7 +224,7 @@ export default function HeyHorizonModule({
 
       const result = await runCommand(query, { autoOpenForm: false, navigateOnDraft: false });
       if (!result) {
-        appendMessage('assistant', 'Je n\'ai pas bien saisi. Reformulez en une phrase simple — par exemple « mes ventes » ou « combien de bovins ».');
+        appendMessage('assistant', 'Je n\'ai pas bien saisi. Reformulez en une phrase simple - par exemple « mes ventes » ou « combien de bovins ».');
         return;
       }
 

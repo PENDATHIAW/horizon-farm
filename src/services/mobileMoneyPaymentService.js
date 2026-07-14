@@ -1,5 +1,5 @@
 /**
- * Client Wave / Orange Money — création lien, statut, finalisation encaissement ERP.
+ * Client Wave / Orange Money - création lien, statut, finalisation encaissement ERP.
  */
 
 import { recordSalePayment } from '../utils/recordSalePayment.js';

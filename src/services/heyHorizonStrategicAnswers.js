@@ -85,7 +85,7 @@ export function buildStrategicAnswer(type, dataMap = {}) {
         title: year1Label,
         summary: withPeriodContext(
           dataMap,
-          `CA ${year1Label} : ${fmtCurrency(realized)} / ${fmtCurrency(target)} (${attainment}%). Reste ${fmtCurrency(remaining)} sur le BP. Démarrage ${activityYear?.startDate || '—'}.`,
+          `CA ${year1Label} : ${fmtCurrency(realized)} / ${fmtCurrency(target)} (${attainment}%). Reste ${fmtCurrency(remaining)} sur le BP. Démarrage ${activityYear?.startDate || '-'}.`,
         ),
         rows: [
           {
@@ -181,7 +181,7 @@ export function buildStrategicAnswer(type, dataMap = {}) {
         summary: rows.length
           ? withPeriodContext(
             dataMap,
-            `${rows.length} client(s) avec encaissements en attente — total ${fmtCurrency(rows.reduce((s, r) => s + r.rest, 0))}.${dataMap.periodFiltered ? ' Créances sur l’historique complet (hors filtre période ventes).' : ''}`,
+            `${rows.length} client(s) avec encaissements en attente - total ${fmtCurrency(rows.reduce((s, r) => s + r.rest, 0))}.${dataMap.periodFiltered ? ' Créances sur l’historique complet (hors filtre période ventes).' : ''}`,
           )
           : withPeriodContext(dataMap, 'Aucune créance client ouverte détectée.'),
         rows: rows.slice(0, 8).map((r) => ({ title: r.name, detail: `Commande ${r.orderId}`, value: fmtCurrency(r.rest), module: 'commercial', orderId: r.orderId })),
@@ -209,7 +209,7 @@ export function buildStrategicAnswer(type, dataMap = {}) {
           worst
             ? `Lot le moins rentable suivi : ${worst.lot.name || worst.lot.nom || worst.lot.id} (${fmtCurrency(worst.margin)}).`
             : unreliable.length
-              ? `${unreliable.length} lot(s)/animal(aux) avec marge non fiable — données coûts incomplètes.`
+              ? `${unreliable.length} lot(s)/animal(aux) avec marge non fiable - données coûts incomplètes.`
               : 'Complétez coûts aliment, poussins et revenus pour comparer les lots.',
         ),
         rows: [
@@ -260,7 +260,7 @@ export function buildStrategicAnswer(type, dataMap = {}) {
         ),
         rows: [
           ...eqRows.slice(0, 5),
-          ...txCosts.slice(0, 4).map((t) => ({ title: t.libelle || t.title || 'Dépense', detail: t.date || t.created_at || '—', value: fmtCurrency(amount(t)), module: 'finance_pilotage' })),
+          ...txCosts.slice(0, 4).map((t) => ({ title: t.libelle || t.title || 'Dépense', detail: t.date || t.created_at || '-', value: fmtCurrency(amount(t)), module: 'finance_pilotage' })),
         ],
         route: 'rh',
         confidence: 86,

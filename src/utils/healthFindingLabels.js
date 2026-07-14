@@ -28,7 +28,7 @@ export function sanitizeHealthTaskTitle(value = '') {
 
 const HEALTH_MIRROR_TITLE = /^(tâche critique|preuve manquante)\s*:/i;
 
-/** Tâche générée par le Health Engine — ne pas re-traiter comme nouvelle anomalie. */
+/** Tâche générée par le Health Engine - ne pas re-traiter comme nouvelle anomalie. */
 export function isHealthEngineMirrorTask(task = {}) {
   if (String(task.source_module || '') === 'erp_health_engine') return true;
   if (String(task.source_module || '') === 'alertes' && String(task.source_record_id || '').startsWith('alert-')) return true;
@@ -59,7 +59,7 @@ export function isOpenTaskStatus(task = {}) {
   return !CLOSED_TASK_STATUSES.has(String(task.status || task.statut || '').toLowerCase());
 }
 
-/** Tâche miroir IA ou bruit Health Engine — exclure des compteurs et priorités terrain. */
+/** Tâche miroir IA ou bruit Health Engine - exclure des compteurs et priorités terrain. */
 export function isHealthMirrorNoiseTask(task = {}) {
   if (isHealthEngineMirrorTask(task)) return true;
 

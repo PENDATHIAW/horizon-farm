@@ -5,8 +5,8 @@ export default function FinanceAlertsPanel({ alerts = [], onNavigateTab, insuffi
     return (
       <section className={`rounded-2xl border p-4 text-sm ${insufficientData ? 'border-vigilance bg-vigilance-bg text-horizon-dark' : 'border-positive bg-positive-bg text-positive'}`}>
         {insufficientData
-          ? 'En attente de données — aucune alerte financière tant qu\'aucun flux n\'est enregistré.'
-          : 'Aucune alerte financière urgente — situation sous contrôle.'}
+          ? 'En attente de données - aucune alerte financière tant qu\'aucun flux n\'est enregistré.'
+          : 'Aucune alerte financière urgente - situation sous contrôle.'}
       </section>
     );
   }

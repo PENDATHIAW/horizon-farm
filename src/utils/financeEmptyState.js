@@ -1,5 +1,5 @@
 /**
- * États vides Finance P1 — pas de faux diagnostics sur ferme sans données.
+ * États vides Finance P1 - pas de faux diagnostics sur ferme sans données.
  * Les vérités canoniques P0 (cashNet, creancesReelles, payablesTotal, CMUP) restent inchangées.
  */
 

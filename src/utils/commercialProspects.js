@@ -1,5 +1,5 @@
 /**
- * Commercial V3 — parcours prospects (metadata client légère).
+ * Commercial V3 - parcours prospects (metadata client légère).
  */
 
 import { readClientCommercialTerms } from './commercialPricing.js';

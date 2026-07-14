@@ -1,5 +1,5 @@
 /**
- * Conseiller d'exploitation V7 — couche d'analyse conversationnelle.
+ * Conseiller d'exploitation V7 - couche d'analyse conversationnelle.
  * Compose uniquement les moteurs existants (Finance, Commercial, Élevage,
  * Cultures, Stock, Objectifs) sans en créer de nouveaux.
  */
@@ -25,7 +25,7 @@ function finalizeAnswer(answer = {}) {
   };
 }
 
-/** Signaux de risque — finance, commercial, élevage, stock, objectifs. */
+/** Signaux de risque - finance, commercial, élevage, stock, objectifs. */
 export function collectRiskSignals(snap = {}) {
   const {
     finance, commercial, monthPct, elevageAlerts, stockSummary, growth,
@@ -39,7 +39,7 @@ export function collectRiskSignals(snap = {}) {
     risks.push({
       level: 100,
       domain: 'finance',
-      text: 'La trésorerie est négative — chaque dépense doit être arbitrée avec soin.',
+      text: 'La trésorerie est négative - chaque dépense doit être arbitrée avec soin.',
     });
   }
   if (receivables > 0 && (treasury <= 0 || receivables > treasury * 2)) {
@@ -60,7 +60,7 @@ export function collectRiskSignals(snap = {}) {
     risks.push({
       level: 90 - monthPct,
       domain: 'objectifs',
-      text: `L'objectif mensuel n'est atteint qu'à ${monthPct} % — le rythme commercial est en retard.`,
+      text: `L'objectif mensuel n'est atteint qu'à ${monthPct} % - le rythme commercial est en retard.`,
     });
   }
   if (arr(elevageAlerts).length > 0) {
@@ -94,7 +94,7 @@ export function collectRiskSignals(snap = {}) {
   return [...risks].sort((a, b) => b.level - a.level);
 }
 
-/** Tendances — dynamique d'exploitation sur période récente. */
+/** Tendances - dynamique d'exploitation sur période récente. */
 export function collectTrendSignals(snap = {}) {
   const { dynamics, comparisons } = snap;
   const signals = [];
@@ -121,7 +121,7 @@ export function collectTrendSignals(snap = {}) {
   return signals;
 }
 
-/** Comparaisons période — mois vs mois précédent, semaine vs semaine. */
+/** Comparaisons période - mois vs mois précédent, semaine vs semaine. */
 export function collectComparisonSignals(snap = {}) {
   const comparisons = arr(snap.comparisons).filter((row) => row.ready);
   const results = [];
@@ -144,7 +144,7 @@ export function collectComparisonSignals(snap = {}) {
   return results;
 }
 
-/** Opportunités — stock, cultures, lots, animaux prêts à vendre. */
+/** Opportunités - stock, cultures, lots, animaux prêts à vendre. */
 export function collectOpportunitySignals(snap = {}) {
   return arr(snap.opportunities)
     .map((opp) => ({
@@ -158,7 +158,7 @@ export function collectOpportunitySignals(snap = {}) {
     .sort((a, b) => b.level - a.level);
 }
 
-/** Priorités classées par impact — finance, commercial, élevage, stock, objectifs. */
+/** Priorités classées par impact - finance, commercial, élevage, stock, objectifs. */
 export function collectPriorityActions(snap = {}) {
   const {
     commercial, receivableRows, monthPct, elevageAlerts, relanceRows, stockSummary,
@@ -174,7 +174,7 @@ export function collectPriorityActions(snap = {}) {
     candidates.push({
       impact: 100 + Math.min(receivableTotal / 100000, 20),
       text: topName
-        ? `Commencez par ${topName}${share > 0 ? ` — cette créance représente ${share} % du total en attente (${fmtCurrency(top.amount)})` : ''}`
+        ? `Commencez par ${topName}${share > 0 ? ` - cette créance représente ${share} % du total en attente (${fmtCurrency(top.amount)})` : ''}`
         : `Relancer les ${receivableCount} créance${receivableCount > 1 ? 's' : ''} en attente (${fmtCurrency(receivableTotal)})`,
     });
   }
@@ -220,7 +220,7 @@ export function collectPriorityActions(snap = {}) {
   return [...candidates].sort((a, b) => b.impact - a.impact).slice(0, 3);
 }
 
-/** Bundle conseil complet — une seule lecture snapshot. */
+/** Bundle conseil complet - une seule lecture snapshot. */
 export function buildFarmAdvisoryBundle(dataMap = {}) {
   const snap = buildDirectorSnapshot(dataMap);
   return {
@@ -278,7 +278,7 @@ function comparisonSentences(comparisons = []) {
   if (collections && collections.trend === 'up') {
     lines.push(`Les encaissements suivent une bonne dynamique (${collections.current}).`);
   } else if (collections && collections.trend === 'down') {
-    lines.push(`Les encaissements ralentissent — ${collections.current} contre ${collections.previous} sur la période précédente.`);
+    lines.push(`Les encaissements ralentissent - ${collections.current} contre ${collections.previous} sur la période précédente.`);
   }
   return lines;
 }
@@ -407,7 +407,7 @@ export function buildComparaisonsAnswer(dataMap = {}) {
       intent: 'farm_comparisons',
       situation: 'Je n\'ai pas encore assez de recul pour comparer deux périodes de façon fiable.',
       cause: '',
-      action: 'Continuez à enregistrer ventes et encaissements — la comparaison sera disponible sous peu.',
+      action: 'Continuez à enregistrer ventes et encaissements - la comparaison sera disponible sous peu.',
       sources: [],
       confidence: 70,
       meta: {},
@@ -423,7 +423,7 @@ export function buildComparaisonsAnswer(dataMap = {}) {
       : '',
     action: lines.some((l) => /recul|ralentissent/i.test(l))
       ? 'Accélérez les ventes et les relances pour retrouver le rythme du mois précédent.'
-      : 'Bonne dynamique — consolidez en sécurisant les encaissements.',
+      : 'Bonne dynamique - consolidez en sécurisant les encaissements.',
     sources: [],
     confidence: 92,
     meta: {},
@@ -532,7 +532,7 @@ export function collectMoneyLeakSignals(dataMap = {}) {
   return { leaks: [...leaks].sort((a, b) => b.level - a.level), snap };
 }
 
-/** Fuites financières — impact métier, pas situation de trésorerie brute. */
+/** Fuites financières - impact métier, pas situation de trésorerie brute. */
 export function buildMoneyLeaksAnswer(dataMap = {}) {
   const { leaks, snap } = collectMoneyLeakSignals(dataMap);
 
@@ -631,7 +631,7 @@ export function buildCommentVaLaFermeConseilAnswer(dataMap = {}) {
   if (lowStock === 0) {
     paragraphs.push('Les stocks sont disponibles sans rupture.');
   } else {
-    paragraphs.push(`${lowStock} produit${lowStock > 1 ? 's' : ''} approche${lowStock > 1 ? 'nt' : ''} d'un seuil bas — à surveiller.`);
+    paragraphs.push(`${lowStock} produit${lowStock > 1 ? 's' : ''} approche${lowStock > 1 ? 'nt' : ''} d'un seuil bas - à surveiller.`);
   }
 
   if (receivableCount > 0 && lotWatch) {

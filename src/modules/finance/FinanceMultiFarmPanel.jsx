@@ -26,7 +26,7 @@ export default function FinanceMultiFarmPanel({ multiFarm = null }) {
         <Building2 size={20} className="text-horizon-dark" />
         <div>
           <h2 className="text-lg font-semibold text-earth">Vue multi-fermes</h2>
-          <p className="text-sm text-slate">Comparaison consolidée — repères et actions prioritaires.</p>
+          <p className="text-sm text-slate">Comparaison consolidée - repères et actions prioritaires.</p>
         </div>
       </div>
 
@@ -62,13 +62,13 @@ export default function FinanceMultiFarmPanel({ multiFarm = null }) {
                 <td className={`py-3 pr-4 font-semibold ${row.treasury >= 0 ? 'text-positive' : 'text-urgent'}`}>
                   {row.dataComplete === false ? 'Données à compléter' : fmtCurrency(row.treasury)}
                 </td>
-                <td className="py-3 pr-4">{row.dataComplete === false ? '—' : fmtCurrency(row.receivables)}</td>
-                <td className="py-3 pr-4">{row.dataComplete === false ? '—' : fmtCurrency(row.payables)}</td>
+                <td className="py-3 pr-4">{row.dataComplete === false ? '-' : fmtCurrency(row.receivables)}</td>
+                <td className="py-3 pr-4">{row.dataComplete === false ? '-' : fmtCurrency(row.payables)}</td>
                 <td className={`py-3 pr-4 font-semibold ${row.margin >= 0 ? 'text-positive' : 'text-urgent'}`}>
-                  {row.dataComplete === false ? '—' : fmtCurrency(row.margin)}
+                  {row.dataComplete === false ? '-' : fmtCurrency(row.margin)}
                 </td>
                 <td className="py-3 pr-4">
-                  {row.cashFlow30 != null ? fmtCurrency(row.cashFlow30) : '—'}
+                  {row.cashFlow30 != null ? fmtCurrency(row.cashFlow30) : '-'}
                 </td>
                 <td className="py-3 pr-4">
                   <span className={`rounded-full px-2 py-1 text-meta font-semibold ${row.risk === 'Élevé' ? 'bg-urgent-bg text-urgent' : row.risk === 'Moyen' ? 'bg-vigilance-bg text-horizon-dark' : 'bg-positive-bg text-positive'}`}>

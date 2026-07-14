@@ -9,7 +9,7 @@ import { computeEggProductionSummary } from '../../modules/dashboard/dashboardMe
 import {  metaBase, n, pickRows } from './coreUtils.js';
 
 /**
- * Synthèse aviculture — lots, effectifs, production œufs.
+ * Synthèse aviculture - lots, effectifs, production œufs.
  */
 export function getPoultrySummary(dataMap = {}) {
   const lots = pickRows(dataMap, 'lots', 'avicole');

@@ -1,5 +1,5 @@
 /**
- * Délai sanitaire — blocage vente / transformation tant que le délai est actif.
+ * Délai sanitaire - blocage vente / transformation tant que le délai est actif.
  */
 
 const arr = (value) => (Array.isArray(value) ? value : []);
@@ -78,7 +78,7 @@ export function formatSanitaryBlockMessage(withdrawals = [], action = SANITARY_A
   const labels = withdrawals.slice(0, 3).map(formatWithdrawalLabel);
   const actionLabel = action === SANITARY_ACTIONS.TRANSFORM ? 'transformation / abattage' : 'vente Commercial';
   const tail = withdrawals.length > 3 ? ` (+${withdrawals.length - 3} autre(s))` : '';
-  return `Délai sanitaire actif — ${actionLabel} bloquée. ${labels.join(' · ')}${tail}`;
+  return `Délai sanitaire actif - ${actionLabel} bloquée. ${labels.join(' · ')}${tail}`;
 }
 
 /**

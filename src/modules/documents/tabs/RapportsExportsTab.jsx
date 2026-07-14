@@ -45,7 +45,7 @@ export default function RapportsExportsTab({
         <div className="mb-4 flex flex-col gap-3 rounded-2xl border border-positive bg-positive-bg p-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <p className="font-semibold text-positive">Dossier financeur PDF</p>
-            <p className="text-sm text-positive">DER, FONGIP, BNDE, CNCAS — actifs, production, CA, rentabilité, risques et prévisions.</p>
+            <p className="text-sm text-positive">DER, FONGIP, BNDE, CNCAS - actifs, production, CA, rentabilité, risques et prévisions.</p>
           </div>
           <div className="flex flex-wrap gap-2">
             <Button primary onClick={() => onNavigate?.('financements', { tab: 'export' })}>Générer pack investisseur</Button>
@@ -73,7 +73,7 @@ export default function RapportsExportsTab({
         )) : <Empty label="Aucun modèle enregistré." />}
       </Section>
       <Section icon={BarChart3} title="Couverture analytique">
-        <p className="mb-4 text-sm text-slate">Évolutions finance et clients intégrées — l’onglet Graphiques technique est fusionné ici.</p>
+        <p className="mb-4 text-sm text-slate">Évolutions finance et clients intégrées - l’onglet Graphiques technique est fusionné ici.</p>
         <ModuleGraphiquesTab
           moduleId="documents_rapports"
           periodFiltered={periodFiltered}

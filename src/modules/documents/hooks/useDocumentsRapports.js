@@ -82,7 +82,7 @@ export function useDocumentsRapports(props = {}) {
     const priorities = missingProofItems.slice(0, 8).map((row) => ({
       id: `proof-${row.id}`,
       title: row.title,
-      detail: `${String(row.date || '—').slice(0, 10)} · justificatif manquant`,
+      detail: `${String(row.date || '-').slice(0, 10)} · justificatif manquant`,
       amount: row.amount,
       trxId: row.id,
     }));

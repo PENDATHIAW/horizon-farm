@@ -3,7 +3,7 @@ import { fmtCurrency } from '../utils/format';
 const arr = (v) => (Array.isArray(v) ? v : []);
 const low = (v) => String(v || '').toLowerCase();
 const labelOf = (r = {}) => r.title || r.nom || r.name || r.filename || r.libelle || r.id || 'Document';
-const dateOf = (r = {}) => r.date || r.created_at || r.updated_at || '—';
+const dateOf = (r = {}) => r.date || r.created_at || r.updated_at || '-';
 
 function isLinked(doc = {}) {
   return Boolean(

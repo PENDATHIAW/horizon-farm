@@ -1,5 +1,5 @@
 /**
- * Réponses météo assistant — lecture seule via dataMap.meteo (Open-Meteo / useLiveWeather).
+ * Réponses météo assistant - lecture seule via dataMap.meteo (Open-Meteo / useLiveWeather).
  */
 
 const RISK_LABELS = Object.freeze({

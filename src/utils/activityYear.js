@@ -53,7 +53,7 @@ export function buildActivityYearInputFromDataMap(dataMap = {}) {
 }
 
 /**
- * Date de démarrage d'activité — priorité explicite puis signaux terrain.
+ * Date de démarrage d'activité - priorité explicite puis signaux terrain.
  * 1. Ferme / BP Investissements (date_debut)
  * 2. Investissements de démarrage
  * 3. Premiers lots / cultures / animaux

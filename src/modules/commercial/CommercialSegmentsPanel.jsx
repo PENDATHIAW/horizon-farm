@@ -9,7 +9,7 @@ export default function CommercialSegmentsPanel({ clients = [], orders = [], pay
   if (!stats.length && !ia.best.length) {
     return (
       <section className="rounded-2xl border border-line bg-card p-6 text-center text-sm text-slate">
-        Aucune donnée segment — enregistrez des ventes et des clients typés (restaurant, grossiste, boutique…).
+        Aucune donnée segment - enregistrez des ventes et des clients typés (restaurant, grossiste, boutique…).
       </section>
     );
   }
@@ -17,20 +17,20 @@ export default function CommercialSegmentsPanel({ clients = [], orders = [], pay
   return (
     <div className="space-y-4">
       <section className="rounded-2xl border border-line bg-white p-4">
-        <p className="text-xs uppercase tracking-normal text-slate font-semibold mb-3">Segmentation IA</p>
+        <p className="text-xs uppercase tracking-normal text-slate font-semibold mb-3">Segmentation</p>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-3 text-sm">
           <div className="rounded-xl border border-positive bg-positive-bg p-3">
             <p className="font-semibold text-positive">Meilleurs clients</p>
             <ul className="mt-2 space-y-1 text-xs text-positive">
               {ia.best.slice(0, 4).map((c) => <li key={c.id}>{c.name} · {fmtCurrency(c.ca)}</li>)}
-              {!ia.best.length ? <li>—</li> : null}
+              {!ia.best.length ? <li>-</li> : null}
             </ul>
           </div>
           <div className="rounded-xl border border-vigilance bg-vigilance-bg p-3">
             <p className="font-semibold text-horizon-dark">Clients à risque</p>
             <ul className="mt-2 space-y-1 text-xs text-horizon-dark">
               {ia.atRisk.slice(0, 4).map((c) => <li key={c.id}>{c.name} · {fmtCurrency(c.receivable)}</li>)}
-              {!ia.atRisk.length ? <li>—</li> : null}
+              {!ia.atRisk.length ? <li>-</li> : null}
             </ul>
           </div>
           <div className="rounded-xl border border-line bg-neutral-bg p-3">
@@ -43,7 +43,7 @@ export default function CommercialSegmentsPanel({ clients = [], orders = [], pay
                 </li>
               ))}
               {ia.inactive.slice(0, 2).map((c) => <li key={c.id}>{c.name} (inactif)</li>)}
-              {!ia.silent.length && !ia.inactive.length ? <li>—</li> : null}
+              {!ia.silent.length && !ia.inactive.length ? <li>-</li> : null}
             </ul>
           </div>
         </div>

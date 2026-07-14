@@ -12,7 +12,7 @@ export {
 } from './objectifsCroissanceNavigation.js';
 
 /**
- * KPI finance partagés — sources uniques :
+ * KPI finance partagés - sources uniques :
  *  - CA / encaissements ventes / créances : `buildConsolidatedCommercialKpis` (Commercial canon)
  *  - dépenses / trésorerie brute : `computeFinancePeriodSummary` (finances transactions)
  * Garantit la cohérence des chiffres Accueil / Commercial / Finance / Objectifs / Vision.

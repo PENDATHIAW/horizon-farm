@@ -55,7 +55,7 @@ export default function FournisseursStockBridge({ suppliers = [], stocks = [], t
       const taskId = makeId('TSK');
       await onCreateTask?.({
         id: taskId,
-        title: `Commander ${productName(stock)} — ${supplierName(supplier)}`,
+        title: `Commander ${productName(stock)} - ${supplierName(supplier)}`,
         module_lie: 'fournisseurs',
         source_module: 'fournisseurs',
         related_id: supplier.id,

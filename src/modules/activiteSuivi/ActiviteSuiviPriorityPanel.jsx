@@ -8,9 +8,9 @@ export default function ActiviteSuiviPriorityPanel({ items = [], kind = 'all', o
   const title = kind === 'alerte' ? 'Alertes prioritaires' : kind === 'tache' ? 'Tâches prioritaires' : 'File prioritaire';
   const subtitle =
     kind === 'alerte'
-      ? 'Critiques sans résolution — détail complet sur cet onglet.'
+      ? 'Critiques sans résolution - détail complet sur cet onglet.'
       : kind === 'tache'
-        ? 'Retards et priorités critiques — traitement sur cet onglet.'
+        ? 'Retards et priorités critiques - traitement sur cet onglet.'
         : 'Alertes et tâches à traiter en premier.';
 
   return (

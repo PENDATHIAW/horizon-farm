@@ -1,5 +1,5 @@
 /**
- * Réponses agricoles — lecture seule via moteurs de calcul uniquement.
+ * Réponses agricoles - lecture seule via moteurs de calcul uniquement.
  * consolidateFinance · buildConsolidatedCommercialKpis · summarizeSalesMargins
  * buildObjectifsCroissanceData · computeFarmHeadcount · computeCultureSummary · computeStockSummary
  */
@@ -198,7 +198,7 @@ function buildAgriculturalAnswerCore(intent = '', dataMap = {}, options = {}) {
       }
       return {
         title: 'Bonjour',
-        situation: 'Bonjour — content de vous retrouver.',
+        situation: 'Bonjour - content de vous retrouver.',
         cause: '',
         action: 'De quoi voulez-vous qu\'on parle ?',
         sources: [],
@@ -417,7 +417,7 @@ function buildAgriculturalAnswerCore(intent = '', dataMap = {}, options = {}) {
         title: 'Culture rentable',
         situation: top?.name
           ? `Meilleure contribution ventes : ${top.name}${top.margin != null ? ` (marge ${fmtCurrency(top.margin)})` : ''}.`
-          : `${fmt(cultureSummary.activeCultures)} cultures actives — détail marge dans Cultures.`,
+          : `${fmt(cultureSummary.activeCultures)} cultures actives - détail marge dans Cultures.`,
         cause: 'Marges consolidées depuis les ventes ERP.',
         action: 'Renforcez les cultures les plus rentables cette saison.',
         sources: ['summarizeSalesMargins', 'computeCultureSummary'],
@@ -468,7 +468,7 @@ function buildAgriculturalAnswerCore(intent = '', dataMap = {}, options = {}) {
       return {
         title: 'DLC',
         situation: 'Les dates de péremption sont dans Achats & Stock.',
-        cause: 'Pas de moteur DLC dédié — consultation fiches stock.',
+        cause: 'Pas de moteur DLC dédié - consultation fiches stock.',
         action: 'Ouvrez Achats & Stock → onglet produits pour filtrer les DLC proches.',
         sources: ['stocks'],
         confidence: 80,
@@ -608,7 +608,7 @@ function buildAgriculturalAnswerCore(intent = '', dataMap = {}, options = {}) {
         title: 'Commandes',
         situation: `${fmt(open.length)} commande(s) en cours · ${fmtCurrency(total)}.`,
         cause: `${fmt(commercialKpis.unpaidOrders || 0)} commande(s) avec solde client.`,
-        action: open.length ? 'Priorisez livraisons et encaissements sur les commandes ouvertes.' : 'Aucune commande ouverte — prospectez vos clients réguliers.',
+        action: open.length ? 'Priorisez livraisons et encaissements sur les commandes ouvertes.' : 'Aucune commande ouverte - prospectez vos clients réguliers.',
         sources: ['buildConsolidatedCommercialKpis'],
         confidence: 89,
       };
@@ -668,7 +668,7 @@ function buildAgriculturalAnswerCore(intent = '', dataMap = {}, options = {}) {
       return {
         title: 'Documents',
         situation: total
-          ? `${fmt(total)} document(s) et rapport(s)${recent.length ? ` — derniers : ${recent.join(', ')}` : ''}.`
+          ? `${fmt(total)} document(s) et rapport(s)${recent.length ? ` - derniers : ${recent.join(', ')}` : ''}.`
           : 'Aucun document exporté récemment.',
         cause: 'Archives Documents & Rapports + exports Centre décisionnel.',
         action: total
@@ -708,7 +708,7 @@ function buildAgriculturalAnswerCore(intent = '', dataMap = {}, options = {}) {
         return {
           title: 'Personnel maintenance',
           situation: `${fmt(maintenanceStaff.length)} personne(s) avec accès équipements / Smart Farm : ${names.join(', ')}.`,
-          cause: 'Annuaire RH — modules equipements, smartfarm ou rôles terrain technique.',
+          cause: 'Annuaire RH - modules equipements, smartfarm ou rôles terrain technique.',
           action: 'Assignez la tâche maintenance depuis Personnel & Paie ou créez une tâche sur le parc matériel.',
           sources: ['rh', 'equipements'],
           confidence: 88,
@@ -721,10 +721,10 @@ function buildAgriculturalAnswerCore(intent = '', dataMap = {}, options = {}) {
         title: 'Personnel',
         situation: active.length
           ? `${fmt(active.length)} personne(s) active(s)${preview.length ? ` : ${preview.join(', ')}` : ''}.`
-          : `${fmt(open.length)} tâche(s) ouverte(s) sur l'exploitation${taskPreview.length ? ` — ${taskPreview.join(', ')}` : ''}.`,
+          : `${fmt(open.length)} tâche(s) ouverte(s) sur l'exploitation${taskPreview.length ? ` - ${taskPreview.join(', ')}` : ''}.`,
         cause: team.length
           ? 'Annuaire RH synchronisé (cloud ou cache de secours).'
-          : tasks.length ? `${fmt(tasks.length)} tâche(s) liée(s) au personnel terrain.` : 'Peu de données RH — complétez l’annuaire dans Personnel & Paie.',
+          : tasks.length ? `${fmt(tasks.length)} tâche(s) liée(s) au personnel terrain.` : 'Peu de données RH - complétez l’annuaire dans Personnel & Paie.',
         action: wantsMaintenance
           ? 'Vérifiez les modules assignés (equipements, smartfarm) pour chaque membre.'
           : open.length ? 'Priorisez les tâches équipe avant les sorties terrain.' : 'Planifiez les équipes dans Personnel & Paie.',
@@ -785,7 +785,7 @@ function buildAgriculturalAnswerCore(intent = '', dataMap = {}, options = {}) {
         title: 'Ventes du jour',
         situation: `${fmt(todayOrders.length)} vente(s) aujourd'hui · ${fmtCurrency(total)}.`,
         cause: 'Commandes datées du jour dans le commercial ERP.',
-        action: todayOrders.length ? 'Reliez livraisons et encaissements sur ces ventes.' : 'Aucune vente enregistrée — pensez aux clients du jour.',
+        action: todayOrders.length ? 'Reliez livraisons et encaissements sur ces ventes.' : 'Aucune vente enregistrée - pensez aux clients du jour.',
         sources: ['buildConsolidatedCommercialKpis'],
         confidence: 90,
       };

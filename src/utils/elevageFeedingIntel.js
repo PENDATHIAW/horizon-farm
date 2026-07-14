@@ -7,7 +7,7 @@ const isFeedStock = (row = {}) =>
     lower(`${row.produit || row.name || row.nom || ''} ${row.categorie || row.category || ''}`),
   );
 
-/** Suggestion ration simple — basée sur effectif et type lot. */
+/** Suggestion ration simple - basée sur effectif et type lot. */
 export function suggestRationForTarget(target = {}, type = 'lot') {
   const effectif = type === 'lot'
     ? n(target.current_count ?? target.effectif_actuel ?? target.initial_count)
@@ -54,14 +54,14 @@ export function buildFeedStockRuptureAlerts({ stocks = [], feedLogs = [] } = {})
       : 0;
 
     if (qty <= 0) {
-      alerts.push({ severity: 'danger', title: `Rupture : ${product}`, message: 'Stock aliment à zéro — réapprovisionnement urgent (Achats & Stock).' });
+      alerts.push({ severity: 'danger', title: `Rupture : ${product}`, message: 'Stock aliment à zéro - réapprovisionnement urgent (Achats & Stock).' });
       return;
     }
     if (dailyUse > 0 && qty / dailyUse <= 7) {
       alerts.push({
         severity: 'warning',
         title: `Rupture sous 7 j : ${product}`,
-        message: `Stock ${qty} u. · usage ~${dailyUse.toFixed(1)}/jour — commander avant ${Math.ceil(qty / dailyUse)} j.`,
+        message: `Stock ${qty} u. · usage ~${dailyUse.toFixed(1)}/jour - commander avant ${Math.ceil(qty / dailyUse)} j.`,
       });
     }
   });

@@ -1,5 +1,5 @@
 /**
- * Snapshot exploitation — données canoniques pour moteurs dirigeant V6.1.
+ * Snapshot exploitation - données canoniques pour moteurs dirigeant V6.1.
  */
 
 import { consolidateFinance } from '../utils/financeConsolidationEngine.js';

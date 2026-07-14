@@ -1,6 +1,6 @@
 /**
- * Audit ERP transversal V1 — business_events, finance, stock, traçabilité.
- * Lecture seule — ne recalcule pas les vérités canoniques.
+ * Audit ERP transversal V1 - business_events, finance, stock, traçabilité.
+ * Lecture seule - ne recalcule pas les vérités canoniques.
  */
 
 import { findDuplicateFinanceTransaction } from './financeTransactionMeta.js';

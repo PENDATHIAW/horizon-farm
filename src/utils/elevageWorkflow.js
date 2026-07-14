@@ -1,5 +1,5 @@
 /**
- * Chantier 4 — Élevage : une saisie par onglet métier, impacts stock / finance / alertes / tâches / traçabilité.
+ * Chantier 4 - Élevage : une saisie par onglet métier, impacts stock / finance / alertes / tâches / traçabilité.
  */
 
 import { makeId } from './ids.js';
@@ -389,7 +389,7 @@ export function buildMortalityAlert({ lot = {}, rate = 0, thresholds = null } = 
   const key = buildElevageIssueKey(ELEVAGE_DOMAINS.MORTALITY, lotId, 'seuil');
   return {
     id: makeId('ALT'),
-    title: `Mortalité élevée — ${lot.name || lot.nom || lotId}`,
+    title: `Mortalité élevée - ${lot.name || lot.nom || lotId}`,
     message: `Taux ${rate.toFixed(1)}% (seuil alerte ${resolved.mortalityAlertPct}%).`,
     module_source: 'elevage',
     entity_type: 'lot_avicole',
@@ -762,7 +762,7 @@ export async function commitElevageMortality({ form = {}, context = {}, handlers
       if (!exists) {
         await handlers.onCreateAlert({
           id: dailyEntryRecordId('ALT-Q', { ...identity, eventKey: `${identity.eventKey}:animal-alert` }),
-          title: `Mortalité animal — ${animal.nom || animal.name || animalId}`,
+          title: `Mortalité animal - ${animal.nom || animal.name || animalId}`,
           message: form.notes || form.motif || 'Animal déclaré mort.',
           module_source: 'elevage',
           entity_type: 'animal',
@@ -1109,7 +1109,7 @@ export async function commitElevageTransformation({ form = {}, context = {}, han
 }
 
 /**
- * Pesée lot ou animal — historique + poids actuel + business_event.
+ * Pesée lot ou animal - historique + poids actuel + business_event.
  */
 export async function commitElevageWeighing({ form = {}, context = {}, handlers = {} } = {}) {
   const err = validateElevageWeighingForm(form);

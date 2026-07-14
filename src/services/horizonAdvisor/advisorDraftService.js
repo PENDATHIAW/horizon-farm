@@ -1,5 +1,5 @@
 /**
- * Horizon Advisor — brouillons d'actions validables (tâche / alerte).
+ * Horizon Advisor - brouillons d'actions validables (tâche / alerte).
  * Aucune écriture directe : validation utilisateur obligatoire.
  */
 
@@ -98,7 +98,7 @@ export async function executeAdvisorDraft(draft = {}, handlers = {}, options = {
       finding,
     });
     if (typeof handlers.onCreateAlert !== 'function') {
-      return { ok: false, error: 'Création alerte indisponible — ouvrez Activité & Suivi' };
+      return { ok: false, error: 'Création alerte indisponible - ouvrez Activité & Suivi' };
     }
     await handlers.onCreateAlert(built.alert);
     await handlers.onRefreshAlertes?.();

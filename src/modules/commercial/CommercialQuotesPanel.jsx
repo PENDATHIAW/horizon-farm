@@ -140,7 +140,7 @@ export default function CommercialQuotesPanel({
       </div>
 
       {!quotes.length ? (
-        <p className="text-sm text-slate rounded-xl border border-line bg-card px-3 py-4">Aucun devis — créez un brouillon pour préparer une offre client.</p>
+        <p className="text-sm text-slate rounded-xl border border-line bg-card px-3 py-4">Aucun devis - créez un brouillon pour préparer une offre client.</p>
       ) : (
         <div className="space-y-2">
           {quotes.slice(0, 8).map((quote) => {

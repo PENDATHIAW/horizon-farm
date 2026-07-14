@@ -1,5 +1,5 @@
 /**
- * Règles métier Commercial centralisées — point d'entrée unique.
+ * Règles métier Commercial centralisées - point d'entrée unique.
  * Ne duplique pas salesRules / salesIntegrityService : les agrège.
  */
 import { evaluateSalesRules } from './erpRules/salesRules.js';
@@ -25,7 +25,7 @@ export function evaluateDeliveryRules(orders = []) {
         severity: 'moyenne',
         category: 'commercial',
         title: `Livraison incomplète : ${order.client_nom || order.id}`,
-        description: `${q.delivered}/${q.ordered} livré(s) — statut affiché « livré »`,
+        description: `${q.delivered}/${q.ordered} livré(s) - statut affiché « livré »`,
         recommended_action: 'Passer en livraison partielle ou compléter la livraison',
         confidence_score: 0.87,
       });

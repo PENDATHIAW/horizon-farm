@@ -1,5 +1,5 @@
 /**
- * Commercial V2 — workflow Devis → Commande → Facture.
+ * Commercial V2 - workflow Devis → Commande → Facture.
  * Réutilise sales_orders (type_document = devis) sans impact stock au stade devis.
  */
 

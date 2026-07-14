@@ -154,7 +154,7 @@ export function shouldRouteDraftToReproduction(detail = {}) {
   return false;
 }
 
-/** Preuve reproduction persistée (photo ou lien) — liée mère + module reproduction. */
+/** Preuve reproduction persistée (photo ou lien) - liée mère + module reproduction. */
 export function buildReproductionProofDocument({
   id,
   title,

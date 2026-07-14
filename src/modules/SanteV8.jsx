@@ -224,7 +224,7 @@ export default function SanteV8(props) {
         <div className="rounded-2xl border border-vigilance bg-vigilance-bg p-4 space-y-2">
           <p className="text-xs font-semibold uppercase text-horizon-dark">Alertes sanitaires</p>
           {sanitaryAlerts.map((a) => (
-            <p key={a.id || a.title} className="text-sm text-horizon-dark"><b>{a.title}</b> — {a.message}</p>
+            <p key={a.id || a.title} className="text-sm text-horizon-dark"><b>{a.title}</b> - {a.message}</p>
           ))}
         </div>
       ) : null}

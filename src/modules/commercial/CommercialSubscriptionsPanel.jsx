@@ -44,7 +44,7 @@ export default function CommercialSubscriptionsPanel({
         <div className="flex flex-wrap items-center justify-between gap-2">
           <div>
             <p className="text-xs uppercase tracking-normal text-slate font-semibold flex items-center gap-2"><RefreshCw size={14} /> Abonnements</p>
-            <p className="text-sm text-slate">Commandes récurrentes — création via formulaire, génération manuelle avec validation.</p>
+            <p className="text-sm text-slate">Commandes récurrentes - création via formulaire, génération manuelle avec validation.</p>
           </div>
           <button
             type="button"
@@ -76,7 +76,7 @@ export default function CommercialSubscriptionsPanel({
                   {sub.quantity} {sub.unit} · {sub.frequencyLabel}
                   {sub.plannedDay ? ` · ${sub.plannedDay}` : ''}
                   · {fmtCurrency(sub.unitPrice * sub.quantity)}
-                  · prochaine : {sub.nextOrderDate || '—'}
+                  · prochaine : {sub.nextOrderDate || '-'}
                 </p>
                 <p className="text-meta font-semibold text-horizon-dark">{sub.statusLabel}</p>
               </div>

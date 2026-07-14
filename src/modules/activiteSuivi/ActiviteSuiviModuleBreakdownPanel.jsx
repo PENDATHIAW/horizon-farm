@@ -29,7 +29,7 @@ export default function ActiviteSuiviModuleBreakdownPanel({ breakdown = [], onNa
   return (
     <ActiviteSection
       title="Charge par module source"
-      subtitle="D'où viennent les alertes et tâches ouvertes — ouvrir le module métier pour traiter la cause."
+      subtitle="D'où viennent les alertes et tâches ouvertes - ouvrir le module métier pour traiter la cause."
     >
       <div className="divide-y divide-line/60">
         {breakdown.map(([mod, count]) => (

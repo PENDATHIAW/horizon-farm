@@ -1,5 +1,5 @@
 /**
- * Workflow terrain Orgaloop — collecte biosécurité → opportunité → vente tracée.
+ * Workflow terrain Orgaloop - collecte biosécurité → opportunité → vente tracée.
  */
 import { makeId } from '../../utils/ids.js';
 import { toNumber } from '../../utils/format.js';
@@ -101,8 +101,8 @@ export function enhanceManureWorkflowForOrgaloop(workflow, { profileMeta } = {})
     priority: 'moyenne',
     date: workflow.event?.date || today(),
     notes: isOrgaloopHybridStrategy()
-      ? `${nextQty} sac(s) — fertilisation cultures prioritaire, surplus sur ${platformName}.`
-      : `${nextQty} sac(s) — publication directe ${platformName} · ${ORGALOOP_EFFLUENT_CHANNEL.strategyLabel}`,
+      ? `${nextQty} sac(s) - fertilisation cultures prioritaire, surplus sur ${platformName}.`
+      : `${nextQty} sac(s) - publication directe ${platformName} · ${ORGALOOP_EFFLUENT_CHANNEL.strategyLabel}`,
     ...(workflow.opportunityExistingId ? { updated_at: now() } : { created_at: now() }),
   };
 
@@ -227,7 +227,7 @@ export async function markEffluentPublishedOnOrgaloop({
   await handlers.onRefreshBusinessEvents?.();
 }
 
-/** À la validation vente — trace effluent_vendu_orgaloop. */
+/** À la validation vente - trace effluent_vendu_orgaloop. */
 export async function emitOrgaloopEffluentSaleSideEffects({
   order = {},
   items = [],

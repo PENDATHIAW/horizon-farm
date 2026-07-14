@@ -77,7 +77,7 @@ export default function DocumentsRapportsModule(props) {
 
   const onScannerSuccess = async () => {
     await refresh();
-    toast.success('Document traité — bibliothèque mise à jour');
+    toast.success('Document traité - bibliothèque mise à jour');
   };
 
   const greenpreneursExtras = {

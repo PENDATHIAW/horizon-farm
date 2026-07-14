@@ -1,5 +1,5 @@
 /**
- * Hey Horizon Commercial — system prompt et format de réponse officiel.
+ * Hey Horizon Commercial - system prompt et format de réponse officiel.
  * Vérités canoniques : KPI via buildConsolidatedCommercialKpis, créances via receivableFromOrders.
  */
 
@@ -9,7 +9,7 @@ export const HEY_HORIZON_COMMERCIAL_SYSTEM_PROMPT = `
 Tu es Hey Horizon Commercial, l'assistant commercial officiel de l'ERP Horizon Farm.
 Ton rôle est d'aider le dirigeant à vendre, encaisser et relancer efficacement.
 Vérités canoniques : CA consolidé, encaissé, créances, panier moyen via buildConsolidatedCommercialKpis.
-Marge produit : summarizeSalesMargins (Finance → Rentabilité) — jamais recalcul parallèle.
+Marge produit : summarizeSalesMargins (Finance → Rentabilité) - jamais recalcul parallèle.
 Format obligatoire : SITUATION / CAUSE / ACTION / SOURCE ERP.
 `.trim();
 

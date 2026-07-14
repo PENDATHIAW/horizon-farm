@@ -122,7 +122,7 @@ export default function ProductionTab({
         onCreateBusinessEvent,
       });
       setMessage(
-        `OF créé — ${preview.order.order_code} · ${fmtNumber(preview.order.planned_quantity)} kg · `
+        `OF créé - ${preview.order.order_code} · ${fmtNumber(preview.order.planned_quantity)} kg · `
         + `${fmtCurrency(preview.theoretical_cost_per_kg)}/kg théo.`,
       );
       setOrderForm((prev) => ({
@@ -166,7 +166,7 @@ export default function ProductionTab({
       });
       const varianceNote = preview.variance?.exceeds ? ` · ${preview.variance.message}` : '';
       setMessage(
-        `OF clôturé — lot ${preview.finishedBatch.batch_code} · `
+        `OF clôturé - lot ${preview.finishedBatch.batch_code} · `
         + `${fmtNumber(preview.finishedBatch.quantity_produced)} kg · `
         + `${fmtCurrency(preview.real.real_cost_per_kg)}/kg réel${varianceNote}`,
       );
@@ -280,7 +280,7 @@ export default function ProductionTab({
               <p className="text-meta font-semibold uppercase text-slate">FIFO matières</p>
               {previewFifo.requirements.map((r) => (
                 <p key={r.raw_material_id} className="text-xs text-earth">
-                  {r.raw_material_name} — {fmtNumber(r.quantity_needed)} kg
+                  {r.raw_material_name} - {fmtNumber(r.quantity_needed)} kg
                   {r.fifo?.ok
                     ? ` · ${r.fifo.allocations.length} lot(s)`
                     : ` · manque ${fmtNumber(r.fifo?.shortfall)} kg`}
@@ -462,7 +462,7 @@ export default function ProductionTab({
                     {' · '}{fmtCurrency(batch.unit_cost)}/kg
                   </p>
                   <p className="text-xs text-slate">
-                    QC {batch.quality_status} · {batch.production_date || '—'}
+                    QC {batch.quality_status} · {batch.production_date || '-'}
                   </p>
                   {batch.qr_code_url ? (
                     <a

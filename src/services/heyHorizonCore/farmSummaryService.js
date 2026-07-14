@@ -4,7 +4,7 @@ import { formatFarmScopeLabel, normalizeFarmScope } from '../../utils/farmScope.
 import { buildHeyHorizonFarmContext } from '../../utils/farmConsolidation.js';
 
 /**
- * Synthèse exploitation — effectifs, surfaces, entités présentes dans le dataMap.
+ * Synthèse exploitation - effectifs, surfaces, entités présentes dans le dataMap.
  * @param {object} dataMap
  */
 export function getFarmSummary(dataMap = {}) {

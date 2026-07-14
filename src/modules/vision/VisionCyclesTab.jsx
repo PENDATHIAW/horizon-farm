@@ -57,13 +57,13 @@ export default function VisionCyclesTab({
 
       {!hideBfr && strategicPlan.bfr?.blocked ? (
         <div className="rounded-2xl border border-urgent bg-urgent-bg p-3 text-sm text-urgent">
-          <p className="font-semibold flex items-center gap-2"><AlertTriangle size={16} /> Lancement suspendu — trésorerie</p>
+          <p className="font-semibold flex items-center gap-2"><AlertTriangle size={16} /> Lancement suspendu - trésorerie</p>
           <p className="mt-1 text-xs">{strategicPlan.bfr.message}</p>
         </div>
       ) : null}
 
       {pivotSlice.length ? (
-        <Section icon={CalendarRange} title={compact ? 'Dates limites par fête' : 'Calendrier marché — date limite de mise en place'}>
+        <Section icon={CalendarRange} title={compact ? 'Dates limites par fête' : 'Calendrier marché - date limite de mise en place'}>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             {pivotSlice.map((d) => (
               <StrategicDecisionCard
@@ -95,7 +95,7 @@ export default function VisionCyclesTab({
       ) : null}
 
       {!compact && strategicPlan.scissors ? (
-        <Section icon={Thermometer} title="Effet ciseau — stocker les intrants">
+        <Section icon={Thermometer} title="Effet ciseau - stocker les intrants">
           <StrategicDecisionCard item={{ ...strategicPlan.scissors, title: 'Achat groupé recommandé' }} onNavigate={onNavigate} onCreateTask={onCreateTask} onCreateAlert={onCreateAlert} onRefreshTasks={onRefreshTasks} onRefreshAlertes={onRefreshAlertes} existingTasks={existingTasks} existingAlerts={existingAlerts} />
         </Section>
       ) : null}

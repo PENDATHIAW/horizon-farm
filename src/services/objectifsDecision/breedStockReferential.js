@@ -1,5 +1,5 @@
 /**
- * Référentiel Code_Souche — standards zootechniques par atelier.
+ * Référentiel Code_Souche - standards zootechniques par atelier.
  * Chaque lot avicole/bovin peut référencer un code via `code_souche` ou `breed_code`.
  */
 
@@ -17,7 +17,7 @@ const LAYING_RATE_BY_AGE = {
   510: 65, 540: 55,
 };
 
-/** Poids théorique chair (g) — courbe Cobb simplifiée. */
+/** Poids théorique chair (g) - courbe Cobb simplifiée. */
 const BROILER_WEIGHT_G = {
   0: 42, 7: 185, 14: 480, 21: 900, 28: 1450, 35: 1950, 42: 2300,
 };

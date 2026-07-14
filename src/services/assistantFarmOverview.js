@@ -1,5 +1,5 @@
 /**
- * Synthèses multi-modules — délègue aux moteurs dirigeant V6.1.
+ * Synthèses multi-modules - délègue aux moteurs dirigeant V6.1.
  */
 
 import { buildCommentVaLaFermeAnswer, buildObjectifStatusAnswer } from './assistantDirectorEngines.js';

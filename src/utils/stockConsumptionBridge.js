@@ -1,5 +1,5 @@
 /**
- * Achats & Stock V2 — pont consommation élevage / cultures → stock_movements.
+ * Achats & Stock V2 - pont consommation élevage / cultures → stock_movements.
  */
 
 import { MOVEMENT_SOURCE_TYPES, movementAlreadyExists, persistStockMovement } from '../services/stockMovementHelpers.js';
@@ -213,7 +213,7 @@ export function buildEggProductionStockMovementPayload({
 
   const movementRef = `egg-prod:${logId}:${stockId}`;
   const dedupeKey = eggProductionStockDedupeKey(logId, stockId);
-  const motif = `Production œufs · lot ${clean(log.lot_id) || '—'}`;
+  const motif = `Production œufs · lot ${clean(log.lot_id) || '-'}`;
 
   return {
     stock_id: stockId,
@@ -258,7 +258,7 @@ export function buildEggPackagingConsumptionPayload({
 
   const movementRef = `egg-pack:${logId}:${stockId}`;
   const dedupeKey = eggPackagingConsumptionDedupeKey(logId, stockId);
-  const motif = `Emballage production œufs · lot ${clean(log.lot_id) || '—'}`;
+  const motif = `Emballage production œufs · lot ${clean(log.lot_id) || '-'}`;
 
   return {
     stock_id: stockId,
@@ -347,7 +347,7 @@ export const CONSUMPTION_GAPS = [
   {
     id: 'hey_horizon_direct_exit',
     module: 'stock',
-    description: 'Sorties Hey Horizon sans log alimentation — mouvement via StocksV5 guardedUpdate uniquement',
+    description: 'Sorties Hey Horizon sans log alimentation - mouvement via StocksV5 guardedUpdate uniquement',
     status: 'partial',
   },
 ];

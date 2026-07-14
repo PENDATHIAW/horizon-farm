@@ -1,5 +1,5 @@
 /**
- * Chantier 6 — RH, Équipements, Smart Farm : une saisie → finance, documents, tâches, alertes, traçabilité.
+ * Chantier 6 - RH, Équipements, Smart Farm : une saisie → finance, documents, tâches, alertes, traçabilité.
  */
 
 import { makeId } from './ids.js';
@@ -313,7 +313,7 @@ export async function commitEquipmentMaintenance({
   return { ok: true, maintenanceId, issueKey, taskId, action: 'schedule', cost };
 }
 
-/** Panne équipement critique — délègue au pipeline équipement avec issue_key. */
+/** Panne équipement critique - délègue au pipeline équipement avec issue_key. */
 export async function commitEquipmentBreakdown({ form = {}, context = {}, handlers = {} } = {}) {
   const equipmentId = clean(form.equipment_id);
   const equipment = arr(context.equipment).find((row) => clean(row.id) === equipmentId);
@@ -344,7 +344,7 @@ export async function commitEquipmentBreakdown({ form = {}, context = {}, handle
   return { ok: true, issueKey, workflow };
 }
 
-/** Capteur / caméra offline — alerte, tâche, équipement lié, événement (sans doublon). */
+/** Capteur / caméra offline - alerte, tâche, équipement lié, événement (sans doublon). */
 export async function commitSmartDeviceOffline({
   form = {},
   context = {},
@@ -470,7 +470,7 @@ export async function commitSmartDeviceOffline({
   return { ok: true, issueKey, taskId, strategic, deviceId: device.id };
 }
 
-/** Paie RH — finance, document, événement, coût MO (sans doublon finance). */
+/** Paie RH - finance, document, événement, coût MO (sans doublon finance). */
 export async function commitRhPayroll({ form = {}, context = {}, handlers = {} } = {}) {
   const err = validateRhPayrollForm(form);
   if (err) throw new Error(err);

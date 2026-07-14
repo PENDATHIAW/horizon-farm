@@ -1,4 +1,4 @@
-/** Âge animaux / lots — date de référence selon mode acquisition (achat vs naissance). */
+/** Âge animaux / lots - date de référence selon mode acquisition (achat vs naissance). */
 
 const norm = (value = '') => String(value || '').trim().toLowerCase();
 
@@ -60,8 +60,8 @@ export function formatAnimalAge(animal = {}) {
   const days = ref ? daysSince(ref) : null;
   if (days === null) {
     return isBornOnFarm(animal.mode_acquisition)
-      ? 'Non renseigné — date de naissance'
-      : 'Non renseigné — date entrée en ferme';
+      ? 'Non renseigné - date de naissance'
+      : 'Non renseigné - date entrée en ferme';
   }
   const label = formatDurationDays(days);
   return isBornOnFarm(animal.mode_acquisition) ? label : `${label} en ferme`;
@@ -97,8 +97,8 @@ export function formatLotAge(lot = {}, { layer = false } = {}) {
   const { days } = lotAgeReferenceDate(lot);
   if (days === null || Number.isNaN(days)) {
     return isBornOnFarm(lot.mode_acquisition)
-      ? 'Non renseigné — date de naissance / éclosion'
-      : 'Non renseigné — date entrée en ferme';
+      ? 'Non renseigné - date de naissance / éclosion'
+      : 'Non renseigné - date entrée en ferme';
   }
   const weeks = Math.floor(days / 7);
   if (layer) {

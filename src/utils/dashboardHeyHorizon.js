@@ -11,7 +11,7 @@ const PILOTAGE_ROUTES = {
   sync: { module: 'centre_ia', tab: 'Urgences & risques', label: 'Flux & stocks' },
 };
 
-/** Suggestions Accueil → pilotage (objectifs, risques, cycles) — pas Hey Horizon. */
+/** Suggestions Accueil → pilotage (objectifs, risques, cycles) - pas Hey Horizon. */
 export function buildDashboardPilotageSuggestions(actions = [], goal = {}) {
   const suggestions = [];
   const attainment = Number(goal.periodAttainment ?? goal.attainment ?? 0);

@@ -5,7 +5,7 @@ const stockQty = (row = {}) => Number(row.quantite ?? row.quantity ?? row.stock 
 const stockThreshold = (row = {}) => Number(row.seuil ?? row.threshold ?? row.stock_min ?? row.minimum_stock ?? 0) || 0;
 
 /**
- * Synthèse stock & achats — quantités, valeur, alertes seuil.
+ * Synthèse stock & achats - quantités, valeur, alertes seuil.
  */
 export function getInventorySummary(dataMap = {}) {
   const stocks = pickRows(dataMap, 'stocks', 'stock');

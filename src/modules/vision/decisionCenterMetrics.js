@@ -188,7 +188,7 @@ function buildEfficacite({ lots, animaux, alimentationLogs, productionLogs }) {
         ic,
         target: `${BROILER_IC_TARGET.min}–${BROILER_IC_TARGET.max}`,
         tone: icHigh ? 'bad' : 'warn',
-        detail: icHigh ? 'IC élevé — gaspillage aliment ou problème sanitaire probable.' : 'IC anormalement bas — vérifier les pesées.',
+        detail: icHigh ? 'IC élevé - gaspillage aliment ou problème sanitaire probable.' : 'IC anormalement bas - vérifier les pesées.',
         recommendedAction: icHigh ? 'Contrôler ration & santé' : 'Vérifier pesées du lot',
         actionModule: 'elevage',
         actionTab: 'Avicole',
@@ -215,7 +215,7 @@ function buildEfficacite({ lots, animaux, alimentationLogs, productionLogs }) {
         deviation,
         ageWeeks,
         tone: deviation < -8 ? 'bad' : 'warn',
-        detail: layingLow ? 'Ponte sous le standard souche — stress, maladie ou ration à contrôler.' : 'Ponte au-dessus du standard — vérifier comptage.',
+        detail: layingLow ? 'Ponte sous le standard souche - stress, maladie ou ration à contrôler.' : 'Ponte au-dessus du standard - vérifier comptage.',
         recommendedAction: layingLow ? 'Contrôler ration & éclairage' : 'Vérifier comptage œufs',
         actionModule: 'elevage',
         actionTab: 'Production',
@@ -239,8 +239,8 @@ function buildEfficacite({ lots, animaux, alimentationLogs, productionLogs }) {
         optimal,
         tone: optimal ? 'bad' : cost.gmq < 350 ? 'warn' : 'good',
         detail: optimal
-          ? 'Le coût journalier dépasse le gain de valeur — vente recommandée.'
-          : cost.gmq < 350 ? 'GMQ faible — ration ou santé à vérifier.' : 'Croissance conforme.',
+          ? 'Le coût journalier dépasse le gain de valeur - vente recommandée.'
+          : cost.gmq < 350 ? 'GMQ faible - ration ou santé à vérifier.' : 'Croissance conforme.',
         recommendedAction: optimal ? 'Planifier la vente' : cost.gmq < 350 ? 'Vérifier ration & santé' : null,
         actionModule: 'elevage',
         actionTab: 'Animaux',
@@ -301,7 +301,7 @@ function buildFlux({ lots, animaux, alimentationLogs, stocks }) {
     ...row,
     occupancyPct: Math.min(100, row.effectif > 0 ? Math.round(row.effectif / 500 * 100) : 0),
     tone: row.effectif === 0 ? 'warn' : row.effectif > 800 ? 'bad' : 'good',
-    detail: row.effectif === 0 ? 'Bâtiment vide — planifier prochaine bande.' : `${row.effectif} sujets actifs.`,
+    detail: row.effectif === 0 ? 'Bâtiment vide - planifier prochaine bande.' : `${row.effectif} sujets actifs.`,
   }));
 
   const materialBalance = arr(lots).map((lot) => {
@@ -521,7 +521,7 @@ function buildFeedComparisons({ alimentationLogs = [], fournisseurs = [] }) {
         tone: pct > 10 ? 'bad' : pct > 5 ? 'warn' : 'good',
         detail: pct > 0
           ? `+${pct.toFixed(1)}% vs période précédente (${fmtPct(curAvg, prevAvg)}).`
-          : `${pct.toFixed(1)}% vs période précédente — prix en baisse.`,
+          : `${pct.toFixed(1)}% vs période précédente - prix en baisse.`,
       });
     }
   });
@@ -563,7 +563,7 @@ function buildFeedComparisons({ alimentationLogs = [], fournisseurs = [] }) {
         comparePrice: worst.avgPricePerKg,
         spreadPct: spread,
         tone: spread > 15 ? 'bad' : 'warn',
-        detail: `${best.supplier} (${Math.round(best.avgPricePerKg)} F/kg) vs ${worst.supplier} (${Math.round(worst.avgPricePerKg)} F/kg) — écart ${spread.toFixed(0)}%.`,
+        detail: `${best.supplier} (${Math.round(best.avgPricePerKg)} F/kg) vs ${worst.supplier} (${Math.round(worst.avgPricePerKg)} F/kg) - écart ${spread.toFixed(0)}%.`,
       });
     }
   });
@@ -619,7 +619,7 @@ function buildVetComparisons({ sante = [], veterinaires = [] }) {
       vet: vetNameOf(row, veterinaires),
       cost: healthCost(row),
       recoveryDays: recoveryDaysOf(row),
-      target: row.target_summary || row.animal || row.related_id || '—',
+      target: row.target_summary || row.animal || row.related_id || '-',
       recovered: low(row.statut_sante_apres) === 'sain',
       date: row.effectuee || row.date || row.prevue,
     }));

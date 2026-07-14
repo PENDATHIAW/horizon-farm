@@ -196,7 +196,7 @@ export function finalizeImpactJournal(journal, expectations = {}) {
     if (optional.has(key) || !required.has(key)) {
       markImpactNa(next, key, expectations.na?.[key] || NA_REASONS[key]);
     } else {
-      markImpactError(next, key, expectations.missing?.[key] || 'Impact attendu non créé — erreur à corriger');
+      markImpactError(next, key, expectations.missing?.[key] || 'Impact attendu non créé - erreur à corriger');
     }
   });
 

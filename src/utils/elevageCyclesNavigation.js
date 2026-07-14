@@ -1,4 +1,4 @@
-/** Navigation et événements officiels — Élevage > Cycles */
+/** Navigation et événements officiels - Élevage > Cycles */
 
 export const CYCLES_PRODUCTION_QUESTION_EVENT = 'horizon-production-question';
 

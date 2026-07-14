@@ -126,7 +126,7 @@ export function buildManureCollectionWorkflow({
     destination_prevue: destination,
     prochaine_etape: nextStep,
     destination_blocked: destinationBlocked,
-    notes: `${qty} sac(s) collectés lors du nettoyage (${intervention.zone_traitee || target.target_summary || '—'}).${totalWeightKg ? ` Poids estimé ${Math.round(totalWeightKg)} kg.` : ''}`,
+    notes: `${qty} sac(s) collectés lors du nettoyage (${intervention.zone_traitee || target.target_summary || '-'}).${totalWeightKg ? ` Poids estimé ${Math.round(totalWeightKg)} kg.` : ''}`,
   };
 
   const stockId = existingStock?.id || makeId('STK');
@@ -187,7 +187,7 @@ export function buildManureCollectionWorkflow({
       title: `Fumier collecté · ${qty} sac(s)`,
       description: [
         `Intervention: ${intervention.nom || intervention.type_intervention || intervention.id}`,
-        `Cible: ${target.target_summary || '—'}`,
+        `Cible: ${target.target_summary || '-'}`,
         `Stock: ${nextQty} sac(s) · ${productName}`,
         'Opportunité de vente préparée.',
       ].join('\n'),

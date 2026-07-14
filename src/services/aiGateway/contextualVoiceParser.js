@@ -1,5 +1,5 @@
 /**
- * Saisie vocale contextuelle — une phrase → un ou plusieurs brouillons à valider.
+ * Saisie vocale contextuelle - une phrase → un ou plusieurs brouillons à valider.
  */
 
 import { interpretHorizonCommand, interpretHorizonAnimalBirthDraft } from '../aiIntentEngine.js';
@@ -133,7 +133,7 @@ function buildFeedingLegacyDraft(rawInput = '', dataMap = {}) {
     form_type: 'feeding_distribution',
     requires_validation: true,
     missing_fields: missing,
-    warnings: missing.includes('lot_ambiguous') ? ['Plusieurs lots correspondent — précisez le lot.'] : [],
+    warnings: missing.includes('lot_ambiguous') ? ['Plusieurs lots correspondent - précisez le lot.'] : [],
     draft_fields: fields,
     impacted_modules: ['elevage', 'stock', 'finances', 'centre_ia'],
     proposed_actions: [],
@@ -243,7 +243,7 @@ function expandDraftChain(primary, phrase = '', scenario = '') {
         primary_module: 'activite_suivi',
         form_type: 'task_creation',
         fields: {
-          title: `Suivi isolement — ${primary.draft?.fields?.lot_id || 'lot'}`,
+          title: `Suivi isolement - ${primary.draft?.fields?.lot_id || 'lot'}`,
           due_date: new Date(Date.now() + 86400000).toISOString().slice(0, 10),
           priority: 'haute',
           module_lie: 'elevage',
@@ -255,7 +255,7 @@ function expandDraftChain(primary, phrase = '', scenario = '') {
           primary_module: 'taches',
           form_type: 'task_creation',
           draft_fields: {
-            title: `Suivi isolement — ${primary.draft?.fields?.lot_id || 'lot'}`,
+            title: `Suivi isolement - ${primary.draft?.fields?.lot_id || 'lot'}`,
             due_date: new Date(Date.now() + 86400000).toISOString().slice(0, 10),
             priority: 'haute',
           },
@@ -313,7 +313,7 @@ function legacyToGatewayDraft(legacy, phrase, options = {}) {
 export function parseContextualVoicePhrase(phrase = '', dataMap = {}) {
   const raw = clean(phrase);
   if (!raw) {
-    return { drafts: [], clarify: 'Phrase vide — répétez votre action.', phrase: raw };
+    return { drafts: [], clarify: 'Phrase vide - répétez votre action.', phrase: raw };
   }
 
   const scenario = detectVoiceScenario(raw);

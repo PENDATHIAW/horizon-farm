@@ -1,5 +1,5 @@
 /**
- * Carnet Horizon — version dirigeant agricole.
+ * Carnet Horizon - version dirigeant agricole.
  * Agrégation lecture seule via moteurs de calcul existants.
  */
 
@@ -34,7 +34,7 @@ const fmt = (value = 0) => n(value).toLocaleString('fr-FR');
 const CLOSED_ANIMAL_WORDS = ['vendu', 'mort', 'vole', 'volé', 'perdu', 'abattu', 'cloture', 'clôture', 'sorti'];
 const isClosedAnimal = (row = {}) => CLOSED_ANIMAL_WORDS.some((word) => lower(row.status || row.statut).includes(word));
 
-/** Tâches / événements IA, BP, investisseur — exclus de l'accueil. */
+/** Tâches / événements IA, BP, investisseur - exclus de l'accueil. */
 const HOME_NOISE_RE = /\b(business\s*plan|\bbp\b|financement\s*bancaire|investisseur|investissement|financeur|pondeuses?\s*bp|bovins?\s*bp|caprins?\s*bp|apport\s*promoteur|stratég|objectif\s*(mensuel|annuel)|orphan|rapprocher|justificatif|document\s*manquant|sync\s*erp|capteur|smart\s*farm|météo|whatsapp|démo|demo|dossier\s*invest|achat\s*\d{3,}|terinus|hôtel\s*terminus|one-?click|recommandation\s*ia|hey\s*horizon|tâche\s*ia|tache\s*ia|promoteur)\b/i;
 const HOME_NOISE_EVENT_RE = /bp_|business_plan|investor|financing|strategic|growth_goal|objectif|assistant|recommendation|promoteur|financement/i;
 
@@ -204,7 +204,7 @@ function commercialInput(props = {}, periodScope = {}) {
   };
 }
 
-/** Section 1 — Cartes domaine dirigeant. */
+/** Section 1 - Cartes domaine dirigeant. */
 export function buildCarnetDomainCards(summary = {}, props = {}) {
   const head = summary.headcount || {};
   const culture = summary.cultureSummary || {};
@@ -292,7 +292,7 @@ export function buildCarnetDomainCards(summary = {}, props = {}) {
   ];
 }
 
-/** Section 2 — Objectifs CA (canonique commercial + croissance). */
+/** Section 2 - Objectifs CA (canonique commercial + croissance). */
 export function buildCarnetObjectifs(summary = {}, props = {}) {
   const periodScope = summary.periodScope || props.periodScope || {};
   const commercialKpis = buildConsolidatedCommercialKpis(commercialInput(props, periodScope));
@@ -338,7 +338,7 @@ export function buildCarnetObjectifs(summary = {}, props = {}) {
 }
 
 /**
- * Projections pilotage dirigeant — CA, trésorerie, stock, production.
+ * Projections pilotage dirigeant - CA, trésorerie, stock, production.
  * Indicateurs choisis pour anticiper les décisions terrain (pas de ressaisie).
  */
 export function buildCarnetProjections(summary = {}, props = {}) {
@@ -484,7 +484,7 @@ function journalEntry(text, at = 0) {
   return { icon: '✓', text: label, at };
 }
 
-/** Section 4 — Journal terrain (max 10, récent → ancien). */
+/** Section 4 - Journal terrain (max 10, récent → ancien). */
 export function buildCarnetTodayJournal(props = {}, { limit = CARNET_JOURNAL_LIMIT } = {}) {
   const entries = [];
   const seen = new Set();
@@ -563,7 +563,7 @@ export function buildCarnetTodayJournal(props = {}, { limit = CARNET_JOURNAL_LIM
   };
 }
 
-/** Section 3 — Conseil (situation · cause · action). */
+/** Section 3 - Conseil (situation · cause · action). */
 export function buildCarnetConseil(summary = {}, priorities = [], props = {}) {
   const feedDays = alimentDaysLeft(props.stocks, props.alimentationLogs);
   const feedName = feedProductName(props.stocks);

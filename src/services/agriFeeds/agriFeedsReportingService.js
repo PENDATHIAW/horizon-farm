@@ -1,5 +1,5 @@
 /**
- * AGRI FEEDS — reporting financeur, qualité, permissions et audit.
+ * AGRI FEEDS - reporting financeur, qualité, permissions et audit.
  */
 import { fmtCurrency, fmtNumber, fmtPercent, toNumber } from '../../utils/format.js';
 import { computeAgriFeedsReadiness, normalizeAgriFeedsDataMap } from './agriFeedsReadinessEngine.js';
@@ -82,7 +82,7 @@ export function buildAgriFeedsReportRow(report = {}, { actor = 'ERP Horizon Farm
   const period = report.period || new Date().toISOString().slice(0, 7);
   return {
     id: makeId('RPT'),
-    title: `Rapport AGRI FEEDS — ${period}`,
+    title: `Rapport AGRI FEEDS - ${period}`,
     report_type: 'agri_feeds_financeur',
     period,
     status: 'pret',
@@ -268,7 +268,7 @@ export function prepareAgriFeedsReportCommit(report = {}, { actor = 'ERP Horizon
     module_source: 'agri_feeds',
     entity_type: 'report',
     entity_id: reportRow.id,
-    title: `Rapport AGRI FEEDS — ${report.period}`,
+    title: `Rapport AGRI FEEDS - ${report.period}`,
     description: report.executive_summary,
     event_date: new Date().toISOString().slice(0, 10),
     severity: report.readiness?.blockers?.length ? 'moyenne' : 'info',

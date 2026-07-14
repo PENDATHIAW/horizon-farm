@@ -1,5 +1,5 @@
 /**
- * PHASE 10–12 — Complétion conversationnelle de documents.
+ * PHASE 10–12 - Complétion conversationnelle de documents.
  * Transforme les champs manquants en questions naturelles (jamais messages d'erreur ERP).
  */
 
@@ -688,7 +688,7 @@ export function applyDocumentCompletionReply(draft = null, userText = '', dataMa
 
   return {
     draft: nextDraft,
-    assistantText: uniqueMissing.length ? assistantText : 'Merci — le brouillon est complet. Vous pouvez valider.',
+    assistantText: uniqueMissing.length ? assistantText : 'Merci - le brouillon est complet. Vous pouvez valider.',
     done: !completion.awaitingReply,
     confidence,
     checklist: buildDraftFieldChecklist(nextDraft),

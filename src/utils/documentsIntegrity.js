@@ -1,5 +1,5 @@
 /**
- * Écarts chantier 7 — documents / preuves / conformité.
+ * Écarts chantier 7 - documents / preuves / conformité.
  */
 
 import { toNumber } from './format.js';

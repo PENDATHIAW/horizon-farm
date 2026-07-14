@@ -38,11 +38,11 @@ function FarmScopeBadge({ farmScopeLabel = '', farmScope = {}, farmFiltered = fa
         {farmScopeLabel || (allFarms ? 'Toutes les fermes' : 'Ferme active')}
       </span>
       {allFarms ? (
-        <span className="text-xs text-slate">Vue consolidée — stratégie groupe via Centre décisionnel.</span>
+        <span className="text-xs text-slate">Vue consolidée - stratégie groupe via Centre décisionnel.</span>
       ) : farmFiltered ? (
         <span className="text-xs text-slate">Données filtrées pour la ferme sélectionnée.</span>
       ) : (
-        <span className="text-xs text-horizon-dark">Filtre ferme non actif — vérifiez le sélecteur global.</span>
+        <span className="text-xs text-horizon-dark">Filtre ferme non actif - vérifiez le sélecteur global.</span>
       )}
     </div>
   );
@@ -85,8 +85,8 @@ function PriorityTable({ rows, setTab }) {
                     </div>
                   </div>
                 </td>
-                <td className="px-3 py-3 text-slate whitespace-nowrap">{row.startDate || '—'}</td>
-                <td className="px-3 py-3 font-semibold text-horizon-dark whitespace-nowrap">{row.targetDate || '—'}</td>
+                <td className="px-3 py-3 text-slate whitespace-nowrap">{row.startDate || '-'}</td>
+                <td className="px-3 py-3 font-semibold text-horizon-dark whitespace-nowrap">{row.targetDate || '-'}</td>
                 <td className="px-3 py-3 text-right font-semibold text-earth whitespace-nowrap">{fmtNumber(row.quantity || 0)}</td>
                 <td className="px-3 py-3 text-xs text-slate break-words max-w-[12rem]">{meta.action}</td>
                 <td className="px-3 py-3 whitespace-nowrap">
@@ -111,7 +111,7 @@ function CycleAlertsList({ alerts = [], onNavigate }) {
     return (
       <div className="rounded-2xl border border-positive bg-positive-bg p-4 text-sm text-positive">
         <CheckCircle2 size={15} className="inline mr-1" aria-hidden="true" />
-        Aucune alerte cycle urgente — les rappels J+40 / J+90 sont synchronisés avec le centre Alertes.
+        Aucune alerte cycle urgente - les rappels J+40 / J+90 sont synchronisés avec le centre Alertes.
       </div>
     );
   }
@@ -225,7 +225,7 @@ export default function ElevageCyclesPanel({
     <div className="space-y-6">
       <ElevageSection
         title="Cycles & bandes"
-        subtitle={`Centre opérationnel — chair J+${cycleDays.chair}, bovins J+${cycleDays.bovins}, réforme pondeuses J+${cycleDays.pondeusesReformWatch}. Stratégie marché : Centre décisionnel.`}
+        subtitle={`Centre opérationnel - chair J+${cycleDays.chair}, bovins J+${cycleDays.bovins}, réforme pondeuses J+${cycleDays.pondeusesReformWatch}. Stratégie marché : Centre décisionnel.`}
       >
         <FarmScopeBadge farmScopeLabel={farmScopeLabel} farmScope={farmScope} farmFiltered={farmFiltered} />
 
@@ -238,7 +238,7 @@ export default function ElevageCyclesPanel({
           ) : (
             <div className="rounded-2xl border border-positive bg-positive-bg p-3 text-sm text-positive">
               <CheckCircle2 size={15} className="inline mr-1" aria-hidden="true" />
-              Calendrier maîtrisé — aucune échéance urgente.
+              Calendrier maîtrisé - aucune échéance urgente.
             </div>
           )}
           {onNavigate ? (
@@ -257,7 +257,7 @@ export default function ElevageCyclesPanel({
           <ElevageStatCard label="Cycles en retard" value={fmtNumber(v1Kpis.lateCount)} tone={v1Kpis.lateCount ? 'bad' : 'good'} />
           <ElevageStatCard
             label="Prochaine sortie"
-            value={v1Kpis.nextExitDate === '—' ? '—' : `${v1Kpis.nextExitDate}`}
+            value={v1Kpis.nextExitDate === '-' ? '-' : `${v1Kpis.nextExitDate}`}
             tone={v1Kpis.lateCount ? 'warn' : 'neutral'}
           />
           <ElevageStatCard label="Lots actifs" value={fmtNumber(v1Kpis.activeLotsCount)} tone="good" />
@@ -272,21 +272,21 @@ export default function ElevageCyclesPanel({
             tone={v1Kpis.launchBlocked ? 'bad' : 'good'}
           />
         </div>
-        {v1Kpis.nextExitLabel !== '—' ? (
+        {v1Kpis.nextExitLabel !== '-' ? (
           <p className="text-xs text-slate mt-2">
             Prochaine sortie : <b className="text-earth">{v1Kpis.nextExitLabel}</b>
           </p>
         ) : null}
       </ElevageSection>
 
-      <ElevageSection title="Alertes cycles" subtitle="Rappels J+40 / J+90 / réforme — source AlertesCenter, affichés ici pour action terrain.">
+      <ElevageSection title="Alertes cycles" subtitle="Rappels J+40 / J+90 / réforme - source AlertesCenter, affichés ici pour action terrain.">
         <CycleAlertsList alerts={cycleAlerts} onNavigate={onNavigate} />
       </ElevageSection>
 
       <details className="rounded-2xl border border-line bg-card p-4">
         <summary className="cursor-pointer font-semibold text-earth text-sm flex items-center gap-2">
           <CalendarRange size={16} className="text-horizon-dark" />
-          Stratégie lancement (synthèse) — fêtes : {festivalLine}
+          Stratégie lancement (synthèse) - fêtes : {festivalLine}
         </summary>
         <div className="mt-3 space-y-2 text-sm text-slate">
           {v1Kpis.launchBlocked ? (
@@ -315,12 +315,12 @@ export default function ElevageCyclesPanel({
         </div>
       </details>
 
-      <ElevageSection title="Planification — actions" subtitle="Pas de création directe ici : planifier ouvre Avicole/Animaux pré-rempli (une seule création officielle).">
+      <ElevageSection title="Planification - actions" subtitle="Pas de création directe ici : planifier ouvre Avicole/Animaux pré-rempli (une seule création officielle).">
         <div className={ELEVAGE_ACTION_GRID}>
           <ElevageActionCard
             icon={Drumstick}
             title="Planifier lot chair"
-            text="Ouvre Avicole avec formulaire lot chair pré-rempli — pas de double création."
+            text="Ouvre Avicole avec formulaire lot chair pré-rempli - pas de double création."
             onClick={() => {
               setTab?.('Lots & bandes');
               window.setTimeout(() => {
@@ -342,7 +342,7 @@ export default function ElevageCyclesPanel({
           <ElevageActionCard
             icon={Beef}
             title="Planifier embouche"
-            text="Ouvre Animaux — fiche bovin avec date d'entrée J+90."
+            text="Ouvre Animaux - fiche bovin avec date d'entrée J+90."
             onClick={() => {
               setTab?.('Lots & bandes');
               window.setTimeout(() => {
@@ -350,11 +350,11 @@ export default function ElevageCyclesPanel({
               }, 120);
             }}
           />
-          <ElevageActionCard icon={ShoppingCart} title="Préparer vente" text="Commercial pré-rempli — à confirmer avant enregistrement." onClick={() => onNavigate?.('commercial', { tab: 'Ventes' })} />
+          <ElevageActionCard icon={ShoppingCart} title="Préparer vente" text="Commercial pré-rempli - à confirmer avant enregistrement." onClick={() => onNavigate?.('commercial', { tab: 'Ventes' })} />
         </div>
         {v1Kpis.lateCount > 0 ? (
           <p className="mt-3 rounded-xl border border-urgent bg-urgent-bg px-3 py-2 text-sm text-urgent">
-            <b>{v1Kpis.lateCount} lot(s)/cycle(s) en retard</b> — prioriser les lignes en retard dans le tableau ci-dessous.
+            <b>{v1Kpis.lateCount} lot(s)/cycle(s) en retard</b> - prioriser les lignes en retard dans le tableau ci-dessous.
           </p>
         ) : null}
       </ElevageSection>
@@ -370,13 +370,13 @@ export default function ElevageCyclesPanel({
             </p>
           ) : (
             <p className="rounded-xl border border-vigilance bg-vigilance-bg px-3 py-2 text-horizon-dark">
-              Données météo non disponibles pour cette ferme — connectez Smart Farm ou vérifiez le module Centre décisionnel.
+              Données météo non disponibles pour cette ferme - connectez Smart Farm ou vérifiez le module Centre décisionnel.
             </p>
           )}
         </div>
       </details>
 
-      <ElevageSection title="Échéances prioritaires (30 jours)" subtitle="Vue unifiée chair, bovins et réforme pondeuses — triée par date cible.">
+      <ElevageSection title="Échéances prioritaires (30 jours)" subtitle="Vue unifiée chair, bovins et réforme pondeuses - triée par date cible.">
         <PriorityTable rows={priorityRows} setTab={setTab} />
       </ElevageSection>
 
@@ -384,7 +384,7 @@ export default function ElevageCyclesPanel({
         <div className="rounded-2xl border border-vigilance bg-vigilance-bg p-4 text-sm text-horizon-dark">
           <b>Mortalité élevée sur lot(s) :</b>{' '}
           {mortalityAlerts.map((lot) => `${lot.name || lot.nom || lot.id} (${mortalityRate(lot)} %)`).join(' · ')}
-          {' — '}
+          {' - '}
           <button type="button" onClick={() => setTab?.('Transformation')} className="font-semibold underline">
             Voir Transformation
           </button>

@@ -1,5 +1,5 @@
 /**
- * Traçabilité stock — étapes sur fiche TRA-STOCK-{stockId} (aligné Cultures).
+ * Traçabilité stock - étapes sur fiche TRA-STOCK-{stockId} (aligné Cultures).
  */
 
 const arr = (value) => (Array.isArray(value) ? value : []);

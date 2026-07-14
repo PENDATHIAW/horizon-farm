@@ -21,13 +21,13 @@ function draftSummary(draft) {
   const inner = draft?.draft || {};
   if (draft?.target_workflow === TARGET_WORKFLOWS.OPEN_FORM) {
     if (inner.recon_row_kind === 'stockable_without_stock') {
-      return `Dépense stockable · ${inner.transaction?.libelle || inner.transaction?.id || '—'}`;
+      return `Dépense stockable · ${inner.transaction?.libelle || inner.transaction?.id || '-'}`;
     }
-    return `Recette sans paiement · commande ${inner.orderId || '—'}`;
+    return `Recette sans paiement · commande ${inner.orderId || '-'}`;
   }
   const payment = inner.payment || {};
-  const amount = payment.montant_paye ?? payment.montant ?? payment.amount ?? '—';
-  return `Paiement ${amount} FCFA · ${payment.date_paiement || payment.date || '—'}`;
+  const amount = payment.montant_paye ?? payment.montant ?? payment.amount ?? '-';
+  return `Paiement ${amount} FCFA · ${payment.date_paiement || payment.date || '-'}`;
 }
 
 function executeOpenFormDraft(draft, { stocks = [], onNavigate } = {}) {
@@ -74,7 +74,7 @@ export default function AiReconciliationPanel({
 
   const handleValidate = (draftId) => {
     setValidatedIds((prev) => new Set(prev).add(draftId));
-    toast.success('Proposition validée — vous pouvez exécuter le workflow.');
+    toast.success('Proposition validée - vous pouvez exécuter le workflow.');
   };
 
   const handleExecute = async (draft) => {
@@ -94,7 +94,7 @@ export default function AiReconciliationPanel({
       if (validated.target_workflow === TARGET_WORKFLOWS.OPEN_FORM) {
         const result = executeOpenFormDraft(validated, { stocks, onNavigate });
         if (result.ok) {
-          toast.success('Redirection effectuée — complétez la saisie manuellement.');
+          toast.success('Redirection effectuée - complétez la saisie manuellement.');
           setValidatedIds((prev) => {
             const next = new Set(prev);
             next.delete(draft.id);
@@ -126,7 +126,7 @@ export default function AiReconciliationPanel({
           return;
         }
         if (result?.reason === 'duplicate') {
-          toast.error('Doublon détecté — actualisez la liste.');
+          toast.error('Doublon détecté - actualisez la liste.');
           return;
         }
         toast.error('Échec du workflow rapprochement.');
@@ -150,9 +150,9 @@ export default function AiReconciliationPanel({
       <div className="flex items-start gap-2">
         <Sparkles className="text-neutral shrink-0" size={22} />
         <div>
-          <h3 className="text-lg font-semibold text-earth">Signaux métier — rapprochement</h3>
+          <h3 className="text-lg font-semibold text-earth">Signaux métier - rapprochement</h3>
           <p className="text-sm text-slate">
-            Règles métier et suggestions. Vous validez, puis l’ERP exécute via les workflows existants — aucune écriture directe.
+            Règles métier et suggestions. Vous validez, puis l’ERP exécute via les workflows existants - aucune écriture directe.
           </p>
         </div>
       </div>

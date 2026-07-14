@@ -40,7 +40,7 @@ export default function ActiviteSuiviInsightPanel({
             <Bot size={14} /> Pilotage activité
           </p>
           <p className="text-sm text-slate mt-1">
-            Signaux terrain — priorités globales et risques sur Centre décisionnel.
+            Signaux terrain - priorités globales et risques sur Centre décisionnel.
           </p>
         </div>
         <button

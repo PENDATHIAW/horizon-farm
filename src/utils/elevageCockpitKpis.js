@@ -2,9 +2,9 @@ import { fmtCurrency, fmtNumber, fmtPercent } from './format.js';
 
 const n = (v) => Number(v || 0);
 
-/** 6 KPI cockpit Résumé — performances & pilotage, pas registre. */
+/** 6 KPI cockpit Résumé - performances & pilotage, pas registre. */
 export function buildElevageCockpitKpis({
-  layingRateLabel = '—',
+  layingRateLabel = '-',
   layingRateCalculable = false,
   productionSnapshot = {},
   activityPnl = {},
@@ -39,7 +39,7 @@ export function buildElevageCockpitKpis({
     {
       id: 'ic',
       label: 'IC global (€/kg)',
-      value: icGlobal > 0 ? fmtCurrency(icGlobal) : '—',
+      value: icGlobal > 0 ? fmtCurrency(icGlobal) : '-',
       tone: icGlobal > 0 ? 'neutral' : 'warn',
     },
     {
@@ -51,7 +51,7 @@ export function buildElevageCockpitKpis({
     {
       id: 'herd_value',
       label: 'Valeur cheptel',
-      value: herdValueTotal > 0 ? fmtCurrency(herdValueTotal) : '—',
+      value: herdValueTotal > 0 ? fmtCurrency(herdValueTotal) : '-',
       tone: herdValueTotal > 0 ? 'good' : 'warn',
     },
     {
@@ -63,7 +63,7 @@ export function buildElevageCockpitKpis({
     {
       id: 'profitability',
       label: 'Rentabilité globale',
-      value: grossMargin != null ? `${fmtCurrency(grossMargin)}${marginRate != null ? ` (${fmtPercent(marginRate)})` : ''}` : '—',
+      value: grossMargin != null ? `${fmtCurrency(grossMargin)}${marginRate != null ? ` (${fmtPercent(marginRate)})` : ''}` : '-',
       tone: grossMargin > 0 ? 'good' : grossMargin != null ? 'warn' : 'neutral',
     },
   ];

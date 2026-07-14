@@ -37,7 +37,7 @@ export default function IssueProblemFichePanel({
     return (
       <section className="rounded-3xl border border-positive bg-positive-bg p-6 shadow-card">
         <p className="text-sm font-semibold text-positive flex items-center gap-2"><Link2 size={16} /> Fiches problème</p>
-        <p className="mt-1 text-sm text-positive">Aucun problème multi-liens ouvert — les alertes et tâches sont isolées ou déjà traitées.</p>
+        <p className="mt-1 text-sm text-positive">Aucun problème multi-liens ouvert - les alertes et tâches sont isolées ou déjà traitées.</p>
       </section>
     );
   }
@@ -63,7 +63,7 @@ export default function IssueProblemFichePanel({
                 <b className="text-earth">{group.title}</b>
                 <p className="text-xs text-slate mt-1 font-sans break-all">{group.issueKey}</p>
                 <p className="text-xs text-slate mt-1">
-                  {group.itemCount} lien(s) · {group.openCount} ouvert(s) · {group.modules.join(', ') || '—'}
+                  {group.itemCount} lien(s) · {group.openCount} ouvert(s) · {group.modules.join(', ') || '-'}
                 </p>
               </div>
               <button

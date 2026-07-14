@@ -25,7 +25,7 @@ export default function VisionModuleAuditPanel({ dataMap = {}, onNavigate }) {
           <div className="rounded-2xl border border-positive bg-positive-bg p-4"><p className="text-xs text-positive">Conformes</p><p className="text-xl font-semibold text-positive">{audit.summary.ok}</p></div>
           <div className="rounded-2xl border border-vigilance bg-vigilance-bg p-4"><p className="text-xs text-horizon-dark">À valider</p><p className="text-xl font-semibold text-horizon-dark">{audit.summary.warn}</p></div>
           <div className="rounded-2xl border border-urgent bg-urgent-bg p-4"><p className="text-xs text-urgent">À corriger</p><p className="text-xl font-semibold text-urgent">{audit.summary.bad}</p></div>
-          <div className="rounded-2xl border border-line bg-card p-4"><p className="text-xs text-slate">Issues IA</p><p className="text-xl font-semibold text-earth">{audit.summary.totalIssues}</p></div>
+          <div className="rounded-2xl border border-line bg-card p-4"><p className="text-xs text-slate">Points d’attention</p><p className="text-xl font-semibold text-earth">{audit.summary.totalIssues}</p></div>
         </div>
       </section>
 

@@ -14,6 +14,7 @@ import {
   PAYMENT_STATUS,
   prepareStockPurchaseWorkflow,
 } from '../utils/stockPurchaseWorkflow.js';
+import { subscribeFormModal } from '../services/formModalManager.js';
 
 const lower = (value) => String(value || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
 const today = () => new Date().toISOString().slice(0, 10);
@@ -191,24 +192,25 @@ export default function StocksV4(props) {
       clearStockPendingForm();
       clearBpPendingForm();
     }
-    const handler = (event) => {
-      const draft = event.detail?.draft;
-      if (event.detail?.module !== 'stock' || !draft?.form_type) return;
+    const handler = (detail = {}) => {
+      const draft = detail.draft;
+      if (!['stock', 'achats_stock'].includes(detail.module) || !draft?.form_type) return false;
       if (draft.form_type === 'stock_purchase') {
         setPurchaseDraft(draft);
         setHorizonDraft(null);
         clearStockPendingForm();
         clearBpPendingForm();
-        return;
+        return true;
       }
       if (draft.form_type === 'stock_movement') {
         setHorizonDraft(draft);
         setPurchaseDraft(null);
         window.setTimeout(() => document.getElementById('hey-horizon-stock-card')?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 80);
+        return true;
       }
+      return false;
     };
-    window.addEventListener('horizon-open-form', handler);
-    return () => window.removeEventListener('horizon-open-form', handler);
+    return subscribeFormModal(handler, { modules: ['stock', 'achats_stock'] });
   }, []);
 
   const updateWithLossHistory = useCallback(async (id, patch = {}) => {

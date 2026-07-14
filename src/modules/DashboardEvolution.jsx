@@ -92,26 +92,26 @@ export default function DashboardEvolution({
 
   return (
     <ChartsGrid>
-      <SmartEvolutionChart moduleName="Dashboard" compact title="Commandes vs encaissements" subtitle="Histogramme — activité commerciale" months={labels(monthly)} leftUnit="FCFA" rightUnit="" series={[
+      <SmartEvolutionChart moduleName="Dashboard" compact title="Commandes vs encaissements" subtitle="Histogramme - activité commerciale" months={labels(monthly)} leftUnit="FCFA" rightUnit="" series={[
         { name: 'Commandes', type: 'bar', unit: 'FCFA', data: values(monthly, 'commandes') },
         { name: 'Encaissements', type: 'bar', unit: 'FCFA', data: values(monthly, 'encaissements') },
       ]} />
-      <SmartEvolutionChart moduleName="Dashboard" compact title="Dépenses vs marge" subtitle="Histogramme — charges et résultat" months={labels(monthly)} leftUnit="FCFA" rightUnit="" series={[
+      <SmartEvolutionChart moduleName="Dashboard" compact title="Dépenses vs marge" subtitle="Histogramme - charges et résultat" months={labels(monthly)} leftUnit="FCFA" rightUnit="" series={[
         { name: 'Dépenses', type: 'bar', unit: 'FCFA', data: values(monthly, 'depenses') },
         { name: 'Marge', type: 'bar', unit: 'FCFA', data: values(monthly, 'marge') },
       ]} />
-      <SmartEvolutionChart moduleName="Dashboard" compact title="Taux de marge" subtitle="Courbe — % marge sur encaissements" months={labels(monthly)} leftUnit="%" rightUnit="" series={[
+      <SmartEvolutionChart moduleName="Dashboard" compact title="Taux de marge" subtitle="Courbe - % marge sur encaissements" months={labels(monthly)} leftUnit="%" rightUnit="" series={[
         { name: 'Taux marge', type: 'line', unit: '%', data: values(monthly, 'taux_marge') },
       ]} />
-      <SmartPieChart moduleName="Dashboard" compact title="Encaissements vs dépenses" subtitle="Camembert — structure globale" unit="FCFA" items={[
+      <SmartPieChart moduleName="Dashboard" compact title="Encaissements vs dépenses" subtitle="Camembert - structure globale" unit="FCFA" items={[
         { name: 'Encaissements', value: totalEnc },
         { name: 'Dépenses', value: totalDep },
       ]} />
-      <SmartEvolutionChart moduleName="Dashboard" compact title="Alertes vs tâches sensibles" subtitle="Histogramme — points de vigilance" months={labels(monthly)} leftUnit="" rightUnit="" series={[
+      <SmartEvolutionChart moduleName="Dashboard" compact title="Alertes vs tâches sensibles" subtitle="Histogramme - points de vigilance" months={labels(monthly)} leftUnit="" rightUnit="" series={[
         { name: 'Alertes critiques', type: 'bar', data: values(monthly, 'alertes') },
         { name: 'Tâches sensibles', type: 'bar', data: values(monthly, 'taches') },
       ]} />
-      <SmartEvolutionChart moduleName="Dashboard" compact title="Production œufs vs pertes" subtitle="Barres + courbe — volume et taux casse" months={labels(monthly)} leftUnit="" rightUnit="%" series={[
+      <SmartEvolutionChart moduleName="Dashboard" compact title="Production œufs vs pertes" subtitle="Barres + courbe - volume et taux casse" months={labels(monthly)} leftUnit="" rightUnit="%" series={[
         { name: 'Œufs produits', type: 'bar', data: values(monthly, 'oeufs') },
         { name: 'Taux perte', type: 'line', axis: 'right', unit: '%', data: values(monthly, 'taux_perte_oeufs') },
       ]} />

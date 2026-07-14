@@ -33,8 +33,8 @@ export function saleQuantityDetail(row = {}) {
     oeufs: null,
     eggsPerUnit: null,
     isEggSale: false,
-    shortLabel: qty > 0 ? `${fmtNumber(qty)} ${unit || 'unité'}` : '—',
-    label: qty > 0 ? `${fmtNumber(qty)} ${unit || 'unité'}` : '—',
+    shortLabel: qty > 0 ? `${fmtNumber(qty)} ${unit || 'unité'}` : '-',
+    label: qty > 0 ? `${fmtNumber(qty)} ${unit || 'unité'}` : '-',
   };
 }
 

@@ -20,7 +20,7 @@ function AlertesVolumePanel({ alertes = [] }) {
 
 
   return (
-    <ActiviteSection title="Volume alertes ouvertes" subtitle="Répartition par gravité — complète la vue tâches ci-dessous.">
+    <ActiviteSection title="Volume alertes ouvertes" subtitle="Répartition par gravité - complète la vue tâches ci-dessous.">
       <div className="grid grid-cols-3 gap-3 mb-4">
         <ActiviteKpi label="Critiques" value={fmtNumber(buckets.critique)} tone={buckets.critique ? 'bad' : 'good'} />
         <ActiviteKpi label="Moyennes" value={fmtNumber(buckets.moyenne)} tone={buckets.moyenne ? 'warn' : 'good'} />

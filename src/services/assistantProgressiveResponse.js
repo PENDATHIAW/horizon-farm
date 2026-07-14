@@ -1,5 +1,5 @@
 /**
- * Réponses progressives V7 — synthèse d'abord, détail sur demande.
+ * Réponses progressives V7 - synthèse d'abord, détail sur demande.
  */
 
 import { formatConversationalHorizonAnswer, stripTechnicalLeaks } from './assistantResponseFormatter.js';
@@ -17,7 +17,7 @@ export function isAffirmativeFollowUp(text = '') {
   return AFFIRMATIVE_FOLLOW_UP.test(q) || /^donne(?:z)? (?:moi )?(?:le )?detail/.test(q);
 }
 
-/** @deprecated alias — préférer isAffirmativeFollowUp */
+/** @deprecated alias - préférer isAffirmativeFollowUp */
 export function isDetailFollowUp(text = '') {
   return isAffirmativeFollowUp(text);
 }

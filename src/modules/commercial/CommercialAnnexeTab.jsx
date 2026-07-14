@@ -49,7 +49,7 @@ export default function CommercialAnnexeTab({
       <section className="rounded-3xl border border-line bg-white p-6">
         <p className="text-xs uppercase tracking-normal text-slate font-semibold flex items-center gap-2"><Paperclip size={15} /> Annexe commerciale</p>
         <h2 className="mt-1 text-xl font-semibold text-earth">Preuves, factures et livraisons</h2>
-        <p className="mt-1 text-sm text-slate">Documents liés aux ventes et clients — preuve pour financeurs et suivi terrain.</p>
+        <p className="mt-1 text-sm text-slate">Documents liés aux ventes et clients - preuve pour financeurs et suivi terrain.</p>
       </section>
 
       {invoiceRows.length ? (

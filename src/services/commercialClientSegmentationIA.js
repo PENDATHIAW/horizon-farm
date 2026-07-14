@@ -1,5 +1,5 @@
 /**
- * Commercial V1 — segmentation clients IA (meilleurs, à risque, inactifs, silencieux).
+ * Commercial V1 - segmentation clients IA (meilleurs, à risque, inactifs, silencieux).
  */
 
 import { buildClientSegmentation, buildClientSegment } from './clientSegmentationEngine.js';

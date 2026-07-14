@@ -1,5 +1,5 @@
 /**
- * Écarts chantier 4 — détection des incohérences élevage / stock / finance / tâches.
+ * Écarts chantier 4 - détection des incohérences élevage / stock / finance / tâches.
  */
 
 import { toNumber } from './format.js';

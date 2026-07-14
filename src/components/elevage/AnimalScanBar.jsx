@@ -26,7 +26,7 @@ export default function AnimalScanBar({ animaux = [], onSelectAnimal, label = 'S
       const text = String(reader.result || '');
       const token = text.match(/[A-Z]{2,4}[-_]?\d{2,}/i)?.[0] || scanValue;
       if (token) applyScan(token);
-      else toast('Photo enregistrée — saisissez la boucle si le QR n’est pas lu automatiquement.');
+      else toast('Photo enregistrée - saisissez la boucle si le QR n’est pas lu automatiquement.');
     };
     reader.readAsDataURL(file);
   };

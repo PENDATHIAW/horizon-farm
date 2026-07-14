@@ -43,7 +43,7 @@ export function buildSaleReadyOpportunityPayload({
     opportunity_type: isChair ? 'lot_chair' : sourceType.includes('animal') ? 'animal' : 'pondeuse_reforme',
     source_type: sourceType,
     source_id: record.id,
-    title: `${record.name || record.nom || record.id} — opportunité de vente`,
+    title: `${record.name || record.nom || record.id} - opportunité de vente`,
     description: reason || decision.reason || record.raison_pret_vente || 'Confirmé prêt à la vente',
     quantity: count,
     unit: sourceType.includes('animal') ? 'unité' : 'tete',

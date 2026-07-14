@@ -16,9 +16,9 @@ export default function CulturesCyclesHub({ rows = [], salesOrders = [], deliver
   const timeline = realRows
     .flatMap((row) => {
       const events = [];
-      if (row.date_semis) events.push({ date: row.date_semis, kind: 'Semis', label: row.nom || row.type, detail: row.parcelle || '—' });
+      if (row.date_semis) events.push({ date: row.date_semis, kind: 'Semis', label: row.nom || row.type, detail: row.parcelle || '-' });
       if (row.date_recolte_prevue) events.push({ date: row.date_recolte_prevue, kind: 'Récolte prévue', label: row.nom || row.type, detail: `${fmtNumber(toNumber(row.quantite_prevue))} ${row.unite_recolte || 'kg'}` });
-      if (row.date_fin_campagne || row.statut === 'termine') events.push({ date: row.date_fin_campagne || today(), kind: 'Fin de cycle', label: row.nom || row.type, detail: row.campagne || '—' });
+      if (row.date_fin_campagne || row.statut === 'termine') events.push({ date: row.date_fin_campagne || today(), kind: 'Fin de cycle', label: row.nom || row.type, detail: row.campagne || '-' });
       return events;
     })
     .sort((a, b) => String(a.date).localeCompare(String(b.date)))
@@ -29,7 +29,7 @@ export default function CulturesCyclesHub({ rows = [], salesOrders = [], deliver
       <section className="rounded-3xl border border-line bg-white p-6 shadow-card">
         <p className="flex items-center gap-2 text-lg font-semibold text-earth"><CalendarClock size={20} /> Calendrier cultures</p>
         <p className="mt-1 text-sm text-slate">
-          Semis, traitements, récoltes et fin de cycle — pilotage temporel uniquement (pas de création parcelle ici).
+          Semis, traitements, récoltes et fin de cycle - pilotage temporel uniquement (pas de création parcelle ici).
         </p>
         <div className="mt-4 space-y-2">
           {timeline.length ? timeline.map((item, i) => {

@@ -43,7 +43,7 @@ function LibraryGrid({ data, selected, setSelected, query, setQuery }) {
               <Field label="Document" value={labelOf(row)} />
               <Field label="Type" value={typeOf(row)} />
               <Field label="Date" value={dateOf(row)} />
-              <Field label="Origine" value={row.module_source || row.related_type || '—'} />
+              <Field label="Origine" value={row.module_source || row.related_type || '-'} />
               <Field label="Lien métier" value={row.transaction_id || row.source_record_id || row.order_id || 'Non rattaché'} />
               <Field label="Détail" value={detailOf(row)} />
             </>

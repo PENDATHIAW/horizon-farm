@@ -3,7 +3,7 @@ import { calculateUnifiedAnimalCost, calculateUnifiedLotCost } from '../../servi
 import { fmtCurrency } from '../../utils/format.js';
 
 const n = (v = 0) => Number(v || 0);
-const label = (r = {}) => r.name || r.nom || r.title || r.id || '—';
+const label = (r = {}) => r.name || r.nom || r.title || r.id || '-';
 
 export function buildElevageHealthSnapshot({ animaux = [], lots = [], feedLogs = [], productionLogs = [], stocks = [], sante = [] }) {
   const data = {
@@ -98,6 +98,6 @@ export function formatMargin(row) {
 }
 
 export function formatUnitCost(value, unitLabel = '') {
-  if (value == null || !Number(value)) return '—';
+  if (value == null || !Number(value)) return '-';
   return `${fmtCurrency(value)}${unitLabel ? ` / ${unitLabel}` : ''}`;
 }

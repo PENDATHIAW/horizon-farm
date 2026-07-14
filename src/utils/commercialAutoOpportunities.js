@@ -1,5 +1,5 @@
 /**
- * Commercial V1 — moteur opportunités automatique (aucune saisie).
+ * Commercial V1 - moteur opportunités automatique (aucune saisie).
  * Sources : récoltes vendables, frigo, lots prêts, rotation lente.
  */
 
@@ -32,13 +32,13 @@ function slowRotationStock(row = {}) {
 
 function aiRecommendation({ perishable = false, urgency = 'normal', kind = '' } = {}) {
   if (perishable && urgency === 'critique') {
-    return 'Vente flash — contactez vos clients habituels aujourd\'hui.';
+    return 'Vente flash - contactez vos clients habituels aujourd\'hui.';
   }
   if (perishable && urgency === 'haute') {
     return 'Offre groupée ou promotion courte durée pour écouler avant DLC.';
   }
   if (kind === 'lot_pret') {
-    return 'Proposer aux restaurants et hôtels — lot prêt à commercialiser.';
+    return 'Proposer aux restaurants et hôtels - lot prêt à commercialiser.';
   }
   if (kind === 'rotation_lente') {
     return 'Promotion ciblée ou bundle avec produits à forte demande.';

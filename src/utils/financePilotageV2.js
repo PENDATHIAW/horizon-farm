@@ -1,5 +1,5 @@
 /**
- * Finance & Pilotage V2 — dirigeant, banque, investisseur, multi-fermes.
+ * Finance & Pilotage V2 - dirigeant, banque, investisseur, multi-fermes.
  * Réutilise financePilotageCore sans recréer les moteurs V1.
  */
 
@@ -256,7 +256,7 @@ export function buildExecutiveFinancialSituation(props = {}, options = {}) {
     };
   } else {
     priorityAction = {
-      label: 'Situation stable — poursuivre le suivi hebdomadaire',
+      label: 'Situation stable - poursuivre le suivi hebdomadaire',
       detail: 'Trésorerie, créances et échéances sont sous contrôle.',
       tab: 'Résumé',
     };
@@ -788,7 +788,7 @@ export function buildFinanceExportPayload(props = {}, options = {}) {
       period: options.periodLabel || 'Toutes les périodes',
       extra: {
         'Marge réelle': executive.realMargin,
-        'Taux de marge': executive.marginRateReliable ? `${executive.marginRate} %` : '—',
+        'Taux de marge': executive.marginRateReliable ? `${executive.marginRate} %` : '-',
       },
     },
     repayment: {
@@ -798,7 +798,7 @@ export function buildFinanceExportPayload(props = {}, options = {}) {
       extra: {
         'Résultat opérationnel': repayment.operatingResult,
         'Capacité': repayment.capacityLabel,
-        DSCR: repayment.dscr ?? '—',
+        DSCR: repayment.dscr ?? '-',
         'Mensualité max. estimée': repayment.maxMonthlyPayment,
       },
     },

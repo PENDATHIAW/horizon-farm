@@ -157,7 +157,7 @@ export function buildCommercialCoherenceRows(orders = [], payments = []) {
     const rest = remainingForOrder(order, linked);
     const name = order.client_nom || order.customer_name || order.client_label || order.client_id || 'Client';
     if (rest > 0) {
-      rows.push({ id: `unpaid-${order.id}`, orderId: order.id, type: 'impaye', title: `${name} — impayé`, detail: `Reste ${fmtCurrency(rest)}`, value: rest, finding: { id: `coh-sale-unpaid-${order.id}`, module: 'commercial', severity: 'haute', auto_action: 'create_task', title: `Vente sans paiement complet : ${name}`, description: `Reste ${rest} FCFA`, recommended_action: 'Encaisser ou créer tâche de relance', confidence_score: 0.92 } });
+      rows.push({ id: `unpaid-${order.id}`, orderId: order.id, type: 'impaye', title: `${name} - impayé`, detail: `Reste ${fmtCurrency(rest)}`, value: rest, finding: { id: `coh-sale-unpaid-${order.id}`, module: 'commercial', severity: 'haute', auto_action: 'create_task', title: `Vente sans paiement complet : ${name}`, description: `Reste ${rest} FCFA`, recommended_action: 'Encaisser ou créer tâche de relance', confidence_score: 0.92 } });
     }
     if (invoiceRequired(order) && !isInvoiced(order)) {
       rows.push({ id: `noinv-${order.id}`, orderId: order.id, type: 'facture', title: `Vente ${order.id} sans facture`, detail: name, finding: { id: `coh-sale-no-invoice-${order.id}`, module: 'commercial', severity: 'moyenne', auto_action: 'create_alert', title: `Vente sans facture : ${order.id}`, description: 'Facture non émise', recommended_action: 'Créer facture manquante', confidence_score: 0.88 } });
@@ -225,7 +225,7 @@ const cleanStr = (value = '') => String(value || '').trim();
 const saleDateOf = (row = {}) => cleanStr(row.date || row.date_vente || row.order_date || row.created_at).slice(0, 10);
 const clientNameOf = (client = {}) => cleanStr(client.nom || client.name || client.raison_sociale || client.id || 'Client');
 
-/** Ledger client : CA, payé, reste — source unique salesStatuses. */
+/** Ledger client : CA, payé, reste - source unique salesStatuses. */
 export function buildClientLedger(clients = [], orders = [], payments = []) {
   const linked = linkedPaymentsForOrders(orders, payments);
   const rows = arr(clients).map((client) => {
@@ -241,7 +241,7 @@ export function buildClientLedger(clients = [], orders = [], payments = []) {
   return { rows, walkInOrders };
 }
 
-/** Une ligne par vente — uniquement les blocages réels (pas les ventes clôturées). */
+/** Une ligne par vente - uniquement les blocages réels (pas les ventes clôturées). */
 export function buildSummaryTodos(orders = [], payments = []) {
   const linked = linkedPaymentsForOrders(orders, payments);
   const items = arr(orders).map((order) => {

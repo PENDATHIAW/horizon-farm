@@ -157,7 +157,7 @@ function RentabilitePanel({ profitability = null, consolidationProps = {} }) {
           <Stat label="Cultures" value={fmtCurrency(activityBreakdown.cultures)} />
           <Stat label="CA commercial" value={fmtCurrency(activityBreakdown.commercial)} tone="good" />
           <Stat label="Marge brute activités" value={fmtCurrency(profit.grossActivityMargin)} tone={profit.grossActivityMargin >= 0 ? 'good' : 'bad'} />
-          <Stat label="Taux résultat opérationnel" value={marginRate != null ? `${marginRate} %` : '—'} />
+          <Stat label="Taux résultat opérationnel" value={marginRate != null ? `${marginRate} %` : '-'} />
           <Stat label="Charges structure" value={fmtCurrency(profit.structureCharges)} tone="warn" />
         </div>
       </section>
@@ -367,7 +367,7 @@ export default function FinancePilotageRecoveredModule(props) {
       .map((item) => ({
         id: item.order?.id,
         title: item.order?.client_nom || item.order?.customer_name || 'Vente',
-        detail: `${item.order?.date || item.order?.created_at || '—'} · commande`,
+        detail: `${item.order?.date || item.order?.created_at || '-'} · commande`,
         amount: n(item.remaining),
       }));
     const txReceivables = transactions
@@ -376,7 +376,7 @@ export default function FinancePilotageRecoveredModule(props) {
       .map((row) => ({
         id: row.id,
         title: row.libelle || row.title || 'Créance',
-        detail: `${row.date || row.created_at || '—'} · finance`,
+        detail: `${row.date || row.created_at || '-'} · finance`,
         amount: amount(row),
       }));
     const receivables = [...orderReceivables, ...txReceivables];
@@ -384,7 +384,7 @@ export default function FinancePilotageRecoveredModule(props) {
     const txPayables = transactions.filter(isPayable).map((row) => ({
       id: row.id,
       title: row.libelle || row.title || 'Dette',
-      detail: `${row.date || row.created_at || '—'} · charge à payer`,
+      detail: `${row.date || row.created_at || '-'} · charge à payer`,
       amount: amount(row),
     }));
     const supplierPayables = suppliers
@@ -666,7 +666,7 @@ export default function FinancePilotageRecoveredModule(props) {
           <div>
             <p className="text-xs uppercase tracking-normal text-horizon-dark font-semibold">Pilotage</p>
             <h1 className="mt-1 text-2xl font-semibold text-earth">Finance & Pilotage</h1>
-            <p className="mt-1 text-sm text-slate">Trésorerie, créances, dettes — signaux métier, preuves et rentabilité.</p>
+            <p className="mt-1 text-sm text-slate">Trésorerie, créances, dettes - signaux métier, preuves et rentabilité.</p>
             {props.periodLabel ? (
               <div className="mt-2 flex flex-wrap items-center gap-2">
                 <PeriodScopeBadge label={props.periodLabel} />

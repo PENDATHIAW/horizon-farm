@@ -76,7 +76,7 @@ export function buildAnimalProposedSaleDisplay(salePricing = {}, erpCosts = {}) 
     erpSource,
     ficheDiverges,
     ficheDivergeNote: ficheDiverges
-      ? `Revenu fiche ${fmtCurrency(erpRevenue)} (${erpSource}) — mettre à jour la fiche ou utiliser le prix proposé ci-dessus.`
+      ? `Revenu fiche ${fmtCurrency(erpRevenue)} (${erpSource}) : mettre à jour la fiche ou utiliser le prix proposé ci-dessus.`
       : '',
   };
 }

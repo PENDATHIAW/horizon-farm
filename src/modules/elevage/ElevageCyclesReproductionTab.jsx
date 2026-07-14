@@ -8,7 +8,7 @@ function ReproductionSummary({ data, onOpenReproductionWorkflow }) {
       <div>
         <p className="text-xs font-semibold uppercase tracking-normal text-horizon-dark">Reproduction</p>
         <h2 className="mt-1 text-lg font-semibold text-earth">Saillies, gestations et mises bas</h2>
-        <p className="mt-1 text-sm text-slate">Workflow officiel — ouvrez Saillie, Gestation ou Mise bas ci-dessus.</p>
+        <p className="mt-1 text-sm text-slate">Workflow officiel - ouvrez Saillie, Gestation ou Mise bas ci-dessus.</p>
       </div>
       <div className="grid grid-cols-2 gap-3 xl:grid-cols-4">
         <div className="rounded-2xl border border-line bg-card p-4">
@@ -35,11 +35,11 @@ function ReproductionSummary({ data, onOpenReproductionWorkflow }) {
         </button>
         <button type="button" onClick={() => onOpenReproductionWorkflow?.('gestation')} className="rounded-2xl border border-line bg-card p-4 text-left hover:bg-positive-bg">
           <b className="text-earth">+ Gestation</b>
-          <p className="mt-1 text-sm text-slate">Déclaration gestation — validation requise.</p>
+          <p className="mt-1 text-sm text-slate">Déclaration gestation - validation requise.</p>
         </button>
         <button type="button" onClick={() => onOpenReproductionWorkflow?.('mise_bas')} className="rounded-2xl border border-line bg-card p-4 text-left hover:bg-positive-bg">
           <b className="text-earth">+ Mise bas / naissance</b>
-          <p className="mt-1 text-sm text-slate">Portée et naissance — validation requise.</p>
+          <p className="mt-1 text-sm text-slate">Portée et naissance - validation requise.</p>
         </button>
       </div>
       {data?.gestantesList?.length ? (
@@ -60,7 +60,7 @@ function ReproductionSummary({ data, onOpenReproductionWorkflow }) {
 }
 
 /**
- * Cycles opérationnels + reproduction — calendrier détaillé J+40/J+90 : Centre → Saisons & marchés.
+ * Cycles opérationnels + reproduction - calendrier détaillé J+40/J+90 : Centre → Saisons & marchés.
  */
 export default function ElevageCyclesReproductionTab({
   cyclesPanelProps,
@@ -80,7 +80,7 @@ export default function ElevageCyclesReproductionTab({
           Calendrier détaillé chair / bovins / pondeuses (J+40, J+90…)
         </p>
         <p className="mt-2 leading-relaxed">
-          Le calendrier complet avec décisions Business Plan et dates pivot marché est centralisé dans le Centre décisionnel — pas de doublon ici.
+          Le calendrier complet avec décisions Business Plan et dates pivot marché est centralisé dans le Centre décisionnel - pas de doublon ici.
         </p>
         {onNavigate ? (
           <button

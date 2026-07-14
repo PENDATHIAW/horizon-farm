@@ -62,7 +62,7 @@ function hasOpenAlertForFinding(alerts, finding) {
 }
 
 function buildTaskFromFinding(finding, tasks) {
-  const baseTitle = sanitizeHealthTaskTitle(finding.title || finding.description || 'Action IA');
+  const baseTitle = sanitizeHealthTaskTitle(finding.title || finding.description || 'Action recommandée');
   return {
     id: generateSequentialId('taches', tasks),
     title: baseTitle,
@@ -143,7 +143,7 @@ export async function applyErpHealthAutoActions(report, {
           module_source: 'alertes',
           entity_type: 'alerte',
           entity_id: alert.id,
-          title: `Alerte IA : ${alert.title}`,
+          title: `Alerte analyse : ${alert.title}`,
           description: alert.action_recommandee,
           event_date: today(),
           severity: alert.severity === 'critique' ? 'critique' : 'info',

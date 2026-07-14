@@ -21,7 +21,7 @@ const rules = [
   { pattern: /paramètres pilotage|pilotage|réglages/i, module: 'centre_ia', tab: 'Annexe', label: 'Centre → Paramètres (bandeau pilotage)' },
   { pattern: /prix marché|catalogue prix/i, module: 'commercial', tab: 'Ventes', label: 'Commercial → Prix / ventes' },
   { pattern: /maraîchage|cultures?|parcelle/i, module: 'cultures', tab: 'Parcelles & campagnes', label: 'Cultures → Parcelles & campagnes' },
-  { pattern: /météo/i, module: 'dashboard', tab: 'Carnet Horizon', label: 'Accueil — Carnet Horizon' },
+  { pattern: /météo/i, module: 'dashboard', tab: 'Carnet Horizon', label: 'Accueil - Carnet Horizon' },
 ];
 
 export function resolveAnnexeLink(whereText = '') {

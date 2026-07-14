@@ -49,7 +49,7 @@ export function auditBpLineLinkage(line = {}, { kind = 'investment' } = {}) {
   if (isConcretized && !isTerminal) {
     if (!recordId && !financeId) {
       linkageIssue = 'missing_both';
-      linkageMessage = 'Opération créée mais non liée — réparer la liaison.';
+      linkageMessage = 'Opération créée mais non liée - réparer la liaison.';
     } else if (expectsAsset && recordId && !financeId) {
       linkageIssue = 'missing_finance';
       linkageMessage = 'Actif créé sans écriture Trésorerie liée.';

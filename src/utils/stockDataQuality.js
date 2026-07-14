@@ -1,5 +1,5 @@
 /**
- * Achats & Stock V3 — qualité des données stock (gaps explicites).
+ * Achats & Stock V3 - qualité des données stock (gaps explicites).
  */
 
 import { buildExpirySnapshot } from './stockExpiry.js';
@@ -26,16 +26,16 @@ export function buildStockDataQualitySnapshot({
     if (!id) return;
     const name = label(row);
     if (!row.unite && !row.unit) {
-      issues.push({ id: `no-unit-${id}`, category: 'article', severity: 'moyenne', title: `${name} — sans unité`, detail: 'CMUP et conversions agricoles incomplets.' });
+      issues.push({ id: `no-unit-${id}`, category: 'article', severity: 'moyenne', title: `${name} - sans unité`, detail: 'CMUP et conversions agricoles incomplets.' });
     }
     if (threshold(row) <= 0) {
-      issues.push({ id: `no-threshold-${id}`, category: 'article', severity: 'faible', title: `${name} — sans seuil`, detail: 'Alertes rupture et réappro non fiables.' });
+      issues.push({ id: `no-threshold-${id}`, category: 'article', severity: 'faible', title: `${name} - sans seuil`, detail: 'Alertes rupture et réappro non fiables.' });
     }
     if (unitCost(row) <= 0) {
-      issues.push({ id: `no-cost-${id}`, category: 'article', severity: 'moyenne', title: `${name} — sans coût`, detail: 'Valorisation stock et marges incomplètes.' });
+      issues.push({ id: `no-cost-${id}`, category: 'article', severity: 'moyenne', title: `${name} - sans coût`, detail: 'Valorisation stock et marges incomplètes.' });
     }
     if (!clean(row.farm_id)) {
-      issues.push({ id: `no-farm-${id}`, category: 'article', severity: 'moyenne', title: `${name} — sans ferme`, detail: 'Scope multi-fermes et transferts limités.' });
+      issues.push({ id: `no-farm-${id}`, category: 'article', severity: 'moyenne', title: `${name} - sans ferme`, detail: 'Scope multi-fermes et transferts limités.' });
     }
   });
 
@@ -85,7 +85,7 @@ export function buildStockDataQualitySnapshot({
       category: 'peremption',
       severity: row.daysLeft <= 3 ? 'haute' : 'moyenne',
       title: `Péremption proche : ${row.label}`,
-      detail: `${row.daysLeft} jour(s) — action recommandée`,
+      detail: `${row.daysLeft} jour(s) - action recommandée`,
     });
   });
 
@@ -99,7 +99,7 @@ export function buildStockDataQualitySnapshot({
         category: 'fournisseur',
         severity: 'faible',
         title: `Dette non ventilée : ${name}`,
-        detail: 'Historique sans ventilation par ferme — totaux multi-fermes approximatifs.',
+        detail: 'Historique sans ventilation par ferme - totaux multi-fermes approximatifs.',
       });
     }
   });

@@ -52,8 +52,8 @@ export default function CircularEconomyKpiPanel({
           </p>
           <p className="text-sm text-slate mt-1">
             {circular.orgaloopHybrid
-              ? 'Fertilisation cultures prioritaire — surplus vendu sur Orgaloop.'
-              : `Fientes, litières et fumiers valorisés — ${circular.orgaloopPrimary ? `vente ${circular.orgaloop?.platformName || 'Orgaloop'}` : 'boucle élevage ↔ cultures'}.`}
+              ? 'Fertilisation cultures prioritaire - surplus vendu sur Orgaloop.'
+              : `Fientes, litières et fumiers valorisés - ${circular.orgaloopPrimary ? `vente ${circular.orgaloop?.platformName || 'Orgaloop'}` : 'boucle élevage ↔ cultures'}.`}
           </p>
         </div>
         <SourceBadge label={circular.sourceLabel} />
@@ -88,7 +88,7 @@ export default function CircularEconomyKpiPanel({
 
       {circular.orgaloopHybrid || circular.orgaloopPrimary ? (
         <p className="text-xs text-positive rounded-xl border border-positive bg-positive-bg p-3">
-          <b>Stratégie {circular.orgaloop?.platformName} :</b> {circular.orgaloop?.strategyLabel} — {circular.orgaloop?.advice}
+          <b>Stratégie {circular.orgaloop?.platformName} :</b> {circular.orgaloop?.strategyLabel} - {circular.orgaloop?.advice}
         </p>
       ) : null}
 

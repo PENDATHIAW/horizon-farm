@@ -1,5 +1,5 @@
 /**
- * Offres conversationnelles — l'assistant propose, l'exploitant accepte (vas-y, oui…).
+ * Offres conversationnelles - l'assistant propose, l'exploitant accepte (vas-y, oui…).
  * Comportement IA métier : mémoire de l'offre + exécution au tour suivant.
  */
 

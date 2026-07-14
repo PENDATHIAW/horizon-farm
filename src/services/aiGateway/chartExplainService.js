@@ -1,5 +1,5 @@
 /**
- * « Pourquoi ? » — interprétation de courbes graphiques (lecture seule, aucune écriture).
+ * « Pourquoi ? » - interprétation de courbes graphiques (lecture seule, aucune écriture).
  */
 
 import {
@@ -187,7 +187,7 @@ function correlateContext({ topics, context = {}, labels = [], delta, trend }) {
       return st && !['livre', 'livrée', 'delivered', 'paye', 'payé', 'closed'].includes(st);
     });
     if (trend === 'baisse' && openOrders.length) {
-      causes.push(`${openOrders.length} commande(s) encore ouverte(s) — le CA peut être sous-estimé.`);
+      causes.push(`${openOrders.length} commande(s) encore ouverte(s) - le CA peut être sous-estimé.`);
       actions.push('Relancer les livraisons ou encaissements en attente.');
       links.push(buildModuleLink('commercial', 'Ventes', 'Voir les ventes'));
       confidence += 0.08;
@@ -213,7 +213,7 @@ function correlateContext({ topics, context = {}, labels = [], delta, trend }) {
   if (topics.finance) {
     const missingProof = arr(context.transactions).filter((row) => !row.document_id && !row.preuve_id);
     if (missingProof.length) {
-      causes.push(`${missingProof.length} mouvement(s) sans justificatif — la lecture peut être incomplète.`);
+      causes.push(`${missingProof.length} mouvement(s) sans justificatif - la lecture peut être incomplète.`);
       links.push(buildModuleLink('documents_rapports', 'Preuves', 'Compléter les preuves'));
       confidence += 0.04;
     }
@@ -250,7 +250,7 @@ function correlateContext({ topics, context = {}, labels = [], delta, trend }) {
   }
 
   if (delta != null && Math.abs(delta) >= 15 && causes.length === 0) {
-    causes.push('Variation marquée sans corrélation automatique évidente — vérifier les saisies terrain.');
+    causes.push('Variation marquée sans corrélation automatique évidente - vérifier les saisies terrain.');
     actions.push("Comparer avec le journal d'activité et les preuves de la période.");
     confidence = Math.min(confidence, 0.58);
   }
@@ -503,7 +503,7 @@ export function explainChartCurve({
 
   const warnings = [];
   if (points.length < 2) warnings.push('Peu de points : interprétation limitée.');
-  if (!causes.length) warnings.push('Aucune corrélation métier automatique — lecture descriptive uniquement.');
+  if (!causes.length) warnings.push('Aucune corrélation métier automatique - lecture descriptive uniquement.');
 
   const result = {
     chart_id: chartId || slugify(title),

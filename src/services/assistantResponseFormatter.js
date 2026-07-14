@@ -24,13 +24,13 @@ export function formatHorizonAnswer({
 } = {}) {
   const lines = [
     'Situation',
-    situation || '—',
+    situation || '-',
     '',
     'Cause',
-    cause || '—',
+    cause || '-',
     '',
     'Action',
-    action || '—',
+    action || '-',
   ];
   if (sources.length) {
     lines.push('', 'Source ERP', sources.join(' · '));
@@ -38,7 +38,7 @@ export function formatHorizonAnswer({
   return lines.join('\n').trim();
 }
 
-/** Réponse conversationnelle — prose naturelle à partir du SCA interne. */
+/** Réponse conversationnelle - prose naturelle à partir du SCA interne. */
 export function formatConversationalHorizonAnswer(answer = {}) {
   if (!answer) return '';
   if (answer.conversationalText) return answer.conversationalText;
@@ -52,7 +52,7 @@ export function formatConversationalHorizonAnswer(answer = {}) {
   return stripTechnicalLeaks(conversational.prose || conversational.displayText || '');
 }
 
-/** Réponse agricole compacte — ton conversationnel (plus de labels Situation/Cause). */
+/** Réponse agricole compacte - ton conversationnel (plus de labels Situation/Cause). */
 export function formatCompactHorizonAnswer(answer = {}) {
   if (!answer) return '';
   if (answer.summary && typeof answer.summary === 'string' && !/Situation\s*:/i.test(answer.summary)) {
@@ -135,7 +135,7 @@ export function formatDraftAssistantText(draft = {}) {
     fields.payment_amount ? `${fields.payment_amount} FCFA` : null,
   ].filter(Boolean).join(', ');
   return formatConversationalHorizonAnswer({
-    situation: `D'accord — j'ai noté ${action}${details ? ` (${details})` : ''}.`,
+    situation: `D'accord - j'ai noté ${action}${details ? ` (${details})` : ''}.`,
     cause: '',
     action: 'Vérifiez le récapitulatif ci-dessous et confirmez si tout est correct.',
   });

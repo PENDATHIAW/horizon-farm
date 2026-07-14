@@ -1,0 +1,57 @@
+/** Libellés du panneau des coûts et prix par défaut de la ferme (FarmCostSettingsPanel). */
+export default {
+  entete: {
+    moteur: 'Moteur de coût unifié',
+    titre: 'Rations et prix par défaut',
+    description: 'Ces réglages alimentent Animaux, Avicole, Ventes et Finance avec le même coût total partout.',
+    synchronise: 'Synchronisé en ligne',
+    localUniquement: 'Mode local uniquement',
+    chargement: 'Chargement…',
+  },
+  champs: {
+    prixAliment: 'Prix aliment par défaut (estimation)',
+    margeCible: 'Marge cible vente',
+    poussinsCaisse: 'Poussins / caisse chair',
+    prixCaisse: 'Prix caisse poussins',
+    amortissement: 'Amortissement pondeuses',
+    oeufsTablette: 'Œufs / tablette',
+    fcfaKg: 'FCFA/kg',
+    pourcent: '%',
+    sujets: 'sujets',
+    fcfa: 'FCFA',
+    jours: 'jours',
+    oeufs: 'œufs',
+  },
+  rations: {
+    titre: 'Rations journalières par espèce ou type',
+    colType: 'Type',
+    colKgJour: 'Kg / jour',
+    colDuree: 'Durée cycle',
+    colLibelle: 'Libellé',
+  },
+  venteElevage: {
+    titre: 'Prix de vente suggérés en élevage (FCFA / kg)',
+    aide: "Proposés sur chaque fiche animal (Bovin, Ovin, Caprin) quand aucun prix par kg n'est saisi sur l'animal. Le moteur prend le maximum entre coût plus marge, poids fois prix par kg de l'Annexe, et le marché.",
+    defaut: 'Défaut (autres)',
+    bovin: 'Bovin',
+    ovin: 'Ovin',
+    caprin: 'Caprin',
+  },
+  chair: {
+    titre: 'Prix chair suggérés par poids (FCFA / sujet)',
+    aide: 'Utilisés quand aucun prix saisi : le moteur unifié privilégie toujours coût réel plus marge cible ({marge} %).',
+  },
+  actions: {
+    enregistrer: 'Enregistrer les paramètres',
+    enregistrement: 'Enregistrement…',
+    reinitialiser: 'Réinitialiser',
+    derniereSauvegarde: 'Dernière sauvegarde : {date}',
+  },
+  apercuCaisse: 'Aperçu caisse poussins : {prix} / {taille} = {parSujet} / sujet',
+  toasts: {
+    enregistreCloud: 'Paramètres enregistrés (cloud plus appareil)',
+    enregistreLocal: 'Paramètres enregistrés localement, cloud indisponible',
+    echec: 'Échec de la sauvegarde',
+    reinitialise: 'Paramètres réinitialisés aux valeurs par défaut',
+  },
+};

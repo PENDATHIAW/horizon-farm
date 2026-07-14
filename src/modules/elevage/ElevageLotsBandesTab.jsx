@@ -20,7 +20,7 @@ function QuickAction({ icon: Icon, label, onClick, primary }) {
 }
 
 /**
- * Lots & bandes — sous-onglets Avicole / Animaux en tête, registre principal, performances en annexe.
+ * Lots & bandes - sous-onglets Avicole / Animaux en tête, registre principal, performances en annexe.
  */
 export default function ElevageLotsBandesTab({
   initialSubview = 'avicole',
@@ -114,8 +114,8 @@ export default function ElevageLotsBandesTab({
         </div>
         <p className="text-xs text-slate">
           {view === 'avicole'
-            ? 'Pondeuses, chair, ramassages et lots — le reste de la page s’adapte à l’avicole.'
-            : 'Bovins, ovins, caprins et reproduction — performances filtrées pour le cheptel.'}
+            ? 'Pondeuses, chair, ramassages et lots - le reste de la page s’adapte à l’avicole.'
+            : 'Bovins, ovins, caprins et reproduction - performances filtrées pour le cheptel.'}
         </p>
         <div className={`grid gap-2 ${quickActions.length >= 5 ? 'grid-cols-3 sm:grid-cols-5' : 'grid-cols-2 sm:grid-cols-4'}`}>
           {quickActions.map((action) => (

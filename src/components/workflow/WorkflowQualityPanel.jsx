@@ -163,7 +163,7 @@ export default function WorkflowQualityPanel({ dataMap = {}, onNavigate }) {
             Recette métier / Qualité des workflows
           </h2>
           <p className="mt-1 text-sm text-slate">
-            Vérification read-only des chaînes métier existantes — aucune nouvelle logique métier créée ici.
+            Vérification read-only des chaînes métier existantes - aucune nouvelle logique métier créée ici.
           </p>
         </div>
         <div className="rounded-2xl border border-line bg-card px-4 py-3 text-sm min-w-[220px]">

@@ -55,7 +55,7 @@ export function buildCommercialFilterOptions({ salesOrders = [], clients = [] } 
   };
 }
 
-/** Filtre ventes pour graphiques — client, activité, produit (période = filtre ERP global). */
+/** Filtre ventes pour graphiques - client, activité, produit (période = filtre ERP global). */
 export function filterCommercialChartRows(rows = [], filters = {}) {
   const { clientId = '', activityKey = '', productName = '' } = filters;
   if (!clientId && !activityKey && !productName) return arr(rows);

@@ -1,5 +1,5 @@
 /**
- * ASSISTANT_CONVERSATION_CONTEXT — mémoire métier V6.1.
+ * ASSISTANT_CONVERSATION_CONTEXT - mémoire métier V6.1.
  * Suites : espèces, traitements, finances, ventes, parcelles, clients prioritaires.
  */
 
