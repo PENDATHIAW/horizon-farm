@@ -3,8 +3,8 @@
   --font-display: "Fraunces", Georgia, serif;
   --font-serif: "Fraunces", Georgia, serif;
 
-  --color-earth: #14402E;
-  --color-leaf: #1E5A40;
+  --color-earth: #234F3B;
+  --color-leaf: #2E6B4E;
   --color-horizon: #C9971C;
   --color-horizon-dark: #9A7413;
   --color-pure: #FFFFFF;
@@ -50,8 +50,8 @@
 :root {
   color-scheme: light;
 
-  --hf-earth: #14402E;
-  --hf-leaf: #1E5A40;
+  --hf-earth: #234F3B;
+  --hf-leaf: #2E6B4E;
   --hf-horizon: #C9971C;
   --hf-horizon-dark: #9A7413;
   --hf-white: #FFFFFF;
