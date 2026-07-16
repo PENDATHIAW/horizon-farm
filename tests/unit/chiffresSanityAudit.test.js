@@ -99,6 +99,9 @@ test('KPI commerciaux consolidés : totaux finis, taux dans [0,100]', () => {
     const v = kpis[taux];
     if (v != null && (v < 0 || v > 100)) fautes.push(`${taux} = ${v} (hors [0,100])`);
   }
+  // Invariant métier : on ne peut pas encaisser plus que le chiffre d'affaires
+  // (un dépassement trahirait un double comptage des paiements).
+  if (kpis.collected > kpis.ca + 1) fautes.push(`encaissé (${kpis.collected}) > CA (${kpis.ca})`);
   assert.deepEqual(fautes, [], `KPI commerciaux aberrants :\n${fautes.join('\n')}`);
 });
 
