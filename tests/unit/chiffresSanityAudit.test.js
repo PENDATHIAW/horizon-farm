@@ -24,6 +24,7 @@ import { buildElevageActivityPnl } from '../../src/utils/elevageActivityPnl.js';
 import { summarizeAvicoleCosts, summarizeAnimalCosts } from '../../src/utils/costEngine.js';
 import { buildProfitabilityView, buildOfficialTreasuryView } from '../../src/utils/financePilotageCore.js';
 import { buildReproductionKpis } from '../../src/utils/reproductionMetrics.js';
+import { buildDashboardSummary } from '../../src/modules/dashboard/dashboardMetrics.js';
 
 const dataMap = buildInvestorDemoDataMap();
 
@@ -160,4 +161,20 @@ test('finance pilotage (rentabilité + trésorerie) : aucune sortie NaN/Infinity
 test('reproduction : aucune sortie NaN/Infinity', () => {
   const repro = buildReproductionKpis({ animaux: dataMap.animaux, businessEvents: dataMap.business_events });
   assert.deepEqual(nombresAberrants(repro), [], `Nombres aberrants dans reproduction :\n${nombresAberrants(repro).join('\n')}`);
+});
+
+test('réconciliation trésorerie : Accueil = Finance officielle = tableau de bord', () => {
+  const kpi = valeurKpi('tresorerie', dataMap).valeur;
+  const officiel = buildOfficialTreasuryView(seedProps).treasuryAvailable;
+  const dash = buildDashboardSummary(seedProps).cashNet;
+  assert.equal(kpi, officiel, `Trésorerie Accueil (${kpi}) doit égaler la trésorerie officielle (${officiel})`);
+  assert.equal(dash, officiel, `Trésorerie tableau de bord (${dash}) doit égaler la trésorerie officielle (${officiel})`);
+});
+
+test('réconciliation marge : taux de marge cohérent avec résultat / CA', () => {
+  const { profit, marginRate } = buildProfitabilityView(seedProps);
+  if (profit.caTotal > 0 && marginRate != null) {
+    const attendu = Number(((profit.operatingResult / profit.caTotal) * 100).toFixed(1));
+    assert.equal(marginRate, attendu, `taux de marge (${marginRate}) doit égaler résultat/CA (${attendu})`);
+  }
 });
