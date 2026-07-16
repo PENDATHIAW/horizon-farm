@@ -26,8 +26,8 @@
   --radius-card: 0.75rem;
   --radius-control: 0.625rem;
   --radius-chip: 999px;
-  --shadow-card: 0 1px 3px rgba(20, 64, 46, 0.06), 0 4px 12px rgba(20, 64, 46, 0.04);
-  --shadow-float: 0 2px 6px rgba(20, 64, 46, 0.10), 0 10px 24px rgba(20, 64, 46, 0.08);
+  --shadow-card: 0 1px 2px rgba(20, 64, 46, 0.04), 0 3px 8px rgba(20, 64, 46, 0.05), 0 10px 22px rgba(20, 64, 46, 0.035);
+  --shadow-float: 0 2px 6px rgba(20, 64, 46, 0.08), 0 12px 28px rgba(20, 64, 46, 0.10), 0 26px 52px rgba(20, 64, 46, 0.06);
   --text-label: 0.8rem;
   --text-meta: 0.72rem;
   --text-body: 0.95rem;
@@ -81,8 +81,8 @@
   --hf-radius-card: 0.75rem;
   --hf-radius-control: 0.625rem;
   --hf-radius-chip: 999px;
-  --hf-shadow-card: 0 1px 3px rgba(20, 64, 46, 0.06), 0 4px 12px rgba(20, 64, 46, 0.04);
-  --hf-shadow-float: 0 2px 6px rgba(20, 64, 46, 0.10), 0 10px 24px rgba(20, 64, 46, 0.08);
+  --hf-shadow-card: 0 1px 2px rgba(20, 64, 46, 0.04), 0 3px 8px rgba(20, 64, 46, 0.05), 0 10px 22px rgba(20, 64, 46, 0.035);
+  --hf-shadow-float: 0 2px 6px rgba(20, 64, 46, 0.08), 0 12px 28px rgba(20, 64, 46, 0.10), 0 26px 52px rgba(20, 64, 46, 0.06);
 
   --hf-font-display: "Fraunces", Georgia, serif;
   --hf-font-sans: "Inter", system-ui, sans-serif;

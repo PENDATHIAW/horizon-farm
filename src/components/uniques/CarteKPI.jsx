@@ -159,7 +159,9 @@ export default function CarteKPI({
   const displayUnit = unit ?? entree.unite ?? '';
   const displayVariation = variation ?? resultat.variation ?? null;
   const displayTrend = trend.length ? trend : (resultat.tendance || []);
-  const displayComparison = comparison || resultat.comparaison || (displayVariation != null ? 'vs période précédente' : 'Historique à venir');
+  const hasComparison = displayVariation != null && Number.isFinite(Number(displayVariation));
+  const hasTrend = displayTrend.map(Number).filter(Number.isFinite).length >= 2;
+  const displayComparison = comparison || resultat.comparaison || (hasComparison ? 'vs période précédente' : 'Historique à venir');
   const direction = Number(displayVariation) > 0 ? 'up' : Number(displayVariation) < 0 ? 'down' : 'neutral';
   const semanticStatus = trendStatus(displayVariation, favorableDirection || entree.sensFavorable || 'up', status);
   const semanticClasses = SENS_CLASSES[semanticStatus];
@@ -182,16 +184,25 @@ export default function CarteKPI({
       </div>
 
       <div className="mt-auto pt-4">
-        <div className="flex min-w-0 items-center gap-2">
-          <span className={`hf-trend-pill ${semanticClasses.bg} ${semanticClasses.text}`}>
-            <TrendIcon size={15} strokeWidth={2.5} aria-hidden="true" />
+        {hasComparison ? (
+          <>
+            <div className="flex min-w-0 items-center gap-2">
+              <span className={`hf-trend-pill ${semanticClasses.bg} ${semanticClasses.text}`}>
+                <TrendIcon size={15} strokeWidth={2.5} aria-hidden="true" />
+              </span>
+              <span className={`hf-kpi-variation ${semanticClasses.text}`}>
+                {`${Number(displayVariation) > 0 ? '+' : ''}${formatNumber(displayVariation)} %`}
+              </span>
+              <span className="hf-kpi-comparison truncate">{displayComparison}</span>
+            </div>
+            {hasTrend ? <HorizonLine values={displayTrend} status={semanticStatus} /> : null}
+          </>
+        ) : (
+          <span className="inline-flex items-center gap-1.5 rounded-full bg-neutral-bg px-2.5 py-1 text-meta font-semibold text-slate">
+            <Minus size={12} strokeWidth={2.5} aria-hidden="true" />
+            {displayComparison}
           </span>
-          <span className={`hf-kpi-variation ${semanticClasses.text}`}>
-            {displayVariation == null ? '-' : `${Number(displayVariation) > 0 ? '+' : ''}${formatNumber(displayVariation)} %`}
-          </span>
-          <span className="hf-kpi-comparison truncate">{displayComparison}</span>
-        </div>
-        <HorizonLine values={displayTrend} status={semanticStatus} />
+        )}
       </div>
     </>
   );
