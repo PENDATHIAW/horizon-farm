@@ -25,6 +25,9 @@ import { summarizeAvicoleCosts, summarizeAnimalCosts } from '../../src/utils/cos
 import { buildProfitabilityView, buildOfficialTreasuryView } from '../../src/utils/financePilotageCore.js';
 import { buildReproductionKpis } from '../../src/utils/reproductionMetrics.js';
 import { buildDashboardSummary } from '../../src/modules/dashboard/dashboardMetrics.js';
+import { buildProductionHubSnapshot } from '../../src/utils/productionHubMetrics.js';
+import { buildCycleV1Kpis } from '../../src/utils/cycleMetrics.js';
+import { buildCommercialPilotageBundle } from '../../src/utils/commercialPilotageMetrics.js';
 
 const dataMap = buildInvestorDemoDataMap();
 
@@ -169,6 +172,40 @@ test('réconciliation trésorerie : Accueil = Finance officielle = tableau de bo
   const dash = buildDashboardSummary(seedProps).cashNet;
   assert.equal(kpi, officiel, `Trésorerie Accueil (${kpi}) doit égaler la trésorerie officielle (${officiel})`);
   assert.equal(dash, officiel, `Trésorerie tableau de bord (${dash}) doit égaler la trésorerie officielle (${officiel})`);
+});
+
+test('réconciliation marge globale : Accueil = marge réelle Finance officielle', () => {
+  const kpi = valeurKpi('marge_globale', dataMap).valeur;
+  const officiel = buildOfficialTreasuryView(seedProps).realMargin;
+  assert.equal(kpi, officiel, `Marge globale Accueil (${kpi}) doit égaler la marge réelle officielle (${officiel})`);
+});
+
+test('hub production / cycles / pilotage commercial : aucune sortie NaN/Infinity', () => {
+  const hub = buildProductionHubSnapshot({
+    lots: dataMap.avicole,
+    animaux: dataMap.animaux,
+    productionLogs: dataMap.production_oeufs_logs,
+    stocks: dataMap.stock,
+    documents: dataMap.documents,
+    opportunities: dataMap.sales_opportunities,
+  });
+  const cycles = buildCycleV1Kpis({
+    lots: dataMap.avicole,
+    animaux: dataMap.animaux,
+    productionLogs: dataMap.production_oeufs_logs,
+    dataMap,
+  });
+  const pilotage = buildCommercialPilotageBundle({
+    orders: dataMap.sales_orders,
+    payments: dataMap.payments,
+    clients: dataMap.clients,
+  });
+  const fautes = [
+    ...nombresAberrants(hub, 'hub'),
+    ...nombresAberrants(cycles, 'cycles'),
+    ...nombresAberrants(pilotage, 'pilotage'),
+  ];
+  assert.deepEqual(fautes, [], `Nombres aberrants (hub/cycles/pilotage) :\n${fautes.join('\n')}`);
 });
 
 test('réconciliation marge : taux de marge cohérent avec résultat / CA', () => {
