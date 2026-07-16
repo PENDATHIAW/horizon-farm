@@ -10,12 +10,12 @@ function read(file) {
   return readFileSync(join(ROOT, file), 'utf8').replace(/^\uFEFF/, '');
 }
 
-function sourceFiles(directory) {
+function sourceFiles(directory, filePattern = /\.(?:js|jsx)$/) {
   const absolute = join(ROOT, directory);
   return readdirSync(absolute).flatMap((entry) => {
     const full = join(absolute, entry);
-    if (statSync(full).isDirectory()) return sourceFiles(relative(ROOT, full));
-    return /\.(?:js|jsx)$/.test(entry) ? [relative(ROOT, full)] : [];
+    if (statSync(full).isDirectory()) return sourceFiles(relative(ROOT, full), filePattern);
+    return filePattern.test(entry) ? [relative(ROOT, full)] : [];
   });
 }
 
@@ -123,6 +123,7 @@ requireText(appLayout, '<GlobalQuickEntryMenu', 'Saisie rapide globale');
 const runtimeText = [
   ...sourceFiles('src'),
   ...sourceFiles('sites/horizon-farm-web/src'),
+  ...sourceFiles('.github/workflows', /\.(?:yml|yaml)$/),
 ].map((file) => `${file}\n${read(file)}`).join('\n');
 const retiredProduct = ['BOV', 'INIA'].join('');
 const retiredBrand = ['Tal', 'low'].join('');
