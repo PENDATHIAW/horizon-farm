@@ -12,6 +12,7 @@
  * Mes actions : composant ListeTaches filtré sur l'utilisateur connecté.
  */
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import { Droplets, Egg, HeartCrack, Scale, ShoppingCart, Utensils, Wheat } from 'lucide-react';
 import ModuleTabsBar from '../../components/module/ModuleTabsBar.jsx';
 import PeriodScopeBadge from '../../components/PeriodScopeBadge.jsx';
 import JournalEvenements from '../../components/uniques/JournalEvenements.jsx';
@@ -37,6 +38,17 @@ export const ACTIONS_RAPIDES_QUOTIDIENNES = SAISIES_QUOTIDIENNES.map((f) => ({
   module: f.module,
   tab: f.onglet,
 }));
+
+/** Icône par geste quotidien : repère visuel pour un balayage plus rapide. */
+const ICONES_GESTES = {
+  distribution: Utensils,
+  ponte: Egg,
+  mortalite: HeartCrack,
+  pesee: Scale,
+  irrigation: Droplets,
+  recolte: Wheat,
+  vente: ShoppingCart,
+};
 
 /** Huit indicateurs maximum sur le Pilotage, tous lus du catalogue central. */
 export const CODES_KPI_PILOTAGE = [
@@ -129,17 +141,25 @@ export default function AccueilConforme(props) {
       <section className="hf-card" data-testid="daily-quick-actions">
         <p className="text-label font-semibold uppercase text-earth">Gestes du jour</p>
         <div className="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-7">
-          {ACTIONS_RAPIDES_QUOTIDIENNES.map((action) => (
-            <button
-              key={action.id}
-              type="button"
-              data-testid={`daily-action-${action.id}`}
-              onClick={() => openDailyQuickEntry(action, onNavigate)}
-              className="min-h-11 rounded-control border border-line bg-pure px-3 py-2 text-sm font-semibold text-ink hover:border-leaf hover:bg-positive-bg"
-            >
-              {action.libelle}
-            </button>
-          ))}
+          {ACTIONS_RAPIDES_QUOTIDIENNES.map((action) => {
+            const Icone = ICONES_GESTES[action.id];
+            return (
+              <button
+                key={action.id}
+                type="button"
+                data-testid={`daily-action-${action.id}`}
+                onClick={() => openDailyQuickEntry(action, onNavigate)}
+                className="group flex min-h-11 flex-col items-center justify-center gap-1.5 rounded-control border border-line bg-pure px-3 py-3 text-center text-sm font-semibold text-ink transition hover:-translate-y-0.5 hover:border-leaf hover:bg-positive-bg hover:shadow-card"
+              >
+                {Icone ? (
+                  <span className="grid h-8 w-8 place-items-center rounded-full bg-positive-bg text-leaf transition group-hover:bg-white">
+                    <Icone size={17} aria-hidden="true" />
+                  </span>
+                ) : null}
+                <span className="leading-tight">{action.libelle}</span>
+              </button>
+            );
+          })}
         </div>
       </section>
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
