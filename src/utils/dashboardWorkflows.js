@@ -1,11 +1,11 @@
 import { fmtCurrency } from './format.js';
 import { isOpenForPayment, remainingForOrder } from './salesStatuses.js';
+import { filterRealOpenAlerts, filterRealOpenTasks } from './healthFindingLabels.js';
 
 const arr = (value) => Array.isArray(value) ? value : [];
 const lower = (value) => String(value || '').trim().toLowerCase();
 const n = (value = 0) => Number(value) || 0;
 
-const CLOSED_STATUSES = ['termine', 'terminé', 'done', 'traitee', 'traitée', 'resolue', 'résolue', 'fermee', 'fermée', 'annule', 'annulé', 'ignoree', 'ignorée'];
 const CRITICAL_DEVICE_STATUSES = ['critique', 'critical', 'offline', 'hors_service', 'hors service', 'panne', 'en panne'];
 const HIGH_WEATHER_RISKS = ['eleve', 'élevé', 'fort', 'high', 'critique', 'critical', 'orage', 'canicule', 'secheresse', 'sécheresse'];
 
@@ -55,8 +55,8 @@ export function buildDashboardTodayActions(data = {}) {
   const receivable = unpaidOrders.reduce((sum, order) => sum + remainingForOrder(order, payments), 0);
   const stockCritical = stocks.filter((stock) => n(stock.seuil ?? stock.threshold) > 0 && n(stock.quantite ?? stock.quantity) <= n(stock.seuil ?? stock.threshold));
   const healthLate = sante.filter((row) => ['retard', 'a faire', 'à faire', 'a_faire', 'en retard'].some((term) => lower(row.statut || row.status).includes(term)));
-  const openAlerts = alertes.filter((alert) => !CLOSED_STATUSES.includes(lower(alert.status || alert.statut || 'nouvelle')));
-  const openTasks = taches.filter((task) => !CLOSED_STATUSES.includes(lower(task.status || task.statut || 'a_faire')));
+  const openAlerts = filterRealOpenAlerts(alertes);
+  const openTasks = filterRealOpenTasks(taches);
   const docsMissing = transactions.filter((trx) => n(trx.montant ?? trx.amount) > 0 && !transactionHasDocument(trx, documents));
   const orphanPayments = payments.filter((payment) => payment.order_id && !salesOrders.some((order) => String(order.id) === String(payment.order_id)));
   const criticalSmart = [...sensors.filter(isSmartCritical), ...cameras.filter(isSmartCritical)];

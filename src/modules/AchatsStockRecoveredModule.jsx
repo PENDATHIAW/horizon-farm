@@ -72,7 +72,7 @@ function Summary({ data, setTab, onApply, onRelance, busyId, onNavigate, onMarkE
 
       <AchatsStockSection title="Vue d'ensemble" subtitle="6 KPI essentiels - détail dans les onglets dédiés.">
         <div className={ACHATS_STOCK_STAT_GRID}>
-          <AchatsStockKpi label="Santé stock" value={`${data.healthScore}/100`} tone={data.healthScore >= 75 ? 'good' : 'warn'} onClick={() => setTab('Stock')} />
+          <AchatsStockKpi label="Santé stock" value={data.healthScore > 0 ? `${data.healthScore}/100` : 'à évaluer'} tone={data.healthScore > 0 ? (data.healthScore >= 75 ? 'good' : 'warn') : 'neutral'} onClick={() => setTab('Stock')} />
           <AchatsStockKpi label="Produits" value={fmtNumber(data.stocks.length)} onClick={() => setTab('Stock')} />
           <AchatsStockKpi label="Valeur stock" value={fmtCurrency(data.valuation?.totalValue || data.stockValue)} onClick={() => setTab('Stock')} />
           <AchatsStockKpi label="Sous seuil" value={fmtNumber(data.lowStock.length)} tone={data.lowStock.length ? 'warn' : 'good'} onClick={() => setTab('Achats')} />

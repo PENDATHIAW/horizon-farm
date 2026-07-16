@@ -43,6 +43,11 @@ const MODULE_TO_ALERT = {
 
 const today = () => new Date().toISOString().slice(0, 10);
 
+function dueDateFromItem(item = {}) {
+  const raw = item.due_date || item.target_date || item.eventDate || item.pivotDate;
+  return String(raw || '').match(/\d{4}-\d{2}-\d{2}/)?.[0] || today();
+}
+
 function findOpenTaskByDedupe(existingTasks = [], dedupeKey = '') {
   if (!dedupeKey) return null;
   return arr(existingTasks).find((task) => !isTaskClosed(task) && (
@@ -88,7 +93,7 @@ export function buildTaskPayloadFromPriorityItem(item = {}, existingTasks = []) 
       entity_type: finding.category || 'finding',
       related_id: finding.source_records?.[0]?.id || finding.id || item.id,
       assigned_to: 'TEAM-FERME',
-      due_date: today(),
+      due_date: dueDateFromItem(item),
       priority: severityFromItem({ severity: finding.severity, tone: item.tone }) === 'critique' ? 'critique' : 'haute',
       status: 'a_faire',
       statut: 'a_faire',
@@ -110,7 +115,7 @@ export function buildTaskPayloadFromPriorityItem(item = {}, existingTasks = []) 
     entity_type: item.record?.entity_type || item.kind || item.entity_type || 'priorite',
     related_id: item.record?.entity_id || item.record?.id || item.entity_id || item.id,
     assigned_to: 'TEAM-FERME',
-    due_date: today(),
+    due_date: dueDateFromItem(item),
     priority: severityFromItem(item) === 'critique' ? 'critique' : 'haute',
     status: 'a_faire',
     statut: 'a_faire',
@@ -137,6 +142,8 @@ export function buildAlertPayloadFromPriorityItem(item = {}, existingAlerts = []
     statut: 'nouvelle',
     action_recommandee: item.detail || item.recommendation || item.message || 'Traiter dans le Centre décisionnel',
     alert_dedupe_key: item.alert_dedupe_key || `centre-priorite:${item.id}:${item.title}`,
+    target_date: item.target_date || item.eventDate || null,
+    expires_at: item.target_date || item.eventDate || null,
   };
 }
 

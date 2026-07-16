@@ -77,7 +77,7 @@ export default function LoginPage() {
         }}
         aria-hidden
       />
-      <div className="pointer-events-none absolute inset-0 bg-mist/70" aria-hidden />
+      <div className="pointer-events-none absolute inset-0 bg-mist/50" aria-hidden />
 
       <header className="relative z-30 flex shrink-0 justify-start px-4 pb-1 pt-3 sm:px-8 sm:pt-4 lg:px-12 lg:pt-6">
         <img

@@ -1497,37 +1497,6 @@ values
   ('promotions_grossistes', 'promotions_grossistes', 'Promotions', 'Offres speciales grossistes', false, 'whatsapp', 'mensuel', 'Offre Horizon Farm pour grossistes: {offre}.', 'grossistes')
 on conflict (key) do nothing;
 
-insert into public.alimentation_logs (id, date, categorie, type_cible, cible_id, quantite, unite, montant_total, duree_jours, fournisseur_id, notes)
-values
-  ('ALIM001','2025-07-01','bovin','categorie_animale','',900,'kg',70000,30,'F-001','Aliment bovin mensuel'),
-  ('ALIM002','2025-07-01','ovin','categorie_animale','',380,'kg',42000,30,'F-001','Ration ovins'),
-  ('ALIM003','2025-07-02','pondeuse','lot_avicole','LOTPO001',1200,'kg',120000,14,'F-001','Aliment pondeuses'),
-  ('ALIM004','2025-07-03','poulet_chair','lot_avicole','LOTCH001',900,'kg',98000,10,'F-001','Aliment chair')
-on conflict (id) do nothing;
-
-insert into public.production_oeufs_logs (id, lot_id, date, oeufs_produits, oeufs_casses, taux_ponte, notes)
-values
-  ('PROD001','LOTPO001','2026-05-05',398,12,0,'Production normale'),
-  ('PROD002','LOTPO001','2026-05-06',412,9,0,'Hausse legere'),
-  ('PROD003','LOTPO001','2026-05-07',405,8,0,'Journal du jour'),
-  ('PROD004','LOTPO002','2026-05-05',318,7,0,'Lot secondaire'),
-  ('PROD005','LOTPO002','2026-05-06',326,6,0,'Production stable'),
-  ('PROD006','LOTPO002','2026-05-07',322,5,0,'Journal du jour')
-on conflict (id) do nothing;
-
-insert into public.sensor_devices (id, name, type, zone, location, status, battery_level)
-values
-  ('SENS001','Capteur meteo simulation','temperature','Station ferme','Dakar, Senegal','simulation',100),
-  ('SENS002','Humidite poulailler A','humidite','Poulailler','Batiment pondeuses','simulation',88),
-  ('SENS003','Niveau reservoir','eau','Reservoir eau','Forage principal','simulation',76)
-on conflict (id) do nothing;
-
-insert into public.camera_devices (id, name, zone, type, status)
-values
-  ('CAM001','Camera entree principale','Entree principale','simulation','simulation'),
-  ('CAM002','Camera poulailler','Batiment pondeuses','simulation','simulation')
-on conflict (id) do nothing;
-
 -- Migration demo Senegal: remplace les anciennes donnees de test hors Senegal
 -- si elles ont deja ete inserees par l'application.
 update public.veterinaires set

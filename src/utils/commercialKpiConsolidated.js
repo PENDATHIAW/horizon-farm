@@ -10,11 +10,14 @@ import {
   openPaymentCount,
   isDelivered,
   isSaleClosed,
+  isCancelledPayment,
   enrichCommercialOrders,
 } from '../modules/commercial/commercialMetrics.js';
 
 import { isQuoteOrder } from './commercialQuoteWorkflow.js';
 import { rowFarmId } from './farmScope.js';
+import { resolvePeriodContext, rowMatchesMonthKeys } from './periodScope.js';
+import { toNumber } from './format.js';
 
 const arr = (value) => (Array.isArray(value) ? value : []);
 
@@ -24,6 +27,51 @@ const lower = (value) => String(value || '').toLowerCase();
 
 function activityOf(order = {}) {
   return lower(order.source_module || order.activite || order.source_type || 'autre');
+}
+
+function hasExplicitPeriodScope(scope = {}) {
+  return scope?.mode === 'all'
+    || Array.isArray(scope?.monthKeys)
+    || /^\d{4}-\d{2}$/.test(String(scope?.monthKey || ''));
+}
+
+function paymentAmount(payment = {}) {
+  return toNumber(payment.montant_paye ?? payment.montant ?? payment.amount ?? payment.paid_amount);
+}
+
+function paymentOrderId(payment = {}) {
+  return String(payment.order_id || payment.sale_id || payment.source_record_id || payment.related_id || '');
+}
+
+function collectedFromPaymentsInPeriod(allSales = [], periodSales = [], payments = [], periodScope = {}) {
+  const { mode, monthKeys } = resolvePeriodContext(periodScope);
+  if (mode === 'all') return collectedFromOrders(periodSales, payments);
+
+  const salesById = new Map(allSales.map((order) => [String(order.id || ''), order]));
+  const paymentsByOrder = new Map();
+  arr(payments)
+    .filter((payment) => !isCancelledPayment(payment))
+    .filter((payment) => rowMatchesMonthKeys(payment, monthKeys))
+    .forEach((payment) => {
+      const orderId = paymentOrderId(payment);
+      if (!orderId || !salesById.has(orderId)) return;
+      paymentsByOrder.set(orderId, (paymentsByOrder.get(orderId) || 0) + paymentAmount(payment));
+    });
+
+  let collected = 0;
+  paymentsByOrder.forEach((value, orderId) => {
+    const total = saleAmount(salesById.get(orderId));
+    collected += total > 0 ? Math.min(total, value) : value;
+  });
+
+  const periodIds = new Set(periodSales.map((order) => String(order.id || '')));
+  periodSales.forEach((order) => {
+    const orderId = String(order.id || '');
+    if (paymentsByOrder.has(orderId) || !periodIds.has(orderId)) return;
+    const legacyPaid = toNumber(order.montant_paye ?? order.paid_amount ?? order.amount_paid);
+    collected += Math.min(saleAmount(order), legacyPaid);
+  });
+  return collected;
 }
 
 /** KPI consolidés - source officielle module Commercial. */
@@ -36,12 +84,22 @@ export function buildConsolidatedCommercialKpis({
   periodScope = {},
 } = {}) {
   const enriched = enrichCommercialOrders(orders, { deliveries, invoices });
-  const sales = enriched.filter((o) => !isQuoteOrder(o));
-  const quotes = enriched.filter((o) => isQuoteOrder(o));
+  const allSales = enriched.filter((o) => !isQuoteOrder(o));
+  const allQuotes = enriched.filter((o) => isQuoteOrder(o));
+  const explicitPeriod = hasExplicitPeriodScope(periodScope);
+  const periodContext = explicitPeriod ? resolvePeriodContext(periodScope) : { mode: 'all', monthKeys: null };
+  const sales = periodContext.mode === 'all'
+    ? allSales
+    : allSales.filter((order) => rowMatchesMonthKeys(order, periodContext.monthKeys));
+  const quotes = periodContext.mode === 'all'
+    ? allQuotes
+    : allQuotes.filter((order) => rowMatchesMonthKeys(order, periodContext.monthKeys));
 
 
   const ca = sales.reduce((sum, o) => sum + saleAmount(o), 0);
-  const collected = collectedFromOrders(sales, payments);
+  const collected = explicitPeriod
+    ? collectedFromPaymentsInPeriod(allSales, sales, payments, periodScope)
+    : collectedFromOrders(sales, payments);
   const receivable = receivableFromOrders(sales, payments);
   const openOrders = openSalesCount(sales, payments);
   const unpaidOrders = openPaymentCount(sales, payments);

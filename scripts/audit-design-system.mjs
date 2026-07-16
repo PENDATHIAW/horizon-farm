@@ -29,8 +29,8 @@ function requireText(source, expected, label) {
 
 const tokens = read('src/styles/tokens.css');
 const expectedTokens = {
-  '--color-earth': '#14402E',
-  '--color-leaf': '#1E5A40',
+  '--color-earth': '#234F3B',
+  '--color-leaf': '#2E6B4E',
   '--color-horizon': '#C9971C',
   '--color-horizon-dark': '#9A7413',
   '--color-pure': '#FFFFFF',
@@ -57,7 +57,7 @@ requireText(tokens, '--font-display: "Fraunces"', 'Typographie Fraunces');
 requireText(tokens, '--radius-card: 0.75rem;', 'Rayon carte');
 requireText(tokens, '--radius-control: 0.625rem;', 'Rayon controle');
 requireText(tokens, '--radius-chip: 999px;', 'Rayon puce');
-requireText(tokens, '--shadow-card: 0 1px 3px rgba(20, 64, 46, 0.06), 0 4px 12px rgba(20, 64, 46, 0.04);', 'Ombre carte');
+requireText(tokens, '--shadow-card: 0 1px 2px rgba(20, 64, 46, 0.04), 0 3px 8px rgba(20, 64, 46, 0.05), 0 10px 22px rgba(20, 64, 46, 0.035);', 'Ombre carte');
 
 const indexCss = read('src/index.css');
 requireText(indexCss, 'family=Fraunces:opsz,wght@9..144,600&family=Inter:wght@400;500;600', 'Chargement des polices');

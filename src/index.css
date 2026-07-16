@@ -16,10 +16,16 @@ html {
 body {
   margin: 0;
   background: var(--hf-mist);
+  background-image:
+    radial-gradient(1200px 600px at 82% -8%, color-mix(in srgb, var(--hf-horizon) 6%, transparent) 0%, transparent 62%),
+    radial-gradient(1100px 640px at -6% 4%, color-mix(in srgb, var(--hf-leaf) 6%, transparent) 0%, transparent 58%),
+    linear-gradient(180deg, #F9FBF9 0%, var(--hf-mist) 46%);
+  background-attachment: fixed;
   color: var(--hf-ink);
   font-family: var(--hf-font-sans);
   font-size: var(--hf-text-body);
   -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
   text-rendering: optimizeLegibility;
 }
 

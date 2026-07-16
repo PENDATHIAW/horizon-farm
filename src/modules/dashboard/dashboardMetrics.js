@@ -1,8 +1,8 @@
 import { buildDecisionCenterPlan, annualRevenueTarget, monthlyRevenueTargets } from '../../services/growthDecisionEngine.js';
-import { filterRealOpenTasks } from '../../utils/healthFindingLabels.js';
+import { filterRealOpenAlerts, filterRealOpenTasks } from '../../utils/healthFindingLabels.js';
 
 import { buildConsolidationInput, consolidateFinance } from '../../utils/financeConsolidationEngine.js';
-import { openSalesCount } from '../commercial/commercialMetrics.js';
+import { isCancelledPayment, openSalesCount } from '../commercial/commercialMetrics.js';
 import { buildConsolidatedCommercialKpis } from '../../utils/commercialKpiConsolidated.js';
 import { buildDashboardTodayActions } from '../../utils/dashboardWorkflows.js';
 import { avicoleActiveCount, avicoleHasActiveBirds } from '../../utils/avicoleMetrics.js';
@@ -18,7 +18,7 @@ import { summarizeStockValuation } from '../../utils/stockValuation.js';
 const arr = (value) => (Array.isArray(value) ? value : []);
 const lower = (value) => String(value || '').trim().toLowerCase();
 const money = (row = {}) => Number(row?.montant ?? row?.amount ?? row?.total ?? row?.montant_total ?? 0) || 0;
-const paid = (row = {}) => Number(row.montant_paye ?? row.paid_amount ?? row.amount_paid ?? 0) || 0;
+const paid = (row = {}) => Number(row.montant_paye ?? row.montant ?? row.paid_amount ?? row.amount_paid ?? row.amount ?? 0) || 0;
 
 const CLOSED_ANIMAL_WORDS = ['vendu', 'mort', 'vole', 'volé', 'perdu', 'abattu', 'cloture', 'clôture', 'sorti'];
 const isClosedAnimal = (row = {}) => CLOSED_ANIMAL_WORDS.some((word) => lower(row.status || row.statut).includes(word));
@@ -189,7 +189,7 @@ export function isDashboardStartupMode(props = {}) {
   const salesAll = arr(props.salesOrdersAll?.length ? props.salesOrdersAll : props.salesOrders);
   const paymentsAll = arr(props.paymentsAll?.length ? props.paymentsAll : props.payments);
   const stocks = arr(props.stocks);
-  const productionLogs = arr(props.productionLogs);
+  const productionLogs = arr(props.productionLogsAll?.length ? props.productionLogsAll : props.productionLogs);
 
   const hasSales = salesAll.some((row) => money(row) > 0);
   const hasPayments = paymentsAll.some((row) => paid(row) > 0);
@@ -302,6 +302,7 @@ export function formatEggProductionDelta(summary = {}) {
 
 function sumPayments(payments = [], monthKeys = null) {
   return arr(payments)
+    .filter((row) => !isCancelledPayment(row))
     .filter((row) => !monthKeys || rowMatchesMonthKeys(row, monthKeys))
     .reduce((sum, row) => sum + paid(row), 0);
 }
@@ -364,8 +365,6 @@ const isCriticalStock = (row = {}) => {
   const threshold = stockThreshold(row);
   return threshold > 0 && stockQty(row) <= threshold;
 };
-const isOpenAlert = (row = {}) => !['traitee', 'traitée', 'resolue', 'résolue', 'fermee', 'fermée'].includes(lower(row.status || row.statut));
-
 function dashboardMonthTarget(monthKey, activityYear, annualTarget = annualRevenueTarget) {
   const target = monthTargetForKey(monthKey, activityYear, monthlyRevenueTargets);
   if (target > 0) return target;
@@ -448,26 +447,28 @@ export function computeDashboardPeriodGoal(salesOrders = [], periodScope = {}, g
 }
 
 export function buildDashboardSummary(props = {}, periodScope = {}) {
-  const payments = arr(props.payments);
-  const transactions = arr(props.transactions);
-  const salesOrders = arr(props.salesOrders);
+  const hasExplicitPeriod = periodScope?.mode === 'all'
+    || Array.isArray(periodScope?.monthKeys)
+    || /^\d{4}-\d{2}$/.test(String(periodScope?.monthKey || ''));
+  const effectivePeriodScope = hasExplicitPeriod ? periodScope : { mode: 'all' };
   const stocks = arr(props.stocks);
   const taches = arr(props.taches);
   const alertes = arr(props.alertes);
   const animaux = arr(props.animaux);
   const lots = arr(props.lotsData || props.lots);
   const cultures = arr(props.cultures);
-  const productionLogs = arr(props.productionLogs);
-  const scope = normalizePeriodScope(periodScope);
+  const productionLogs = arr(props.productionLogsAll?.length ? props.productionLogsAll : props.productionLogs);
+  const scope = normalizePeriodScope(effectivePeriodScope);
   const salesAll = arr(props.salesOrdersAll?.length ? props.salesOrdersAll : props.salesOrders);
   const paymentsAll = arr(props.paymentsAll?.length ? props.paymentsAll : props.payments);
-  const deliveriesAll = arr(props.deliveries || props.deliveriesAll);
-  const invoicesAll = arr(props.invoices || props.invoicesAll);
+  const transactionsAll = arr(props.transactionsAll?.length ? props.transactionsAll : props.transactions);
+  const deliveriesAll = arr(props.deliveriesAll?.length ? props.deliveriesAll : props.deliveries);
+  const invoicesAll = arr(props.invoicesAll?.length ? props.invoicesAll : props.invoices);
   const clientsAll = arr(props.clients);
 
   const commercialKpisPeriod = buildConsolidatedCommercialKpis({
-    orders: salesOrders,
-    payments,
+    orders: salesAll,
+    payments: paymentsAll,
     clients: clientsAll,
     deliveries: deliveriesAll,
     invoices: invoicesAll,
@@ -483,11 +484,10 @@ export function buildDashboardSummary(props = {}, periodScope = {}) {
   });
 
   const ca = commercialKpisPeriod.ca;
-  const financePeriods = computeFinancePeriodSummary(payments, transactions, scope);
+  const financePeriods = computeFinancePeriodSummary(paymentsAll, transactionsAll, scope);
   const encaisse = commercialKpisPeriod.collected || financePeriods.encaissePeriod;
   const depenses = financePeriods.depensesPeriod;
   const resultat = encaisse - depenses;
-  const transactionsAll = arr(props.transactionsAll?.length ? props.transactionsAll : props.transactions);
   const financeConsolidated = consolidateFinance(buildConsolidationInput({
     ...props,
     salesOrders: salesAll,
@@ -510,10 +510,10 @@ export function buildDashboardSummary(props = {}, periodScope = {}) {
     stockSummary.valuationMethod = 'fiche';
   }
   const tachesOuvertes = filterRealOpenTasks(taches).length;
-  const alertesOuvertes = alertes.filter(isOpenAlert).length;
+  const alertesOuvertes = filterRealOpenAlerts(alertes).length;
   const headcount = computeFarmHeadcount({ animaux, lots, cultures });
   const effectifs = headcount.total;
-  const eggProduction = computeEggProductionSummary(productionLogs, salesOrders, scope);
+  const eggProduction = computeEggProductionSummary(productionLogs, salesAll, scope);
   const production = eggProduction.eggsPeriod;
 
   const plan = buildDecisionCenterPlan({
@@ -523,10 +523,10 @@ export function buildDashboardSummary(props = {}, periodScope = {}) {
     cultures: props.cultures || [],
     stock: props.stocks || [],
     clients: props.clients || [],
-    sales_orders: props.salesOrders || [],
-    payments: props.payments || [],
-    finances: props.transactions || [],
-    production_oeufs_logs: props.productionLogs || [],
+    sales_orders: salesAll,
+    payments: paymentsAll,
+    finances: transactionsAll,
+    production_oeufs_logs: productionLogs,
     alimentation_logs: props.alimentationLogs || [],
     meteo: props.meteo || {},
     business_plans: props.businessPlans || [],

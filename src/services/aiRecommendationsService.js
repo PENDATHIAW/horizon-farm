@@ -6,6 +6,15 @@ import { buildIssueKey } from './issueLinkingService.js';
 
 const STORAGE_KEY = 'horizon-ai-recommendations-journal';
 
+export async function hasAuthenticatedSupabaseSession(authClient = supabase.auth) {
+  try {
+    const { data, error } = await authClient.getSession();
+    return !error && Boolean(data?.session?.user?.id);
+  } catch {
+    return false;
+  }
+}
+
 export function loadLocalRecommendations() {
   try {
     return JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
@@ -108,6 +117,9 @@ export function draftToFormRequest(draft = {}) {
 
 /** Charge les recommandations persistées depuis Supabase (Phase 1). */
 export async function loadSupabaseRecommendations(limit = 50) {
+  if (!(await hasAuthenticatedSupabaseSession())) {
+    return { ok: true, rows: [], skipped: 'unauthenticated' };
+  }
   const { data, error } = await supabase
     .from('ai_recommendations')
     .select('*')
@@ -119,6 +131,9 @@ export async function loadSupabaseRecommendations(limit = 50) {
 
 /** Upsert des suggestions générées depuis les règles métier. */
 export async function syncRecommendationsToSupabase(data = {}) {
+  if (!(await hasAuthenticatedSupabaseSession())) {
+    return { ok: true, synced: 0, skipped: 'unauthenticated' };
+  }
   const recommendations = buildRecommendationsFromData(data);
   if (!recommendations.length) return { ok: true, synced: 0 };
   const { error } = await supabase.from('ai_recommendations').upsert(
@@ -135,6 +150,9 @@ export async function syncRecommendationsToSupabase(data = {}) {
 
 /** Met à jour le statut d'une suggestion. */
 export async function updateRecommendationStatus(id, status, extra = {}) {
+  if (!(await hasAuthenticatedSupabaseSession())) {
+    return { ok: false, error: 'Session authentifiée requise', skipped: 'unauthenticated' };
+  }
   const { error } = await supabase
     .from('ai_recommendations')
     .update({ status, ...extra, updated_at: new Date().toISOString() })

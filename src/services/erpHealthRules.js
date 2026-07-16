@@ -1,4 +1,5 @@
 import { computeErpAuditFindings } from './erpRules/index.js';
+import { filterRealOpenAlerts, filterRealOpenTasks } from '../utils/healthFindingLabels.js';
 
 const arr = (v) => (Array.isArray(v) ? v : []);
 const n = (v = 0) => Number(v || 0);
@@ -19,9 +20,9 @@ export function computeNavAlertCounts(crudRows = {}) {
   const financesAlerte = rows('finances').filter((trx) => ['impaye', 'partiel'].includes(trx.statut)).length;
   const fournisseursAlerte = rows('fournisseurs').filter((f) => n(f.dettes) > 0 || f.statut === 'a_risque').length;
   const equipementsAlerte = rows('equipements').filter((e) => ['panne', 'maintenance', 'hors_service'].includes(e.status)).length;
-  const tachesAlerte = rows('taches').filter((t) => t.priority === 'critique' || t.status === 'retard').length;
+  const tachesAlerte = filterRealOpenTasks(rows('taches')).filter((t) => t.priority === 'critique' || t.status === 'retard').length;
   const ventesAlerte = rows('sales_orders').filter((order) => !['paye', 'payé', 'termine', 'terminé', 'closed'].includes(low(order.statut || order.status || order.payment_status))).length;
-  const activiteSuiviAlerte = tachesAlerte + rows('alertes_center').filter((a) => a.status === 'nouvelle').length;
+  const activiteSuiviAlerte = tachesAlerte + filterRealOpenAlerts(rows('alertes_center')).length;
   const documentsRapportsAlerte = rows('finances').filter((trx) => amount(trx) > 0 && !trx.document_id && !trx.proof_url && !trx.justificatif_id).length;
   const achatsStockAlerte = stocksCritiques + fournisseursAlerte;
   const notifs = vaccinsRetard + stocksCritiques + animauxMalades + culturesRisque + lotsAlerte + financesAlerte + fournisseursAlerte + equipementsAlerte + tachesAlerte;

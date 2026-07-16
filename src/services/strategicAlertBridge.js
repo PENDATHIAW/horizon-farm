@@ -87,6 +87,8 @@ export function buildStrategicAlertPayloads(strategicPlan = {}) {
       severity: item.priority === 'critique' ? 'critique' : 'warning',
       action_recommandee: `Respecter la date pivot ${item.pivotDate || item.eventDate || ''}.`.trim(),
       category: 'launch_timing',
+      target_date: item.eventDate || null,
+      expires_at: item.eventDate || null,
     });
   });
 

@@ -11,6 +11,7 @@ import { avicoleActiveCount } from '../utils/avicoleMetrics.js';
 import { paymentsForOrder } from '../utils/financeConsolidationEngine.js';
 import { HORIZON_FARM_OFFICIAL_BP } from './horizonFarmOfficialBusinessPlan';
 import { buildTechnicalFarmingAlerts } from './technicalFarmingRules';
+import { getUpcomingMarketEvents } from './marketEventCalendar.js';
 
 const arr = (value) => (Array.isArray(value) ? value : []);
 const num = (value = 0) => Number(value || 0) || 0;
@@ -27,10 +28,6 @@ export const monthlyRevenueTargets = HORIZON_FARM_OFFICIAL_BP.revenue.monthly.ma
 export const monthlyWeights = monthlyRevenueTargets.map((value) => value / Math.max(1, annualRevenueTarget));
 export const activityAnnualTargets = Object.fromEntries(HORIZON_FARM_OFFICIAL_BP.revenue.byActivity.map((row) => [row.activity, row.annual]));
 export const defaultAnnualMix = Object.fromEntries(Object.entries(activityAnnualTargets).map(([key, value]) => [key, value / Math.max(1, annualRevenueTarget)]));
-
-function addDays(date, days) { const next = safeDate(date); next.setDate(next.getDate() + Number(days || 0)); return next; }
-
-function makeDate(year, month, day) { return new Date(year, month - 1, day); }
 
 function classifyAnimalSpeciesFromText(raw = '') {
   if (raw.includes('bovin') || raw.includes('boeuf') || raw.includes('bœuf') || raw.includes('vache') || raw.includes('taureau') || raw.includes('veau') || raw.includes('bov')) return 'bovins';
@@ -109,21 +106,11 @@ export function buildCommercialCalendar(_date = new Date(), activityYear = null)
   }, { current: null, next: [], year: [] });
 }
 
-function defaultEventsForYear(year) {
-  return [
-    { id: `tabaski-${year}`, label: 'Tabaski', date: makeDate(year, 5, 27), activities: ['bovins'], note: 'Date indicative à remplacer par le calendrier officiel/local.' },
-    { id: `fin-annee-${year}`, label: 'Fin d’année', date: makeDate(year, 12, 24), activities: ['poulets_chair', 'oeufs', 'bovins'], note: 'Commandes groupées, restauration, familles.' },
-    { id: `ramadan-${year}`, label: 'Ramadan', date: makeDate(year, 2, 17), activities: ['poulets_chair', 'oeufs'], note: 'Date indicative.' },
-    { id: `korite-${year}`, label: 'Korité', date: makeDate(year, 3, 20), activities: ['poulets_chair', 'oeufs'], note: 'Date indicative.' },
-  ];
-}
 export function buildMarketEvents(referenceDate = new Date(), dataMap = {}) {
-  return safeRun(() => {
-    const ref = safeDate(referenceDate);
-    const customEvents = arr(dataMap.market_calendar_events || dataMap.marketCalendarEvents).map((event) => ({ id: event.id || event.code || event.nom, label: event.label || event.nom || event.title, date: safeDate(event.date || event.target_date || event.date_cible), activities: arr(event.activities || event.activites || event.focus), note: event.note || event.description || '', source: 'custom' })).filter((event) => event.label && !Number.isNaN(event.date.getTime()));
-    const defaults = [ref.getFullYear(), ref.getFullYear() + 1].flatMap(defaultEventsForYear).map((event) => ({ ...event, source: 'default' }));
-    return [...customEvents, ...defaults].filter((event) => event.date >= addDays(ref, -15) && event.date <= addDays(ref, 540)).sort((a, b) => a.date - b.date);
-  }, []);
+  return safeRun(
+    () => getUpcomingMarketEvents(referenceDate, dataMap, { horizonDays: 540 }),
+    [],
+  );
 }
 
 export function estimateLeadTimes(dataMap = {}) {

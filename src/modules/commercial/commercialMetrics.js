@@ -43,7 +43,12 @@ export const isInvoiced = (row = {}) => {
   );
 };
 
-export const isCancelledPayment = (payment = {}) => ['annule', 'annulé', 'annulee', 'cancelled', 'supprime', 'supprimé', 'deleted', 'rejete', 'rejeté'].includes(lower(payment.statut || payment.status));
+export const isCancelledPayment = (payment = {}) => [
+  'annule', 'annulé', 'annulee', 'annulée', 'cancelled',
+  'supprime', 'supprimé', 'deleted', 'rejete', 'rejeté',
+  'echoue', 'échoué', 'echouee', 'échouée', 'failed',
+  'rembourse', 'remboursé', 'remboursee', 'remboursée', 'refunded',
+].includes(lower(payment.statut || payment.status));
 
 export function activePayments(payments = [], orderIds = null) {
   const ids = orderIds ? new Set(arr(orderIds).map(String)) : null;
@@ -127,7 +132,11 @@ export function isSaleClosed(order = {}, payments = []) {
 /** Encaissé lié aux commandes (évite double comptage montant_paye + lignes paiement). */
 export function collectedFromOrders(orders = [], payments = []) {
   const linked = linkedPaymentsForOrders(orders, payments);
-  return arr(orders).reduce((sum, order) => sum + paidForOrder(order, linked), 0);
+  return arr(orders).reduce((sum, order) => {
+    const amount = saleAmount(order);
+    const collected = paidForOrder(order, linked);
+    return sum + (amount > 0 ? Math.min(amount, collected) : collected);
+  }, 0);
 }
 
 export function receivableFromOrders(orders = [], payments = []) {

@@ -15,10 +15,15 @@ export function computeStockKpis(stocks = []) {
     const daysLeft = use > 0 ? Math.floor(quantity(row) / use) : null;
     return { id: row.id, name: row.nom || row.name || row.produit, daysLeft, critical: threshold(row) > 0 && quantity(row) <= threshold(row) };
   }).filter((row) => row.critical || row.daysLeft != null);
+  const finiteDaysLeft = ruptureRows
+    .map((row) => row.daysLeft)
+    .filter((days) => days != null && Number.isFinite(days));
   return {
     ...summary,
     ruptureRows: ruptureRows.slice(0, 20),
-    minDaysLeft: ruptureRows.reduce((min, row) => (row.daysLeft != null ? Math.min(min, row.daysLeft) : min), Infinity),
+    // null (et non Infinity) quand aucune ligne n'a d'autonomie chiffrable :
+    // sinon la valeur remonte telle quelle et s'affiche « Infinity ».
+    minDaysLeft: finiteDaysLeft.length ? Math.min(...finiteDaysLeft) : null,
     source: 'stock',
     periodFiltered: false,
   };
