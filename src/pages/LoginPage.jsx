@@ -67,7 +67,7 @@ export default function LoginPage() {
   };
 
   return (
-    <main className="relative flex h-dvh flex-col overflow-hidden text-earth">
+    <main className="relative flex min-h-dvh flex-col overflow-x-hidden text-earth lg:h-dvh lg:overflow-hidden">
       <div
         className="pointer-events-none absolute inset-0 bg-cover bg-no-repeat"
         style={{
@@ -87,8 +87,8 @@ export default function LoginPage() {
         />
       </header>
 
-      <div className="relative z-10 flex min-h-0 flex-1 flex-col">
-        <section className="mx-auto grid w-full max-w-7xl flex-1 min-h-0 items-center gap-6 px-4 py-2 sm:px-6 lg:grid-cols-[1.08fr_0.92fr] lg:gap-8 lg:px-8 xl:px-12">
+      <div className="relative z-10 flex flex-1 flex-col lg:min-h-0">
+        <section className="mx-auto grid w-full max-w-7xl flex-1 items-center gap-4 px-4 pb-6 pt-2 sm:gap-6 sm:px-6 lg:min-h-0 lg:grid-cols-[1.08fr_0.92fr] lg:gap-8 lg:px-8 lg:py-2 xl:px-12">
           <div className="max-w-lg pt-2 lg:pt-0">
             <h1 className="sr-only">Horizon Farm ERP</h1>
             <p
