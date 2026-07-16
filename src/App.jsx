@@ -41,7 +41,6 @@ import { formatPeriodScopeLabel, isAllTimeScope, normalizePeriodScope } from './
 import { getInitialSidebarOpen, watchSidebarViewport } from './utils/sidebarViewport.js';
 import LoginPage from './pages/LoginPage';
 import { KpiOverviewProvider } from './context/KpiOverviewContext.jsx';
-import ModuleOverviewStrip from './components/module/ModuleOverviewStrip.jsx';
 
 const MODULES = Object.fromEntries(
   Object.entries(MODULE_ENTRY_POINTS).map(([id, loader]) => [id, lazy(() => lazyWithRetry(loader))]),
@@ -920,7 +919,6 @@ export default function App() {
     <FarmActivityNotice message={activeModuleProps.farmActivityNotice} farmName={activeFarm?.name} actionLabel={activeModuleProps.farmActivityNoticeDetail?.actionLabel} onAction={activeModuleProps.farmActivityNoticeDetail ? handleFarmActivityAction : undefined} />
     <ErrorBoundary moduleName={activeModuleLabel} resetKey={resolvedActive} onBackToDashboard={() => setActive('dashboard')}>
       <KpiOverviewProvider dataMap={overviewDataMap} periodScope={periodScope} periodLabel={periodLabel} onNavigate={setActive}>
-        {resolvedActive === 'assistant_erp' ? <ModuleOverviewStrip moduleId="assistant_erp" /> : null}
         <Suspense fallback={<div className="hf-card text-slate">Chargement du module...</div>}>
           <ActiveModule {...activeModuleProps} periodLabel={periodLabel} farmScopeLabel={formatFarmScopeLabel(farmScope, effectiveAccessibleFarms)} />
         </Suspense>
