@@ -20,8 +20,29 @@ import { CATALOGUE_KPI, valeurKpi } from '../../src/config/catalogueKpi.js';
 import { runKpiEngine } from '../../src/services/kpiEngine/index.js';
 import { buildConsolidatedCommercialKpis } from '../../src/utils/commercialKpiConsolidated.js';
 import { summarizeSalesMargins } from '../../src/utils/salesMarginEngine.js';
+import { buildElevageActivityPnl } from '../../src/utils/elevageActivityPnl.js';
+import { summarizeAvicoleCosts, summarizeAnimalCosts } from '../../src/utils/costEngine.js';
+import { buildProfitabilityView, buildOfficialTreasuryView } from '../../src/utils/financePilotageCore.js';
+import { buildReproductionKpis } from '../../src/utils/reproductionMetrics.js';
 
 const dataMap = buildInvestorDemoDataMap();
+
+/** Props seed en camelCase, tels qu'attendus par les moteurs financiers/élevage. */
+const seedProps = {
+  transactions: dataMap.finances,
+  salesOrders: dataMap.sales_orders,
+  payments: dataMap.payments,
+  fournisseurs: dataMap.fournisseurs,
+  stocks: dataMap.stock,
+  animaux: dataMap.animaux,
+  lots: dataMap.avicole,
+  cultures: dataMap.cultures,
+  sante: dataMap.sante,
+  alimentationLogs: dataMap.alimentation_logs,
+  productionLogs: dataMap.production_oeufs_logs,
+  investissements: dataMap.investissements,
+  businessEvents: dataMap.business_events,
+};
 
 /** Repère récursivement tout nombre non fini (NaN, ±Infinity) dans une sortie. */
 function nombresAberrants(valeur, chemin = '', vus = new Set(), fautes = []) {
@@ -92,4 +113,48 @@ test('marges ventes : totaux finis, taux de marge bornés', () => {
   const fautes = nombresAberrants({ ca: resume.ca, encaisse: resume.encaisse, directCost: resume.directCost, margin: resume.margin, marginRate: resume.marginRate });
   if (resume.marginRate != null && Math.abs(resume.marginRate) > 1000) fautes.push(`marginRate invraisemblable = ${resume.marginRate}`);
   assert.deepEqual(fautes, [], `Marges aberrantes :\n${fautes.join('\n')}`);
+});
+
+test('P&L élevage : aucune sortie NaN/Infinity sur le seed démo', () => {
+  const pnl = buildElevageActivityPnl({
+    lots: dataMap.avicole,
+    animaux: dataMap.animaux,
+    feedLogs: dataMap.alimentation_logs,
+    productionLogs: dataMap.production_oeufs_logs,
+    healthEvents: dataMap.sante,
+    businessEvents: dataMap.business_events,
+    salesOrders: dataMap.sales_orders,
+  });
+  assert.deepEqual(nombresAberrants(pnl), [], `Nombres aberrants dans le P&L élevage :\n${nombresAberrants(pnl).join('\n')}`);
+});
+
+test('coûts unifiés élevage/animaux : aucune sortie NaN/Infinity', () => {
+  const avicole = summarizeAvicoleCosts({
+    rows: dataMap.avicole,
+    alimentationLogs: dataMap.alimentation_logs,
+    productionLogs: dataMap.production_oeufs_logs,
+    directCharges: dataMap.business_events,
+    healthEvents: dataMap.sante,
+  });
+  const animaux = summarizeAnimalCosts({
+    rows: dataMap.animaux,
+    alimentationLogs: dataMap.alimentation_logs,
+    vaccins: dataMap.sante,
+    directCharges: dataMap.business_events,
+    healthEvents: dataMap.sante,
+  });
+  const fautes = [...nombresAberrants(avicole, 'avicole'), ...nombresAberrants(animaux, 'animaux')];
+  assert.deepEqual(fautes, [], `Nombres aberrants dans les coûts :\n${fautes.join('\n')}`);
+});
+
+test('finance pilotage (rentabilité + trésorerie) : aucune sortie NaN/Infinity', () => {
+  const profit = buildProfitabilityView(seedProps);
+  const treasury = buildOfficialTreasuryView(seedProps);
+  const fautes = [...nombresAberrants(profit, 'profit'), ...nombresAberrants(treasury, 'treasury')];
+  assert.deepEqual(fautes, [], `Nombres aberrants dans finance pilotage :\n${fautes.join('\n')}`);
+});
+
+test('reproduction : aucune sortie NaN/Infinity', () => {
+  const repro = buildReproductionKpis({ animaux: dataMap.animaux, businessEvents: dataMap.business_events });
+  assert.deepEqual(nombresAberrants(repro), [], `Nombres aberrants dans reproduction :\n${nombresAberrants(repro).join('\n')}`);
 });
