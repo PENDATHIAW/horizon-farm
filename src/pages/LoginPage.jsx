@@ -77,14 +77,7 @@ export default function LoginPage() {
         }}
         aria-hidden
       />
-      <div
-        className="pointer-events-none absolute inset-0"
-        style={{
-          background:
-            'radial-gradient(560px 320px at 20% 55%, rgba(248,250,248,0.74) 0%, rgba(248,250,248,0.34) 46%, rgba(248,250,248,0) 72%), linear-gradient(90deg, rgba(246,248,246,0.42) 0%, rgba(246,248,246,0.10) 34%, rgba(246,248,246,0) 56%, rgba(246,248,246,0.10) 78%, rgba(246,248,246,0.28) 100%), linear-gradient(180deg, rgba(246,248,246,0.32) 0%, rgba(246,248,246,0) 20%, rgba(246,248,246,0) 74%, rgba(35,79,59,0.14) 100%)',
-        }}
-        aria-hidden
-      />
+      <div className="pointer-events-none absolute inset-0 bg-mist/50" aria-hidden />
 
       <header className="relative z-30 flex shrink-0 justify-start px-4 pb-1 pt-3 sm:px-8 sm:pt-4 lg:px-12 lg:pt-6">
         <img
@@ -96,7 +89,7 @@ export default function LoginPage() {
 
       <div className="relative z-10 flex min-h-0 flex-1 flex-col">
         <section className="mx-auto grid w-full max-w-7xl flex-1 min-h-0 items-center gap-6 px-4 py-2 sm:px-6 lg:grid-cols-[1.08fr_0.92fr] lg:gap-8 lg:px-8 xl:px-12">
-          <div className="max-w-lg pt-2 lg:pt-0" style={{ textShadow: '0 1px 14px rgba(248,250,248,0.85), 0 1px 2px rgba(248,250,248,0.7)' }}>
+          <div className="max-w-lg pt-2 lg:pt-0">
             <h1 className="sr-only">Horizon Farm ERP</h1>
             <p
               className="text-screen font-semibold leading-tight text-earth"

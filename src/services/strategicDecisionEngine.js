@@ -468,8 +468,28 @@ export function validateCycleBfrCoverage(dataMap = {}, options = {}) {
   const transactions = arr(dataMap.finances || dataMap.transactions);
   const clients = arr(dataMap.clients);
 
+  const settings = dataMap.growth_settings || {};
+  const explicitlyConfigured = options.plannedHeadcount != null || settings.pilotage_configured === true;
+  const plannedHeadcount = explicitlyConfigured
+    ? num(options.plannedHeadcount ?? settings.next_band_size)
+    : 0;
+  if (plannedHeadcount <= 0) {
+    return {
+      evaluable: false,
+      blocked: false,
+      coveragePct: null,
+      coutEstimeCycle: 0,
+      treasury: 0,
+      vipReceivables: 0,
+      totalAvailable: 0,
+      feedAutonomyDays: null,
+      vipPending: [],
+      plannedHeadcount: 0,
+      message: 'BFR non évalué : renseigner la prochaine bande dans les paramètres de pilotage.',
+    };
+  }
+
   const feedPrice = feedPricePerKg(stocks);
-  const plannedHeadcount = num(options.plannedHeadcount ?? dataMap.growth_settings?.next_band_size ?? 5000);
   const workshop = options.workshop ?? 'poulets_chair';
   const cycleDays = workshop === 'bovins' ? BOVIN_CYCLE_DAYS : workshop === 'pondeuses' ? 365 : BROILER_CYCLE_DAYS;
   const avgDailyFeedPerHead = workshop === 'bovins' ? 4.5 : workshop === 'pondeuses' ? 0.135 : 0.095;
@@ -482,7 +502,9 @@ export function validateCycleBfrCoverage(dataMap = {}, options = {}) {
   const ps = pilotageSettings(dataMap);
   const vipClients = clients.filter((c) => ps.vipClientIds.has(String(c.id)) || norm(c.segment || c.type_client || c.categorie || '').includes('vip') || num(c.score_fidelite) >= 80);
   const vipNames = new Set(vipClients.map((c) => String(c.id)));
-  const in7days = addDays(new Date(), 7);
+  const referenceDate = options.referenceDate ? new Date(options.referenceDate) : new Date();
+  const safeReferenceDate = Number.isNaN(referenceDate.getTime()) ? new Date() : referenceDate;
+  const in7days = addDays(safeReferenceDate, 7);
 
   let vipReceivables = 0;
   const vipPending = [];
@@ -512,6 +534,7 @@ export function validateCycleBfrCoverage(dataMap = {}, options = {}) {
   })();
 
   const result = {
+    evaluable: true,
     blocked,
     coveragePct: Math.round(coveragePct),
     coutEstimeCycle: Math.round(coutEstimeCycle),

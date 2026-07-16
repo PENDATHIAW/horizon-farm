@@ -105,6 +105,8 @@ export default function StrategicQuickActions({
     category: item.category || item.type,
     entity_type: item.entityType || item.entity_type || (lotId ? 'lot' : building ? 'batiment' : 'strategic'),
     entity_id: item.entityId || item.animalId || lotId || building,
+    due_date: item.eventDate || item.pivotDate,
+    target_date: item.eventDate,
     alert_dedupe_key: `centre_strategique:${item.category || item.type || 'action'}:${item.entityId || lotId || building || item.id}:${headline}`,
     task_dedupe_key: `centre_strategique:${item.category || item.type || 'action'}:${item.entityId || lotId || building || item.id}:${headline}`,
   };

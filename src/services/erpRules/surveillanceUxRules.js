@@ -50,7 +50,7 @@ export function evaluateSurveillanceUxRules() {
         description: `Le formulaire "${formType || module}" a été ouvert ${count} fois sans résolution apparente.`,
         recommended_action: 'Vérifier si le bouton rouvre le même écran sans action métier.',
         confidence_score: 0.87,
-        auto_action: 'create_alert',
+        internal_diagnostic: true,
       });
     }
   });

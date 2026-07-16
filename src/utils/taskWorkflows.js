@@ -6,8 +6,8 @@ const lower = (value = '') => clean(value).toLowerCase();
 const today = () => new Date().toISOString().slice(0, 10);
 const now = () => new Date().toISOString();
 
-export const closedTaskStatuses = ['termine', 'terminé', 'annule', 'annulé', 'done', 'closed'];
-export const closedAlertStatuses = ['traitee', 'traitée', 'resolue', 'résolue', 'fermee', 'fermée', 'done', 'closed'];
+export const closedTaskStatuses = ['termine', 'terminé', 'annule', 'annulé', 'expiree', 'expirée', 'done', 'closed'];
+export const closedAlertStatuses = ['traitee', 'traitée', 'resolue', 'résolue', 'expiree', 'expirée', 'fermee', 'fermée', 'done', 'closed'];
 
 export function normalizeTaskChecklist(checklist = '', title = '') {
   const titleText = lower(title);
@@ -40,11 +40,12 @@ export function hasOpenTaskForAlert(tasks = [], alert = {}) {
   return arr(tasks).some((task) => !isTaskClosed(task) && (String(task.source_record_id || '') === String(alert.id || '') || taskDedupeKey(task) === key));
 }
 
-export function buildTaskFromAlert(alert = {}, rows = [], date = today()) {
+export function buildTaskFromAlert(alert = {}, rows = [], date = '') {
   const id = generateSequentialId('taches', rows);
   const key = alertDedupeKey(alert);
   const title = alert.title || alert.message || 'Action alerte';
   const checklist = normalizeTaskChecklist(alert.checklist || alert.action_recommandee || alert.message || '', title);
+  const dueDate = clean(date || alert.due_date || alert.target_date || alert.expires_at) || today();
   return {
     task: {
       id,
@@ -53,7 +54,7 @@ export function buildTaskFromAlert(alert = {}, rows = [], date = today()) {
       entity_type: alert.entity_type || 'alerte',
       related_id: alert.entity_id || alert.id,
       assigned_to: alert.responsable || alert.assigned_to || 'TEAM-FERME',
-      due_date: date,
+      due_date: dueDate,
       priority: ['critical', 'critique', 'urgence'].includes(lower(alert.severity)) ? 'critique' : 'haute',
       status: 'a_faire',
       notes: alert.message || alert.action_recommandee || '',
@@ -73,7 +74,7 @@ export function buildTaskFromAlert(alert = {}, rows = [], date = today()) {
       entity_id: alert.entity_id || alert.id,
       title: `Tâche créée: ${title}`,
       description: alert.action_recommandee || alert.message || '',
-      event_date: date,
+      event_date: dueDate,
       severity: alert.severity || 'info',
       linked_task_id: id,
       linked_alert_id: alert.id,

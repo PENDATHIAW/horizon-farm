@@ -22,6 +22,7 @@ import { runKpiEngine } from '../../services/kpiEngine/index.js';
 import { resolveDashboardTab } from '../../utils/commercialNavigation.js';
 import { SAISIES_QUOTIDIENNES } from '../../config/formulaires20s.config.js';
 import { openDailyQuickEntry } from '../../utils/dailyQuickEntry.js';
+import { filterRealOpenAlerts, filterRealOpenTasks } from '../../utils/healthFindingLabels.js';
 
 const ROLES_TERRAIN = new Set(['terrain', 'farm_agent', 'employe', 'farm_readonly']);
 
@@ -68,15 +69,22 @@ export default function AccueilConforme(props) {
   const terrain = estRoleTerrain(user);
   const donnees = useMemo(() => ({
     sales_orders: props.salesOrders,
+    sales_orders_all: props.salesOrdersAll,
     payments: props.payments,
+    payments_all: props.paymentsAll,
     finances: props.transactions,
+    finances_all: props.transactionsAll,
     stock: props.stocks,
     animaux: props.animaux,
     avicole: props.lotsData || props.lots,
     cultures: props.cultures,
     production_oeufs_logs: props.productionLogs,
+    production_oeufs_logs_all: props.productionLogsAll,
     documents: props.documents,
     invoices: props.invoices,
+    invoices_all: props.invoicesAll,
+    deliveries: props.deliveries,
+    deliveries_all: props.deliveriesAll,
     alertes_center: alertes,
     taches,
     clients: props.clients,
@@ -88,12 +96,14 @@ export default function AccueilConforme(props) {
       return null;
     }
   }, [donnees, props.periodScope]);
+  const tachesOperationnelles = useMemo(() => filterRealOpenTasks(taches), [taches]);
+  const alertesOperationnelles = useMemo(() => filterRealOpenAlerts(alertes), [alertes]);
 
   const tachesUrgentes = useMemo(
-    () => filtrerTaches(taches, { statut: 'ouvertes', limite: 6 })
+    () => filtrerTaches(tachesOperationnelles, { statut: 'ouvertes', limite: 6 })
       .filter((t) => ['critique', 'haute', 'critical', 'high'].includes(String(t.priority || '').toLowerCase())
         || (String(t.due_date || '').slice(0, 10) <= new Date().toISOString().slice(0, 10))),
-    [taches],
+    [tachesOperationnelles],
   );
   const stocksSensibles = useMemo(() => (kpis?.stock?.ruptureRows || []).slice(0, 5), [kpis]);
   const codesPilotage = terrain
@@ -133,7 +143,7 @@ export default function AccueilConforme(props) {
         </div>
       </section>
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-        <ListeAlertes alertes={alertes} filtres={{ gravite: 'critique', limite: 6 }} titre="Priorités : alertes critiques" onNavigate={onNavigate} onCreerTache={props.onCreateTask ? (alerte) => props.onCreateTask({ title: `Traiter : ${alerte.title || alerte.id}`, alert_id: alerte.id, module_lie: alerte.module_source, priority: 'critique', status: 'a_faire' }) : undefined} />
+        <ListeAlertes alertes={alertesOperationnelles} filtres={{ gravite: 'critique', limite: 6 }} titre="Priorités : alertes critiques" onNavigate={onNavigate} onCreerTache={props.onCreateTask ? (alerte) => props.onCreateTask({ title: `Traiter : ${alerte.title || alerte.id}`, alert_id: alerte.id, module_lie: alerte.module_source, priority: 'critique', status: 'a_faire' }) : undefined} />
         <ListeTaches taches={tachesUrgentes} filtres={{ statut: 'toutes', limite: 6 }} titre="Priorités : tâches urgentes" onOuvrirTache={() => onNavigate?.('activite_suivi')} />
       </div>
       <section className="hf-card">
@@ -166,7 +176,7 @@ export default function AccueilConforme(props) {
 
   const mesActions = (
     <ListeTaches
-      taches={taches}
+      taches={tachesOperationnelles}
       filtres={{ assigne: identifiantUtilisateur(user), statut: 'ouvertes', limite: 30 }}
       titre="Mes actions"
       onOuvrirTache={() => onNavigate?.('activite_suivi')}

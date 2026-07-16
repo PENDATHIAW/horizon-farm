@@ -21,6 +21,12 @@ export function safeDate(value) {
   return Number.isNaN(date.getTime()) ? new Date() : date;
 }
 
+function strictDate(value) {
+  if (!value) return null;
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? null : date;
+}
+
 export function dateOnly(date) {
   const d = safeDate(date);
   return new Date(d.getFullYear(), d.getMonth(), d.getDate());
@@ -50,13 +56,13 @@ function pilotageEventsFromSettings(dataMap = {}) {
       id: `pilotage-${row.key}-${fd[row.key]}`,
       key: row.key,
       label: row.label,
-      date: safeDate(fd[row.key]),
+      date: strictDate(fd[row.key]),
       activities: row.activities,
       note: 'Date ajustée manuellement (pilotage).',
       source: 'pilotage',
       skipLaunch: row.skipLaunch,
     }))
-    .filter((event) => !Number.isNaN(event.date.getTime()));
+    .filter((event) => event.date);
 }
 
 function computedEventsFromEngine(referenceDate = new Date(), overriddenKeys = new Set()) {
@@ -88,18 +94,19 @@ export function buildAllMarketEvents(referenceDate = new Date(), dataMap = {}) {
       id: event.id || event.code || event.nom,
       key: event.code || matchFestivalKey(event.label || event.nom || event.title) || norm(event.label || event.nom || event.title),
       label: event.label || event.nom || event.title,
-      date: safeDate(event.date || event.target_date || event.date_cible),
+      date: strictDate(event.date || event.target_date || event.date_cible),
       activities: arr(event.activities || event.activites || event.focus),
       note: event.note || event.description || '',
       source: 'custom',
       skipLaunch: false,
     }))
-    .filter((event) => event.label && !Number.isNaN(event.date.getTime()));
+    .filter((event) => event.label && event.date);
 
   const pilotageEvents = pilotageEventsFromSettings(dataMap);
+  const cutoff = dateOnly(ref);
   const overriddenKeys = new Set([
-    ...customEvents.map((event) => event.key).filter(Boolean),
-    ...pilotageEvents.map((event) => event.key).filter(Boolean),
+    ...customEvents.filter((event) => event.date >= cutoff).map((event) => event.key).filter(Boolean),
+    ...pilotageEvents.filter((event) => event.date >= cutoff).map((event) => event.key).filter(Boolean),
   ]);
 
   const computedEvents = computedEventsFromEngine(ref, overriddenKeys);

@@ -12,7 +12,12 @@ import { resolveCommercialTab, resolveElevageTab, resolveAchatsStockTab, resolve
 import { parseErpDeepLinkFromSearch, stripErpDeepLinkParamsFromUrl } from './utils/erpDeepLink.js';
 import { resolveAgriFeedsTab } from './utils/agriFeedsNavigation.js';
 import { pruneHeavyLocalStorage } from './utils/safeLocalStorage';
-import { archiveHealthMirrorTasks, findHealthMirrorTasksToArchive } from './utils/pruneHealthMirrorTasks.js';
+import {
+  archiveHealthMirrorTasks,
+  archiveObsoleteOperationalAlerts,
+  findHealthMirrorTasksToArchive,
+  findOperationalAlertsToArchive,
+} from './utils/pruneHealthMirrorTasks.js';
 import AppNotificationManager from './components/AppNotificationManager';
 import ErpInterconnectionBridge from './components/ErpInterconnectionBridge';
 import AssistantPanel from './components/AssistantPanel';
@@ -294,6 +299,7 @@ export default function App() {
   const cRaw = useCrudModules();
   const c = useFarmScopedCrud(cRaw, farmScope, effectiveAccessibleFarms, activeFarm);
   const mirrorPruneBusy = useRef(false);
+  const alertPruneBusy = useRef(false);
   const crudFingerprint = useMemo(() => {
     const workflowSignal = (key, moduleRows = []) => {
       const list = arr(moduleRows);
@@ -386,6 +392,18 @@ export default function App() {
   }, [authLoading, user?.id, c.taches]);
 
   useEffect(() => {
+    if (authLoading || !user?.id) return;
+    const alerts = rows(c.alertes_center);
+    const obsolete = findOperationalAlertsToArchive(alerts);
+    if (!obsolete.length || typeof c.alertes_center?.update !== 'function' || alertPruneBusy.current) return;
+
+    alertPruneBusy.current = true;
+    void archiveObsoleteOperationalAlerts(alerts, c.alertes_center.update).finally(() => {
+      alertPruneBusy.current = false;
+    });
+  }, [authLoading, user?.id, c.alertes_center]);
+
+  useEffect(() => {
     if (authLoading || !user?.id) return undefined;
     const trigger = scheduleErpHealthOnCriticalChange(() => decisionDataMapRaw, null, healthAutoActions);
     return trigger(decisionDataMapRaw);
@@ -414,7 +432,7 @@ export default function App() {
   const actionTraceShared = composeActionTraceShared(c, online);
   const internalResourcesShared = composeInternalResources(c);
   return {
-    dashboard: { user, dataFingerprint: crudFingerprint, lotsData: rows(c.avicole), animaux: rows(c.animaux), vaccins: rows(c.sante), stocks: rows(c.stock), clients: rows(c.clients), fournisseurs: rows(c.fournisseurs), cultures: rows(c.cultures), salesOrders: rows(c.sales_orders), salesOrdersAll: rows(c.sales_orders), payments: rows(c.payments), paymentsAll: rows(c.payments), transactions: rows(c.finances), transactionsAll: rows(c.finances), deliveries: rows(c.deliveries), documents: rows(c.documents), alimentationLogs: rows(c.alimentation_logs), productionLogs: rows(c.production_oeufs_logs), opportunities: rows(c.sales_opportunities), businessPlans: rows(c.business_plans), bpRecurringCosts: rows(c.bp_recurring_costs), investissements: rows(c.investissements), taches: rows(c.taches), alertes: rows(c.alertes_center), equipements: rows(c.equipements), sensorDevices: rows(c.sensor_devices), businessEvents: rows(c.business_events), meteo: liveMeteo, weatherLoading, onNavigate: setActive, onRefresh: refreshAll, onCreateTask: c.taches.create, onRefreshTasks: c.taches.refresh, onOpenAssistant: openAssistantWithQuery, onManageFarms: handleManageFarms, farmComparisonData },
+    dashboard: { user, dataFingerprint: crudFingerprint, lotsData: rows(c.avicole), animaux: rows(c.animaux), vaccins: rows(c.sante), stocks: rows(c.stock), clients: rows(c.clients), fournisseurs: rows(c.fournisseurs), cultures: rows(c.cultures), salesOrders: rows(c.sales_orders), salesOrdersAll: rows(c.sales_orders), payments: rows(c.payments), paymentsAll: rows(c.payments), transactions: rows(c.finances), transactionsAll: rows(c.finances), deliveries: rows(c.deliveries), deliveriesAll: rows(c.deliveries), invoices: rows(c.invoices), invoicesAll: rows(c.invoices), documents: rows(c.documents), alimentationLogs: rows(c.alimentation_logs), productionLogs: rows(c.production_oeufs_logs), productionLogsAll: rows(c.production_oeufs_logs), opportunities: rows(c.sales_opportunities), businessPlans: rows(c.business_plans), bpRecurringCosts: rows(c.bp_recurring_costs), investissements: rows(c.investissements), taches: rows(c.taches), alertes: rows(c.alertes_center), equipements: rows(c.equipements), sensorDevices: rows(c.sensor_devices), businessEvents: rows(c.business_events), meteo: liveMeteo, weatherLoading, onNavigate: setActive, onRefresh: refreshAll, onCreateTask: c.taches.create, onRefreshTasks: c.taches.refresh, onOpenAssistant: openAssistantWithQuery, onManageFarms: handleManageFarms, farmComparisonData },
     assistant_erp: {
       dataMap: decisionDataMapRaw,
       salesOrders: rows(c.sales_orders),

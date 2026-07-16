@@ -1,6 +1,8 @@
 import {
   isHealthEngineMirrorTask,
   isHealthMirrorNoiseTask,
+  isObsoleteOperationalRecord,
+  isOpenAlertStatus,
   isOpenTaskStatus,
   sanitizeHealthTaskTitle,
 } from './healthFindingLabels.js';
@@ -45,7 +47,12 @@ export function findDuplicateHealthMirrorTasks(tasks = []) {
 
 /** Toutes les tâches miroir IA ouvertes à archiver (y compris les singletons uniques par clé). */
 export function findHealthMirrorTasksToArchive(tasks = []) {
-  return arr(tasks).filter((task) => isOpenTaskStatus(task) && isHealthMirrorNoiseTask(task));
+  return arr(tasks).filter((task) => isOpenTaskStatus(task)
+    && (isHealthMirrorNoiseTask(task) || isObsoleteOperationalRecord(task)));
+}
+
+export function findOperationalAlertsToArchive(alerts = []) {
+  return arr(alerts).filter((alert) => isOpenAlertStatus(alert) && isObsoleteOperationalRecord(alert));
 }
 
 async function closeTasksInBatches(tasks = [], onUpdateTask, note = 'Miroir d’analyse archivé') {
@@ -71,6 +78,25 @@ export async function archiveHealthMirrorTasks(tasks = [], onUpdateTask) {
   if (typeof onUpdateTask !== 'function') return { closed: 0, ids: [] };
   const toClose = findHealthMirrorTasksToArchive(tasks);
   return closeTasksInBatches(toClose, onUpdateTask, 'Miroir d’analyse archivé (nettoyage massif)');
+}
+
+export async function archiveObsoleteOperationalAlerts(alerts = [], onUpdateAlert) {
+  if (typeof onUpdateAlert !== 'function') return { closed: 0, ids: [] };
+  const toClose = findOperationalAlertsToArchive(alerts);
+  const ids = [];
+
+  for (let index = 0; index < toClose.length; index += 8) {
+    const batch = toClose.slice(index, index + 8);
+    const results = await Promise.allSettled(batch.map((alert) => onUpdateAlert(alert.id, {
+      status: 'resolue',
+      message: `${alert.message || ''} · Archivée automatiquement : diagnostic interne ou échéance passée.`.trim(),
+    })));
+    results.forEach((result, batchIndex) => {
+      if (result.status === 'fulfilled') ids.push(batch[batchIndex].id);
+    });
+  }
+
+  return { closed: ids.length, ids };
 }
 
 export async function closeDuplicateHealthMirrorTasks(tasks = [], onUpdateTask) {

@@ -198,7 +198,7 @@ export default function CarteKPI({
             {hasTrend ? <HorizonLine values={displayTrend} status={semanticStatus} /> : null}
           </>
         ) : (
-          <span className="inline-flex items-center gap-1.5 rounded-full bg-neutral-bg px-2.5 py-1 text-meta font-semibold text-slate">
+          <span className="inline-flex items-center gap-2 rounded-full bg-neutral-bg px-2 py-1 text-meta font-semibold text-slate">
             <Minus size={12} strokeWidth={2.5} aria-hidden="true" />
             {displayComparison}
           </span>

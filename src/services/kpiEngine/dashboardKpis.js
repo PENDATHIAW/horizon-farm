@@ -7,15 +7,19 @@ import { computeDocumentKpis } from './documentKpis.js';
 
 export function computeDashboardKpis(props = {}, periodScope = {}) {
   const summary = buildDashboardSummary(props, periodScope);
-  const commercial = computeCommercialKpis(props.salesOrders, props.payments, periodScope);
-  const finance = computeFinanceKpis(props.payments, props.transactions, periodScope, props);
+  const commercial = computeCommercialKpis(props.salesOrdersAll || props.salesOrders, props.paymentsAll || props.payments, periodScope, {
+    clients: props.clients,
+    deliveries: props.deliveriesAll || props.deliveries,
+    invoices: props.invoicesAll || props.invoices,
+  });
+  const finance = computeFinanceKpis(props.paymentsAll || props.payments, props.transactionsAll || props.transactions, periodScope, props);
   const stock = computeStockKpis(props.stocks);
   const livestock = computeLivestockKpis({
     animaux: props.animaux,
     lots: props.lotsData || props.lots,
     cultures: props.cultures,
-    productionLogs: props.productionLogs,
-    salesOrders: props.salesOrders,
+    productionLogs: props.productionLogsAll || props.productionLogs,
+    salesOrders: props.salesOrdersAll || props.salesOrders,
     periodScope,
   });
   const documents = computeDocumentKpis(props.documents, props.transactions, props.invoices);

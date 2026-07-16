@@ -5,6 +5,12 @@ const clean = (value) => String(value || '').trim().toLowerCase();
 const total = (order = {}) => toNumber(order.montant_total ?? order.total ?? order.amount ?? order.total_amount);
 const orderPaid = (order = {}) => toNumber(order.montant_paye ?? order.paid_amount ?? order.amount_paid);
 const paymentOrderId = (payment = {}) => payment.order_id || payment.sale_id || payment.source_record_id || payment.related_id;
+const INACTIVE_PAYMENT_STATUSES = new Set([
+  'annule', 'annulé', 'annulee', 'annulée', 'cancelled',
+  'supprime', 'supprimé', 'deleted', 'rejete', 'rejeté',
+  'echoue', 'échoué', 'echouee', 'échouée', 'failed',
+  'rembourse', 'remboursé', 'remboursee', 'remboursée', 'refunded',
+]);
 const orderedQty = (order = {}) => Math.max(1, toNumber(order.quantite_commandee ?? order.quantite ?? order.quantity ?? order.qty ?? 1));
 const deliveredQty = (order = {}) => Math.max(0, toNumber(order.quantite_livree ?? order.delivered_qty ?? order.qty_delivered ?? order.livree ?? 0));
 
@@ -45,7 +51,7 @@ export function deliveryQuantity(order = {}) {
 export function paidForOrder(order = {}, payments = []) {
   const paidFromPayments = arr(payments)
     .filter((payment) => String(paymentOrderId(payment) || '') === String(order.id || ''))
-    .filter((payment) => !['annule', 'annulée', 'annulee'].includes(clean(payment.statut || payment.status)))
+    .filter((payment) => !INACTIVE_PAYMENT_STATUSES.has(clean(payment.statut || payment.status)))
     .reduce((sum, payment) => sum + toNumber(payment.montant_paye ?? payment.montant ?? payment.amount), 0);
   return Math.max(orderPaid(order), paidFromPayments);
 }

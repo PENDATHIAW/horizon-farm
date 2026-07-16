@@ -42,13 +42,13 @@ export function normalizePilotageSettings(raw = {}) {
 }
 
 export function loadPilotageSettings() {
-  if (!hasStorage()) return { ...DEFAULT_PILOTAGE_SETTINGS };
+  if (!hasStorage()) return { ...DEFAULT_PILOTAGE_SETTINGS, pilotage_configured: false };
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
-    if (!raw) return { ...DEFAULT_PILOTAGE_SETTINGS };
-    return normalizePilotageSettings(JSON.parse(raw));
+    if (!raw) return { ...DEFAULT_PILOTAGE_SETTINGS, pilotage_configured: false };
+    return { ...normalizePilotageSettings(JSON.parse(raw)), pilotage_configured: true };
   } catch {
-    return { ...DEFAULT_PILOTAGE_SETTINGS };
+    return { ...DEFAULT_PILOTAGE_SETTINGS, pilotage_configured: false };
   }
 }
 
@@ -61,7 +61,7 @@ export function savePilotageSettings(settings = {}) {
       /* ignore quota / private mode */
     }
   }
-  return normalized;
+  return { ...normalized, pilotage_configured: true };
 }
 
 /** Fusionne les paramètres pilotage locaux dans growth_settings pour les moteurs. */

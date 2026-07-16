@@ -4,6 +4,7 @@ import { normalizeByModule, normalizePayloadBeforeSave } from '../utils/normaliz
 import { safeLocalStorageSetJson } from '../utils/safeLocalStorage.js';
 import { isSimulatedDataModeEnabled } from '../utils/uiPreferences.js';
 import { withFarmId } from '../utils/farmScopePayload.js';
+import { filterLegacyBootstrapRows } from '../utils/legacyBootstrapData.js';
 import { enrichLinkedFields } from './issueLinkingService.js';
 
 import {
@@ -220,7 +221,7 @@ const trySoftDelete = async ({ table, id, idField }) => {
 };
 
 export const createSupabaseCrudService = (table, idField = 'id') => ({
-  async getAll() { if (!table) return []; if (isSimulatedDataModeEnabled()) return getSimulatedTableRows(table, idField); const { data, error } = await supabase.from(table).select('*'); if (error) throw error; return filterRealDeletedRows(table, filterSoftDeletedRows(data || []), idField); },
+  async getAll() { if (!table) return []; if (isSimulatedDataModeEnabled()) return getSimulatedTableRows(table, idField); const { data, error } = await supabase.from(table).select('*'); if (error) throw error; const businessRows = filterLegacyBootstrapRows(table, filterSoftDeletedRows(data || [])); return filterRealDeletedRows(table, businessRows, idField); },
   async create(payload) {
     if (!table) return payload;
     if (isSimulatedDataModeEnabled()) return createSimulatedRow(table, payload, idField);
