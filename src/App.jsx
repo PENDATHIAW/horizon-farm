@@ -361,16 +361,20 @@ export default function App() {
     onCreateBusinessEvent: c.business_events.create,
   }), [c.taches.create, c.alertes_center.create, c.alertes_center.update, c.business_events.create]);
 
-  useEffect(() => scheduleErpHealthEngine(
-    () => decisionDataMapRaw,
-    null,
-    60 * 60 * 1000,
-    healthAutoActions,
-  ), [decisionDataMapRaw, healthAutoActions]);
+  useEffect(() => {
+    if (authLoading || !user?.id) return undefined;
+    return scheduleErpHealthEngine(
+      () => decisionDataMapRaw,
+      null,
+      60 * 60 * 1000,
+      healthAutoActions,
+    );
+  }, [authLoading, user?.id, decisionDataMapRaw, healthAutoActions]);
 
   useEffect(() => { pruneHeavyLocalStorage(); }, []);
 
   useEffect(() => {
+    if (authLoading || !user?.id) return;
     const tasks = rows(c.taches);
     const mirrors = findHealthMirrorTasksToArchive(tasks);
     if (!mirrors.length || typeof c.taches?.update !== 'function' || mirrorPruneBusy.current) return;
@@ -379,13 +383,13 @@ export default function App() {
     void archiveHealthMirrorTasks(tasks, c.taches.update).finally(() => {
       mirrorPruneBusy.current = false;
     });
-  }, [c.taches]);
+  }, [authLoading, user?.id, c.taches]);
 
   useEffect(() => {
+    if (authLoading || !user?.id) return undefined;
     const trigger = scheduleErpHealthOnCriticalChange(() => decisionDataMapRaw, null, healthAutoActions);
-    trigger(decisionDataMapRaw);
-    return () => trigger(decisionDataMapRaw);
-  }, [crudFingerprint, healthAutoActions, decisionDataMapRaw]);
+    return trigger(decisionDataMapRaw);
+  }, [authLoading, user?.id, crudFingerprint, healthAutoActions, decisionDataMapRaw]);
 
   const navItems = useMemo(() => NAV_MODULE_ORDER
     .filter((id) => canAccess(id) && isModuleEnabled(id, moduleFlags))

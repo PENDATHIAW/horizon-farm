@@ -153,7 +153,21 @@ export function AppProvider({ children, initialDataMap = null }) {
   const [errorMap, setErrorMap] = useState({});
   const setModuleLoading = useCallback((moduleKey, value) => setLoadingMap((prev) => ({ ...prev, [moduleKey]: value })), []);
   const setModuleError = useCallback((moduleKey, value) => setErrorMap((prev) => ({ ...prev, [moduleKey]: value })), []);
-  const writeAuditLog = useCallback(async (action, moduleKey, recordId) => { if (moduleKey === 'audit_logs') return; try { await supabase.from('audit_logs').insert({ id: makeId('LOG'), actor: session?.user?.user_metadata?.login || session?.user?.email || 'system', action, module: moduleKey, record_id: recordId, device: typeof navigator !== 'undefined' ? navigator.userAgent.slice(0, 120) : 'unknown' }); } catch (error) { console.warn('Audit log non enregistre', error.message); } }, [session]);
+  const writeAuditLog = useCallback(async (action, moduleKey, recordId) => {
+    if (moduleKey === 'audit_logs' || !session?.access_token) return;
+    try {
+      await supabase.from('audit_logs').insert({
+        id: makeId('LOG'),
+        actor: session.user?.user_metadata?.login || session.user?.email || 'system',
+        action,
+        module: moduleKey,
+        record_id: recordId,
+        device: typeof navigator !== 'undefined' ? navigator.userAgent.slice(0, 120) : 'unknown',
+      });
+    } catch (error) {
+      console.warn('Audit log non enregistre', error.message);
+    }
+  }, [session]);
 
   const fetchModuleData = useCallback(async (moduleKey) => {
     const service = serviceMap[moduleKey];
@@ -247,7 +261,8 @@ export function AppProvider({ children, initialDataMap = null }) {
   const deleteRecord = useCallback(async (moduleKey, id) => { const service = serviceMap[moduleKey]; const config = MODULE_CONFIG[moduleKey] || {}; const idField = config.idField || 'id'; let previousRows = []; setDataMap((prev) => { previousRows = prev[moduleKey] || []; return { ...prev, [moduleKey]: previousRows.filter((row) => row[idField] !== id) }; }); if (!service) return true; try { await service.remove(id); await writeAuditLog('suppression', moduleKey, id); return true; } catch (error) { if (isBrowserOffline()) { enqueueOfflineMutation({ moduleKey, action: 'delete', id }); setModuleError(moduleKey, 'Mode hors ligne: suppression mise en file de synchronisation'); return true; } setDataMap((prev) => ({ ...prev, [moduleKey]: previousRows })); setModuleError(moduleKey, error.message || 'Erreur suppression'); throw error; } }, [setModuleError, writeAuditLog]);
 
   const syncOfflineQueue = useCallback(async () => {
-    if (isBrowserOffline()) return;
+    const localPreview = session?.user?.id === 'local-preview-user';
+    if (authLoading || (!session?.access_token && !localPreview) || isBrowserOffline()) return;
     // Déduplique la file par (module, action, id) : une même écriture rejouée
     // n'apparaît qu'une fois, ce qui évite les doubles insertions.
     const queue = dedupeFileHorsLigne(readOfflineQueue());
@@ -275,8 +290,14 @@ export function AppProvider({ children, initialDataMap = null }) {
     }
     if (pending.length === 0) clearOfflineQueue(); else saveOfflineQueue(pending);
     Object.keys(serviceMap).forEach((moduleKey) => refreshModule(moduleKey, { immediate: true }));
-  }, [emitBusinessEvents, refreshModule, writeAuditLog]);
-  useEffect(() => { const handler = () => syncOfflineQueue(); window.addEventListener('online', handler); syncOfflineQueue(); return () => window.removeEventListener('online', handler); }, [syncOfflineQueue]);
+  }, [authLoading, emitBusinessEvents, refreshModule, session, writeAuditLog]);
+  useEffect(() => {
+    if (authLoading || !session?.user?.id) return undefined;
+    const handler = () => syncOfflineQueue();
+    window.addEventListener('online', handler);
+    void syncOfflineQueue();
+    return () => window.removeEventListener('online', handler);
+  }, [authLoading, session?.user?.id, syncOfflineQueue]);
 
   const value = useMemo(() => ({ dataMap, loadingMap, errorMap, refreshModule, createRecord, updateRecord, deleteRecord, syncOfflineQueue }), [dataMap, loadingMap, errorMap, refreshModule, createRecord, updateRecord, deleteRecord, syncOfflineQueue]);
   return <AppDataContext.Provider value={value}>{children}</AppDataContext.Provider>;
