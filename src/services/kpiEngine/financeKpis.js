@@ -33,6 +33,7 @@ export function computeFinanceKpis(payments = [], transactions = [], periodScope
     productionLogs: arr(dataMap.productionLogs || dataMap.production_oeufs_logs),
   }));
   const cashNet = number(consolidated.cashNet);
+  const margeReelle = number(consolidated.margeReelle);
   return {
     ...periods,
     income,
@@ -41,6 +42,7 @@ export function computeFinanceKpis(payments = [], transactions = [], periodScope
     expensesAllTime,
     cashNet,
     treasuryAvailable: cashNet,
+    margeReelle,
     grossMargin: periods.encaissePeriod - periods.depensesPeriod,
     missingProof,
     planAttainment: plan?.revenueAttainment ?? plan?.annualAttainment ?? null,

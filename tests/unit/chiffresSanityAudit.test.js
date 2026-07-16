@@ -174,6 +174,12 @@ test('réconciliation trésorerie : Accueil = Finance officielle = tableau de bo
   assert.equal(dash, officiel, `Trésorerie tableau de bord (${dash}) doit égaler la trésorerie officielle (${officiel})`);
 });
 
+test('réconciliation marge globale : Accueil = marge réelle Finance officielle', () => {
+  const kpi = valeurKpi('marge_globale', dataMap).valeur;
+  const officiel = buildOfficialTreasuryView(seedProps).realMargin;
+  assert.equal(kpi, officiel, `Marge globale Accueil (${kpi}) doit égaler la marge réelle officielle (${officiel})`);
+});
+
 test('hub production / cycles / pilotage commercial : aucune sortie NaN/Infinity', () => {
   const hub = buildProductionHubSnapshot({
     lots: dataMap.avicole,
