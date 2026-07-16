@@ -96,15 +96,11 @@ function Summary({ data, setTab, onNavigate, onApplyFinding, busyId }) {
         </>
       ) : null}
 
-      <div className="grid grid-cols-2 gap-3 lg:grid-cols-3 xl:grid-cols-6">
-        <CommercialKpi label="CA" value={fmtCurrency(kpis?.ca ?? data.collected)} tone="good" onClick={() => setTab('Pilotage')} />
-        <CommercialKpi label="Encaissé" value={fmtCurrency(kpis?.collected ?? data.collected)} tone="good" onClick={() => setTab('Pilotage')} />
-        <CommercialKpi label="Créances" value={fmtCurrency(kpis?.receivable ?? data.receivable)} tone={(kpis?.receivable ?? data.receivable) ? 'warn' : 'good'} onClick={() => setTab('Clients & créances')} />
-        <CommercialKpi label="Commandes ouvertes" value={fmtNumber(kpis?.openOrders ?? data.openSalesCount)} tone={(kpis?.openOrders ?? data.openSalesCount) ? 'warn' : 'good'} onClick={() => setTab('Ventes')} />
+      <div className="grid grid-cols-2 gap-3 sm:max-w-lg">
         <CommercialKpi label="Clients actifs" value={fmtNumber(kpis?.activeClients ?? 0)} tone="good" onClick={() => setTab('Clients & créances')} />
         <CommercialKpi label="Panier moyen" value={fmtCurrency(kpis?.basketAvg ?? 0)} tone="good" onClick={() => setTab('Pilotage')} />
       </div>
-      <p className="text-meta font-semibold text-slate">KPI période active · cliquer pour ouvrir le détail</p>
+      <p className="text-meta font-semibold text-slate">Indicateurs complémentaires · les repères principaux sont en haut du module. Cliquer pour ouvrir le détail.</p>
 
       <ModuleProjectionsStrip
         projections={data.moduleProjections}
