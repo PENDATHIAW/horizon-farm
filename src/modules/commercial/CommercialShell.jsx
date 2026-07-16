@@ -54,7 +54,11 @@ export function CommercialModuleHeader({ tab, setTab, healthScore, badges = {}, 
           <HeyHorizonQuickAsk moduleKey="commercial" onNavigate={onNavigate} onOpenAssistant={onOpenAssistant} className="mt-2" />
         </div>
         <div className="flex flex-wrap items-center gap-2 text-sm">
-          <span className={`rounded-full border px-3 py-1 text-xs font-semibold ${healthScore >= 75 ? 'border-positive bg-positive-bg text-positive' : 'border-vigilance bg-vigilance-bg text-horizon-dark'}`}>Santé {healthScore}/100</span>
+          {healthScore > 0 ? (
+            <span className={`rounded-full border px-3 py-1 text-xs font-semibold ${healthScore >= 75 ? 'border-positive bg-positive-bg text-positive' : 'border-vigilance bg-vigilance-bg text-horizon-dark'}`}>Santé {healthScore}/100</span>
+          ) : (
+            <span className="rounded-full border border-line bg-white px-3 py-1 text-xs font-semibold text-slate">Santé : à évaluer</span>
+          )}
           {badges.receivable > 0 ? (
             <span className="rounded-full border border-vigilance bg-vigilance-bg px-3 py-1 text-xs font-semibold text-horizon-dark">
               Créances {fmtCurrency(badges.receivable)}
