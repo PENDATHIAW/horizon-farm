@@ -193,18 +193,16 @@ function Summary({
       {startupMode ? <FinanceStartupPanel journey={startupJourney} onNavigate={onNavigate} setTab={navigateFinance} /> : null}
       <FinanceExecutiveSituationPanel situation={executiveSituation} onNavigateTab={navigateFinance} />
       <FinanceAlertsPanel alerts={financeAlerts} onNavigateTab={navigateFinance} insufficientData={startupMode} />
-      <div className="grid grid-cols-2 gap-3 xl:grid-cols-8">
+      {/* Indicateurs complémentaires uniquement : trésorerie / créances / dettes
+          / marge réelle sont déjà dans « Situation financière » ci-dessus (on
+          ne les répète pas). Ici : santé du dossier, position nette, preuves. */}
+      <div className="grid grid-cols-3 gap-3">
         <Stat label="Santé finance" value={formatFinanceHealthScore({ score: data.healthScore, insufficientData: data.healthInsufficient })} tone={financeHealthTone({ score: data.healthScore, insufficientData: data.healthInsufficient })} />
-        <Stat label={TREASURY_LABELS.treasuryAvailable} value={fmtCurrency(data.treasuryAvailable)} tone={data.treasuryAvailable >= 0 ? 'good' : 'bad'} />
-        <Stat label={TREASURY_LABELS.receivables} value={fmtCurrency(data.receivableAmount)} tone={data.receivableAmount ? 'warn' : 'good'} />
-        <Stat label={TREASURY_LABELS.payables} value={fmtCurrency(data.payableAmount)} tone={data.payableAmount ? 'warn' : 'good'} />
         <Stat label={TREASURY_LABELS.netPosition} value={fmtCurrency(data.netPosition)} tone={data.netPosition >= 0 ? 'good' : 'bad'} />
-        <Stat label={TREASURY_LABELS.realMargin} value={fmtCurrency(data.realMargin)} tone={data.realMargin >= 0 ? 'good' : 'bad'} />
         <Stat label="Sans preuve" value={fmtNumber(data.missingProof)} tone={data.missingProof ? 'warn' : 'good'} />
-        <Stat label="Signaux métier" value={data.healthInsufficient ? 'En attente' : fmtNumber(data.healthFindings.length)} tone={data.healthInsufficient ? 'neutral' : data.healthFindings.length ? 'warn' : 'good'} />
       </div>
-      <p className="text-meta font-semibold text-slate">
-        KPI trésorerie & créances : cumul ferme · liste Trésorerie : période active si filtre
+      <p className="text-meta text-slate">
+        Position nette = trésorerie disponible + créances − dettes. « Sans preuve » = opérations sans justificatif joint.
       </p>
       <FinanceInsightPanel
         findings={data.healthFindings}
