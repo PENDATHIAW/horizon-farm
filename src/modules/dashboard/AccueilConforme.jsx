@@ -18,6 +18,7 @@ import PeriodScopeBadge from '../../components/PeriodScopeBadge.jsx';
 import JournalEvenements from '../../components/uniques/JournalEvenements.jsx';
 import ListeTaches, { filtrerTaches } from '../../components/uniques/ListeTaches.jsx';
 import ListeAlertes from '../../components/uniques/ListeAlertes.jsx';
+import DecisionBriefingCard from './DecisionBriefingCard.jsx';
 import CarteKPI from '../../components/uniques/CarteKPI.jsx';
 import { runKpiEngine } from '../../services/kpiEngine/index.js';
 import { resolveDashboardTab } from '../../utils/commercialNavigation.js';
@@ -162,6 +163,17 @@ export default function AccueilConforme(props) {
           })}
         </div>
       </section>
+      <DecisionBriefingCard
+        dataMap={{
+          transactions: props.transactions, salesOrders: props.salesOrders, payments: props.payments,
+          fournisseurs: props.fournisseurs, stocks: props.stocks, stock: props.stocks,
+          animaux: props.animaux, lots: props.lotsData, avicole: props.lotsData,
+          cultures: props.cultures, sante: props.vaccins, vaccins: props.vaccins,
+          investissements: props.investissements, businessEvents: props.businessEvents,
+          clients: props.clients, alertes,
+        }}
+        onNavigate={onNavigate}
+      />
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
         <ListeAlertes alertes={alertesOperationnelles} filtres={{ gravite: 'critique', limite: 6 }} titre="Priorités : alertes critiques" onNavigate={onNavigate} onCreerTache={props.onCreateTask ? (alerte) => props.onCreateTask({ title: `Traiter : ${alerte.title || alerte.id}`, alert_id: alerte.id, module_lie: alerte.module_source, priority: 'critique', status: 'a_faire' }) : undefined} />
         <ListeTaches taches={tachesUrgentes} filtres={{ statut: 'toutes', limite: 6 }} titre="Priorités : tâches urgentes" onOuvrirTache={() => onNavigate?.('activite_suivi')} />
