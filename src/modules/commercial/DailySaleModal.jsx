@@ -239,6 +239,28 @@ export default function DailySaleModal({ props, onClose, onDone, prefill = null 
             </select>
           </Label>
           <div className="rounded-lg border border-positive bg-positive-bg p-3 text-sm text-positive">{t('dailyEntries.sale.total')} <b className="float-right">{fmtCurrency(total)}</b></div>
+          {form.payment_status !== 'non_paye' ? (
+            <div>
+              <span className="mb-1 block text-xs font-semibold text-slate">{t('dailyEntries.sale.paymentMethod')}</span>
+              <div className="grid grid-cols-3 gap-2">
+                {[
+                  { value: 'especes', label: t('dailyEntries.sale.methodCash') },
+                  { value: 'wave', label: t('dailyEntries.sale.methodWave') },
+                  { value: 'orange_money', label: t('dailyEntries.sale.methodOm') },
+                ].map((method) => (
+                  <button
+                    key={method.value}
+                    type="button"
+                    onClick={() => set('payment_method', method.value)}
+                    className={`min-h-[44px] rounded-lg border px-3 text-sm font-semibold ${form.payment_method === method.value ? 'border-earth bg-earth text-white' : 'border-line bg-white text-earth'}`}
+                    data-testid={`daily-sale-method-${method.value}`}
+                  >
+                    {method.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+          ) : null}
           <details className="rounded-lg border border-line bg-card p-3">
             <summary className="cursor-pointer text-sm font-semibold text-earth">{t('dailyEntries.common.details')}</summary>
             <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
