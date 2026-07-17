@@ -10,10 +10,10 @@ test('smartfarm — 7 onglets métier sans onglet Annexe dédié', () => {
   assert.ok(annexePresetForModule('smartfarm'));
 });
 
-test('finance_pilotage — 6 onglets canoniques', () => {
+test('finance_pilotage — 5 onglets canoniques sans doublon', () => {
   const tabs = MODULE_TARGET_TABS.finance_pilotage;
-  assert.equal(tabs.length, 6);
-  assert.deepEqual(tabs, ['Vue d’ensemble', 'Transactions', 'Trésorerie', 'Budget & écarts', 'Coûts & marges', 'Investissements & dettes']);
+  assert.equal(tabs.length, 5);
+  assert.deepEqual(tabs, ['Vue d’ensemble', 'Saisie & trésorerie', 'Coûts & marges', 'Budget & financements', 'Investissements & dettes']);
 });
 
 test('activite_suivi — 5 onglets sans onglet Annexe dédié', () => {

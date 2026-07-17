@@ -74,8 +74,6 @@ const TREASURY_SUBVIEW_ALIASES = {
 const PILOTAGE_SUBVIEW_ALIASES = {
   echeancier: 'Échéancier',
   financement: 'Financement',
-  investissements: 'Investissements',
-  rentabilite: 'Rentabilité',
   annexe: 'Annexe',
 };
 
@@ -707,16 +705,6 @@ export default function FinancePilotageRecoveredModule(props) {
           onOpenAssistant={props.onOpenAssistant}
           moduleProjections={financeModuleProjections}
         />
-      ) : tab === 'Transactions finance' ? (
-        <div className="space-y-4">
-          <FinancesV12 {...financeProps} />
-          <details className="border-t border-line pt-4">
-            <summary className="cursor-pointer text-sm font-semibold text-earth">Rapprochement des flux</summary>
-            <div className="mt-4">
-              <FinanceReconciliationPanel reconciliationView={reconciliationView} transactions={transactions} payments={paymentsAll.length ? paymentsAll : payments} salesOrders={salesOrdersAll.length ? salesOrdersAll : salesOrders} stocks={stocks} onCreateFinanceTransaction={props.onCreateFinanceTransaction || financesCrud.create} onRefreshFinances={props.onRefreshFinances || financesCrud.refresh} onNavigate={props.onNavigate} setTab={navigateFinance} />
-            </div>
-          </details>
-        </div>
       ) : tab === 'Trésorerie finance' ? (
         <div className="space-y-4">
           <FinanceInnerTabs
@@ -759,20 +747,12 @@ export default function FinancePilotageRecoveredModule(props) {
             tabs={[
               { key: 'echeancier', label: 'Échéancier' },
               { key: 'financement', label: 'Financement' },
-              { key: 'investissements', label: 'Investissements' },
-              { key: 'rentabilite', label: 'Rentabilité' },
               { key: 'annexe', label: 'Annexe' },
             ]}
             active={pilotageSubview}
             onChange={handlePilotageSubview}
           />
-          {pilotageSubview === 'echeancier' ? (
-            <div className="space-y-6">
-              <FinanceSchedulePanel schedule={schedule} showFarm={showFarmInSchedule} />
-              <FinanceAgingPanel receivablesAging={receivablesAging} payablesAging={payablesAging} showFarm={showFarmInSchedule} />
-              <FinanceCashFlowForecastPanel forecast={cashFlowForecast} />
-            </div>
-          ) : pilotageSubview === 'financement' ? (
+          {pilotageSubview === 'financement' ? (
             <div className="space-y-6">
               <FinanceDemoBanner demo={financeDemo} />
               <FinanceFinancingPanel
@@ -783,12 +763,14 @@ export default function FinancePilotageRecoveredModule(props) {
                 onSimulatorParamsChange={setSimulatorParams}
               />
             </div>
-          ) : pilotageSubview === 'investissements' ? (
-            <InvestissementsV9 {...investmentProps} />
-          ) : pilotageSubview === 'rentabilite' ? (
-            <RentabilitePanel profitability={profitability} consolidationProps={consolidationProps} />
-          ) : (
+          ) : pilotageSubview === 'annexe' ? (
             <FinanceAnnexePanel documents={financeProps.documents} onNavigate={props.onNavigate} />
+          ) : (
+            <div className="space-y-6">
+              <FinanceSchedulePanel schedule={schedule} showFarm={showFarmInSchedule} />
+              <FinanceAgingPanel receivablesAging={receivablesAging} payablesAging={payablesAging} showFarm={showFarmInSchedule} />
+              <FinanceCashFlowForecastPanel forecast={cashFlowForecast} />
+            </div>
           )}
         </div>
       ) : tab === 'Coûts & marges finance' ? (

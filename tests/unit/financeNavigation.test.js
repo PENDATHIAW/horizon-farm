@@ -13,22 +13,22 @@ test('resolveFinanceNavigation — Réconciliation ouvre sous-vue trésorerie', 
 test('resolveFinanceNavigation — Investissements ouvre la vue dédiée', () => {
   const nav = resolveFinanceNavigation('Investissements');
   assert.equal(nav.tab, 'Investissements & dettes finance');
-  assert.equal(nav.pilotageSubview, 'investissements');
+  assert.equal(nav.pilotageSubview, null);
 });
 
 test('resolveFinanceNavigation — Rentabilité ouvre Coûts & marges', () => {
   const nav = resolveFinanceNavigation('Rentabilité');
   assert.equal(nav.tab, 'Coûts & marges finance');
-  assert.equal(nav.pilotageSubview, 'rentabilite');
+  assert.equal(nav.pilotageSubview, null);
 });
 
-test('resolveFinanceNavigation — Dépenses ouvre Transactions', () => {
+test('resolveFinanceNavigation — Dépenses ouvre Saisie & trésorerie', () => {
   const nav = resolveFinanceNavigation('Dépenses');
-  assert.equal(nav.tab, 'Transactions finance');
+  assert.equal(nav.tab, 'Trésorerie finance');
   assert.equal(nav.treasurySubview, 'saisie');
 });
 
-test('resolveFinanceTab — 6 vues canoniques', () => {
+test('resolveFinanceTab — vues canoniques budget', () => {
   assert.equal(resolveFinanceTab('Créances'), 'Budget & écarts finance');
   assert.equal(resolveFinanceTab('Échéancier'), 'Budget & écarts finance');
   assert.equal(resolveFinanceTab('Financement'), 'Budget & écarts finance');
@@ -45,7 +45,7 @@ test('navigationOptionsForFinding — conserve l’alias finance pour sous-vues'
   assert.equal(nav.module, 'finance_pilotage');
   assert.equal(nav.tab, 'Investissements');
   const resolved = resolveFinanceNavigation(nav.tab);
-  assert.equal(resolved.pilotageSubview, 'investissements');
+  assert.equal(resolved.tab, 'Investissements & dettes finance');
 });
 
 test('buildOfficialTreasuryView — transactionsAll préserve le cumul', () => {

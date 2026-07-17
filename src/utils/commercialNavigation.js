@@ -148,7 +148,7 @@ const ACTIVITE_SUIVI_TAB_ALIASES = {
 };
 export const FINANCE_TABS = ['Résumé', 'Trésorerie', 'Créances & dettes', 'Pilotage', 'Graphiques'];
 export const FINANCE_TREASURY_SUBVIEWS = ['saisie', 'reconciliation'];
-export const FINANCE_PILOTAGE_SUBVIEWS = ['echeancier', 'financement', 'investissements', 'rentabilite', 'annexe'];
+export const FINANCE_PILOTAGE_SUBVIEWS = ['echeancier', 'financement', 'annexe'];
 
 const FINANCE_TAB_ALIASES = {
   Résumé: 'Résumé',
