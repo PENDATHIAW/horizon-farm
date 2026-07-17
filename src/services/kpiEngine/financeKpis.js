@@ -4,6 +4,7 @@ import { computeFinancePeriodSummary } from '../../modules/dashboard/dashboardMe
 import { buildFinancialPlanVsActual } from '../financialPlanService.js';
 import { resolvePeriodContext, rowMatchesMonthKeys } from '../../utils/periodScope.js';
 import { buildConsolidationInput, consolidateFinance } from '../../utils/financeConsolidationEngine.js';
+import { buildTreasuryByAccount } from '../../utils/treasuryByAccount.js';
 
 const arr = (value) => (Array.isArray(value) ? value : []);
 const number = (value = 0) => Number(value || 0);
@@ -34,6 +35,9 @@ export function computeFinanceKpis(payments = [], transactions = [], periodScope
   }));
   const cashNet = number(consolidated.cashNet);
   const margeReelle = number(consolidated.margeReelle);
+  // Ventilation de la trésorerie par compte (espèces, Wave, OM, banque…).
+  // La somme des comptes = cashNet exactement (résidu isolé dans « Non ventilé »).
+  const treasuryByAccount = buildTreasuryByAccount({ consolidated, payments, transactions });
   return {
     ...periods,
     income,
@@ -42,6 +46,7 @@ export function computeFinanceKpis(payments = [], transactions = [], periodScope
     expensesAllTime,
     cashNet,
     treasuryAvailable: cashNet,
+    treasuryByAccount,
     margeReelle,
     grossMargin: periods.encaissePeriod - periods.depensesPeriod,
     missingProof,

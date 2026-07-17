@@ -213,4 +213,3 @@ en arrière-plan. Sans ça, les notifications **dans l'app** fonctionnent déjà
 
 > Principe directeur : **d'abord fiabiliser les chiffres, ensuite décider
 > dessus**. Un ERP beau mais aux chiffres non consolidés ne sert à rien.
-</content>

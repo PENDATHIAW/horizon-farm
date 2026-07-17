@@ -83,5 +83,3 @@ un stockage mémoire non persistant (utile en dev, pas en prod).
   `ready:false, reason:'missing_vapid_public_key'` et l'abonnement est ignoré
   silencieusement. `/api/push/send` renvoie `simulated:true`. Aucune erreur
   bloquante pour l'utilisateur.
-</content>
-</invoke>
