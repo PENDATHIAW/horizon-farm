@@ -187,15 +187,12 @@ function Summary({
 }) {
   return (
     <div className="space-y-6">
+      {/* Essentiels visibles : situation, stats clés, alertes, signaux métier.
+          Les analyses secondaires sont repliées ci-dessous (« Voir plus »). */}
       <FinanceDemoBanner demo={financeDemo} />
-      <FinanceExecutiveSituationPanel situation={executiveSituation} onNavigateTab={navigateFinance} />
-      <ModuleProjectionsStrip projections={moduleProjections} onNavigate={onNavigate} />
-      <FinanceDataQualityPanel dataQuality={dataQuality} onNavigateTab={navigateFinance} />
-      <FinanceAlertsPanel alerts={financeAlerts} onNavigateTab={navigateFinance} insufficientData={startupMode} />
-      <FinanceMultiFarmPanel multiFarm={multiFarm} />
       {startupMode ? <FinanceStartupPanel journey={startupJourney} onNavigate={onNavigate} setTab={navigateFinance} /> : null}
-      <FinanceHeyHorizonStrip questions={heyHorizonQuestions} onNavigate={onNavigate} onOpenAssistant={onOpenAssistant} insufficientData={startupMode} />
-      <FinanceExportsPanel exportPayload={directExports || exportPayload} directOnly />
+      <FinanceExecutiveSituationPanel situation={executiveSituation} onNavigateTab={navigateFinance} />
+      <FinanceAlertsPanel alerts={financeAlerts} onNavigateTab={navigateFinance} insufficientData={startupMode} />
       <div className="grid grid-cols-2 gap-3 xl:grid-cols-8">
         <Stat label="Santé finance" value={formatFinanceHealthScore({ score: data.healthScore, insufficientData: data.healthInsufficient })} tone={financeHealthTone({ score: data.healthScore, insufficientData: data.healthInsufficient })} />
         <Stat label={TREASURY_LABELS.treasuryAvailable} value={fmtCurrency(data.treasuryAvailable)} tone={data.treasuryAvailable >= 0 ? 'good' : 'bad'} />
@@ -219,6 +216,16 @@ function Summary({
         busyId={busyId}
       />
       <FinanceMissingProofPanel items={data.missingProofItems} />
+      <details className="rounded-3xl border border-line bg-white shadow-card">
+        <summary className="cursor-pointer px-6 py-4 text-sm font-semibold text-earth">Voir plus — analyses détaillées</summary>
+        <div className="space-y-6 border-t border-line p-6">
+          <ModuleProjectionsStrip projections={moduleProjections} onNavigate={onNavigate} />
+          <FinanceDataQualityPanel dataQuality={dataQuality} onNavigateTab={navigateFinance} />
+          <FinanceMultiFarmPanel multiFarm={multiFarm} />
+          <FinanceHeyHorizonStrip questions={heyHorizonQuestions} onNavigate={onNavigate} onOpenAssistant={onOpenAssistant} insufficientData={startupMode} />
+          <FinanceExportsPanel exportPayload={directExports || exportPayload} directOnly />
+        </div>
+      </details>
       <section className="rounded-3xl border border-line bg-white p-6 shadow-card">
         <h2 className="flex items-center gap-2 text-lg font-semibold text-earth"><BarChart3 size={20} /> Workflows financiers récupérés</h2>
         <p className="mt-2 text-sm leading-relaxed text-slate">Finance & Pilotage remet les anciens moteurs : saisie finance Hey Horizon, trésorerie, santé comptable, preuves, business plan, paiement d'investissement, création d'actifs, documents et événements métier.</p>
