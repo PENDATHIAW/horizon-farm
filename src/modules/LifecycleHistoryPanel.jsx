@@ -19,6 +19,11 @@ const typeLabel = (type = '') => ({
   ajustement_à_valider: 'Mouvement à qualifier',
   récolte: 'Récolte',
   événement: 'Événement',
+  pesée: 'Pesée',
+  soin: 'Soin / santé',
+  vaccination: 'Vaccination',
+  'biosécurité': 'Biosécurité',
+  alimentation: 'Alimentation',
 }[type] || type);
 const hasReconciliation = (history = {}) => history.needsReconciliation || arr(history.events).some((event) => event.type === 'ajustement_à_valider' || event.status === 'à valider');
 
@@ -45,14 +50,17 @@ function Mini({ icon: Icon, label, value, danger = false }) {
   </div>;
 }
 
-export default function LifecycleHistoryPanel({ mode = 'avicole', rows = [], salesOrders = [], deliveries = [], businessEvents = [] }) {
+export default function LifecycleHistoryPanel({ mode = 'avicole', rows = [], salesOrders = [], deliveries = [], businessEvents = [], sante = [], alimentationLogs = [], weighings = [] }) {
   const salesCrud = useCrudModule('sales_orders');
   const deliveriesCrud = useCrudModule('deliveries');
   const targets = arr(rows).filter((row) => row?.id);
   const sales = effective(salesOrders, salesCrud.rows).filter((sale) => hasTargetLink(sale, targets));
   const deliveryRows = effective(deliveries, deliveriesCrud.rows).filter((delivery) => hasTargetLink(delivery, targets));
   const linkedEvents = arr(businessEvents).filter((event) => hasTargetLink(event, targets));
-  const histories = targets.map((target) => ({ target, history: buildLifecycleHistory({ mode, target, salesOrders: sales, deliveries: deliveryRows, businessEvents: linkedEvents }) }));
+  const linkedSante = arr(sante).filter((row) => hasTargetLink(row, targets));
+  const linkedFeed = arr(alimentationLogs).filter((row) => hasTargetLink(row, targets));
+  const linkedWeighings = arr(weighings).filter((row) => hasTargetLink(row, targets));
+  const histories = targets.map((target) => ({ target, history: buildLifecycleHistory({ mode, target, salesOrders: sales, deliveries: deliveryRows, businessEvents: linkedEvents, sante: linkedSante, alimentationLogs: linkedFeed, weighings: linkedWeighings }) }));
   const totalInitial = histories.reduce((sum, item) => sum + item.history.initial, 0);
   const totalActive = histories.reduce((sum, item) => sum + item.history.active, 0);
   const totalExited = histories.reduce((sum, item) => sum + item.history.exited, 0);
