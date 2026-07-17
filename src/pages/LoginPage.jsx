@@ -15,7 +15,7 @@ import {
 import { useAuth } from '../context/AuthContext';
 
 const brandLogo = '/brand-logo-login.png';
-const farmBg = '/login-farm-bg.png';
+const farmBg = '/login-hero-maraichage-v2-preview.jpg';
 const COPYRIGHT_HOLDER = 'Horizon Farm';
 
 const FEATURES = [
@@ -72,8 +72,9 @@ export default function LoginPage() {
         className="pointer-events-none absolute inset-0 bg-cover bg-no-repeat"
         style={{
           backgroundImage: `url(${farmBg})`,
-          /* Panier d'œufs en bas à droite : cadrage remonté pour le garder au-dessus du footer */
-          backgroundPosition: '58% 34%',
+          /* Coucher de soleil au centre, grange à gauche, paniers en bas :
+             cadrage centré-haut pour garder le ciel et l'horizon lisibles. */
+          backgroundPosition: 'center 38%',
         }}
         aria-hidden
       />
