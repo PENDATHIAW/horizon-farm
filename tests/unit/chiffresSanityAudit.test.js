@@ -25,6 +25,7 @@ import { summarizeAvicoleCosts, summarizeAnimalCosts } from '../../src/utils/cos
 import { buildProfitabilityView, buildOfficialTreasuryView } from '../../src/utils/financePilotageCore.js';
 import { buildReproductionKpis } from '../../src/utils/reproductionMetrics.js';
 import { buildDashboardSummary } from '../../src/modules/dashboard/dashboardMetrics.js';
+import { consolidateFinance, buildConsolidationInput } from '../../src/utils/financeConsolidationEngine.js';
 import { buildProductionHubSnapshot } from '../../src/utils/productionHubMetrics.js';
 import { buildCycleV1Kpis } from '../../src/utils/cycleMetrics.js';
 import { buildCommercialPilotageBundle } from '../../src/utils/commercialPilotageMetrics.js';
@@ -164,6 +165,23 @@ test('finance pilotage (rentabilité + trésorerie) : aucune sortie NaN/Infinity
 test('reproduction : aucune sortie NaN/Infinity', () => {
   const repro = buildReproductionKpis({ animaux: dataMap.animaux, businessEvents: dataMap.business_events });
   assert.deepEqual(nombresAberrants(repro), [], `Nombres aberrants dans reproduction :\n${nombresAberrants(repro).join('\n')}`);
+});
+
+test('charges : alimentation/santé rattachées à un animal comptées une seule fois', () => {
+  // Animal : achat 1000 + un log d'alimentation 500 rattaché + une santé 300 rattachée.
+  // Le coût unifié de l'animal intègre déjà feed + santé ; ces charges ne doivent
+  // PAS être ré-additionnées au total (sinon on gonfle les charges engagées).
+  const animaux = [{ id: 'A1', prix_achat: 1000 }];
+  const alimentationLogs = [{ id: 'F1', animal_id: 'A1', cout: 500 }];
+  const sante = [{ id: 'S1', animal_id: 'A1', cout: 300 }];
+  const c = consolidateFinance(buildConsolidationInput({ animaux, alimentationLogs, sante, transactions: [], salesOrders: [], payments: [] }));
+  assert.equal(c.chargesEngagees, 1800, `charges engagées (${c.chargesEngagees}) doivent valoir 1000 + 500 + 300 = 1800, sans double comptage`);
+});
+
+test('charges : alimentation NON rattachée reste comptée', () => {
+  // Un log d'alimentation sans animal/lot lié est une charge réelle à part entière.
+  const c = consolidateFinance(buildConsolidationInput({ animaux: [], alimentationLogs: [{ id: 'F2', cout: 400 }], transactions: [], salesOrders: [], payments: [] }));
+  assert.equal(c.chargesEngagees, 400, `l'alimentation non rattachée (${c.chargesEngagees}) doit rester comptée (400)`);
 });
 
 test('réconciliation trésorerie : Accueil = Finance officielle = tableau de bord', () => {

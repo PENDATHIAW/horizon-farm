@@ -1,5 +1,6 @@
 import { mergeFieldAndUnifiedTotals, summarizeUnifiedFarmCosts } from '../services/unifiedCostService.js';
 import { computeWeightedAverageCost, summarizeStockValuation } from './stockValuation.js';
+import { feedCostFromLog, healthCostFromEvent, isHealthCostEvent } from './costEngine.js';
 import { toNumber } from './format.js';
 
 const arr = (value) => Array.isArray(value) ? value : [];
@@ -47,8 +48,23 @@ function deriveBusinessCharges({ animaux = [], lots = [], cultures = [], stocks 
   const animalTotal = mergeFieldAndUnifiedTotals(animalFieldTotal, unified.animaux.totalCost);
   const lotTotal = mergeFieldAndUnifiedTotals(lotFieldTotal, unified.avicole.totalCost);
   const stockPurchases = arr(stocks).reduce((sum, item) => sum + stockPurchaseCost(item, stockMovements, transactions), 0);
-  const healthTotal = arr(sante).reduce((sum, row) => sum + healthCost(row), 0); const alimentationTotal = arr(alimentationLogs).reduce((sum, row) => sum + firstPositive(row.cout, row.coût, row.montant, row.amount, row.total, row.cout_total), 0); const investmentTotal = arr(investissements).reduce((sum, row) => sum + investmentCost(row), 0); const supplierDebt = arr(fournisseurs).reduce((sum, supplier) => sum + firstPositive(supplier.dettes, supplier.dette, supplier.solde_du, supplier.montant_du), 0);
-  const eventCharges = arr(businessEvents).reduce((sum, event) => { if (isLossEvent(event)) return sum; const kind = clean(`${event.type_evenement || ''} ${event.event_type || ''} ${event.title || ''} ${event.description || ''}`); const looksLikeCost = ['charge', 'cout', 'coût', 'depense', 'dépense', 'maintenance', 'sante', 'santé', 'aliment', 'investissement'].some((word) => kind.includes(word)); return sum + (looksLikeCost ? eventAmount(event) : 0); }, 0);
+  // Anti-double comptage : les coûts unifiés animaux/avicole intègrent déjà
+  // l'alimentation, la santé et les charges directes rattachées à un animal ou
+  // un lot. On n'ajoute donc EN SUPPLÉMENT que celles NON rattachées à un animal
+  // ou lot (les cultures ne passent pas par le moteur unifié : leurs charges
+  // restent comptées).
+  const livestockIds = new Set([...arr(animaux), ...arr(lots)].map((e) => String(e?.id ?? '')).filter(Boolean));
+  const feedLogEntityId = (log = {}) => String(log.animal_id ?? log.lot_id ?? log.entity_id ?? log.related_id ?? log.source_record_id ?? '');
+  const chargeEntityId = (row = {}) => String(row.target_id ?? row.related_id ?? row.entity_id ?? row.source_record_id ?? row.animal_id ?? row.lot_id ?? row.cible_id ?? '');
+  const attachedToLivestock = (id) => Boolean(id) && livestockIds.has(id);
+  // On retire du bucket brut une charge UNIQUEMENT si elle est rattachée à un
+  // animal/lot ET réellement comptée par le moteur unifié (le coût unifié de
+  // l'entité l'intègre alors déjà). Sinon on la garde : pas de double comptage,
+  // pas de perte.
+  const feedDejaUnifie = (log = {}) => attachedToLivestock(feedLogEntityId(log)) && feedCostFromLog(log) > 0;
+  const santeDejaUnifie = (row = {}) => attachedToLivestock(chargeEntityId(row)) && isHealthCostEvent(row) && healthCostFromEvent(row) > 0;
+  const healthTotal = arr(sante).reduce((sum, row) => (santeDejaUnifie(row) ? sum : sum + healthCost(row)), 0); const alimentationTotal = arr(alimentationLogs).reduce((sum, row) => (feedDejaUnifie(row) ? sum : sum + firstPositive(row.cout, row.coût, row.montant, row.amount, row.total, row.cout_total)), 0); const investmentTotal = arr(investissements).reduce((sum, row) => sum + investmentCost(row), 0); const supplierDebt = arr(fournisseurs).reduce((sum, supplier) => sum + firstPositive(supplier.dettes, supplier.dette, supplier.solde_du, supplier.montant_du), 0);
+  const eventCharges = arr(businessEvents).reduce((sum, event) => { if (isLossEvent(event)) return sum; if (santeDejaUnifie(event)) return sum; const kind = clean(`${event.type_evenement || ''} ${event.event_type || ''} ${event.title || ''} ${event.description || ''}`); const looksLikeCost = ['charge', 'cout', 'coût', 'depense', 'dépense', 'maintenance', 'sante', 'santé', 'aliment', 'investissement'].some((word) => kind.includes(word)); return sum + (looksLikeCost ? eventAmount(event) : 0); }, 0);
   // Dettes fournisseurs = passif uniquement - exclues du total charges engagées (P0-5).
   const total = animalTotal + lotTotal + cultureTotal + stockPurchases + healthTotal + alimentationTotal + investmentTotal + eventCharges;
   return { animaux: animalTotal, avicole: lotTotal, cultures: cultureTotal, stockAchats: stockPurchases, sante: healthTotal, alimentation: alimentationTotal, investissements: investmentTotal, dettesFournisseurs: supplierDebt, evenements: eventCharges, total, details: { animaux: animalBreakdown, avicole: lotBreakdown, cultures: cultureBreakdown } };

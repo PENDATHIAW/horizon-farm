@@ -20,7 +20,7 @@ export function describeAnimalProposedPriceBasis(salePricing = {}) {
   const candidates = [
     { value: marketTotal, text: marketPerKg > 0 ? `prix marché (${fmtCurrency(marketPerKg)}/kg)` : 'prix marché' },
     { value: toNumber(pricing.recommendedByWeight), text: weight > 0 && perKg > 0 ? `${fmtNumber(weight)} kg × ${fmtCurrency(perKg)}/kg` : 'poids × prix/kg Annexe' },
-    { value: toNumber(pricing.recommendedByCost), text: `coût + marge cible ${fmtNumber(pricing.targetMarginRate || 0)}%` },
+    { value: toNumber(pricing.recommendedByCost), text: `coût + marge cible ${fmtNumber(pricing.targetMarginRate || 0)}% (sur coût)` },
     { value: toNumber(pricing.manualEstimate), text: 'estimation saisie fiche' },
   ];
 
@@ -41,7 +41,7 @@ export function describeAvicoleProposedPriceBasis(salePricing = {}, lot = {}) {
 
   const candidates = [
     { value: configured, text: 'prix estimé fiche' },
-    { value: costPerBird > 0 && recommendedUnit > costPerBird ? recommendedUnit : 0, text: 'coût/sujet + marge cible' },
+    { value: costPerBird > 0 && recommendedUnit > costPerBird ? recommendedUnit : 0, text: 'coût/sujet + marge cible (sur coût)' },
     { value: !layer && weight > 0 ? recommendedUnit : 0, text: `barème chair (${fmtNumber(weight)} kg)` },
     { value: market, text: layer ? 'prix marché œufs' : 'prix marché chair' },
   ];
@@ -98,8 +98,8 @@ export function buildAvicoleProposedSaleDisplay(salePricing = {}, lot = {}) {
   };
 }
 
-export const SALE_PRICE_HELP_ANIMAL = `Prix proposé = max(estimation fiche, coût unifié + marge cible %, poids × prix/kg Annexe, prix marché). ${MARGIN_ON_PROPOSED_LABEL} = prix proposé − coût unifié ERP.`;
+export const SALE_PRICE_HELP_ANIMAL = `Prix proposé = max(estimation fiche, coût unifié + marge cible % sur coût, poids × prix/kg Annexe, prix marché). ${MARGIN_ON_PROPOSED_LABEL} = prix proposé − coût unifié ERP. La marge cible est un taux sur le coût de revient (distinct du taux de marge sur chiffre d'affaires du module Finance).`;
 
-export const SALE_PRICE_HELP_AVICOLE = `Prix proposé = max(prix fiche, coût/sujet + marge cible, barème chair ou marché). ${MARGIN_ON_PROPOSED_LABEL} = prix total proposé − coût unifié du lot.`;
+export const SALE_PRICE_HELP_AVICOLE = `Prix proposé = max(prix fiche, coût/sujet + marge cible sur coût, barème chair ou marché). ${MARGIN_ON_PROPOSED_LABEL} = prix total proposé − coût unifié du lot. La marge cible est un taux sur le coût de revient (distinct du taux de marge sur chiffre d'affaires du module Finance).`;
 
 export const ERP_REVENUE_LABEL = PRODUCTION_FINANCE_LABELS.revenue;
