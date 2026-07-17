@@ -66,7 +66,10 @@ function deriveBusinessCharges({ animaux = [], lots = [], cultures = [], stocks 
   const healthTotal = arr(sante).reduce((sum, row) => (santeDejaUnifie(row) ? sum : sum + healthCost(row)), 0); const alimentationTotal = arr(alimentationLogs).reduce((sum, row) => (feedDejaUnifie(row) ? sum : sum + firstPositive(row.cout, row.coût, row.montant, row.amount, row.total, row.cout_total)), 0); const investmentTotal = arr(investissements).reduce((sum, row) => sum + investmentCost(row), 0); const supplierDebt = arr(fournisseurs).reduce((sum, supplier) => sum + firstPositive(supplier.dettes, supplier.dette, supplier.solde_du, supplier.montant_du), 0);
   const eventCharges = arr(businessEvents).reduce((sum, event) => { if (isLossEvent(event)) return sum; if (santeDejaUnifie(event)) return sum; const kind = clean(`${event.type_evenement || ''} ${event.event_type || ''} ${event.title || ''} ${event.description || ''}`); const looksLikeCost = ['charge', 'cout', 'coût', 'depense', 'dépense', 'maintenance', 'sante', 'santé', 'aliment', 'investissement'].some((word) => kind.includes(word)); return sum + (looksLikeCost ? eventAmount(event) : 0); }, 0);
   // Dettes fournisseurs = passif uniquement - exclues du total charges engagées (P0-5).
-  const total = animalTotal + lotTotal + cultureTotal + stockPurchases + healthTotal + alimentationTotal + investmentTotal + eventCharges;
+  // Investissements (CAPEX) = capital durable, PAS une charge d'exploitation :
+  // exclus du total des charges engagées (donc de la marge d'exploitation).
+  // Ils restent exposés à part (champ `investissements`) pour affichage et cash.
+  const total = animalTotal + lotTotal + cultureTotal + stockPurchases + healthTotal + alimentationTotal + eventCharges;
   return { animaux: animalTotal, avicole: lotTotal, cultures: cultureTotal, stockAchats: stockPurchases, sante: healthTotal, alimentation: alimentationTotal, investissements: investmentTotal, dettesFournisseurs: supplierDebt, evenements: eventCharges, total, details: { animaux: animalBreakdown, avicole: lotBreakdown, cultures: cultureBreakdown } };
 }
 
