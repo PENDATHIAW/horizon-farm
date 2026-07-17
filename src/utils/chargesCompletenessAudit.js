@@ -32,7 +32,7 @@ const isPayrollTx = (row = {}) => /paie|salaire|r[ée]mun[ée]ration|rh\b|employ
 const isFixedChargeTx = (row = {}) => /loyer|[ée]lectric|eau\b|facture eau|carburant|[ée]nergie|essence|gasoil|assurance|taxe|imp[oô]t|internet|t[ée]l[ée]phone|abonnement|exploitation/.test(txText(row));
 const isCommissionTx = (row = {}) => /commission|frais.?(wave|om|orange|mobile|transfert)|frais bancaire|agios/.test(txText(row));
 const isAmortTx = (row = {}) => /amortiss|dotation|d[ée]pr[ée]ciation/.test(txText(row));
-const isMobileMoneyPayment = (row = {}) => /wave|orange|om\b|mobile.?money|momo/.test(lower(row.moyen_paiement ?? row.mode_paiement ?? row.payment_method ?? row.method ?? ''));
+const isMobileMoneyPayment = (row = {}) => /wave|orange|om\b|mobile.?money|momo/.test(lower(row.moyen_paiement ?? row.mode_paiement ?? row.paiement ?? row.payment_method ?? row.method ?? ''));
 
 const SEVERITY_PENALTY = { critique: 30, warning: 18, info: 8 };
 

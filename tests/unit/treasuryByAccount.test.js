@@ -18,6 +18,24 @@ test('normalizeAccount: mappe les moyens de paiement vers les comptes canoniques
   assert.equal(normalizeAccount(''), 'non_ventile');
 });
 
+test('normalizeAccount: Carte bancaire → banque', () => {
+  assert.equal(normalizeAccount('Carte bancaire'), 'banque');
+});
+
+test('buildTreasuryByAccount: attribue les dépenses saisies via le champ « paiement »', () => {
+  // Le formulaire finance stocke le compte dans `paiement` (pas moyen_paiement).
+  const transactions = [
+    { id: 'T1', type: 'sortie', montant: 40000, paiement: 'Wave', statut: 'paye', libelle: 'retrait aliment' },
+    { id: 'T2', type: 'sortie', montant: 10000, treasury_account_id: 'Espèces', statut: 'paye', libelle: 'petite caisse' },
+  ];
+  const result = buildTreasuryByAccount({ consolidated: { cashNet: -50000 }, payments: [], transactions });
+  const wave = result.accounts.find((a) => a.key === 'wave');
+  const especes = result.accounts.find((a) => a.key === 'especes');
+  assert.equal(wave.net, -40000, 'la dépense Wave doit être attribuée au compte Wave');
+  assert.equal(especes.net, -10000);
+  assert.equal(result.accounts.reduce((s, a) => s + a.net, 0), -50000);
+});
+
 test('buildTreasuryByAccount: la somme des comptes égale toujours cashNet', () => {
   const payments = [
     { id: 'P1', montant_paye: 100000, moyen_paiement: 'Wave', statut: 'paye' },

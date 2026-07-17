@@ -18,7 +18,9 @@ const lower = (value) => clean(value).toLowerCase();
 
 const amountOf = (row = {}) => toNumber(row.montant ?? row.amount ?? row.total ?? row.montant_total ?? row.total_amount ?? 0);
 const paymentAmount = (row = {}) => toNumber(row.montant_paye ?? row.montant ?? row.amount ?? row.paid_amount ?? 0);
-const methodOf = (row = {}) => lower(row.moyen_paiement ?? row.mode_paiement ?? row.payment_method ?? row.method ?? row.compte ?? row.account ?? '');
+// `paiement` et `treasury_account_id` sont les champs du formulaire finance
+// (dépenses/charges) ; `moyen_paiement` celui des encaissements ventes.
+const methodOf = (row = {}) => lower(row.moyen_paiement ?? row.mode_paiement ?? row.paiement ?? row.payment_method ?? row.method ?? row.compte ?? row.treasury_account_id ?? row.account ?? '');
 const isCancelled = (row = {}) => ['annule', 'annulee', 'annulé', 'annulée', 'cancelled', 'rejete', 'rejeté'].includes(lower(row.statut ?? row.status));
 const isIn = (row = {}) => ['entree', 'entrée', 'income', 'in', 'recette'].includes(lower(row.type ?? row.nature ?? row.transaction_type));
 const isOut = (row = {}) => ['sortie', 'expense', 'out', 'charge', 'depense', 'dépense', 'achat'].includes(lower(row.type ?? row.nature ?? row.transaction_type));
@@ -44,7 +46,7 @@ export function normalizeAccount(method = '') {
   if (/(esp[eè]ce|cash|liquide|caisse)/.test(value)) return 'especes';
   if (/wave/.test(value)) return 'wave';
   if (/(orange|om\b|o\.m|orange.?money)/.test(value)) return 'orange_money';
-  if (/(banque|bank|virement|cheque|chèque|compte.?bancaire|rib|transfer)/.test(value)) return 'banque';
+  if (/(banque|bank|bancaire|virement|cheque|chèque|carte|compte.?bancaire|rib|transfer)/.test(value)) return 'banque';
   if (/(free|mtn|moov|mobile.?money|momo|kpay|maxit)/.test(value)) return 'autre';
   return 'autre';
 }
