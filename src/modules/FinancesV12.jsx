@@ -13,6 +13,7 @@ import BpKpiHealth from './BpKpiHealth.jsx';
 import FinanceAccountingHealth from './FinanceAccountingHealth.jsx';
 import FinanceCashPilotPanel from './FinanceCashPilotPanel.jsx';
 import TreasuryByAccountPanel from './TreasuryByAccountPanel.jsx';
+import ChargesCompletenessPanel from './ChargesCompletenessPanel.jsx';
 import FinancesV11 from './FinancesV11.jsx';
 import { subscribeFormModal } from '../services/formModalManager.js';
 
@@ -102,6 +103,7 @@ export default function FinancesV12(props) {
     {horizonDraft ? <div id="hey-horizon-finance-card"><HeyHorizonFinanceCard draft={horizonDraft} onCreate={props.onCreate} onCreateBusinessEvent={props.onCreateBusinessEvent || businessEventsCrud.create} onRefresh={props.onRefresh} onRefreshBusinessEvents={props.onRefreshBusinessEvents || businessEventsCrud.refresh} onClose={() => setHorizonDraft(null)} /></div> : null}
     <FinanceCashPilotPanel transactions={transactions} salesOrders={props.salesOrders || []} payments={props.payments || []} fournisseurs={props.fournisseurs || []} stocks={props.stocks || []} stockMovements={props.stockMovements || []} onNavigate={props.onNavigate} />
     <TreasuryByAccountPanel {...props} transactions={transactions} />
+    <ChargesCompletenessPanel transactions={transactions} payments={props.payments || []} investissements={props.investissements || []} team={props.team || []} onNavigate={props.onNavigate} />
     <BpKpiHealth salesOrders={props.salesOrders || []} payments={props.payments || []} transactions={transactions} investments={props.investissements || []} onNavigate={props.onNavigate} />
     <FinanceAccountingHealth transactions={transactions} salesOrders={props.salesOrders || []} payments={props.payments || []} documents={props.documents || documentsCrud.rows || []} clients={props.clients || []} fournisseurs={props.fournisseurs || []} onNavigate={props.onNavigate} />
     <FinancesV11 {...props} />

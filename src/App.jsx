@@ -690,6 +690,7 @@ export default function App() {
       salesOrdersAll: rows(c.sales_orders),
       fournisseurs: rows(c.fournisseurs),
       clients: rows(c.clients),
+      team: objectiveTeam,
       stocks: rows(c.stock),
       stockMovements: rows(c.stock_movements),
       animaux: rows(c.animaux),
