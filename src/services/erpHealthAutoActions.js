@@ -1,6 +1,7 @@
 import { generateSequentialId } from '../utils/ids.js';
 import { hasOpenTaskForHealthFinding, sanitizeHealthTaskTitle } from '../utils/healthFindingLabels.js';
 import { buildTaskFromAlert, alertDedupeKey, isAlertClosed } from '../utils/taskWorkflows.js';
+import { shouldCreateTask } from '../config/alertPolicy.js';
 
 
 
@@ -151,7 +152,8 @@ export async function applyErpHealthAutoActions(report, {
       }
 
       const chain = buildTaskFromAlert(alert, existingTasks);
-      if (!hasOpenTaskForFinding(existingTasks, finding)) {
+      // Politique unique : une tâche auto uniquement pour urgence/critique.
+      if (shouldCreateTask({ severity: finding.severity }) && !hasOpenTaskForFinding(existingTasks, finding)) {
         await onCreateTask(chain.task);
         existingTasks.push(chain.task);
         createdTasks += 1;
@@ -167,6 +169,8 @@ export async function applyErpHealthAutoActions(report, {
 
   for (const finding of taskCandidates) {
     if (!finding?.id || processed.has(`task:${finding.id}`)) { skipped += 1; continue; }
+    // Politique unique : pas de tâche auto pour warning/info (consultables au centre).
+    if (!shouldCreateTask({ severity: finding.severity })) { skipped += 1; continue; }
     if (String(finding.id).startsWith('task-critical-')) { skipped += 1; continue; }
     if (/^tâche critique\s*:/i.test(String(finding.title || ''))) { skipped += 1; continue; }
     if (hasOpenTaskForFinding(existingTasks, finding)) { processed.add(`task:${finding.id}`); skipped += 1; continue; }
