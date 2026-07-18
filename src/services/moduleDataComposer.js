@@ -42,6 +42,9 @@ export function composeDecisionDataMap({ crud = {}, dataMap = {}, liveMeteo = nu
     market_prices: dataMap.market_prices || [],
     market_calendar_events: dataMap.market_calendar_events || [],
     smartfarm_events: dataMap.smartfarm_events || [],
+    equipements: rows(crud.equipements),
+    sensor_devices: rows(crud.sensor_devices),
+    sensorDevices: rows(crud.sensor_devices),
     meteo: liveMeteo,
   };
 }

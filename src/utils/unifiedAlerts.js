@@ -16,6 +16,7 @@
  * marquées `catalogued: false` (le catalogue sera étendu en Phase 2).
  */
 import { ALERTES_PAR_CODE } from '../config/catalogueAlertes.js';
+import { buildSmartFarmAlerts } from '../services/smartFarmAlertEngine.js';
 
 const arr = (value) => (Array.isArray(value) ? value : []);
 const num = (value) => Number(value || 0);
@@ -145,6 +146,11 @@ function derivedDetections(dataMap = {}, { online = true, weather = {} } = {}) {
   if (weather?.riskLevel && lower(weather.riskLevel) !== 'stable') {
     push({ code: '', moduleKey: 'dashboard', entity_type: 'meteo', entity_id: 'meteo', title: 'Météo et terrain', message: weather.impact || 'Vérifier les conditions du terrain.', severity: 'warning' });
   }
+
+  // Smart Farm — capteurs et événements terrain (chaleur, sol sec, capteur
+  // hors ligne, batterie, intrusion, fuite d'eau…).
+  buildSmartFarmAlerts(dataMap.sensor_devices || dataMap.sensorDevices, dataMap.smartfarm_events || dataMap.smartfarmEvents)
+    .forEach(push);
 
   // Système — hors ligne.
   if (!online) {
