@@ -102,7 +102,7 @@ function NavIcon({ icon: Icon, size = 19 }) {
 
 export default function AppLayout({
   navItems = [], active = 'dashboard', setActive, onNavigate, sidebarOpen = true, setSidebarOpen,
-  online = true, meteo, weather, weatherSource, user, onSignOut, signOut,
+  online = true, meteo, weather, weatherSource, user, onSignOut, signOut, alerts: alertsProp,
   dataMap = {}, onOpenAssistant, periodScope, onPeriodScopeChange, farmScope,
   accessibleFarms = [], onFarmScopeChange, activeFarm, onManageFarms, children,
 }) {
@@ -127,7 +127,10 @@ export default function AppLayout({
   const [uiSettings, setUiSettings] = useState(readUiSettings);
   const [simulatedDataMode, setSimulatedDataMode] = useState(() => isDemoModeEnabled());
   const results = useMemo(() => searchERP(dataMap || {}, globalSearch).slice(0, mobileSearchOpen ? 10 : 6), [dataMap, globalSearch, mobileSearchOpen]);
-  const alerts = useMemo(() => buildAlerts(dataMap, online, currentWeather), [dataMap, online, currentWeather]);
+  // Liste unifiée fournie par App.jsx (source unique). Repli local uniquement
+  // si le parent n'en passe pas (compat tests / montages isolés).
+  const localAlerts = useMemo(() => buildAlerts(dataMap, online, currentWeather), [dataMap, online, currentWeather]);
+  const alerts = alertsProp ?? localAlerts;
 
   useEffect(() => {
     const updateQueue = () => setPendingSyncCount(readOfflineQueue().length);
@@ -297,11 +300,14 @@ export default function AppLayout({
               <div className="absolute right-2 top-18 z-50 w-[min(94vw,420px)] rounded-card border border-line bg-card p-4 shadow-float md:right-16">
                 <div className="mb-3 flex items-center justify-between"><div><p className="text-sm font-semibold text-earth">Notifications</p><p className="text-meta text-slate">{alerts.length} alerte(s)</p></div><button type="button" onClick={() => setNotificationsOpen(false)} className="grid h-9 w-9 place-items-center rounded-control text-slate hover:bg-mist"><X size={16} /></button></div>
                 <div className="max-h-[60vh] space-y-2 overflow-y-auto">
-                  {alerts.length > 0 ? alerts.map((alert) => (
-                    <button key={alert.id} type="button" onClick={() => navigate(alert.moduleKey)} className={`w-full rounded-control border p-3 text-left ${alert.severity === 'danger' ? 'border-urgent bg-urgent-bg' : 'border-vigilance bg-vigilance-bg'}`}>
-                      <div className="flex gap-2"><AlertTriangle size={15} className={alert.severity === 'danger' ? 'mt-1 shrink-0 text-urgent' : 'mt-1 shrink-0 text-horizon-dark'} /><div><p className="text-xs font-semibold text-ink">{alert.type}</p><p className="mt-1 text-xs text-slate">{alert.text}</p></div></div>
+                  {alerts.length > 0 ? alerts.map((alert) => {
+                    const urgent = ['urgence', 'critique', 'danger'].includes(alert.severity);
+                    return (
+                    <button key={alert.id} type="button" onClick={() => navigate(alert.navModule || alert.moduleKey)} className={`w-full rounded-control border p-3 text-left ${urgent ? 'border-urgent bg-urgent-bg' : 'border-vigilance bg-vigilance-bg'}`}>
+                      <div className="flex gap-2"><AlertTriangle size={15} className={urgent ? 'mt-1 shrink-0 text-urgent' : 'mt-1 shrink-0 text-horizon-dark'} /><div><p className="text-xs font-semibold text-ink">{alert.type}</p><p className="mt-1 text-xs text-slate">{alert.text}</p></div></div>
                     </button>
-                  )) : (
+                    );
+                  }) : (
                     <div className="flex gap-2 rounded-control border border-positive bg-positive-bg p-3"><CheckCircle size={16} className="mt-1 shrink-0 text-positive" /><div><p className="text-xs font-semibold text-ink">Aucune alerte</p><p className="text-xs text-slate">Tout est à jour.</p></div></div>
                   )}
                 </div>
