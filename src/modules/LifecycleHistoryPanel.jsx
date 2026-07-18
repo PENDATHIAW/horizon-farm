@@ -3,6 +3,7 @@ import useCrudModule from '../hooks/useCrudModule';
 import { buildLifecycleHistory } from '../services/lifecycleHistoryService';
 import { fmtCurrency, fmtNumber, toNumber } from '../utils/format';
 import SubjectSensors from './SubjectSensors.jsx';
+import WeightCurve from './WeightCurve.jsx';
 
 const arr = (value) => Array.isArray(value) ? value : [];
 const effective = (provided, fallback) => arr(provided).length ? provided : fallback;
@@ -131,6 +132,7 @@ export default function LifecycleHistoryPanel({ mode = 'avicole', rows = [], sal
             </div>
             {needsQualify || history.needsClosure ? <p className="mt-3 rounded-xl border border-vigilance bg-vigilance-bg px-3 py-2 text-xs font-semibold text-horizon-dark">{history.recommendation}</p> : null}
           </div>
+          {mode === 'animaux' || mode === 'avicole' ? <WeightCurve target={target} mode={mode} /> : null}
           <SubjectSensors target={target} mode={mode} />
           <div className="overflow-x-auto">
             <table className="min-w-full text-sm">
