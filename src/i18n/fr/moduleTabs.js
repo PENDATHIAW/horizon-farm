@@ -1,7 +1,7 @@
 /** Libellés des onglets cibles, regroupés par module. */
 export default {
   dashboard: ['Vue du jour', 'Pilotage', 'Mes actions'],
-  assistant_erp: ['Conversation'],
+  assistant_erp: ['Conversation', 'Actions clés'],
   centre_decisionnel: ['À traiter', 'Écarts', 'Risques', 'Décisions', 'Historique'],
   objectifs_croissance: ['Objectifs', 'Scénarios', 'Historique'],
   elevage: ['Vue d’ensemble', 'Lots & animaux', 'Alimentation', 'Production', 'Santé & Biosécurité', 'Transformation', 'Coûts & performance', 'Historique'],

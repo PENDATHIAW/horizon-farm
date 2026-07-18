@@ -209,7 +209,10 @@ export default function AppLayout({
             {groupedNavItems.map((group) => {
               const GroupIcon = group.icon;
               const isGroupActive = group.key === activeGroup?.key;
-              const expanded = group.key === activeGroup?.key || openSections[group.key] === true;
+              // Le choix explicite de l'utilisateur prime : sans quoi la section
+              // active restait toujours dépliée et impossible à replier.
+              const userChoice = openSections[group.key];
+              const expanded = userChoice != null ? userChoice === true : isGroupActive;
               return (
                 <div key={group.key} className="space-y-1">
                   {sidebarOpen ? (
