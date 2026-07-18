@@ -330,7 +330,6 @@ export default function App() {
 
   const alertCounts = useMemo(() => computeNavAlertCounts(crudRowsMap(c)), [c]);
   const alertFlags = useMemo(() => navAlertFlags(alertCounts, online), [alertCounts, online]);
-  const notifs = alertCounts.notifs + (online ? 0 : 1);
   const refreshAll = useCallback(async () => refreshAllModules(refreshModule), [refreshModule]);
   const refreshSalesWorkflowFn = useCallback(async () => refreshSalesWorkflow(c), [c]);
   const farmComparisonData = useMemo(() => ({
@@ -938,7 +937,7 @@ export default function App() {
 
   return <>
     <ProductionUpdateBanner />
-    <AppLayout navItems={navItems} active={resolvedActive} onNavigate={setActive} sidebarOpen={sidebarOpen} setSidebarOpen={setSidebarOpen} user={user} signOut={signOut} online={online} notifs={notifs} weather={liveMeteo} weatherLoading={weatherLoading} weatherSource={weatherSource} dataMap={overviewDataMap} onOpenAssistant={() => openAssistantWithQuery()} periodScope={periodScope} onPeriodScopeChange={handlePeriodScopeChange} farmScope={normalizeFarmScope(farmScope, effectiveAccessibleFarms)} accessibleFarms={effectiveAccessibleFarms} onFarmScopeChange={handleFarmScopeChange} activeFarm={activeFarm} onManageFarms={handleManageFarms}>
+    <AppLayout navItems={navItems} active={resolvedActive} onNavigate={setActive} sidebarOpen={sidebarOpen} setSidebarOpen={setSidebarOpen} user={user} signOut={signOut} online={online} weather={liveMeteo} weatherLoading={weatherLoading} weatherSource={weatherSource} dataMap={overviewDataMap} onOpenAssistant={() => openAssistantWithQuery()} periodScope={periodScope} onPeriodScopeChange={handlePeriodScopeChange} farmScope={normalizeFarmScope(farmScope, effectiveAccessibleFarms)} accessibleFarms={effectiveAccessibleFarms} onFarmScopeChange={handleFarmScopeChange} activeFarm={activeFarm} onManageFarms={handleManageFarms}>
     <FarmActivityNotice message={activeModuleProps.farmActivityNotice} farmName={activeFarm?.name} actionLabel={activeModuleProps.farmActivityNoticeDetail?.actionLabel} onAction={activeModuleProps.farmActivityNoticeDetail ? handleFarmActivityAction : undefined} />
     <ErrorBoundary moduleName={activeModuleLabel} resetKey={resolvedActive} onBackToDashboard={() => setActive('dashboard')}>
       <KpiOverviewProvider dataMap={overviewDataMap} periodScope={periodScope} periodLabel={periodLabel} onNavigate={setActive}>

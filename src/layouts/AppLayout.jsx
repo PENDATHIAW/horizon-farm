@@ -102,7 +102,7 @@ function NavIcon({ icon: Icon, size = 19 }) {
 
 export default function AppLayout({
   navItems = [], active = 'dashboard', setActive, onNavigate, sidebarOpen = true, setSidebarOpen,
-  online = true, meteo, weather, weatherSource, notifs = 0, user, onSignOut, signOut,
+  online = true, meteo, weather, weatherSource, user, onSignOut, signOut,
   dataMap = {}, onOpenAssistant, periodScope, onPeriodScopeChange, farmScope,
   accessibleFarms = [], onFarmScopeChange, activeFarm, onManageFarms, children,
 }) {
@@ -279,7 +279,7 @@ export default function AppLayout({
             <div className="flex items-center gap-1">
               <button type="button" aria-label="Rechercher dans l’ERP" onClick={() => { setMobileSearchOpen(true); setNotificationsOpen(false); setSettingsOpen(false); }} className="grid h-11 w-11 place-items-center rounded-control text-slate hover:bg-mist hover:text-earth lg:hidden"><Search size={18} /></button>
               <button type="button" aria-label="Ouvrir les notifications" onClick={() => { setNotificationsOpen((value) => !value); setSettingsOpen(false); setMobileSearchOpen(false); }} className="relative grid h-11 w-11 place-items-center rounded-control text-slate hover:bg-mist hover:text-earth">
-                <Bell size={18} />{notifs > 0 ? <span className="absolute right-0 top-0 grid h-4 min-w-4 place-items-center rounded-full bg-urgent px-1 text-meta font-semibold text-pure">{notifs > 99 ? '99+' : notifs}</span> : null}
+                <Bell size={18} />{alerts.length > 0 ? <span className="absolute right-0 top-0 grid h-4 min-w-4 place-items-center rounded-full bg-urgent px-1 text-meta font-semibold text-pure">{alerts.length > 99 ? '99+' : alerts.length}</span> : null}
               </button>
               <button type="button" aria-label="Ouvrir Hey Horizon" title="Hey Horizon" onClick={onOpenAssistant} className="grid h-11 w-11 place-items-center rounded-control text-leaf hover:bg-positive-bg"><Bot size={18} /></button>
               <button type="button" aria-label="Ouvrir les paramètres" onClick={() => { setSettingsOpen((value) => !value); setNotificationsOpen(false); setMobileSearchOpen(false); }} className="grid h-11 w-11 place-items-center rounded-control text-slate hover:bg-mist hover:text-earth"><Settings size={18} /></button>
