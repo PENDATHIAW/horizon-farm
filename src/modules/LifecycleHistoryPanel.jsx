@@ -2,6 +2,7 @@ import { AlertTriangle, CheckCircle2, History, PackageCheck } from 'lucide-react
 import useCrudModule from '../hooks/useCrudModule';
 import { buildLifecycleHistory } from '../services/lifecycleHistoryService';
 import { fmtCurrency, fmtNumber, toNumber } from '../utils/format';
+import SubjectSensors from './SubjectSensors.jsx';
 
 const arr = (value) => Array.isArray(value) ? value : [];
 const effective = (provided, fallback) => arr(provided).length ? provided : fallback;
@@ -111,6 +112,7 @@ export default function LifecycleHistoryPanel({ mode = 'avicole', rows = [], sal
               {!history.needsClosure && !needsQualify ? <span className="rounded-full bg-positive-bg px-3 py-1 text-xs font-semibold text-positive"><CheckCircle2 size={13} className="inline" /> OK</span> : null}
             </div>
           </div>
+          <SubjectSensors target={target} mode={mode} />
           <div className="overflow-x-auto">
             <table className="min-w-full text-sm">
               <thead><tr className="border-b border-line bg-white text-left text-xs uppercase text-slate"><th className="py-2 px-3">Date</th><th className="py-2 px-3">Mouvement</th><th className="py-2 px-3">Variation</th><th className="py-2 px-3">Reste</th><th className="py-2 px-3">Montant</th><th className="py-2 px-3">Source</th><th className="py-2 px-3">Statut</th></tr></thead>
