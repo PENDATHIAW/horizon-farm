@@ -7,6 +7,15 @@ import SubjectSensors from './SubjectSensors.jsx';
 const arr = (value) => Array.isArray(value) ? value : [];
 const effective = (provided, fallback) => arr(provided).length ? provided : fallback;
 const labelOf = (row = {}) => row.name || row.nom || row.tag || row.boucle_numero || row.type || row.id || 'Sujet';
+function StatChip({ label, value, tone = 'neutral' }) {
+  const cls = tone === 'bad' ? 'text-urgent' : tone === 'warn' ? 'text-horizon-dark' : 'text-earth';
+  return (
+    <div className="rounded-xl border border-line bg-white px-2.5 py-1.5">
+      <p className="text-meta text-slate">{label}</p>
+      <p className={`text-sm font-semibold tabular-nums ${cls}`}>{value}</p>
+    </div>
+  );
+}
 const clean = (value) => String(value || '').trim().toLowerCase();
 const physicalIdOf = (row = {}) => row.boucle_numero || row.qr_code || row.tag || row.id;
 const typeLabel = (type = '') => ({
@@ -100,17 +109,27 @@ export default function LifecycleHistoryPanel({ mode = 'avicole', rows = [], sal
       {histories.slice(0, 8).map(({ target, history }, index) => {
         const needsQualify = hasReconciliation(history);
         return <div key={`${target.id || 'cycle'}-${index}`} className={`rounded-2xl border overflow-hidden ${needsQualify ? 'border-vigilance bg-vigilance-bg' : 'border-line bg-card'}`}>
-          <div className="flex flex-col md:flex-row md:items-center justify-between gap-2 p-4 border-b border-line">
-            <div>
-              <p className="font-semibold text-earth">{labelOf(target)}</p>
-              <p className="text-xs text-slate">Initial {fmtNumber(history.initial)} · sorties {fmtNumber(history.exited)} · morts {fmtNumber(history.morts)} · malades {fmtNumber(history.malades)} · vendus {fmtNumber(history.vendus)} · actif {fmtNumber(history.active)}</p>
-              {needsQualify || history.needsClosure ? <p className="mt-2 rounded-xl border border-vigilance bg-vigilance-bg px-3 py-2 text-xs font-semibold text-horizon-dark">{history.recommendation}</p> : null}
+          <div className="p-4 border-b border-line">
+            <div className="flex items-start justify-between gap-3">
+              <div className="min-w-0">
+                <p className="truncate text-base font-semibold text-earth">{labelOf(target)}</p>
+                <p className="text-meta text-slate">Effectif actif</p>
+                <p className="text-2xl font-semibold leading-tight text-earth tabular-nums">{fmtNumber(history.active)}</p>
+              </div>
+              <div className="shrink-0">
+                {history.needsClosure ? <span className="rounded-full bg-neutral-bg px-3 py-1 text-xs font-semibold text-neutral">À clôturer</span>
+                  : needsQualify ? <span className="rounded-full bg-vigilance-bg px-3 py-1 text-xs font-semibold text-horizon-dark">À qualifier</span>
+                  : <span className="inline-flex items-center gap-1 rounded-full bg-positive-bg px-3 py-1 text-xs font-semibold text-positive"><CheckCircle2 size={13} /> OK</span>}
+              </div>
             </div>
-            <div className="flex flex-wrap gap-2">
-              {history.needsClosure ? <span className="rounded-full bg-neutral-bg px-3 py-1 text-xs font-semibold text-neutral">À clôturer</span> : null}
-              {needsQualify ? <span className="rounded-full bg-vigilance-bg px-3 py-1 text-xs font-semibold text-horizon-dark">Mouvement à qualifier</span> : null}
-              {!history.needsClosure && !needsQualify ? <span className="rounded-full bg-positive-bg px-3 py-1 text-xs font-semibold text-positive"><CheckCircle2 size={13} className="inline" /> OK</span> : null}
+            <div className="mt-3 grid grid-cols-3 gap-2 sm:grid-cols-5">
+              <StatChip label="Initial" value={fmtNumber(history.initial)} />
+              <StatChip label="Sorties" value={fmtNumber(history.exited)} />
+              <StatChip label="Morts" value={fmtNumber(history.morts)} tone={toNumber(history.morts) > 0 ? 'bad' : 'neutral'} />
+              <StatChip label="Malades" value={fmtNumber(history.malades)} tone={toNumber(history.malades) > 0 ? 'warn' : 'neutral'} />
+              <StatChip label="Vendus" value={fmtNumber(history.vendus)} />
             </div>
+            {needsQualify || history.needsClosure ? <p className="mt-3 rounded-xl border border-vigilance bg-vigilance-bg px-3 py-2 text-xs font-semibold text-horizon-dark">{history.recommendation}</p> : null}
           </div>
           <SubjectSensors target={target} mode={mode} />
           <div className="overflow-x-auto">

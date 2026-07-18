@@ -109,7 +109,7 @@ function avicoleDevices(id) {
       ],
     },
     {
-      label: 'Caméra IA poulailler', tech: 'Caméra', kind: 'camera',
+      label: 'Caméra intelligente poulailler', tech: 'Caméra', kind: 'camera',
       etat: camAnomalie ? 'alerte' : 'ras',
       alert: camAnomalie ? { severity: 'warning', message: 'Regroupement anormal détecté', action: 'Vérifier le lot (chaleur, maladie)' } : null,
       readings: [
