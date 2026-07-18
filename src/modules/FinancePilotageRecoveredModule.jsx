@@ -27,7 +27,6 @@ import FinanceMultiFarmPanel from './finance/FinanceMultiFarmPanel.jsx';
 import FinanceFinancingPanel from './finance/FinanceFinancingPanel.jsx';
 import FinanceReconciliationPanel from './finance/FinanceReconciliationPanel.jsx';
 import FinanceExportsPanel from './finance/FinanceExportsPanel.jsx';
-import FinanceHeyHorizonStrip from './finance/FinanceHeyHorizonStrip.jsx';
 import ModuleProjectionsStrip from '../components/module/ModuleProjectionsStrip.jsx';
 import { buildFinanceModuleProjections } from '../utils/moduleProjections.js';
 import {
@@ -57,7 +56,6 @@ import {
   buildFinanceDataQuality,
   buildFinanceDemoPresentation,
   buildFinanceDirectExports,
-  buildFinanceHeyHorizonQuestionsV3,
   buildFinancingSimulator,
   buildFinancingViewV3,
   readFinanceSimulatorParams,
@@ -175,12 +173,10 @@ function Summary({
   financeAlerts = [],
   multiFarm = null,
   startupJourney = null,
-  heyHorizonQuestions = [],
   exportPayload = null,
   directExports = null,
   dataQuality = null,
   financeDemo = null,
-  onOpenAssistant,
   moduleProjections = null,
 }) {
   return (
@@ -218,7 +214,6 @@ function Summary({
           <ModuleProjectionsStrip projections={moduleProjections} onNavigate={onNavigate} />
           <FinanceDataQualityPanel dataQuality={dataQuality} onNavigateTab={navigateFinance} />
           <FinanceMultiFarmPanel multiFarm={multiFarm} />
-          <FinanceHeyHorizonStrip questions={heyHorizonQuestions} onNavigate={onNavigate} onOpenAssistant={onOpenAssistant} insufficientData={startupMode} />
           <FinanceExportsPanel exportPayload={directExports || exportPayload} directOnly />
         </div>
       </details>
@@ -538,10 +533,6 @@ export default function FinancePilotageRecoveredModule(props) {
     () => buildFinanceDirectExports(financingPropsBundle, v3Options),
     [financingPropsBundle, v3Options],
   );
-  const heyHorizonQuestions = useMemo(
-    () => buildFinanceHeyHorizonQuestionsV3(v2Options),
-    [v2Options],
-  );
   const showFarmInSchedule = (props.accessibleFarms || []).filter((farm) => farm.status !== 'archived').length > 1
     || props.farmScope?.mode === 'all';
   const actionHandlers = {
@@ -697,12 +688,10 @@ export default function FinancePilotageRecoveredModule(props) {
           financeAlerts={financeAlerts}
           multiFarm={multiFarm}
           startupJourney={startupJourney}
-          heyHorizonQuestions={heyHorizonQuestions}
           exportPayload={exportPayload}
           directExports={directExports}
           dataQuality={dataQuality}
           financeDemo={financeDemo}
-          onOpenAssistant={props.onOpenAssistant}
           moduleProjections={financeModuleProjections}
         />
       ) : tab === 'Trésorerie finance' ? (
@@ -794,12 +783,10 @@ export default function FinancePilotageRecoveredModule(props) {
           financeAlerts={financeAlerts}
           multiFarm={multiFarm}
           startupJourney={startupJourney}
-          heyHorizonQuestions={heyHorizonQuestions}
           exportPayload={exportPayload}
           directExports={directExports}
           dataQuality={dataQuality}
           financeDemo={financeDemo}
-          onOpenAssistant={props.onOpenAssistant}
           moduleProjections={financeModuleProjections}
         />
       )}

@@ -6,7 +6,6 @@ import { aggregateSummaryLayingRate, formatOfficialLayingRate } from '../utils/e
 import { rowsOf } from '../utils/moduleRows';
 import { shouldHandleProductionQuestionEvent } from '../utils/elevageCyclesNavigation.js';
 import PeriodScopeBadge from '../components/PeriodScopeBadge.jsx';
-import HeyHorizonQuickAsk from '../components/HeyHorizonQuickAsk.jsx';
 import ModuleProjectionsStrip from '../components/module/ModuleProjectionsStrip.jsx';
 import JournalEvenements from '../components/shared/JournalEvenements.jsx';
 import { buildElevageModuleProjections } from '../utils/moduleProjections.js';
@@ -714,7 +713,7 @@ export default function ElevageRecoveredModule(props) {
               : lotsContent('animaux');
   return (
     <div className="space-y-6">
-      <section className="rounded-3xl border border-line bg-white p-6 shadow-card"><div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between"><div><p className="text-xs uppercase tracking-normal text-horizon-dark font-semibold">Production</p><h1 className="mt-1 text-2xl font-semibold text-earth">Élevage</h1><p className="mt-1 text-sm text-slate">Lots, alimentation, production, santé, coûts et historique de l’élevage.</p>{props.periodLabel ? <div className="mt-2"><PeriodScopeBadge label={props.periodLabel} /></div> : null}<HeyHorizonQuickAsk moduleKey="elevage" onNavigate={guardedNavigate} onOpenAssistant={props.onOpenAssistant} className="mt-2" /></div><div className="rounded-2xl border border-line bg-card px-4 py-3 text-sm"><span className="text-slate">Santé module </span>{data.healthScore > 0 ? <b className={data.healthScore >= 75 ? 'text-positive' : 'text-horizon-dark'}>{data.healthScore}/100</b> : <b className="text-slate">à évaluer</b>}</div></div></section>
+      <section className="rounded-3xl border border-line bg-white p-6 shadow-card"><div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between"><div><p className="text-xs uppercase tracking-normal text-horizon-dark font-semibold">Production</p><h1 className="mt-1 text-2xl font-semibold text-earth">Élevage</h1><p className="mt-1 text-sm text-slate">Lots, alimentation, production, santé, coûts et historique de l’élevage.</p>{props.periodLabel ? <div className="mt-2"><PeriodScopeBadge label={props.periodLabel} /></div> : null}</div><div className="rounded-2xl border border-line bg-card px-4 py-3 text-sm"><span className="text-slate">Santé module </span>{data.healthScore > 0 ? <b className={data.healthScore >= 75 ? 'text-positive' : 'text-horizon-dark'}>{data.healthScore}/100</b> : <b className="text-slate">à évaluer</b>}</div></div></section>
       <ModuleProjectionsStrip projections={data.moduleProjections} onNavigate={guardedNavigate} />
       <Tabs active={tab} onChange={setTab} activeFarm={props.activeFarm} role={transformationRole} />
       {findActiveWithdrawals(health).length ? <SanitaryWithdrawalBanner healthRows={health} /> : null}

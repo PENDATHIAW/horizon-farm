@@ -1,6 +1,5 @@
 import { Radio } from 'lucide-react';
 import { useCallback, useState } from 'react';
-import HeyHorizonQuickAsk from '../../components/HeyHorizonQuickAsk.jsx';
 import ModuleTabsBar from '../../components/module/ModuleTabsBar.jsx';
 import PeriodScopeBadge from '../../components/PeriodScopeBadge.jsx';
 import { resolveSmartFarmNavigation, resolveSmartFarmTab } from '../../utils/commercialNavigation.js';
@@ -68,12 +67,6 @@ export default function SmartFarmTelemetry(props) {
                 <PeriodScopeBadge label={props.periodLabel} />
               </div>
             ) : null}
-            <HeyHorizonQuickAsk
-              moduleKey="smartfarm"
-              onNavigate={props.onNavigate}
-              onOpenAssistant={props.onOpenAssistant}
-              className="mt-2"
-            />
           </div>
           <div className="rounded-2xl border border-line bg-card px-4 py-3 text-sm">
             <span className="text-slate">Signaux critiques </span>

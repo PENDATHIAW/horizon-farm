@@ -18,8 +18,9 @@ export default function ModuleTabsBar({ moduleId, active, onChange, tabBadges = 
   if (!tabs.length) return null;
   return (
     <div className="space-y-4">
-      {moduleId !== 'dashboard' ? <ModuleOverviewStrip moduleId={moduleId} /> : null}
-      <div className={wrap ? '' : 'overflow-x-auto'}>
+      {/* Les onglets d'abord et collés en haut : ils pilotent le module, on doit
+          les voir sans défiler. Les repères « Où en suis-je » passent en dessous. */}
+      <div className={`sticky top-0 z-20 -mx-1 bg-mist/95 px-1 py-1 backdrop-blur ${wrap ? '' : 'overflow-x-auto'}`}>
         <div
           role="tablist"
           aria-label={`Navigation ${moduleId}`}
@@ -49,6 +50,7 @@ export default function ModuleTabsBar({ moduleId, active, onChange, tabBadges = 
           })}
         </div>
       </div>
+      {moduleId !== 'dashboard' ? <ModuleOverviewStrip moduleId={moduleId} /> : null}
     </div>
   );
 }

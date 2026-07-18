@@ -41,9 +41,8 @@ export function CommercialTodoRow({ title, detail, actionLabel, onAction, onOpen
 }
 
 import PeriodScopeBadge from '../../components/PeriodScopeBadge.jsx';
-import HeyHorizonQuickAsk from '../../components/HeyHorizonQuickAsk.jsx';
 
-export function CommercialModuleHeader({ tab, setTab, healthScore, badges = {}, periodLabel = '', periodFiltered = false, onNavigate, onOpenAssistant }) {
+export function CommercialModuleHeader({ tab, setTab, healthScore, badges = {}, periodLabel = '', periodFiltered = false }) {
   return (
     <div className="space-y-3">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
@@ -51,7 +50,6 @@ export function CommercialModuleHeader({ tab, setTab, healthScore, badges = {}, 
           <p className="text-meta font-semibold uppercase tracking-normal text-horizon-dark">Commercial</p>
           <h1 className="text-2xl font-semibold text-earth">Ventes & clients</h1>
           {periodLabel ? <div className="mt-2"><PeriodScopeBadge label={periodLabel} /></div> : null}
-          <HeyHorizonQuickAsk moduleKey="commercial" onNavigate={onNavigate} onOpenAssistant={onOpenAssistant} className="mt-2" />
         </div>
         <div className="flex flex-wrap items-center gap-2 text-sm">
           {healthScore > 0 ? (
