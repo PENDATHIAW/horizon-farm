@@ -1,15 +1,19 @@
 import {
-  Activity, BatteryMedium, CheckCircle2, Clock, Droplets, MapPin, Radio,
-  ScanLine, Sprout, Thermometer, Wind,
+  Activity, BatteryMedium, Camera, CheckCircle2, Clock, CloudSun, Droplets, Gauge,
+  MapPin, Power, Radio, Scale, ScanLine, Sprout, Thermometer, Waves, Wind,
 } from 'lucide-react';
 import { subjectSensors } from '../utils/simulatedSubjectSensors.js';
 
 const ICONS = {
   pin: MapPin, battery: BatteryMedium, activity: Activity, clock: Clock,
   tag: ScanLine, check: CheckCircle2, temp: Thermometer, drop: Droplets,
-  wind: Wind, sprout: Sprout,
+  wind: Wind, sprout: Sprout, scale: Scale, waves: Waves, gauge: Gauge,
+  camera: Camera, cloud: CloudSun, power: Power,
 };
-const KIND_ICON = { gps: MapPin, rfid: ScanLine, climat: Thermometer, sol: Sprout };
+const KIND_ICON = {
+  gps: MapPin, rfid: ScanLine, climat: Thermometer, sol: Sprout, pesee: Scale,
+  eau: Waves, silo: Gauge, camera: Camera, meteo: CloudSun, valve: Power,
+};
 const toneCls = (t) => t === 'good' ? 'text-positive' : t === 'bad' ? 'text-urgent' : t === 'warn' ? 'text-horizon-dark' : 'text-earth';
 
 function Reading({ icon, label, value, tone }) {

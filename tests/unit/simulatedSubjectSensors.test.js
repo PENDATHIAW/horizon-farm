@@ -18,12 +18,18 @@ test('valeurs déterministes : même sujet = même relevé', () => {
   assert.deepEqual(a, b);
 });
 
-test('un lot avicole reçoit un capteur climat (temp/humidité/NH3)', () => {
+test('un lot avicole reçoit son kit : climat, eau, silo, caméra', () => {
   const { devices } = subjectSensors({ id: 'LOT-9' }, 'avicole');
-  assert.equal(devices.length, 1);
-  assert.equal(devices[0].kind, 'climat');
-  const labels = devices[0].readings.map((r) => r.label);
-  assert.ok(labels.includes('Température') && labels.includes('Humidité'));
+  const kinds = devices.map((d) => d.kind);
+  assert.ok(kinds.includes('climat') && kinds.includes('eau') && kinds.includes('silo') && kinds.includes('camera'));
+  const climat = devices.find((d) => d.kind === 'climat');
+  const labels = climat.readings.map((r) => r.label);
+  assert.ok(labels.includes('Temp.') && labels.includes('Humidité'));
+});
+
+test('une parcelle reçoit son kit : sol, météo, vanne', () => {
+  const kinds = subjectSensors({ id: 'PARC-1' }, 'cultures').devices.map((d) => d.kind);
+  assert.ok(kinds.includes('sol') && kinds.includes('meteo') && kinds.includes('valve'));
 });
 
 test('une parcelle reçoit une sonde d’humidité du sol', () => {
