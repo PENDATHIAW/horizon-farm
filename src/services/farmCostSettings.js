@@ -28,12 +28,18 @@ export const DEFAULT_FARM_COST_SETTINGS = {
     eggBreakAlertPct: 8,
     lowLayingPct: 65,
   },
-  /** Prix de vente suggérés élevage (FCFA/kg) - utilisés si la fiche animal n'a pas de prix/kg. */
+  /**
+   * Prix de vente suggérés élevage, en FCFA par kg de POIDS VIF (poids sur pied),
+   * utilisés si la fiche animal n'a pas de prix/kg. Le moteur les multiplie par le
+   * poids vif de l'animal : ce sont donc des prix « sur pied » (marché bétail),
+   * PAS des prix de viande/carcasse (qui sont ~2 fois plus élevés). Valeurs
+   * calées sur le marché sénégalais de l'embouche (bovin ~1 400, ovin/caprin ~2 000).
+   */
   animalSalePricePerKg: {
-    default: 3000,
-    bovin: 2800,
-    ovin: 4500,
-    caprin: 5000,
+    default: 1500,
+    bovin: 1400,
+    ovin: 2000,
+    caprin: 2000,
   },
   updatedAt: null,
 };
