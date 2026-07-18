@@ -655,12 +655,12 @@ export default function FinancePilotageRecoveredModule(props) {
   };
   return (
     <div className="space-y-6">
-      <section className="rounded-3xl border border-line bg-white p-6 shadow-card">
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+      <section className="rounded-3xl border border-line bg-white p-4 shadow-card sm:p-6">
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
           <div>
             <p className="text-xs uppercase tracking-normal text-horizon-dark font-semibold">Pilotage</p>
-            <h1 className="mt-1 text-2xl font-semibold text-earth">Finance & Pilotage</h1>
-            <p className="mt-1 text-sm text-slate">Trésorerie, créances, dettes - signaux métier, preuves et rentabilité.</p>
+            <h1 className="mt-0.5 text-xl font-semibold text-earth sm:text-2xl">Finance & Pilotage</h1>
+            <p className="mt-1 hidden text-sm text-slate sm:block">Trésorerie, créances, dettes - signaux métier, preuves et rentabilité.</p>
             {props.periodLabel ? (
               <div className="mt-2 flex flex-wrap items-center gap-2">
                 <PeriodScopeBadge label={props.periodLabel} />

@@ -155,12 +155,12 @@ export default function DocumentsRapportsModule(props) {
 
   return (
     <div className="space-y-6">
-      <div className="rounded-3xl border border-line bg-white p-6 shadow-card">
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+      <div className="rounded-3xl border border-line bg-white p-4 shadow-card sm:p-6">
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
           <div>
             <p className="text-xs uppercase tracking-normal text-horizon-dark font-semibold">Dossiers</p>
-            <h1 className="mt-1 text-2xl font-semibold text-earth">Documents & Rapports</h1>
-            <p className="mt-1 text-sm text-slate">Bibliothèque unique, preuves, rapports versionnés et publications.</p>
+            <h1 className="mt-0.5 text-xl font-semibold text-earth sm:text-2xl">Documents & Rapports</h1>
+            <p className="mt-1 hidden text-sm text-slate sm:block">Bibliothèque unique, preuves, rapports versionnés et publications.</p>
             {props.periodLabel ? <div className="mt-2"><PeriodScopeBadge label={props.periodLabel} /></div> : null}
           </div>
           <div className="flex flex-wrap items-center gap-2">

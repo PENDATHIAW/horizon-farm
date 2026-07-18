@@ -48,7 +48,7 @@ export function CommercialModuleHeader({ tab, setTab, healthScore, badges = {}, 
       <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
         <div>
           <p className="text-meta font-semibold uppercase tracking-normal text-horizon-dark">Commercial</p>
-          <h1 className="text-2xl font-semibold text-earth">Ventes & clients</h1>
+          <h1 className="text-xl font-semibold text-earth sm:text-2xl">Ventes & clients</h1>
           {periodLabel ? <div className="mt-2"><PeriodScopeBadge label={periodLabel} /></div> : null}
         </div>
         <div className="flex flex-wrap items-center gap-2 text-sm">

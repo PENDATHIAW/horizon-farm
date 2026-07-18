@@ -52,14 +52,14 @@ export default function SmartFarmTelemetry(props) {
 
   return (
     <div className="space-y-6">
-      <section className="rounded-3xl border border-line bg-white p-6 shadow-card">
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+      <section className="rounded-3xl border border-line bg-white p-4 shadow-card sm:p-6">
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
           <div>
             <p className="flex items-center gap-2 text-xs font-semibold uppercase tracking-normal text-horizon-dark">
               <Radio size={16} /> Télémétrie IoT
             </p>
-            <h1 className="mt-1 text-2xl font-semibold text-earth">Smart Farm</h1>
-            <p className="mt-1 text-sm text-slate">
+            <h1 className="mt-0.5 text-xl font-semibold text-earth sm:text-2xl">Smart Farm</h1>
+            <p className="mt-1 hidden text-sm text-slate sm:block">
               Eau, énergie, bâtiments, dispositifs et alertes automatiques vers Activité & Suivi.
             </p>
             {props.periodLabel ? (

@@ -405,12 +405,12 @@ export default function AchatsStockRecoveredModule(props) {
 
   return (
     <div className="space-y-6 achats-stock-mobile">
-      <section className="rounded-3xl border border-line bg-white p-6 shadow-card">
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+      <section className="rounded-3xl border border-line bg-white p-4 shadow-card sm:p-6">
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
           <div>
             <p className="text-xs uppercase tracking-normal text-horizon-dark font-semibold">Gestion</p>
-            <h1 className="mt-1 text-2xl font-semibold text-earth">Achats & Stock</h1>
-            <p className="mt-1 text-sm text-slate">Produits, fournisseurs, achats, stocks, mouvements et inventaires du site.</p>
+            <h1 className="mt-0.5 text-xl font-semibold text-earth sm:text-2xl">Achats & Stock</h1>
+            <p className="mt-1 hidden text-sm text-slate sm:block">Produits, fournisseurs, achats, stocks, mouvements et inventaires du site.</p>
             {props.periodLabel ? <div className="mt-2"><PeriodScopeBadge label={props.periodLabel} /></div> : null}
           </div>
           <div className="rounded-2xl border border-line bg-card px-4 py-3 text-sm">
