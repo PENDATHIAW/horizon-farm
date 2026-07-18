@@ -30,7 +30,7 @@ export function normalizePhone(phone = '') {
 /** Message WhatsApp lisible construit à partir d'une alerte. */
 export function buildWhatsappMessage(alert = {}) {
   const lines = [
-    `${severityLabel(alert.severity ?? alert.gravite)} — Horizon Farm`,
+    `${severityLabel(alert.severity ?? alert.gravite)} - Horizon Farm`,
     clean(alert.title || alert.type),
     clean(alert.message || alert.text),
   ];

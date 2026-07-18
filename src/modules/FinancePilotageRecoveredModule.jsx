@@ -209,7 +209,7 @@ function Summary({
       />
       <FinanceMissingProofPanel items={data.missingProofItems} />
       <details className="rounded-3xl border border-line bg-white shadow-card">
-        <summary className="cursor-pointer px-6 py-4 text-sm font-semibold text-earth">Voir plus — analyses détaillées</summary>
+        <summary className="cursor-pointer px-6 py-4 text-sm font-semibold text-earth">Voir plus - analyses détaillées</summary>
         <div className="space-y-6 border-t border-line p-6">
           <ModuleProjectionsStrip projections={moduleProjections} onNavigate={onNavigate} />
           <FinanceDataQualityPanel dataQuality={dataQuality} onNavigateTab={navigateFinance} />

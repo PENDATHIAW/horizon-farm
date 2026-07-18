@@ -79,13 +79,13 @@ export default function TreasuryByAccountPanel(props) {
                     inputMode="numeric"
                     value={realBalances[account.key] ?? ''}
                     onChange={(event) => onChange(account.key, event.target.value)}
-                    placeholder="—"
+                    placeholder="-"
                     className="w-28 rounded-lg border border-line px-2 py-1 text-right text-sm focus:border-horizon focus:outline-none"
                     aria-label={`Solde réel ${account.label}`}
                   />
                 </td>
                 <td className={`py-2 pl-3 text-right tabular-nums ${account.ecart == null ? 'text-slate' : account.reconcilie ? 'text-positive' : 'text-vigilance'}`}>
-                  {account.ecart == null ? '—' : fmtCurrency(account.ecart)}
+                  {account.ecart == null ? '-' : fmtCurrency(account.ecart)}
                 </td>
               </tr>
             ))}
@@ -102,9 +102,9 @@ export default function TreasuryByAccountPanel(props) {
             <tr className="border-t-2 border-line font-semibold text-earth">
               <td className="py-2 pr-3">Total (trésorerie officielle)</td>
               <td className="py-2 px-3 text-right tabular-nums">{fmtCurrency(treasury.cashNet)}</td>
-              <td className="py-2 px-3 text-right tabular-nums">{reconciliation.totalReel == null ? '—' : fmtCurrency(reconciliation.totalReel)}</td>
+              <td className="py-2 px-3 text-right tabular-nums">{reconciliation.totalReel == null ? '-' : fmtCurrency(reconciliation.totalReel)}</td>
               <td className={`py-2 pl-3 text-right tabular-nums ${reconciliation.comptesControles ? (reconciliation.aligne ? 'text-positive' : 'text-vigilance') : 'text-slate'}`}>
-                {reconciliation.comptesControles ? fmtCurrency(reconciliation.ecartTotal) : '—'}
+                {reconciliation.comptesControles ? fmtCurrency(reconciliation.ecartTotal) : '-'}
               </td>
             </tr>
           </tfoot>
