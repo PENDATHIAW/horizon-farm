@@ -121,9 +121,16 @@ export default function AlertesCenter({ alertes = [], taches = [], businessEvent
     if (!autoTaskEnabled || !onCreate) return undefined;
     let cancelled = false;
     const run = async () => {
-      for (const alert of autoAlerts.filter(isCriticalAlert).slice(0, 5)) {
+      // On traite un lot d'alertes critiques NON encore synchronisées (et non les
+      // 5 premières en boucle) : sinon les alertes classées au-delà du top 5 ne
+      // recevaient jamais de tâche. Chaque passage couvre le lot suivant.
+      const pendingCritical = autoAlerts
+        .filter(isCriticalAlert)
+        .filter((alert) => !syncedAutoAlertsRef.current.has(alert.id || alertKey(alert)))
+        .slice(0, 10);
+      for (const alert of pendingCritical) {
         const key = alert.id || alertKey(alert);
-        if (cancelled || syncedAutoAlertsRef.current.has(key)) continue;
+        if (cancelled) break;
         syncedAutoAlertsRef.current.add(key);
         try {
           const id = await persistAutoIfNeeded({ ...alert, task_intent: 'a_creer' }, { status: 'nouvelle' });

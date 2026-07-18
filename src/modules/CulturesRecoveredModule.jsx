@@ -462,10 +462,10 @@ export default function CulturesRecoveredModule(props) {
 
   return (
     <div className="space-y-6 cultures-v1-root">
-      <section className="rounded-3xl border border-line bg-white p-6 shadow-card">
+      <section className="rounded-3xl border border-line bg-white p-4 shadow-card sm:p-6">
         <p className="text-xs uppercase tracking-normal text-horizon-dark font-semibold">Production</p>
-        <h1 className="mt-1 text-2xl font-semibold text-earth">Cultures</h1>
-        <p className="mt-1 text-sm text-slate">Parcelles, campagnes, irrigation, intrants, récoltes, coûts et historique.</p>
+        <h1 className="mt-0.5 text-xl font-semibold text-earth sm:text-2xl">Cultures</h1>
+        <p className="mt-1 hidden text-sm text-slate sm:block">Parcelles, campagnes, irrigation, intrants, récoltes, coûts et historique.</p>
         {props.periodLabel ? <div className="mt-2"><PeriodScopeBadge label={props.periodLabel} /></div> : null}
       </section>
       <ModuleTabsBar moduleId="cultures" active={tab} onChange={setTab} activeFarm={props.activeFarm} />

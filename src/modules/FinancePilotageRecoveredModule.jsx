@@ -27,7 +27,6 @@ import FinanceMultiFarmPanel from './finance/FinanceMultiFarmPanel.jsx';
 import FinanceFinancingPanel from './finance/FinanceFinancingPanel.jsx';
 import FinanceReconciliationPanel from './finance/FinanceReconciliationPanel.jsx';
 import FinanceExportsPanel from './finance/FinanceExportsPanel.jsx';
-import FinanceHeyHorizonStrip from './finance/FinanceHeyHorizonStrip.jsx';
 import ModuleProjectionsStrip from '../components/module/ModuleProjectionsStrip.jsx';
 import { buildFinanceModuleProjections } from '../utils/moduleProjections.js';
 import {
@@ -57,7 +56,6 @@ import {
   buildFinanceDataQuality,
   buildFinanceDemoPresentation,
   buildFinanceDirectExports,
-  buildFinanceHeyHorizonQuestionsV3,
   buildFinancingSimulator,
   buildFinancingViewV3,
   readFinanceSimulatorParams,
@@ -74,8 +72,6 @@ const TREASURY_SUBVIEW_ALIASES = {
 const PILOTAGE_SUBVIEW_ALIASES = {
   echeancier: 'Échéancier',
   financement: 'Financement',
-  investissements: 'Investissements',
-  rentabilite: 'Rentabilité',
   annexe: 'Annexe',
 };
 
@@ -177,37 +173,30 @@ function Summary({
   financeAlerts = [],
   multiFarm = null,
   startupJourney = null,
-  heyHorizonQuestions = [],
   exportPayload = null,
   directExports = null,
   dataQuality = null,
   financeDemo = null,
-  onOpenAssistant,
   moduleProjections = null,
 }) {
   return (
     <div className="space-y-6">
+      {/* Essentiels visibles : situation, stats clés, alertes, signaux métier.
+          Les analyses secondaires sont repliées ci-dessous (« Voir plus »). */}
       <FinanceDemoBanner demo={financeDemo} />
-      <FinanceExecutiveSituationPanel situation={executiveSituation} onNavigateTab={navigateFinance} />
-      <ModuleProjectionsStrip projections={moduleProjections} onNavigate={onNavigate} />
-      <FinanceDataQualityPanel dataQuality={dataQuality} onNavigateTab={navigateFinance} />
-      <FinanceAlertsPanel alerts={financeAlerts} onNavigateTab={navigateFinance} insufficientData={startupMode} />
-      <FinanceMultiFarmPanel multiFarm={multiFarm} />
       {startupMode ? <FinanceStartupPanel journey={startupJourney} onNavigate={onNavigate} setTab={navigateFinance} /> : null}
-      <FinanceHeyHorizonStrip questions={heyHorizonQuestions} onNavigate={onNavigate} onOpenAssistant={onOpenAssistant} insufficientData={startupMode} />
-      <FinanceExportsPanel exportPayload={directExports || exportPayload} directOnly />
-      <div className="grid grid-cols-2 gap-3 xl:grid-cols-8">
+      <FinanceExecutiveSituationPanel situation={executiveSituation} onNavigateTab={navigateFinance} />
+      <FinanceAlertsPanel alerts={financeAlerts} onNavigateTab={navigateFinance} insufficientData={startupMode} />
+      {/* Indicateurs complémentaires uniquement : trésorerie / créances / dettes
+          / marge réelle sont déjà dans « Situation financière » ci-dessus (on
+          ne les répète pas). Ici : santé du dossier, position nette, preuves. */}
+      <div className="grid grid-cols-3 gap-3">
         <Stat label="Santé finance" value={formatFinanceHealthScore({ score: data.healthScore, insufficientData: data.healthInsufficient })} tone={financeHealthTone({ score: data.healthScore, insufficientData: data.healthInsufficient })} />
-        <Stat label={TREASURY_LABELS.treasuryAvailable} value={fmtCurrency(data.treasuryAvailable)} tone={data.treasuryAvailable >= 0 ? 'good' : 'bad'} />
-        <Stat label={TREASURY_LABELS.receivables} value={fmtCurrency(data.receivableAmount)} tone={data.receivableAmount ? 'warn' : 'good'} />
-        <Stat label={TREASURY_LABELS.payables} value={fmtCurrency(data.payableAmount)} tone={data.payableAmount ? 'warn' : 'good'} />
         <Stat label={TREASURY_LABELS.netPosition} value={fmtCurrency(data.netPosition)} tone={data.netPosition >= 0 ? 'good' : 'bad'} />
-        <Stat label={TREASURY_LABELS.realMargin} value={fmtCurrency(data.realMargin)} tone={data.realMargin >= 0 ? 'good' : 'bad'} />
         <Stat label="Sans preuve" value={fmtNumber(data.missingProof)} tone={data.missingProof ? 'warn' : 'good'} />
-        <Stat label="Signaux métier" value={data.healthInsufficient ? 'En attente' : fmtNumber(data.healthFindings.length)} tone={data.healthInsufficient ? 'neutral' : data.healthFindings.length ? 'warn' : 'good'} />
       </div>
-      <p className="text-meta font-semibold text-slate">
-        KPI trésorerie & créances : cumul ferme · liste Trésorerie : période active si filtre
+      <p className="text-meta text-slate">
+        Position nette = trésorerie disponible + créances − dettes. « Sans preuve » = opérations sans justificatif joint.
       </p>
       <FinanceInsightPanel
         findings={data.healthFindings}
@@ -219,6 +208,15 @@ function Summary({
         busyId={busyId}
       />
       <FinanceMissingProofPanel items={data.missingProofItems} />
+      <details className="rounded-3xl border border-line bg-white shadow-card">
+        <summary className="cursor-pointer px-6 py-4 text-sm font-semibold text-earth">Voir plus - analyses détaillées</summary>
+        <div className="space-y-6 border-t border-line p-6">
+          <ModuleProjectionsStrip projections={moduleProjections} onNavigate={onNavigate} />
+          <FinanceDataQualityPanel dataQuality={dataQuality} onNavigateTab={navigateFinance} />
+          <FinanceMultiFarmPanel multiFarm={multiFarm} />
+          <FinanceExportsPanel exportPayload={directExports || exportPayload} directOnly />
+        </div>
+      </details>
       <section className="rounded-3xl border border-line bg-white p-6 shadow-card">
         <h2 className="flex items-center gap-2 text-lg font-semibold text-earth"><BarChart3 size={20} /> Workflows financiers récupérés</h2>
         <p className="mt-2 text-sm leading-relaxed text-slate">Finance & Pilotage remet les anciens moteurs : saisie finance Hey Horizon, trésorerie, santé comptable, preuves, business plan, paiement d'investissement, création d'actifs, documents et événements métier.</p>
@@ -535,10 +533,6 @@ export default function FinancePilotageRecoveredModule(props) {
     () => buildFinanceDirectExports(financingPropsBundle, v3Options),
     [financingPropsBundle, v3Options],
   );
-  const heyHorizonQuestions = useMemo(
-    () => buildFinanceHeyHorizonQuestionsV3(v2Options),
-    [v2Options],
-  );
   const showFarmInSchedule = (props.accessibleFarms || []).filter((farm) => farm.status !== 'archived').length > 1
     || props.farmScope?.mode === 'all';
   const actionHandlers = {
@@ -661,12 +655,12 @@ export default function FinancePilotageRecoveredModule(props) {
   };
   return (
     <div className="space-y-6">
-      <section className="rounded-3xl border border-line bg-white p-6 shadow-card">
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+      <section className="rounded-3xl border border-line bg-white p-4 shadow-card sm:p-6">
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
           <div>
             <p className="text-xs uppercase tracking-normal text-horizon-dark font-semibold">Pilotage</p>
-            <h1 className="mt-1 text-2xl font-semibold text-earth">Finance & Pilotage</h1>
-            <p className="mt-1 text-sm text-slate">Trésorerie, créances, dettes - signaux métier, preuves et rentabilité.</p>
+            <h1 className="mt-0.5 text-xl font-semibold text-earth sm:text-2xl">Finance & Pilotage</h1>
+            <p className="mt-1 hidden text-sm text-slate sm:block">Trésorerie, créances, dettes - signaux métier, preuves et rentabilité.</p>
             {props.periodLabel ? (
               <div className="mt-2 flex flex-wrap items-center gap-2">
                 <PeriodScopeBadge label={props.periodLabel} />
@@ -694,24 +688,12 @@ export default function FinancePilotageRecoveredModule(props) {
           financeAlerts={financeAlerts}
           multiFarm={multiFarm}
           startupJourney={startupJourney}
-          heyHorizonQuestions={heyHorizonQuestions}
           exportPayload={exportPayload}
           directExports={directExports}
           dataQuality={dataQuality}
           financeDemo={financeDemo}
-          onOpenAssistant={props.onOpenAssistant}
           moduleProjections={financeModuleProjections}
         />
-      ) : tab === 'Transactions finance' ? (
-        <div className="space-y-4">
-          <FinancesV12 {...financeProps} />
-          <details className="border-t border-line pt-4">
-            <summary className="cursor-pointer text-sm font-semibold text-earth">Rapprochement des flux</summary>
-            <div className="mt-4">
-              <FinanceReconciliationPanel reconciliationView={reconciliationView} transactions={transactions} payments={paymentsAll.length ? paymentsAll : payments} salesOrders={salesOrdersAll.length ? salesOrdersAll : salesOrders} stocks={stocks} onCreateFinanceTransaction={props.onCreateFinanceTransaction || financesCrud.create} onRefreshFinances={props.onRefreshFinances || financesCrud.refresh} onNavigate={props.onNavigate} setTab={navigateFinance} />
-            </div>
-          </details>
-        </div>
       ) : tab === 'Trésorerie finance' ? (
         <div className="space-y-4">
           <FinanceInnerTabs
@@ -754,20 +736,12 @@ export default function FinancePilotageRecoveredModule(props) {
             tabs={[
               { key: 'echeancier', label: 'Échéancier' },
               { key: 'financement', label: 'Financement' },
-              { key: 'investissements', label: 'Investissements' },
-              { key: 'rentabilite', label: 'Rentabilité' },
               { key: 'annexe', label: 'Annexe' },
             ]}
             active={pilotageSubview}
             onChange={handlePilotageSubview}
           />
-          {pilotageSubview === 'echeancier' ? (
-            <div className="space-y-6">
-              <FinanceSchedulePanel schedule={schedule} showFarm={showFarmInSchedule} />
-              <FinanceAgingPanel receivablesAging={receivablesAging} payablesAging={payablesAging} showFarm={showFarmInSchedule} />
-              <FinanceCashFlowForecastPanel forecast={cashFlowForecast} />
-            </div>
-          ) : pilotageSubview === 'financement' ? (
+          {pilotageSubview === 'financement' ? (
             <div className="space-y-6">
               <FinanceDemoBanner demo={financeDemo} />
               <FinanceFinancingPanel
@@ -778,12 +752,14 @@ export default function FinancePilotageRecoveredModule(props) {
                 onSimulatorParamsChange={setSimulatorParams}
               />
             </div>
-          ) : pilotageSubview === 'investissements' ? (
-            <InvestissementsV9 {...investmentProps} />
-          ) : pilotageSubview === 'rentabilite' ? (
-            <RentabilitePanel profitability={profitability} consolidationProps={consolidationProps} />
-          ) : (
+          ) : pilotageSubview === 'annexe' ? (
             <FinanceAnnexePanel documents={financeProps.documents} onNavigate={props.onNavigate} />
+          ) : (
+            <div className="space-y-6">
+              <FinanceSchedulePanel schedule={schedule} showFarm={showFarmInSchedule} />
+              <FinanceAgingPanel receivablesAging={receivablesAging} payablesAging={payablesAging} showFarm={showFarmInSchedule} />
+              <FinanceCashFlowForecastPanel forecast={cashFlowForecast} />
+            </div>
           )}
         </div>
       ) : tab === 'Coûts & marges finance' ? (
@@ -807,12 +783,10 @@ export default function FinancePilotageRecoveredModule(props) {
           financeAlerts={financeAlerts}
           multiFarm={multiFarm}
           startupJourney={startupJourney}
-          heyHorizonQuestions={heyHorizonQuestions}
           exportPayload={exportPayload}
           directExports={directExports}
           dataQuality={dataQuality}
           financeDemo={financeDemo}
-          onOpenAssistant={props.onOpenAssistant}
           moduleProjections={financeModuleProjections}
         />
       )}

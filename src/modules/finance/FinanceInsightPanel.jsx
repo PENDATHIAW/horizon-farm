@@ -1,4 +1,4 @@
-import { Bot, Lightbulb, Link2, Sparkles } from 'lucide-react';
+import { Bot, Lightbulb, Sparkles } from 'lucide-react';
 import Btn from '../../components/Btn.jsx';
 import { coherenceRowTab } from './financeMetrics.js';
 
@@ -8,14 +8,6 @@ const toneCls = (severity = '') => {
   if (s.includes('moy')) return 'border-vigilance bg-vigilance-bg text-horizon-dark';
   return 'border-line bg-neutral-bg text-neutral';
 };
-
-const MODULE_LINKS = [
-  { key: 'commercial', label: 'Commercial', tab: 'Clients & créances', hint: 'Encaissements, livraisons, créances clients' },
-  { key: 'achats_stock', label: 'Achats & Stock', tab: 'Fournisseurs & dettes', hint: 'Dettes fournisseurs, achats' },
-  { key: 'documents_rapports', label: 'Documents', hint: 'Justificatifs et pièces comptables' },
-  { key: 'objectifs_croissance', label: 'Objectifs', tab: 'Suivi du Business Plan', hint: 'Plans, financements, rentabilité' },
-  { key: 'centre_ia', label: 'Centre décisionnel', tab: 'Urgences & risques', hint: 'Analyses financières globales' },
-];
 
 export default function FinanceInsightPanel({
   findings = [],
@@ -118,26 +110,6 @@ export default function FinanceInsightPanel({
           ))}
         </div>
       ) : null}
-
-      <div>
-        <p className="text-xs font-semibold text-earth mb-2 flex items-center gap-1">
-          <Link2 size={13} /> Modules liés
-        </p>
-        <div className="flex flex-wrap gap-2">
-          {MODULE_LINKS.map((link) => (
-            <button
-              key={link.key}
-              type="button"
-              title={link.hint}
-              onClick={() => onNavigate?.(link.key, link.tab ? { tab: link.tab } : undefined)}
-              className="rounded-xl border border-line bg-card px-3 py-2 text-left hover:border-horizon"
-            >
-              <span className="text-xs font-semibold text-earth">{link.label}</span>
-              <span className="block text-meta text-slate">{link.hint}</span>
-            </button>
-          ))}
-        </div>
-      </div>
     </section>
   );
 }

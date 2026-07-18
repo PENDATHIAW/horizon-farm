@@ -1,6 +1,8 @@
 ﻿export const fmtCurrency = (value = 0) => {
-  const n = Number(value) || 0;
-  return `${new Intl.NumberFormat('fr-FR').format(n)} FCFA`;
+  // Le FCFA n'a pas de sous-unité : on arrondit toujours à l'entier pour
+  // éviter les décimales parasites (ex. « -3 599 183,333 FCFA »).
+  const n = Math.round(Number(value) || 0);
+  return `${new Intl.NumberFormat('fr-FR', { maximumFractionDigits: 0 }).format(n)} FCFA`;
 };
 
 export const fmtNumber = (value = 0) => {

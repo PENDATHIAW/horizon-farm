@@ -3,7 +3,7 @@ import { CRUD_KEYS, MODULE_REGISTRY, NAV_MODULE_ORDER } from './config/modules.c
 import { MODULE_ENTRY_POINTS, resolveActiveModuleId } from './config/moduleEntryPoints';
 import { isModuleEnabled, persistModuleFlags, resolveModuleFlags } from './config/moduleFlags';
 import { lazyWithRetry } from './utils/lazyWithRetry';
-import { computeNavAlertCounts, navAlertFlags } from './services/erpHealthRules';
+import { buildUnifiedAlerts, alertModuleFlags } from './utils/unifiedAlerts';
 import { scheduleErpHealthEngine, scheduleErpHealthOnCriticalChange } from './services/erpHealthEngine';
 import { trackNavOpen } from './services/erpRules/surveillanceUxRules.js';
 import { composeActionTraceShared, composeDecisionDataMap, composeInternalResources, composeReportData } from './services/moduleDataComposer';
@@ -52,7 +52,6 @@ const MODULES = Object.fromEntries(
 );
 const rows = (crud) => crud?.rows || [];
 const arr = (value) => (Array.isArray(value) ? value : []);
-const crudRowsMap = (c) => Object.fromEntries(CRUD_KEYS.map((key) => [key, rows(c[key])]));
 
 export default function App() {
   const [active, setActiveState] = useState('dashboard');
@@ -328,9 +327,6 @@ export default function App() {
   }, [crudFingerprint]);
   const base = useCallback((key) => ({ rows: rows(c[key]), loading: c[key]?.loading, onCreate: c[key]?.create, onUpdate: c[key]?.update, onDelete: c[key]?.remove, onRefresh: c[key]?.refresh }), [c]);
 
-  const alertCounts = useMemo(() => computeNavAlertCounts(crudRowsMap(c)), [c]);
-  const alertFlags = useMemo(() => navAlertFlags(alertCounts, online), [alertCounts, online]);
-  const notifs = alertCounts.notifs + (online ? 0 : 1);
   const refreshAll = useCallback(async () => refreshAllModules(refreshModule), [refreshModule]);
   const refreshSalesWorkflowFn = useCallback(async () => refreshSalesWorkflow(c), [c]);
   const farmComparisonData = useMemo(() => ({
@@ -357,6 +353,14 @@ export default function App() {
     ),
     [c, dataMap, liveMeteo, farmScope, effectiveAccessibleFarms, activeFarm],
   );
+
+  // Flux d'alertes unifié : une seule liste de référence lue par la cloche,
+  // le panneau de notifications et les pastilles de navigation.
+  const unifiedAlerts = useMemo(
+    () => buildUnifiedAlerts(decisionDataMapRaw, { online, weather: liveMeteo }),
+    [decisionDataMapRaw, online, liveMeteo],
+  );
+  const alertFlags = useMemo(() => alertModuleFlags(unifiedAlerts), [unifiedAlerts]);
 
   const healthAutoActions = useMemo(() => (data) => ({
     existingTasks: arr(data.taches || data.tasks),
@@ -690,6 +694,7 @@ export default function App() {
       salesOrdersAll: rows(c.sales_orders),
       fournisseurs: rows(c.fournisseurs),
       clients: rows(c.clients),
+      team: objectiveTeam,
       stocks: rows(c.stock),
       stockMovements: rows(c.stock_movements),
       animaux: rows(c.animaux),
@@ -937,7 +942,7 @@ export default function App() {
 
   return <>
     <ProductionUpdateBanner />
-    <AppLayout navItems={navItems} active={resolvedActive} onNavigate={setActive} sidebarOpen={sidebarOpen} setSidebarOpen={setSidebarOpen} user={user} signOut={signOut} online={online} notifs={notifs} weather={liveMeteo} weatherLoading={weatherLoading} weatherSource={weatherSource} dataMap={overviewDataMap} onOpenAssistant={() => openAssistantWithQuery()} periodScope={periodScope} onPeriodScopeChange={handlePeriodScopeChange} farmScope={normalizeFarmScope(farmScope, effectiveAccessibleFarms)} accessibleFarms={effectiveAccessibleFarms} onFarmScopeChange={handleFarmScopeChange} activeFarm={activeFarm} onManageFarms={handleManageFarms}>
+    <AppLayout navItems={navItems} active={resolvedActive} onNavigate={setActive} sidebarOpen={sidebarOpen} setSidebarOpen={setSidebarOpen} user={user} signOut={signOut} online={online} alerts={unifiedAlerts} weather={liveMeteo} weatherLoading={weatherLoading} weatherSource={weatherSource} dataMap={overviewDataMap} onOpenAssistant={() => openAssistantWithQuery()} periodScope={periodScope} onPeriodScopeChange={handlePeriodScopeChange} farmScope={normalizeFarmScope(farmScope, effectiveAccessibleFarms)} accessibleFarms={effectiveAccessibleFarms} onFarmScopeChange={handleFarmScopeChange} activeFarm={activeFarm} onManageFarms={handleManageFarms}>
     <FarmActivityNotice message={activeModuleProps.farmActivityNotice} farmName={activeFarm?.name} actionLabel={activeModuleProps.farmActivityNoticeDetail?.actionLabel} onAction={activeModuleProps.farmActivityNoticeDetail ? handleFarmActivityAction : undefined} />
     <ErrorBoundary moduleName={activeModuleLabel} resetKey={resolvedActive} onBackToDashboard={() => setActive('dashboard')}>
       <KpiOverviewProvider dataMap={overviewDataMap} periodScope={periodScope} periodLabel={periodLabel} onNavigate={setActive}>
@@ -948,6 +953,6 @@ export default function App() {
     </ErrorBoundary>
     <AssistantPanel open={assistantOpen} onClose={() => setAssistantOpen(false)} dataMap={scopedAssistantDataMap} onNavigate={setActive} onCreateBusinessEvent={c.business_events.create} />
     <ErpInterconnectionBridge cruds={c} />
-    <AppNotificationManager dataMap={overviewDataMap} onNavigate={setActive} />
+    <AppNotificationManager dataMap={overviewDataMap} alerts={unifiedAlerts} onNavigate={setActive} />
   </AppLayout></>;
 }

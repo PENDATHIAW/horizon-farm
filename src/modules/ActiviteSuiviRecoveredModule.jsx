@@ -121,12 +121,12 @@ export default function ActiviteSuiviRecoveredModule(props) {
 
   return (
     <div className="space-y-6">
-      <section className="rounded-3xl border border-line bg-white p-6 shadow-card">
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+      <section className="rounded-3xl border border-line bg-white p-4 shadow-card sm:p-6">
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
           <div>
             <p className="text-xs uppercase tracking-normal text-horizon-dark font-semibold">Suivi</p>
-            <h1 className="mt-1 text-2xl font-semibold text-earth">Activité & Suivi</h1>
-            <p className="mt-1 text-sm text-slate">Tâches, échéances, alertes et journal de l’exploitation.</p>
+            <h1 className="mt-0.5 text-xl font-semibold text-earth sm:text-2xl">Activité & Suivi</h1>
+            <p className="mt-1 hidden text-sm text-slate sm:block">Tâches, échéances, alertes et journal de l’exploitation.</p>
             {props.periodLabel ? <div className="mt-2"><PeriodScopeBadge label={props.periodLabel} /></div> : null}
           </div>
           <div className="rounded-2xl border border-line bg-card px-4 py-3 text-sm">

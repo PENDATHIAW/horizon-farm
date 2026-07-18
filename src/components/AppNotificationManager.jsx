@@ -2,8 +2,9 @@ import { useEffect, useMemo, useState } from 'react';
 import toast from 'react-hot-toast';
 import { buildTechnicalFarmingAlerts } from '../services/technicalFarmingRules';
 import { notifyAlerts, notificationPermission, requestNotificationPermission, shouldNotifyAlert } from '../utils/appNotifications';
+import { shouldNotifyScreen } from '../config/alertPolicy.js';
 import { isDeletedRecord } from '../utils/deletedRecords';
-import { pushSetupStatus, sendTestPush, subscribeDeviceToPush } from '../utils/pushSubscriptions';
+import { pushSetupStatus, subscribeDeviceToPush } from '../utils/pushSubscriptions';
 import useWorkflowSubmit from '../hooks/useWorkflowSubmit';
 import { NOTIFICATION_BANNER_HIDDEN_KEY } from '../utils/storageKeys.js';
 
@@ -86,14 +87,19 @@ function buildDerivedAlerts(dataMap = {}) {
   return result.filter((alert) => !wasHandledOrDeleted(alert, persistedAlerts));
 }
 
-export default function AppNotificationManager({ dataMap = {}, onNavigate }) {
+export default function AppNotificationManager({ dataMap = {}, alerts: unifiedAlerts, onNavigate }) {
   const { submit: workflowSubmit, busy: workflowBusy } = useWorkflowSubmit();
   const [hidden, setHidden] = useState(() => wasBannerHidden());
   const iosNeedsInstall = isIOSDevice() && !isStandaloneApp();
   const alerts = useMemo(() => {
-    const persisted = arr(dataMap.alertes_center).filter((alert) => !isDeletedRecord('alertes_center', alert)).filter(activeAlert).filter(criticalSeverity);
-    return [...persisted, ...buildDerivedAlerts(dataMap)].filter((alert) => shouldNotifyAlert(alert));
-  }, [dataMap]);
+    // Source unique : le flux unifié fourni par l'app, filtré par la politique
+    // (seules urgence/critique poussent une notification écran). Repli local
+    // uniquement si le flux n'est pas fourni.
+    const source = Array.isArray(unifiedAlerts)
+      ? unifiedAlerts
+      : [...arr(dataMap.alertes_center).filter((alert) => !isDeletedRecord('alertes_center', alert)).filter(activeAlert).filter(criticalSeverity), ...buildDerivedAlerts(dataMap)];
+    return arr(source).filter((alert) => activeAlert(alert) && shouldNotifyScreen(alert) && shouldNotifyAlert(alert));
+  }, [unifiedAlerts, dataMap]);
   const pushStatus = pushSetupStatus();
 
   useEffect(() => {
@@ -122,38 +128,36 @@ export default function AppNotificationManager({ dataMap = {}, onNavigate }) {
     run();
   }, [alerts, iosNeedsInstall]);
 
-  const enableLocal = async () => {
-    await workflowSubmit('push-enable-local', async () => {
+  // Activation unique : on demande l'autorisation (notifications dans l'app,
+  // immédiates) puis, si le serveur push est configuré, on abonne l'appareil
+  // en arrière-plan de façon silencieuse. Plus de « mode avancé » à choisir.
+  const enable = async () => {
+    await workflowSubmit('push-enable', async () => {
       if (iosNeedsInstall) {
         toast.error(IOS_INSTALL_HELP);
         return;
       }
       const permission = await requestNotificationPermission();
-      if (permission === 'granted') {
-        toast.success('Notifications activées');
-        await notifyAlerts(alerts.slice(0, 3));
-        hideBannerForever();
-        setHidden(true);
-      } else if (permission === 'denied') {
-        toast.error('Notifications bloquées par le navigateur.');
-      } else {
-        toast.error('Notifications non disponibles ici.');
+      if (permission === 'denied') {
+        toast.error('Notifications bloquées par le navigateur. Autorisez-les dans les réglages du site.');
+        return;
       }
-    });
-  };
-
-  const enableAdvanced = async () => {
-    await workflowSubmit('push-enable-advanced', async () => {
-      if (iosNeedsInstall) throw new Error(IOS_INSTALL_HELP);
-      if (!pushStatus.supported) throw new Error('Push non supporté ici.');
-      if (!pushStatus.ready) throw new Error('Configuration push manquante.');
-      await subscribeDeviceToPush({ userId: 'owner', label: 'Appareil Horizon Farm', channels: ['urgence', 'critique'] });
-      await sendTestPush({ title: 'Horizon Farm', body: 'Notification test envoyée.', severity: 'critique', module: 'alertes' });
-      toast.success('Notifications avancées activées');
+      if (permission !== 'granted') {
+        toast.error('Notifications non disponibles ici.');
+        return;
+      }
+      toast.success('Notifications activées');
+      await notifyAlerts(alerts.slice(0, 3));
+      // Meilleur effort : abonnement push en arrière-plan si le serveur est prêt.
+      if (pushStatus.ready) {
+        try {
+          await subscribeDeviceToPush({ userId: 'owner', label: 'Appareil Horizon Farm', channels: ['urgence', 'critique'] });
+        } catch {
+          // L'app reste notifiée en local ; l'arrière-plan sera réessayé plus tard.
+        }
+      }
       hideBannerForever();
       setHidden(true);
-    }).catch((error) => {
-      toast.error(error.message || 'Activation impossible');
     });
   };
 
@@ -166,10 +170,9 @@ export default function AppNotificationManager({ dataMap = {}, onNavigate }) {
   return (
     <div className="fixed inset-x-3 bottom-24 z-40 space-y-2 rounded-card border border-horizon bg-earth p-3 text-white shadow-float sm:inset-x-auto sm:bottom-4 sm:right-4 sm:max-w-sm">
       <p className="text-sm font-semibold">Notifications</p>
-      <p className="text-xs text-line">Recevoir les alertes critiques sur cet appareil.</p>
+      <p className="text-xs text-line">Être prévenu des alertes critiques et urgentes, même quand l’app est fermée.</p>
       <div className="flex flex-wrap gap-2">
-        <button type="button" disabled={workflowBusy} onClick={enableLocal} className="rounded-full bg-white/10 px-3 py-2 text-xs font-semibold hover:bg-white/15 disabled:opacity-60">{workflowBusy ? 'Activation...' : 'Activer'}</button>
-        <button type="button" disabled={workflowBusy} onClick={enableAdvanced} className="rounded-full bg-horizon px-3 py-2 text-xs font-semibold text-earth disabled:opacity-60">{workflowBusy ? 'Activation...' : 'Mode avancé'}</button>
+        <button type="button" disabled={workflowBusy} onClick={enable} className="rounded-full bg-horizon px-3 py-2 text-xs font-semibold text-earth hover:bg-horizon/90 disabled:opacity-60">{workflowBusy ? 'Activation...' : 'Activer les notifications'}</button>
         <button type="button" onClick={dismiss} className="rounded-full border border-white/20 px-3 py-2 text-xs font-semibold">Plus tard</button>
       </div>
       {iosNeedsInstall ? <p className="text-meta text-horizon-dark">Sur iPhone : Safari → Partager → Ajouter à l’écran d’accueil.</p> : null}

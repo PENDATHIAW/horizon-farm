@@ -148,7 +148,7 @@ const ACTIVITE_SUIVI_TAB_ALIASES = {
 };
 export const FINANCE_TABS = ['Résumé', 'Trésorerie', 'Créances & dettes', 'Pilotage', 'Graphiques'];
 export const FINANCE_TREASURY_SUBVIEWS = ['saisie', 'reconciliation'];
-export const FINANCE_PILOTAGE_SUBVIEWS = ['echeancier', 'financement', 'investissements', 'rentabilite', 'annexe'];
+export const FINANCE_PILOTAGE_SUBVIEWS = ['echeancier', 'financement', 'annexe'];
 
 const FINANCE_TAB_ALIASES = {
   Résumé: 'Résumé',
@@ -517,6 +517,11 @@ const SYNC_ACTIVITY_TAB_ALIASES = {
   audit: 'Vérifications',
   Résumé: 'Vérifications',
   resume: 'Vérifications',
+  // Noms de composants émis par la barre d'onglets (sinon les onglets
+  // Connexion et Journal retombaient tous sur Vérifications).
+  SyncVerificationView: 'Vérifications',
+  SyncConnectionView: 'Connexion & envoi',
+  SyncJournalView: 'Journal d\'activité',
   'Connexion & envoi': 'Connexion & envoi',
   connexion: 'Connexion & envoi',
   sync: 'Connexion & envoi',

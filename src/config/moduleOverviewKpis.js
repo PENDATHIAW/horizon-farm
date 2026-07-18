@@ -6,7 +6,10 @@ export const MODULE_OVERVIEW_KPIS = Object.freeze({
   cultures: ['cultures_actives', 'valeur_stock', 'ca', 'depenses'],
   commercial: ['ca', 'encaissements', 'creances', 'commandes_ouvertes'],
   achats_stock: ['valeur_stock', 'produits_sous_seuil', 'stocks_total', 'fournisseurs_actifs'],
-  finance_pilotage: ['tresorerie', 'encaissements', 'depenses', 'marge_globale'],
+  // Bandeau = flux du mois (CA, encaissements, dépenses, marge). La trésorerie
+  // est un solde « à date » : elle vit dans le panneau « Situation financière »
+  // ci-dessous, pas dans une carte mensuelle (évite deux trésoreries qui diffèrent).
+  finance_pilotage: ['ca', 'encaissements', 'depenses', 'marge_globale'],
   activite_suivi: ['taches_ouvertes', 'alertes_urgentes', 'evenements_jour'],
   documents_rapports: ['documents_total', 'evenements_jour', 'taches_ouvertes'],
   equipe: ['membres_equipe', 'taches_ouvertes', 'alertes_urgentes'],

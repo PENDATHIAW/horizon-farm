@@ -9,6 +9,7 @@ import {
   CircleDollarSign,
   LogOut,
   MapPin,
+  MessageCircle,
   Menu,
   Search,
   Settings,
@@ -31,6 +32,8 @@ import { t } from '../i18n/fr/index.js';
 import { readOfflineQueue } from '../services/offlineQueueService';
 import { searchERP } from '../services/globalSearchService';
 import { applyUiSettingsToDocument, isDemoModeEnabled, readUiSettings } from '../utils/uiPreferences';
+import { shouldOfferWhatsapp } from '../config/alertPolicy.js';
+import { shareAlertOnWhatsapp } from '../utils/whatsappShare.js';
 
 const dangerStatuses = ['retard', 'critique', 'urgent', 'impaye', 'partiel', 'malade', 'panne', 'hors_service'];
 const normalize = (value = '') => String(value).toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
@@ -102,7 +105,7 @@ function NavIcon({ icon: Icon, size = 19 }) {
 
 export default function AppLayout({
   navItems = [], active = 'dashboard', setActive, onNavigate, sidebarOpen = true, setSidebarOpen,
-  online = true, meteo, weather, weatherSource, notifs = 0, user, onSignOut, signOut,
+  online = true, meteo, weather, weatherSource, user, onSignOut, signOut, alerts: alertsProp,
   dataMap = {}, onOpenAssistant, periodScope, onPeriodScopeChange, farmScope,
   accessibleFarms = [], onFarmScopeChange, activeFarm, onManageFarms, children,
 }) {
@@ -127,7 +130,10 @@ export default function AppLayout({
   const [uiSettings, setUiSettings] = useState(readUiSettings);
   const [simulatedDataMode, setSimulatedDataMode] = useState(() => isDemoModeEnabled());
   const results = useMemo(() => searchERP(dataMap || {}, globalSearch).slice(0, mobileSearchOpen ? 10 : 6), [dataMap, globalSearch, mobileSearchOpen]);
-  const alerts = useMemo(() => buildAlerts(dataMap, online, currentWeather), [dataMap, online, currentWeather]);
+  // Liste unifiée fournie par App.jsx (source unique). Repli local uniquement
+  // si le parent n'en passe pas (compat tests / montages isolés).
+  const localAlerts = useMemo(() => buildAlerts(dataMap, online, currentWeather), [dataMap, online, currentWeather]);
+  const alerts = alertsProp ?? localAlerts;
 
   useEffect(() => {
     const updateQueue = () => setPendingSyncCount(readOfflineQueue().length);
@@ -209,7 +215,10 @@ export default function AppLayout({
             {groupedNavItems.map((group) => {
               const GroupIcon = group.icon;
               const isGroupActive = group.key === activeGroup?.key;
-              const expanded = group.key === activeGroup?.key || openSections[group.key] === true;
+              // Le choix explicite de l'utilisateur prime : sans quoi la section
+              // active restait toujours dépliée et impossible à replier.
+              const userChoice = openSections[group.key];
+              const expanded = userChoice != null ? userChoice === true : isGroupActive;
               return (
                 <div key={group.key} className="space-y-1">
                   {sidebarOpen ? (
@@ -276,7 +285,7 @@ export default function AppLayout({
             <div className="flex items-center gap-1">
               <button type="button" aria-label="Rechercher dans l’ERP" onClick={() => { setMobileSearchOpen(true); setNotificationsOpen(false); setSettingsOpen(false); }} className="grid h-11 w-11 place-items-center rounded-control text-slate hover:bg-mist hover:text-earth lg:hidden"><Search size={18} /></button>
               <button type="button" aria-label="Ouvrir les notifications" onClick={() => { setNotificationsOpen((value) => !value); setSettingsOpen(false); setMobileSearchOpen(false); }} className="relative grid h-11 w-11 place-items-center rounded-control text-slate hover:bg-mist hover:text-earth">
-                <Bell size={18} />{notifs > 0 ? <span className="absolute right-0 top-0 grid h-4 min-w-4 place-items-center rounded-full bg-urgent px-1 text-meta font-semibold text-pure">{notifs > 99 ? '99+' : notifs}</span> : null}
+                <Bell size={18} />{alerts.length > 0 ? <span className="absolute right-0 top-0 grid h-4 min-w-4 place-items-center rounded-full bg-urgent px-1 text-meta font-semibold text-pure">{alerts.length > 99 ? '99+' : alerts.length}</span> : null}
               </button>
               <button type="button" aria-label="Ouvrir Hey Horizon" title="Hey Horizon" onClick={onOpenAssistant} className="grid h-11 w-11 place-items-center rounded-control text-leaf hover:bg-positive-bg"><Bot size={18} /></button>
               <button type="button" aria-label="Ouvrir les paramètres" onClick={() => { setSettingsOpen((value) => !value); setNotificationsOpen(false); setMobileSearchOpen(false); }} className="grid h-11 w-11 place-items-center rounded-control text-slate hover:bg-mist hover:text-earth"><Settings size={18} /></button>
@@ -294,11 +303,21 @@ export default function AppLayout({
               <div className="absolute right-2 top-18 z-50 w-[min(94vw,420px)] rounded-card border border-line bg-card p-4 shadow-float md:right-16">
                 <div className="mb-3 flex items-center justify-between"><div><p className="text-sm font-semibold text-earth">Notifications</p><p className="text-meta text-slate">{alerts.length} alerte(s)</p></div><button type="button" onClick={() => setNotificationsOpen(false)} className="grid h-9 w-9 place-items-center rounded-control text-slate hover:bg-mist"><X size={16} /></button></div>
                 <div className="max-h-[60vh] space-y-2 overflow-y-auto">
-                  {alerts.length > 0 ? alerts.map((alert) => (
-                    <button key={alert.id} type="button" onClick={() => navigate(alert.moduleKey)} className={`w-full rounded-control border p-3 text-left ${alert.severity === 'danger' ? 'border-urgent bg-urgent-bg' : 'border-vigilance bg-vigilance-bg'}`}>
-                      <div className="flex gap-2"><AlertTriangle size={15} className={alert.severity === 'danger' ? 'mt-1 shrink-0 text-urgent' : 'mt-1 shrink-0 text-horizon-dark'} /><div><p className="text-xs font-semibold text-ink">{alert.type}</p><p className="mt-1 text-xs text-slate">{alert.text}</p></div></div>
-                    </button>
-                  )) : (
+                  {alerts.length > 0 ? alerts.map((alert) => {
+                    const urgent = ['urgence', 'critique', 'danger'].includes(alert.severity);
+                    return (
+                    <div key={alert.id} className={`flex items-start gap-2 rounded-control border p-3 ${urgent ? 'border-urgent bg-urgent-bg' : 'border-vigilance bg-vigilance-bg'}`}>
+                      <button type="button" onClick={() => { navigate(alert.navModule || alert.moduleKey); setNotificationsOpen(false); }} className="flex flex-1 gap-2 text-left">
+                        <AlertTriangle size={15} className={urgent ? 'mt-1 shrink-0 text-urgent' : 'mt-1 shrink-0 text-horizon-dark'} /><div><p className="text-xs font-semibold text-ink">{alert.type}</p><p className="mt-1 text-xs text-slate">{alert.text}</p></div>
+                      </button>
+                      {shouldOfferWhatsapp(alert) ? (
+                        <button type="button" aria-label="Partager sur WhatsApp" title="Partager sur WhatsApp" onClick={(e) => { e.stopPropagation(); shareAlertOnWhatsapp(alert); }} className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-positive text-white hover:bg-positive/90">
+                          <MessageCircle size={15} />
+                        </button>
+                      ) : null}
+                    </div>
+                    );
+                  }) : (
                     <div className="flex gap-2 rounded-control border border-positive bg-positive-bg p-3"><CheckCircle size={16} className="mt-1 shrink-0 text-positive" /><div><p className="text-xs font-semibold text-ink">Aucune alerte</p><p className="text-xs text-slate">Tout est à jour.</p></div></div>
                   )}
                 </div>

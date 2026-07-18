@@ -198,7 +198,7 @@ test('resolveFinanceTab — aliases Financement et Réconciliation vers les vues
   assert.equal(resolveFinanceTab('Financement'), 'Budget & écarts finance');
   assert.equal(resolveFinanceTab('Réconciliation'), 'Trésorerie finance');
   assert.ok(FINANCE_TABS.includes('Pilotage'));
-  assert.ok(MODULE_TARGET_TABS.finance_pilotage.includes('Trésorerie'));
+  assert.ok(MODULE_TARGET_TABS.finance_pilotage.includes('Saisie & trésorerie'));
 });
 
 test('non-régression — lignes sans farm_id visibles en aging', () => {

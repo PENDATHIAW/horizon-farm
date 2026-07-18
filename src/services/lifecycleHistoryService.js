@@ -63,7 +63,34 @@ function normalizeBusinessEvent(row = {}, mode = 'avicole') {
   return { id: row.id, date: dateOf(row), type, label: row.title || row.event_type || type, delta, amount: amountOf(row), source: 'événements', status: row.status || row.statut || 'validé' };
 }
 
-export function buildLifecycleHistory({ mode = 'avicole', target = {}, salesOrders = [], deliveries = [], businessEvents = [] } = {}) {
+const weightOf = (row = {}) => toNumber(row.poids ?? row.poids_moyen ?? row.poids_kg ?? row.weight ?? row.weight_avg ?? row.poids_moyen_actuel);
+const feedQtyOf = (row = {}) => toNumber(row.quantite ?? row.quantity ?? row.qty ?? row.sacs ?? row.kg ?? row.poids);
+
+// Événements « carnet de vie » sans impact sur l'effectif (delta 0) :
+// santé, biosécurité, pesée, alimentation. Ils enrichissent la frise mais ne
+// modifient jamais le recalage d'effectif.
+function normalizeCareEvent(row = {}) {
+  const text = lower(`${row.type || ''} ${row.type_soin || ''} ${row.categorie || ''} ${row.acte || ''} ${row.title || ''} ${row.libelle || ''} ${row.description || ''} ${row.produit || ''}`);
+  const weight = weightOf(row);
+  let type = 'soin';
+  let label = clean(row.type_soin || row.acte || row.title || row.libelle || row.produit || 'Soin');
+  if (weight > 0 && /pes[eé]e|poids|weight/.test(text)) { type = 'pesée'; label = `Pesée ${weight} kg`; }
+  else if (/vaccin|rappel/.test(text)) { type = 'vaccination'; label = clean(row.produit || row.title || 'Vaccination'); }
+  else if (/biosecur|biosécur|nettoy|désinfect|desinfect|quarantaine|hygi[eè]ne/.test(text)) { type = 'biosécurité'; label = clean(row.title || row.libelle || 'Biosécurité'); }
+  else if (/malad|traitement|soin|v[ée]t[eé]rinaire|veto/.test(text)) { type = 'soin'; }
+  return { id: `care-${row.id || label}`, date: dateOf(row), type, label, delta: 0, amount: amountOf(row) || toNumber(row.cout ?? row.coût ?? row.cout_sante ?? row.prix), source: 'santé', status: row.status || row.statut || 'validé' };
+}
+function normalizeWeighingEvent(row = {}) {
+  const weight = weightOf(row);
+  return { id: `pesee-${row.id || dateOf(row)}`, date: dateOf(row), type: 'pesée', label: weight > 0 ? `Pesée ${weight} kg` : 'Pesée', delta: 0, amount: 0, source: 'pesées', status: 'validé' };
+}
+function normalizeFeedEvent(row = {}) {
+  const qty = feedQtyOf(row);
+  const unit = clean(row.unite || row.unit || 'kg');
+  return { id: `feed-${row.id || dateOf(row)}`, date: dateOf(row), type: 'alimentation', label: qty > 0 ? `Alimentation ${qty} ${unit}` : 'Alimentation', delta: 0, amount: amountOf(row) || toNumber(row.cout ?? row.coût ?? row.cout_total), source: 'alimentation', status: 'validé' };
+}
+
+export function buildLifecycleHistory({ mode = 'avicole', target = {}, salesOrders = [], deliveries = [], businessEvents = [], sante = [], alimentationLogs = [], weighings = [] } = {}) {
   const initial = initialCountOf(target, mode);
   const active = activeCountOf(target, mode);
   const events = [];
@@ -72,6 +99,10 @@ export function buildLifecycleHistory({ mode = 'avicole', target = {}, salesOrde
   arr(salesOrders).filter((row) => targetMatches(row, target, mode)).forEach((row) => { const qty = quantityOf(row, mode) || quantityOf(row.item, mode) || 0; if (!qty) return; events.push({ id: row.id, date: dateOf(row), type: 'vente', label: `Vente ${row.client_nom || row.client_name || row.client_id || ''}`.trim(), delta: -qty, amount: amountOf(row), source: 'ventes', status: row.statut_commande || row.status || 'vente' }); });
   arr(deliveries).filter((row) => targetMatches(row, target, mode)).forEach((row) => { const qty = quantityOf(row, mode); if (!qty) return; events.push({ id: row.id, date: dateOf(row), type: 'livraison', label: 'Livraison', delta: -qty, amount: amountOf(row), source: 'livraisons', status: row.status || row.statut || 'livrée' }); });
   arr(businessEvents).filter((row) => targetMatches(row, target, mode)).forEach((row) => { const event = normalizeBusinessEvent(row, mode); if (event) events.push(event); });
+  // Carnet de vie : santé / biosécurité / pesée / alimentation (délta 0).
+  arr(sante).filter((row) => targetMatches(row, target, mode)).forEach((row) => events.push(normalizeCareEvent(row)));
+  arr(weighings).filter((row) => targetMatches(row, target, mode)).forEach((row) => events.push(normalizeWeighingEvent(row)));
+  arr(alimentationLogs).filter((row) => targetMatches(row, target, mode)).forEach((row) => events.push(normalizeFeedEvent(row)));
 
   if (mode === 'avicole') {
     const already = (type) => events.filter((event) => event.type === type).reduce((sum, event) => sum + Math.abs(toNumber(event.delta)), 0);

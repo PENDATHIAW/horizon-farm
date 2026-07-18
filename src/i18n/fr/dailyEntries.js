@@ -113,5 +113,9 @@ export default {
     invoice: 'Facture',
     yes: 'Oui',
     no: 'Non',
+    paymentMethod: 'Encaissé sur',
+    methodCash: 'Espèces',
+    methodWave: 'Wave',
+    methodOm: 'Orange Money',
   },
 };

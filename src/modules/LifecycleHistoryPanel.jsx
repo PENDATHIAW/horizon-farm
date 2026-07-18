@@ -2,10 +2,21 @@ import { AlertTriangle, CheckCircle2, History, PackageCheck } from 'lucide-react
 import useCrudModule from '../hooks/useCrudModule';
 import { buildLifecycleHistory } from '../services/lifecycleHistoryService';
 import { fmtCurrency, fmtNumber, toNumber } from '../utils/format';
+import SubjectSensors from './SubjectSensors.jsx';
+import WeightCurve from './WeightCurve.jsx';
 
 const arr = (value) => Array.isArray(value) ? value : [];
 const effective = (provided, fallback) => arr(provided).length ? provided : fallback;
 const labelOf = (row = {}) => row.name || row.nom || row.tag || row.boucle_numero || row.type || row.id || 'Sujet';
+function StatChip({ label, value, tone = 'neutral' }) {
+  const cls = tone === 'bad' ? 'text-urgent' : tone === 'warn' ? 'text-horizon-dark' : 'text-earth';
+  return (
+    <div className="rounded-xl border border-line bg-white px-2.5 py-1.5">
+      <p className="text-meta text-slate">{label}</p>
+      <p className={`text-sm font-semibold tabular-nums ${cls}`}>{value}</p>
+    </div>
+  );
+}
 const clean = (value) => String(value || '').trim().toLowerCase();
 const physicalIdOf = (row = {}) => row.boucle_numero || row.qr_code || row.tag || row.id;
 const typeLabel = (type = '') => ({
@@ -19,6 +30,11 @@ const typeLabel = (type = '') => ({
   ajustement_à_valider: 'Mouvement à qualifier',
   récolte: 'Récolte',
   événement: 'Événement',
+  pesée: 'Pesée',
+  soin: 'Soin / santé',
+  vaccination: 'Vaccination',
+  'biosécurité': 'Biosécurité',
+  alimentation: 'Alimentation',
 }[type] || type);
 const hasReconciliation = (history = {}) => history.needsReconciliation || arr(history.events).some((event) => event.type === 'ajustement_à_valider' || event.status === 'à valider');
 
@@ -45,14 +61,17 @@ function Mini({ icon: Icon, label, value, danger = false }) {
   </div>;
 }
 
-export default function LifecycleHistoryPanel({ mode = 'avicole', rows = [], salesOrders = [], deliveries = [], businessEvents = [] }) {
+export default function LifecycleHistoryPanel({ mode = 'avicole', rows = [], salesOrders = [], deliveries = [], businessEvents = [], sante = [], alimentationLogs = [], weighings = [] }) {
   const salesCrud = useCrudModule('sales_orders');
   const deliveriesCrud = useCrudModule('deliveries');
   const targets = arr(rows).filter((row) => row?.id);
   const sales = effective(salesOrders, salesCrud.rows).filter((sale) => hasTargetLink(sale, targets));
   const deliveryRows = effective(deliveries, deliveriesCrud.rows).filter((delivery) => hasTargetLink(delivery, targets));
   const linkedEvents = arr(businessEvents).filter((event) => hasTargetLink(event, targets));
-  const histories = targets.map((target) => ({ target, history: buildLifecycleHistory({ mode, target, salesOrders: sales, deliveries: deliveryRows, businessEvents: linkedEvents }) }));
+  const linkedSante = arr(sante).filter((row) => hasTargetLink(row, targets));
+  const linkedFeed = arr(alimentationLogs).filter((row) => hasTargetLink(row, targets));
+  const linkedWeighings = arr(weighings).filter((row) => hasTargetLink(row, targets));
+  const histories = targets.map((target) => ({ target, history: buildLifecycleHistory({ mode, target, salesOrders: sales, deliveries: deliveryRows, businessEvents: linkedEvents, sante: linkedSante, alimentationLogs: linkedFeed, weighings: linkedWeighings }) }));
   const totalInitial = histories.reduce((sum, item) => sum + item.history.initial, 0);
   const totalActive = histories.reduce((sum, item) => sum + item.history.active, 0);
   const totalExited = histories.reduce((sum, item) => sum + item.history.exited, 0);
@@ -91,18 +110,30 @@ export default function LifecycleHistoryPanel({ mode = 'avicole', rows = [], sal
       {histories.slice(0, 8).map(({ target, history }, index) => {
         const needsQualify = hasReconciliation(history);
         return <div key={`${target.id || 'cycle'}-${index}`} className={`rounded-2xl border overflow-hidden ${needsQualify ? 'border-vigilance bg-vigilance-bg' : 'border-line bg-card'}`}>
-          <div className="flex flex-col md:flex-row md:items-center justify-between gap-2 p-4 border-b border-line">
-            <div>
-              <p className="font-semibold text-earth">{labelOf(target)}</p>
-              <p className="text-xs text-slate">Initial {fmtNumber(history.initial)} · sorties {fmtNumber(history.exited)} · morts {fmtNumber(history.morts)} · malades {fmtNumber(history.malades)} · vendus {fmtNumber(history.vendus)} · actif {fmtNumber(history.active)}</p>
-              {needsQualify || history.needsClosure ? <p className="mt-2 rounded-xl border border-vigilance bg-vigilance-bg px-3 py-2 text-xs font-semibold text-horizon-dark">{history.recommendation}</p> : null}
+          <div className="p-4 border-b border-line">
+            <div className="flex items-start justify-between gap-3">
+              <div className="min-w-0">
+                <p className="truncate text-base font-semibold text-earth">{labelOf(target)}</p>
+                <p className="text-meta text-slate">Effectif actif</p>
+                <p className="text-2xl font-semibold leading-tight text-earth tabular-nums">{fmtNumber(history.active)}</p>
+              </div>
+              <div className="shrink-0">
+                {history.needsClosure ? <span className="rounded-full bg-neutral-bg px-3 py-1 text-xs font-semibold text-neutral">À clôturer</span>
+                  : needsQualify ? <span className="rounded-full bg-vigilance-bg px-3 py-1 text-xs font-semibold text-horizon-dark">À qualifier</span>
+                  : <span className="inline-flex items-center gap-1 rounded-full bg-positive-bg px-3 py-1 text-xs font-semibold text-positive"><CheckCircle2 size={13} /> OK</span>}
+              </div>
             </div>
-            <div className="flex flex-wrap gap-2">
-              {history.needsClosure ? <span className="rounded-full bg-neutral-bg px-3 py-1 text-xs font-semibold text-neutral">À clôturer</span> : null}
-              {needsQualify ? <span className="rounded-full bg-vigilance-bg px-3 py-1 text-xs font-semibold text-horizon-dark">Mouvement à qualifier</span> : null}
-              {!history.needsClosure && !needsQualify ? <span className="rounded-full bg-positive-bg px-3 py-1 text-xs font-semibold text-positive"><CheckCircle2 size={13} className="inline" /> OK</span> : null}
+            <div className="mt-3 grid grid-cols-3 gap-2 sm:grid-cols-5">
+              <StatChip label="Initial" value={fmtNumber(history.initial)} />
+              <StatChip label="Sorties" value={fmtNumber(history.exited)} />
+              <StatChip label="Morts" value={fmtNumber(history.morts)} tone={toNumber(history.morts) > 0 ? 'bad' : 'neutral'} />
+              <StatChip label="Malades" value={fmtNumber(history.malades)} tone={toNumber(history.malades) > 0 ? 'warn' : 'neutral'} />
+              <StatChip label="Vendus" value={fmtNumber(history.vendus)} />
             </div>
+            {needsQualify || history.needsClosure ? <p className="mt-3 rounded-xl border border-vigilance bg-vigilance-bg px-3 py-2 text-xs font-semibold text-horizon-dark">{history.recommendation}</p> : null}
           </div>
+          {mode === 'animaux' || mode === 'avicole' ? <WeightCurve target={target} mode={mode} /> : null}
+          <SubjectSensors target={target} mode={mode} />
           <div className="overflow-x-auto">
             <table className="min-w-full text-sm">
               <thead><tr className="border-b border-line bg-white text-left text-xs uppercase text-slate"><th className="py-2 px-3">Date</th><th className="py-2 px-3">Mouvement</th><th className="py-2 px-3">Variation</th><th className="py-2 px-3">Reste</th><th className="py-2 px-3">Montant</th><th className="py-2 px-3">Source</th><th className="py-2 px-3">Statut</th></tr></thead>

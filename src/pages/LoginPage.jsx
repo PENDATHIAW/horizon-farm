@@ -67,13 +67,15 @@ export default function LoginPage() {
   };
 
   return (
-    <main className="relative flex min-h-dvh flex-col overflow-x-hidden text-earth lg:h-dvh lg:overflow-hidden">
+    <main className="relative flex h-dvh flex-col overflow-hidden text-earth">
       <div
         className="pointer-events-none absolute inset-0 bg-cover bg-no-repeat"
         style={{
           backgroundImage: `url(${farmBg})`,
-          /* Panier d'œufs en bas à droite : cadrage remonté pour le garder au-dessus du footer */
-          backgroundPosition: '58% 34%',
+          /* Coucher de soleil et horizon au centre, maraîchage et piste de
+             part et d'autre : cadrage centré pour garder le ciel derrière le
+             texte et l'horizon lisible sur tous les écrans. */
+          backgroundPosition: 'center 42%',
         }}
         aria-hidden
       />
@@ -95,8 +97,8 @@ export default function LoginPage() {
       </header>
 
       <div className="relative z-10 flex flex-1 flex-col lg:min-h-0">
-        <section className="mx-auto grid w-full max-w-7xl flex-1 items-center gap-4 px-4 pb-6 pt-2 sm:gap-6 sm:px-6 lg:min-h-0 lg:grid-cols-[1.08fr_0.92fr] lg:gap-8 lg:px-8 lg:py-2 xl:px-12">
-          <div className="max-w-lg pt-2 lg:pt-0" style={{ textShadow: '0 1px 14px rgba(248,250,248,0.85), 0 1px 2px rgba(248,250,248,0.7)' }}>
+        <section className="mx-auto grid w-full max-w-7xl flex-1 content-center items-center gap-4 px-4 pb-6 pt-2 sm:gap-6 sm:px-6 lg:min-h-0 lg:content-stretch lg:grid-cols-[1.08fr_0.92fr] lg:gap-8 lg:px-8 lg:py-2 xl:px-12">
+          <div className="hidden max-w-lg pt-2 lg:block lg:pt-0" style={{ textShadow: '0 1px 14px rgba(248,250,248,0.85), 0 1px 2px rgba(248,250,248,0.7)' }}>
             <h1 className="sr-only">Horizon Farm ERP</h1>
             <p
               className="text-screen font-semibold leading-tight text-earth"
@@ -245,7 +247,7 @@ export default function LoginPage() {
 
         <footer className="relative shrink-0 border-t border-leaf bg-earth px-4 py-3 sm:px-6 lg:px-8 xl:px-12">
           <div className="mx-auto flex max-w-7xl flex-col gap-2 lg:flex-row lg:items-end lg:justify-between lg:gap-6">
-            <div className="grid flex-1 grid-cols-2 gap-x-4 gap-y-2 lg:grid-cols-4 lg:gap-4">
+            <div className="hidden flex-1 grid-cols-2 gap-x-4 gap-y-2 lg:grid lg:grid-cols-4 lg:gap-4">
               {FEATURES.map(({ icon: Icon, title, detail }) => (
                 <div key={title} className="flex items-center gap-3 text-white sm:gap-3">
                   <span className="grid h-8 w-8 shrink-0 place-items-center rounded-full border border-white/20 bg-white/10 sm:h-9 sm:w-9">
