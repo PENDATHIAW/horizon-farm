@@ -9,6 +9,7 @@ import {
   CircleDollarSign,
   LogOut,
   MapPin,
+  MessageCircle,
   Menu,
   Search,
   Settings,
@@ -31,6 +32,8 @@ import { t } from '../i18n/fr/index.js';
 import { readOfflineQueue } from '../services/offlineQueueService';
 import { searchERP } from '../services/globalSearchService';
 import { applyUiSettingsToDocument, isDemoModeEnabled, readUiSettings } from '../utils/uiPreferences';
+import { shouldOfferWhatsapp } from '../config/alertPolicy.js';
+import { shareAlertOnWhatsapp } from '../utils/whatsappShare.js';
 
 const dangerStatuses = ['retard', 'critique', 'urgent', 'impaye', 'partiel', 'malade', 'panne', 'hors_service'];
 const normalize = (value = '') => String(value).toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
@@ -303,9 +306,16 @@ export default function AppLayout({
                   {alerts.length > 0 ? alerts.map((alert) => {
                     const urgent = ['urgence', 'critique', 'danger'].includes(alert.severity);
                     return (
-                    <button key={alert.id} type="button" onClick={() => navigate(alert.navModule || alert.moduleKey)} className={`w-full rounded-control border p-3 text-left ${urgent ? 'border-urgent bg-urgent-bg' : 'border-vigilance bg-vigilance-bg'}`}>
-                      <div className="flex gap-2"><AlertTriangle size={15} className={urgent ? 'mt-1 shrink-0 text-urgent' : 'mt-1 shrink-0 text-horizon-dark'} /><div><p className="text-xs font-semibold text-ink">{alert.type}</p><p className="mt-1 text-xs text-slate">{alert.text}</p></div></div>
-                    </button>
+                    <div key={alert.id} className={`flex items-start gap-2 rounded-control border p-3 ${urgent ? 'border-urgent bg-urgent-bg' : 'border-vigilance bg-vigilance-bg'}`}>
+                      <button type="button" onClick={() => { navigate(alert.navModule || alert.moduleKey); setNotificationsOpen(false); }} className="flex flex-1 gap-2 text-left">
+                        <AlertTriangle size={15} className={urgent ? 'mt-1 shrink-0 text-urgent' : 'mt-1 shrink-0 text-horizon-dark'} /><div><p className="text-xs font-semibold text-ink">{alert.type}</p><p className="mt-1 text-xs text-slate">{alert.text}</p></div>
+                      </button>
+                      {shouldOfferWhatsapp(alert) ? (
+                        <button type="button" aria-label="Partager sur WhatsApp" title="Partager sur WhatsApp" onClick={(e) => { e.stopPropagation(); shareAlertOnWhatsapp(alert); }} className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-positive text-white hover:bg-positive/90">
+                          <MessageCircle size={15} />
+                        </button>
+                      ) : null}
+                    </div>
                     );
                   }) : (
                     <div className="flex gap-2 rounded-control border border-positive bg-positive-bg p-3"><CheckCircle size={16} className="mt-1 shrink-0 text-positive" /><div><p className="text-xs font-semibold text-ink">Aucune alerte</p><p className="text-xs text-slate">Tout est à jour.</p></div></div>

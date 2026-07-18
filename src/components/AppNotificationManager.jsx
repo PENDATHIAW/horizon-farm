@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import toast from 'react-hot-toast';
 import { buildTechnicalFarmingAlerts } from '../services/technicalFarmingRules';
 import { notifyAlerts, notificationPermission, requestNotificationPermission, shouldNotifyAlert } from '../utils/appNotifications';
+import { shouldNotifyScreen } from '../config/alertPolicy.js';
 import { isDeletedRecord } from '../utils/deletedRecords';
 import { pushSetupStatus, subscribeDeviceToPush } from '../utils/pushSubscriptions';
 import useWorkflowSubmit from '../hooks/useWorkflowSubmit';
@@ -86,14 +87,19 @@ function buildDerivedAlerts(dataMap = {}) {
   return result.filter((alert) => !wasHandledOrDeleted(alert, persistedAlerts));
 }
 
-export default function AppNotificationManager({ dataMap = {}, onNavigate }) {
+export default function AppNotificationManager({ dataMap = {}, alerts: unifiedAlerts, onNavigate }) {
   const { submit: workflowSubmit, busy: workflowBusy } = useWorkflowSubmit();
   const [hidden, setHidden] = useState(() => wasBannerHidden());
   const iosNeedsInstall = isIOSDevice() && !isStandaloneApp();
   const alerts = useMemo(() => {
-    const persisted = arr(dataMap.alertes_center).filter((alert) => !isDeletedRecord('alertes_center', alert)).filter(activeAlert).filter(criticalSeverity);
-    return [...persisted, ...buildDerivedAlerts(dataMap)].filter((alert) => shouldNotifyAlert(alert));
-  }, [dataMap]);
+    // Source unique : le flux unifié fourni par l'app, filtré par la politique
+    // (seules urgence/critique poussent une notification écran). Repli local
+    // uniquement si le flux n'est pas fourni.
+    const source = Array.isArray(unifiedAlerts)
+      ? unifiedAlerts
+      : [...arr(dataMap.alertes_center).filter((alert) => !isDeletedRecord('alertes_center', alert)).filter(activeAlert).filter(criticalSeverity), ...buildDerivedAlerts(dataMap)];
+    return arr(source).filter((alert) => activeAlert(alert) && shouldNotifyScreen(alert) && shouldNotifyAlert(alert));
+  }, [unifiedAlerts, dataMap]);
   const pushStatus = pushSetupStatus();
 
   useEffect(() => {
