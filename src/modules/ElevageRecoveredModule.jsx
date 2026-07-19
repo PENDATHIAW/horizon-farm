@@ -603,14 +603,6 @@ export default function ElevageRecoveredModule(props) {
       initialSubview={initialSubview}
       avicoleProps={avicoleProps}
       animalProps={animalProps}
-      productionHubProps={{
-        snapshot: data.productionSnapshot,
-        lots,
-        animaux: animals,
-        marginContext: data.marginContext,
-        onNavigate: guardedNavigate,
-        onOpenWorkflow: openWorkflow,
-      }}
       showStartup={showStartup}
       startupProgress={startupProgress}
       onNavigate={guardedNavigate}

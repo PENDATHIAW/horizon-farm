@@ -15,6 +15,8 @@ export const DEFAULT_FARM_COST_SETTINGS = {
   broilerCrateSize: 50,
   broilerCratePrice: 32000,
   layerAmortizationDays: 540,
+  /** Valeur de réforme d'une pondeuse en fin de ponte (poule à bouillir), FCFA/tête. */
+  layerCullPricePerBird: 1500,
   eggsPerTablet: 30,
   broilerPriceByWeight: {
     below1_5: 2500,

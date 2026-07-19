@@ -36,8 +36,19 @@ export function isCaprinAnimal(row = {}) {
   return animalLabel(row).includes('caprin') || animalLabel(row).includes('chèvre') || animalLabel(row).includes('chevre');
 }
 
+/**
+ * Chiffre d'affaires RÉALISÉ d'un lot. On privilégie un total explicite ; sinon,
+ * pour un lot vendu au sujet (chair), on multiplie le prix unitaire par le nombre
+ * de sujets vendus - car `prix_vente_reel` est un prix PAR TÊTE, pas le total du
+ * lot. Un prix seul (sans effectif vendu) n'est donc jamais pris pour un total.
+ */
 export function revenueOfLot(lot = {}) {
-  return n(lot.revenu ?? lot.revenue ?? lot.ca ?? lot.montant_vente ?? lot.prix_vente_reel ?? lot.sale_price ?? lot.prix_vente_prevu);
+  const explicitTotal = n(lot.revenu ?? lot.revenue ?? lot.ca ?? lot.chiffre_affaires ?? lot.montant_vente);
+  if (explicitTotal > 0) return explicitTotal;
+  const sold = n(lot.vendus ?? lot.sujets_vendus ?? lot.quantite_vendue ?? lot.sold_count);
+  const unit = n(lot.prix_vente_reel ?? lot.sale_price ?? lot.prix_vente_unitaire);
+  if (sold > 0 && unit > 0) return sold * unit;
+  return 0;
 }
 
 export function revenueOfAnimal(animal = {}) {
@@ -223,8 +234,14 @@ export function buildElevageActivityPnl({
     missing: mortalityTotal <= 0 ? ['valeurs perte non renseignées'] : [],
   }));
 
-  const totalRevenue = activities.reduce((s, a) => s + a.revenue, 0);
-  const totalCost = activities.reduce((s, a) => s + a.totalCost, 0);
+  // Les lignes globales alimentation/santé/mortalités sont des VENTILATIONS
+  // informatives : leurs coûts sont déjà inclus dans le coût unifié de chaque
+  // cohorte (pondeuses, chair, bovins...). On les exclut des totaux pour ne pas
+  // double-compter l'alimentation et la santé.
+  const INFORMATIONAL_ROWS = new Set(['alimentation', 'sante', 'mortalites']);
+  const costingActivities = activities.filter((a) => !INFORMATIONAL_ROWS.has(a.id));
+  const totalRevenue = costingActivities.reduce((s, a) => s + a.revenue, 0);
+  const totalCost = costingActivities.reduce((s, a) => s + a.totalCost, 0);
   const reliableCount = activities.filter((a) => a.reliable).length;
   const partialCount = activities.filter((a) => a.partial).length;
 
@@ -273,9 +290,8 @@ export function computeElevageRealizedMargin({ animaux = [], lots = [], context 
   });
 
   arr(lots).filter(isChairLot).forEach((lot) => {
-    const sold = n(lot.vendus ?? lot.quantite_vendue);
-    const unitPrice = n(lot.prix_vente_reel ?? lot.prix_vente_unitaire);
-    const rev = sold > 0 && unitPrice > 0 ? sold * unitPrice : revenueOfLot(lot);
+    const sold = n(lot.vendus ?? lot.quantite_vendue ?? lot.sujets_vendus);
+    const rev = revenueOfLot(lot); // CA réalisé = sujets vendus x prix/tête (ou total explicite)
     if (rev <= 0 || sold <= 0) return;
     const unified = calculateUnifiedLotCost({ lot, ...context });
     revenue += rev;

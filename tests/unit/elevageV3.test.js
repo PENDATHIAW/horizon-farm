@@ -41,11 +41,13 @@ const CHAIR_LOT = {
   current_count: 920,
   mortality: 80,
   morts: 80,
+  vendus: 900,
   weight_avg: 1.2,
   poids_cible: 1.5,
   age_days: 35,
   farm_id: FARM,
-  prix_vente_reel: 1800000,
+  // prix_vente_reel est un prix PAR TÊTE : le CA du lot = 900 sujets vendus x 2 000.
+  prix_vente_reel: 2000,
 };
 const BOVIN = {
   id: 'BOV-1',
