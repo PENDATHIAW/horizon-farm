@@ -40,7 +40,7 @@ export function buildExtraElevageSalesOrders() {
     ['HF-CMD-007', dateDaysAgo(3), 'HF-CLI-002', 'HF-CH-003', 'lot_avicole', 'avicole', 'Chair HF-CH-003 vente partielle', 115, 'tête', 3700, 'livraison', 12000, true, 'paye', 437500, 437500, 'chair'],
     ['HF-CMD-008', dateDaysAgo(14), 'HF-CLI-004', 'HF-BOV-002', 'animal', 'animaux', 'Bovin embouche 2', 1, 'tête', 395000, 'recupere', 0, true, 'paye', 395000, 395000, 'animal'],
     ['HF-CMD-009', dateDaysAgo(5), 'HF-CLI-004', 'HF-CAP-002', 'animal', 'animaux', 'Caprin embouche 2', 1, 'tête', 78000, 'livraison', 0, true, 'partiel', 78000, 40000, 'animal'],
-    ['HF-CMD-010', dateDaysAgo(1), 'HF-CLI-001', 'HF-PO-001', 'lot_avicole', 'avicole', 'Œufs plateaux semaine 2', 520, 'tablette', 2850, 'livraison', 8000, true, 'non_paye', 1490000, 0, 'oeufs_tablettes'],
+    ['HF-CMD-010', dateDaysAgo(1), 'HF-CLI-001', 'HF-PO-001', 'lot_avicole', 'avicole', 'Œufs plateaux semaine 2', 520, 'tablette', 2600, 'livraison', 8000, true, 'non_paye', 1360000, 0, 'oeufs_tablettes'],
   ];
   return rows.map(([orderId, date, client_id, source_id, source_type, source_module, product_name, quantity, unit, unit_price, mode, fee, invoice, payStatus, total, paid, sale_kind]) => ({
     id: orderId,
@@ -173,9 +173,9 @@ export function buildExtraSimulationEntities() {
       { id: 'HF-STK-008', produit: 'Viande poulet HF-CH-001', nom: 'Viande poulet HF-CH-001', quantite: 88, unite: 'kg', seuil: 15, prixUnit: 3800, prixunit: 3800, categorie: 'produit_fini_viande_avicole', is_sellable: true, source_module: 'avicole', source_record_id: 'HF-CH-001', source: SOURCE },
     ],
     price_catalog_extra: [
-      { id: 'HF-PRICE-002', produit: 'Bovin embouche kg', product_category: 'bovin', price: 2800, prix_vente: 2800, unit: 'kg', observed_at: dateDaysAgo(3), confidence_level: 'confirme', source: SOURCE },
+      { id: 'HF-PRICE-002', produit: 'Bovin embouche kg vif', product_category: 'bovin', price: 1450, prix_vente: 1450, unit: 'kg', observed_at: dateDaysAgo(3), confidence_level: 'confirme', source: SOURCE },
       { id: 'HF-PRICE-003', produit: 'Poulet chair sujet', product_category: 'poulet_chair', price: 3700, prix_vente: 3700, unit: 'sujet', observed_at: dateDaysAgo(2), confidence_level: 'confirme', source: SOURCE },
-      { id: 'HF-PRICE-004', produit: 'Ovin kg', product_category: 'ovin', price: 4500, prix_vente: 4500, unit: 'kg', observed_at: dateDaysAgo(4), confidence_level: 'estime', source: SOURCE },
+      { id: 'HF-PRICE-004', produit: 'Ovin kg vif', product_category: 'ovin', price: 2000, prix_vente: 2000, unit: 'kg', observed_at: dateDaysAgo(4), confidence_level: 'estime', source: SOURCE },
     ],
     rh: [
       { id: 'HF-RH-001', nom: 'Mamadou Diop', poste: 'Chef avicole', affectation: 'avicole', tel: '+221771234501', email: 'mamadou@horizonfarm.demo', salaire: 95000, statut: 'actif', source: SOURCE },
@@ -205,7 +205,7 @@ export function buildExtraSimulationEntities() {
       { id: 'HF-WAT-001', name: 'Relance créance client', body: 'Bonjour {client}, rappel facture {montant} FCFA.', module: 'ventes', source: SOURCE },
     ],
     sales_opportunities_extra: [
-      { id: 'HF-OPP-003', title: 'Finaliser vente œufs HF-PO-001', source_type: 'lot_avicole', source_id: 'HF-PO-001', quantity: 520, unit: 'tablette', estimated_value: 1490000, status: 'en_cours', priority: 'moyenne', reason: 'Commande HF-CMD-010 non payée.', detected_at: dateDaysAgo(1), source: SOURCE },
+      { id: 'HF-OPP-003', title: 'Finaliser vente œufs HF-PO-001', source_type: 'lot_avicole', source_id: 'HF-PO-001', quantity: 520, unit: 'tablette', estimated_value: 1360000, status: 'en_cours', priority: 'moyenne', reason: 'Commande HF-CMD-010 non payée.', detected_at: dateDaysAgo(1), source: SOURCE },
       { id: 'HF-OPP-004', title: 'Caprin HF-CAP-002 solde encaissement', source_type: 'animal', source_id: 'HF-CAP-002', quantity: 1, unit: 'tête', estimated_value: 38000, status: 'nouveau', priority: 'moyenne', reason: 'Reste à encaisser sur HF-CMD-009.', detected_at: dateDaysAgo(1), source: SOURCE },
     ],
     alertes_extra: [
