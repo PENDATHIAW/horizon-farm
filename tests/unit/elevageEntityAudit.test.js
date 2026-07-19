@@ -54,6 +54,10 @@ test('tous les LOTS : coût fini et sans revenu compté en charge', () => {
     // Le coût pondeuse ne doit PAS avaler le CA œufs (bug ventes-en-charges : 3,95 M).
     if (isPonte(l)) {
       assert.ok(u.totalCost < 1500000, `${l.id} coût pondeuse assaini (${Math.round(u.totalCost)})`);
+      // Coût de revient par œuf plausible (aliment local ~88 FCFA/kg) : 8-80 FCFA.
+      if (u.raw?.costPerEgg > 0) {
+        assert.ok(u.raw.costPerEgg >= 8 && u.raw.costPerEgg <= 80, `${l.id} coût/œuf plausible (${u.raw.costPerEgg.toFixed(1)})`);
+      }
     }
   }
 });
