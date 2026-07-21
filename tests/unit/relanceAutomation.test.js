@@ -52,6 +52,10 @@ test('lot du jour : créances du seed détectées, prêtes à envoyer (manuel)',
     assert.ok(item.whatsappUrl.startsWith('https://wa.me/'), 'lien WhatsApp prêt');
     assert.equal(item.requiresManualSend, true, 'envoi manuel : pas d\'envoi automatique');
     assert.equal(item.messageSource, 'deterministic');
+    // Gouvernance RACI additive présente sur chaque relance.
+    assert.equal(item.raci_process, 'relance_creance');
+    assert.equal(item.raci_owner_role, 'finance');
+    assert.equal(item.raci_accountable_role, 'responsable_filiere');
   }
   // Trié par ancienneté décroissante.
   for (let i = 1; i < batch.items.length; i += 1) {

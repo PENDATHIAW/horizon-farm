@@ -16,6 +16,7 @@ import { buildCommercialRelanceRows } from '../utils/commercialRelances.js';
 import { buildRelanceMessageForChannel, RELANCE_LEVELS, COMMERCIAL_RELANCE_WHATSAPP_POLICY } from '../utils/commercialRelanceSchedules.js';
 import { buildWhatsappShareUrl, normalizePhone } from '../utils/whatsappShare.js';
 import { fmtCurrency } from '../utils/format.js';
+import { enrichWithRaci } from '../config/raciAssignment.js';
 
 const arr = (v) => (Array.isArray(v) ? v : []);
 const n = (v) => Number(v || 0);
@@ -145,7 +146,9 @@ export function selectDueRelances({ clients = [], orders = [], payments = [] } =
 
 function assembleRelanceItem({ row, level, client, context }, drafted) {
   const phone = phoneOfClient(client);
-  return {
+  // Gouvernance RACI (additif) : la relance créance revient au Responsable finance,
+  // approuvée par le responsable de filière. Sert à l'assignation/notification.
+  return enrichWithRaci({
     id: `relance-jour-${row.clientId}-${level.key}`,
     clientId: row.clientId,
     clientName: row.clientName,
@@ -164,7 +167,7 @@ function assembleRelanceItem({ row, level, client, context }, drafted) {
     requiresManualSend: true,
     sendPolicy: COMMERCIAL_RELANCE_WHATSAPP_POLICY,
     contextForAi: context,
-  };
+  }, 'relance_creance');
 }
 
 function finalizeBatch(items, referenceDate) {
