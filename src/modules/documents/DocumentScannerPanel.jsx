@@ -13,10 +13,14 @@ import {
   createPreviewUrl,
   revokePreviewUrl,
 } from '../../services/aiGateway/documentTextExtraction.js';
+import { EXPENSE_CATEGORIES } from '../../services/aiGateway/expenseReceiptCategorizer.js';
+import { buildExpensePayloadFromScan } from '../../services/aiGateway/documentScannerDrafts.js';
+import { openFormModal } from '../../services/formModalManager.js';
 import { fmtCurrency } from '../../utils/format';
 
 const TYPE_OPTIONS = [
   { id: SCANNER_DOC_TYPES.PURCHASE_INVOICE, hint: 'Intrants, aliment, matériel' },
+  { id: SCANNER_DOC_TYPES.EXPENSE_RECEIPT, hint: 'Carburant, transport, énergie, réparation' },
   { id: SCANNER_DOC_TYPES.VET_PRESCRIPTION, hint: 'Vaccin, traitement, dose' },
   { id: SCANNER_DOC_TYPES.PAYMENT_RECEIPT, hint: 'Encaissement client' },
   { id: SCANNER_DOC_TYPES.DELIVERY_NOTE, hint: 'Réception marchandises' },
@@ -127,6 +131,34 @@ export default function DocumentScannerPanel({
   const onValidateExecute = async () => {
     const merged = mergeDraftForExecute();
     if (!merged) return;
+
+    // Reçu de dépense : on n'exécute pas (OPEN_FORM), on ouvre le formulaire dépense
+    // pré-catégorisé pour finalisation et validation dans le module Finance.
+    if (isExpense) {
+      const payload = buildExpensePayloadFromScan(
+        { ...merged.draft?.fields, ...editFields },
+        merged.draft?.proof || {},
+      );
+      openFormModal({
+        module: 'finance_pilotage',
+        draft: {
+          primary_module: 'finance_pilotage',
+          form_type: 'finance_entry',
+          intent_label: 'Dépense (reçu scanné)',
+          status: 'draft_ready',
+          draft_fields: payload,
+          context: { activite: payload.activite, sens: 'sortie', module: 'finance_pilotage' },
+        },
+      });
+      toast.success('Dépense pré-remplie - vérifiez et enregistrez dans Finance.');
+      setDraft(null);
+      setFile(null);
+      setPastedText('');
+      setEditFields({});
+      resetPreview('');
+      return;
+    }
+
     const assessment = assessDraftSafety(merged);
     if (assessment.requiresValidation && merged.confidence < 0.65) {
       toast.error('Confiance faible : complétez les champs puis confirmez.');
@@ -158,6 +190,7 @@ export default function DocumentScannerPanel({
     || scannerType === SCANNER_DOC_TYPES.DELIVERY_NOTE;
   const isHealth = scannerType === SCANNER_DOC_TYPES.VET_PRESCRIPTION;
   const isPayment = scannerType === SCANNER_DOC_TYPES.PAYMENT_RECEIPT;
+  const isExpense = scannerType === SCANNER_DOC_TYPES.EXPENSE_RECEIPT;
 
   return (
     <section className="rounded-3xl border border-line bg-white p-6 shadow-card space-y-6">
@@ -342,6 +375,37 @@ export default function DocumentScannerPanel({
               </Field>
               <p className="md:col-span-2 text-sm text-slate">
                 Montant détecté : {fmtCurrency(editFields.montant || 0)}
+              </p>
+            </div>
+          ) : null}
+
+          {isExpense ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              <Field label="Marchand / bénéficiaire">
+                <input className={inputCls()} value={editFields.marchand || ''} onChange={(e) => setEditFields((f) => ({ ...f, marchand: e.target.value }))} />
+              </Field>
+              <Field label="Catégorie">
+                <select className={inputCls()} value={editFields.categorie || 'Autre'} onChange={(e) => setEditFields((f) => ({ ...f, categorie: e.target.value }))}>
+                  {EXPENSE_CATEGORIES.map((c) => <option key={c} value={c}>{c}</option>)}
+                </select>
+              </Field>
+              <Field label="Activité (optionnel)">
+                <select className={inputCls()} value={editFields.activite || ''} onChange={(e) => setEditFields((f) => ({ ...f, activite: e.target.value }))}>
+                  <option value="">Générale</option>
+                  <option value="volailles">Volailles</option>
+                  <option value="bovins">Bovins</option>
+                  <option value="petits_ruminants">Petits ruminants</option>
+                  <option value="cultures">Cultures</option>
+                </select>
+              </Field>
+              <Field label="Montant (FCFA)">
+                <input type="number" className={inputCls()} value={editFields.montant ?? ''} onChange={(e) => setEditFields((f) => ({ ...f, montant: Number(e.target.value) }))} />
+              </Field>
+              <Field label="Date">
+                <input type="date" className={inputCls()} value={editFields.date || ''} onChange={(e) => setEditFields((f) => ({ ...f, date: e.target.value }))} />
+              </Field>
+              <p className="md:col-span-2 text-sm text-slate">
+                Dépense pré-catégorisée : {editFields.categorie || 'Autre'} · {fmtCurrency(editFields.montant || 0)} - à valider avant enregistrement.
               </p>
             </div>
           ) : null}
