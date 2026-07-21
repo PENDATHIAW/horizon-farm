@@ -466,16 +466,22 @@ export default function ElevageRecoveredModule(props) {
     }
     setWorkflowScope(scope);
     if (modal === 'health') {
+      const healthAnimalId = context.animalId || context.animal_id;
+      const healthLotId = context.lotId || context.lot_id;
+      const healthSubject = animals.find((a) => String(a.id) === String(healthAnimalId))
+        || lots.find((l) => String(l.id) === String(healthLotId))
+        || null;
       openElevageHealthForm({
         setTab,
         setHealthDraft,
         context: {
-          animalId: context.animalId || context.animal_id,
-          lotId: context.lotId || context.lot_id,
+          animalId: healthAnimalId,
+          lotId: healthLotId,
           typeIntervention: context.typeIntervention || context.type_intervention,
           date: context.date,
           nom: context.nom,
           notes: context.notes,
+          subject: healthSubject,
         },
         onAfterOpen: () => {
           scrollToHealthInterventionForm();

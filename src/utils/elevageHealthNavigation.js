@@ -1,5 +1,7 @@
 /** Canal officiel santé : Élevage > Santé → SanteV8/V7/V6 (InterventionPanel). */
 
+import { buildFormPrefill, mergePrefillIntoForm } from './formPrefill.js';
+
 export const HEALTH_INTERVENTION_FORM_ID = 'elevage-health-intervention-form';
 
 export const HEALTH_TERRAIN_BANNER =
@@ -32,6 +34,7 @@ export function buildHealthInterventionDraft({
   date,
   nom,
   notes,
+  subject = null,
 } = {}) {
   const draft = {
     type_intervention: typeIntervention || 'vaccination',
@@ -48,6 +51,22 @@ export function buildHealthInterventionDraft({
   } else if (lotId) {
     draft.target_mode = 'detail:lot';
     draft.target_detail = `lot:${lotId}`;
+  }
+
+  // Héritage : si la fiche d'origine est fournie, on reprend ce qui est déjà connu
+  // (espèce, poids, boucle, ferme) sans écraser ce qui est déjà dans le brouillon.
+  if (subject && (subject.id || subject.boucle_numero)) {
+    const prefill = buildFormPrefill({
+      formType: 'sante_intervention',
+      subject,
+      context: { typeIntervention, date },
+    });
+    const { form, applied } = mergePrefillIntoForm(prefill.values, draft);
+    Object.assign(draft, form);
+    if (applied.length) {
+      draft.prefill_provenance = prefill.provenance;
+      draft.prefill_applied = applied;
+    }
   }
 
   return draft;
