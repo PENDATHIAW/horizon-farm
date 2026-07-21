@@ -71,6 +71,14 @@ export const FORM_INHERITANCE_RULES = {
     farm_id: [{ source: 'context', path: 'mother.farm_id' }, { source: 'context', path: 'farmId' }],
     date_entree_ferme: [{ source: 'context', path: 'today' }],
   },
+  transformation_slaughter: {
+    espece: [{ source: 'subject', path: 'espece' }, { source: 'subject', path: 'type' }],
+    type: [{ source: 'subject', path: 'type' }],
+    boucle_numero: [{ source: 'subject', path: 'boucle_numero' }, { source: 'subject', path: 'tag' }],
+    poids: [{ source: 'subject', path: 'poids' }, { source: 'related', path: 'lastWeighing.poids' }],
+    effectif: [{ source: 'subject', path: 'current_count' }, { source: 'subject', path: 'effectif_actuel' }],
+    farm_id: [{ source: 'subject', path: 'farm_id' }, { source: 'context', path: 'farmId' }],
+  },
   culture_harvest: {
     culture_id: [{ source: 'subject', path: 'id' }],
     type: [{ source: 'subject', path: 'type' }],

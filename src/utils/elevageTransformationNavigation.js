@@ -1,5 +1,7 @@
 /** Canal officiel transformation : Élevage > Transformation → TransformationOfficialForm. */
 
+import { buildFormPrefill, mergePrefillIntoForm } from './formPrefill.js';
+
 export const TRANSFORMATION_FORM_ID = 'elevage-transformation-official-form';
 
 export const TRANSFORMATION_TERRAIN_BANNER =
@@ -14,6 +16,7 @@ export function buildTransformationDraft({
   date,
   notes,
   activity,
+  subject = null,
 } = {}) {
   const draft = {
     date: date || today(),
@@ -31,6 +34,18 @@ export function buildTransformationDraft({
     draft.lot_id = lotId;
     draft.source_type = 'lot_avicole';
     if (activity) draft.activity = activity;
+  }
+
+  // Héritage : reprendre ce qui est déjà connu sur la fiche (espèce, poids, boucle,
+  // effectif, ferme) sans écraser ce qui est déjà renseigné.
+  if (subject && (subject.id || subject.boucle_numero)) {
+    const prefill = buildFormPrefill({ formType: 'transformation_slaughter', subject, context: { date } });
+    const { form, applied } = mergePrefillIntoForm(prefill.values, draft);
+    Object.assign(draft, form);
+    if (applied.length) {
+      draft.prefill_provenance = prefill.provenance;
+      draft.prefill_applied = applied;
+    }
   }
   return draft;
 }

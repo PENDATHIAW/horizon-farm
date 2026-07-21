@@ -97,3 +97,31 @@ test('pilote santé : rétrocompatible sans sujet (aucun héritage forcé)', () 
   assert.equal('espece' in draft, false);
   assert.equal('prefill_applied' in draft, false);
 });
+
+// --- 2e pilote : la transformation hérite de la fiche animal/lot ---
+import { buildTransformationDraft } from '../../src/utils/elevageTransformationNavigation.js';
+
+test('pilote transformation : le brouillon reprend l\'espèce/poids/boucle de l\'animal', () => {
+  const bovin = seed.animaux.find((a) => a.id === 'HF-BOV-010');
+  const draft = buildTransformationDraft({ animalId: bovin.id, transformType: 'abattage', subject: bovin });
+  assert.equal(draft.animal_id, bovin.id);
+  assert.equal(draft.espece, bovin.espece || bovin.type);
+  assert.equal(draft.poids, bovin.poids);
+  assert.equal(draft.source_type, 'animal');
+  assert.ok(draft.prefill_applied.includes('espece'));
+});
+
+test('pilote transformation : lot chair hérite de l\'effectif', () => {
+  const lot = seed.avicole.find((l) => l.id === 'HF-CH-003');
+  const draft = buildTransformationDraft({ lotId: lot.id, subject: lot });
+  assert.equal(draft.lot_id, lot.id);
+  assert.equal(draft.effectif, lot.current_count);
+  assert.equal(draft.source_type, 'lot_avicole');
+});
+
+test('pilote transformation : rétrocompatible sans sujet', () => {
+  const draft = buildTransformationDraft({ animalId: 'A1' });
+  assert.equal(draft.animal_id, 'A1');
+  assert.equal('espece' in draft, false);
+  assert.equal('prefill_applied' in draft, false);
+});
