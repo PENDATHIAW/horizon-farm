@@ -14,7 +14,7 @@ const DEFAULT_UNIT_COST = {
 };
 
 const DEFAULT_MARKET = {
-  oeufs: 2800,
+  oeufs: 2600,
   poulets_chair: 3700,
   bovins: 365000,
   cultures: 800,

@@ -114,9 +114,9 @@ export function enrichSaleFormWithClientPricing(form = {}, { client = null, sour
   };
 }
 
-/** Marge estimée si coût unitaire disponible. */
-export function estimateSaleMargin({ unitPrice = 0, quantity = 1, sourceRow = null, lineTotal = 0 } = {}) {
-  const cost = sourceRow ? unitCostOf(sourceRow) : 0;
+/** Marge estimée si coût unitaire disponible. `unitCost` prime sur le champ brut. */
+export function estimateSaleMargin({ unitPrice = 0, quantity = 1, sourceRow = null, lineTotal = 0, unitCost = null } = {}) {
+  const cost = unitCost != null && num(unitCost) > 0 ? num(unitCost) : (sourceRow ? unitCostOf(sourceRow) : 0);
   const revenue = num(lineTotal) || num(unitPrice) * num(quantity);
   if (cost <= 0 || revenue <= 0) return { revenue, cost: 0, margin: null, marginPct: null };
   const totalCost = cost * num(quantity);

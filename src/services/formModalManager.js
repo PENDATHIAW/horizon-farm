@@ -1,6 +1,7 @@
 /** Gestionnaire centralisé de modals/formulaires - remplace window.dispatchEvent('horizon-open-form'). */
 
 import { trackFormModalOpen } from './erpRules/surveillanceUxRules.js';
+import { applyDraftPrefill } from '../utils/formPrefill.js';
 
 const listeners = new Set();
 const pendingByModule = new Map();
@@ -56,9 +57,12 @@ export function subscribeFormModal(handler, { modules = [], replayPending = true
 }
 
 export function openFormModal({ module, draft = {} } = {}) {
-  const normalizedModule = normalizeModule(module || draft?.primary_module);
-  trackFormModalOpen(normalizedModule, draft?.form_type || draft?.intent_label || '');
-  const detail = { module: normalizedModule, draft, timestamp: Date.now() };
+  // Héritage ERP-wide : tout formulaire ouvert avec un sujet reprend d'abord ce
+  // qui est déjà connu (« ne pas resaisir »), quel que soit le module.
+  const enrichedDraft = applyDraftPrefill(draft);
+  const normalizedModule = normalizeModule(module || enrichedDraft?.primary_module);
+  trackFormModalOpen(normalizedModule, enrichedDraft?.form_type || enrichedDraft?.intent_label || '');
+  const detail = { module: normalizedModule, draft: enrichedDraft, timestamp: Date.now() };
   prunePending(detail.timestamp);
   if (normalizedModule) pendingByModule.set(normalizedModule, detail);
 

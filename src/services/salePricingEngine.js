@@ -78,11 +78,37 @@ export function recommendAvicoleLotPrice({ lot, alimentationLogs = [], productio
   const active = toNumber(lot.current_count ?? lot.effectif_actuel ?? lot.initial_count);
   const weight = toNumber(lot.weight_avg ?? lot.poids_moyen_actuel ?? lot.poids_moyen);
   const market = latestMarketPrice(marketPrices, layer ? 'oeufs' : 'poulet_chair');
+  const configured = toNumber(lot.prix_vente_estime ?? lot.prix_unitaire_vente ?? lot.unit_sale_price);
+
+  if (layer) {
+    // Une pondeuse ne se vend pas au poids comme un poulet de chair : sa rentabilité
+    // se pilote via la marge sur œufs (onglet Production). Le « prix de vente » d'un
+    // lot pondeuse est donc sa VALEUR DE RÉFORME (poule de fin de ponte), pas un prix
+    // viande x effectif (qui donnait des montants absurdes, ex. 9,8 M FCFA).
+    const cullUnit = toNumber(lot.prix_reforme_unitaire ?? lot.cull_price_per_bird) || toNumber(settings.layerCullPricePerBird) || 1500;
+    const reformUnit = Math.max(configured, cullUnit);
+    const reformTotal = reformUnit * Math.max(0, active);
+    return {
+      entityType: 'avicole_lot',
+      lotKind: 'pondeuse',
+      saleBasis: 'reforme_pondeuses',
+      totalCost: unified.totalCost,
+      recommendedUnitPrice: reformUnit,
+      recommendedTotalPrice: reformTotal,
+      minimumUnitPrice: cullUnit,
+      margin: null,
+      marginRate: null,
+      costSource: unified.costSource,
+      marketPrice: market?.price || null,
+      pricingBasis: `valeur de réforme fin de ponte (${active} poules x ${reformUnit} FCFA) - la rentabilité pondeuse se lit sur la marge œufs`,
+      alerts: ['Lot pondeuse : piloter la rentabilité via la marge sur œufs, pas la vente au sujet.'],
+    };
+  }
+
   const unitFromCost = unified.totalCost > 0 && active > 0
     ? (unified.totalCost / active) * (1 + settings.defaultTargetMarginPct / 100)
     : 0;
-  const configured = toNumber(lot.prix_vente_estime ?? lot.prix_unitaire_vente ?? lot.unit_sale_price);
-  const fallbackWeight = !layer ? broilerPriceByWeight(weight, settings) : toNumber(market?.price) || 2500;
+  const fallbackWeight = broilerPriceByWeight(weight, settings);
   const recommendedUnit = Math.max(configured, unitFromCost, fallbackWeight, toNumber(market?.price));
   const recommendedTotal = recommendedUnit * Math.max(1, active);
   const margin = recommendedTotal - unified.totalCost;

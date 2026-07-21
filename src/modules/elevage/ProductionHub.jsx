@@ -91,7 +91,7 @@ export default function ProductionHub({
       tone: toneFromBreakRate(perf.eggBreakRate7d),
     },
     {
-      label: 'IC chair (€/kg)',
+      label: 'Coût chair (FCFA/kg)',
       value: perf.chairCostPerKgAvg > 0 ? fmtCurrency(perf.chairCostPerKgAvg) : '-',
       tone: perf.chairCostPerKgAvg > 0 ? 'neutral' : 'warn',
     },
@@ -106,14 +106,14 @@ export default function ProductionHub({
       tone: perf.meatStockKg > 0 ? 'good' : 'warn',
     },
     {
-      label: PRODUCTION_FINANCE_LABELS.marginGross,
-      value: perf.technicalMarginLabel || '-',
-      tone: perf.technicalMarginTotal > 0 ? 'good' : perf.technicalMarginTotal != null ? 'warn' : 'neutral',
+      label: 'Marge réalisée (ventes)',
+      value: perf.realizedMarginLabel || '-',
+      tone: perf.realizedMarginTotal > 0 ? 'good' : perf.realizedMarginTotal != null ? 'warn' : 'neutral',
     },
   ];
 
   const heroKpis = contextView === 'avicole'
-    ? heroKpisAll.filter((k) => /œuf|casse|IC chair/i.test(k.label))
+    ? heroKpisAll.filter((k) => /œuf|casse|coût chair/i.test(k.label))
     : contextView === 'animaux'
       ? heroKpisAll.filter((k) => /GMQ|viande|marge/i.test(k.label))
       : heroKpisAll;
@@ -207,7 +207,7 @@ export default function ProductionHub({
           {[
             { label: 'Poids moyen', value: chair.avgWeight > 0 ? `${chair.avgWeight.toFixed(2)} kg` : '-', tone: chair.avgWeight > 0 ? 'good' : 'warn' },
             { label: 'Mortalité moy.', value: chair.avgMortality ? fmtNumber(chair.avgMortality) : '-', tone: toneFromMortality(perf.chairMortalityRateAvg) },
-            { label: 'IC (€/kg)', value: perf.chairCostPerKgAvg > 0 ? fmtCurrency(perf.chairCostPerKgAvg) : '-', tone: perf.chairCostPerKgAvg > 0 ? 'neutral' : 'warn' },
+            { label: 'Coût / kg', value: perf.chairCostPerKgAvg > 0 ? fmtCurrency(perf.chairCostPerKgAvg) : '-', tone: perf.chairCostPerKgAvg > 0 ? 'neutral' : 'warn' },
             { label: 'Prêts vente', value: fmtNumber(chair.readyLots), tone: chair.readyLots ? 'good' : 'warn' },
             { label: 'Marge chair', value: perf.chairMarginAvg != null ? fmtCurrency(perf.chairMarginAvg) : '-', tone: perf.chairMarginAvg > 0 ? 'good' : 'warn' },
           ].map((s) => (

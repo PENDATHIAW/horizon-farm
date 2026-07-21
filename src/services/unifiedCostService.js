@@ -1,7 +1,34 @@
-import { calculateAnimalCost, calculateAvicoleLotCost, summarizeAnimalCosts, summarizeAvicoleCosts } from '../utils/costEngine.js';
+import { calculateAnimalCost, calculateAvicoleLotCost, calculateCultureHealthCost, directExtraChargeTotal, summarizeAnimalCosts, summarizeAvicoleCosts } from '../utils/costEngine.js';
 import { getFarmCostSettings } from './farmCostSettings.js';
 
 const arr = (value) => (Array.isArray(value) ? value : []);
+const num = (value) => Number(value || 0);
+
+/**
+ * Coût de revient UNIFIÉ d'une culture : coûts saisis sur la fiche (semences,
+ * engrais, eau, main d'oeuvre, traitement) + soins/phyto enregistrés via le module
+ * Santé sur cette culture + charges directes rattachées. Sans ce moteur, un
+ * traitement phyto saisi côté Santé n'était compté nulle part dans le coût culture.
+ */
+export function calculateUnifiedCultureCost({ culture = {}, healthEvents = [], directCharges = [] } = {}) {
+  const fieldCost = ['cout_semences', 'cout_engrais', 'cout_eau', 'cout_main_oeuvre', 'cout_traitement']
+    .reduce((sum, key) => sum + num(culture[key]), 0);
+  const baseCost = num(culture.cout_total) || fieldCost;
+  const health = calculateCultureHealthCost({ culture, healthEvents, directCharges }).total;
+  const otherDirect = directExtraChargeTotal({ charges: directCharges, targetId: culture.id, targetType: 'cultures' });
+  const totalCost = baseCost + health + otherDirect;
+  const qty = Math.max(0, num(culture.quantite_recoltee) || num(culture.quantite_prevue));
+  return {
+    entityType: 'culture',
+    entityId: culture.id || null,
+    fieldCost: baseCost,
+    healthCost: health,
+    otherCost: otherDirect,
+    totalCost,
+    costPerKg: qty > 0 ? totalCost / qty : 0,
+    costComplete: totalCost > 0,
+  };
+}
 
 export const UNIFIED_COST_FORMULA = 'Coût total = achat + alimentation (réelle ou estimée) + santé + charges directes (+ emballage/transport ponte)';
 

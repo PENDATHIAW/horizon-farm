@@ -4,6 +4,7 @@ import {
   buildBovinKpis,
   buildChairKpis,
   buildPondeuseKpis,
+  computeElevageRealizedMargin,
   isBovinAnimal,
   isCaprinAnimal,
   isChairLot,
@@ -133,6 +134,24 @@ export function buildProductionHubSnapshot({
     ? technicalMargins.reduce((s, v) => s + v, 0)
     : null;
 
+  // Marge réalisée cohérente (ventes effectives rapprochées de leur coût de revient,
+  // hors cheptel vivant non vendu et capital pondeuses) - même base que la Vue
+  // d'ensemble, pour éviter un « marge brute » négatif trompeur en cours de cycle.
+  const realized = computeElevageRealizedMargin({
+    animaux,
+    lots,
+    context: {
+      alimentationLogs: marginContext.feedLogs || marginContext.alimentationLogs || [],
+      feedLogs: marginContext.feedLogs || marginContext.alimentationLogs || [],
+      productionLogs: marginContext.productionLogs || [],
+      healthEvents: marginContext.healthEvents || [],
+      vaccins: marginContext.healthEvents || [],
+      directCharges: marginContext.businessEvents || [],
+      businessEvents: marginContext.businessEvents || [],
+    },
+  });
+  const realizedMarginTotal = realized.count > 0 ? realized.margin : null;
+
   return {
     performance: {
       sellableEggs7d: eggsSellable,
@@ -146,6 +165,8 @@ export function buildProductionHubSnapshot({
       meatStockKg: meatStockQty,
       technicalMarginTotal,
       technicalMarginLabel: technicalMarginTotal != null ? fmtCurrency(technicalMarginTotal) : '-',
+      realizedMarginTotal,
+      realizedMarginLabel: realizedMarginTotal != null ? fmtCurrency(realizedMarginTotal) : '-',
       eggMarginAvg: avgEggMargin,
       chairMarginAvg: avgChairMargin,
       bovinMarginAvg: avgBovinMargin,

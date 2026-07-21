@@ -36,8 +36,19 @@ export function isCaprinAnimal(row = {}) {
   return animalLabel(row).includes('caprin') || animalLabel(row).includes('chèvre') || animalLabel(row).includes('chevre');
 }
 
+/**
+ * Chiffre d'affaires RÉALISÉ d'un lot. On privilégie un total explicite ; sinon,
+ * pour un lot vendu au sujet (chair), on multiplie le prix unitaire par le nombre
+ * de sujets vendus - car `prix_vente_reel` est un prix PAR TÊTE, pas le total du
+ * lot. Un prix seul (sans effectif vendu) n'est donc jamais pris pour un total.
+ */
 export function revenueOfLot(lot = {}) {
-  return n(lot.revenu ?? lot.revenue ?? lot.ca ?? lot.montant_vente ?? lot.prix_vente_reel ?? lot.sale_price ?? lot.prix_vente_prevu);
+  const explicitTotal = n(lot.revenu ?? lot.revenue ?? lot.ca ?? lot.chiffre_affaires ?? lot.montant_vente);
+  if (explicitTotal > 0) return explicitTotal;
+  const sold = n(lot.vendus ?? lot.sujets_vendus ?? lot.quantite_vendue ?? lot.sold_count);
+  const unit = n(lot.prix_vente_reel ?? lot.sale_price ?? lot.prix_vente_unitaire);
+  if (sold > 0 && unit > 0) return sold * unit;
+  return 0;
 }
 
 export function revenueOfAnimal(animal = {}) {
@@ -223,10 +234,23 @@ export function buildElevageActivityPnl({
     missing: mortalityTotal <= 0 ? ['valeurs perte non renseignées'] : [],
   }));
 
-  const totalRevenue = activities.reduce((s, a) => s + a.revenue, 0);
-  const totalCost = activities.reduce((s, a) => s + a.totalCost, 0);
+  // Les lignes globales alimentation/santé/mortalités sont des VENTILATIONS
+  // informatives : leurs coûts sont déjà inclus dans le coût unifié de chaque
+  // cohorte (pondeuses, chair, bovins...). On les exclut des totaux pour ne pas
+  // double-compter l'alimentation et la santé.
+  const INFORMATIONAL_ROWS = new Set(['alimentation', 'sante', 'mortalites']);
+  const costingActivities = activities.filter((a) => !INFORMATIONAL_ROWS.has(a.id));
+  const totalRevenue = costingActivities.reduce((s, a) => s + a.revenue, 0);
+  const totalCost = costingActivities.reduce((s, a) => s + a.totalCost, 0);
   const reliableCount = activities.filter((a) => a.reliable).length;
   const partialCount = activities.filter((a) => a.partial).length;
+
+  // Marge RÉALISÉE : uniquement les ventes effectives, chaque unité vendue mise en
+  // face de son propre coût. On exclut le cheptel vivant non vendu (c'est un stock,
+  // pas une perte) et le capital des pondeuses (amorti sur la durée de ponte, pas
+  // imputable au chiffre d'affaires œufs de la période) - sinon la « rentabilité »
+  // paraît fortement négative alors que le cycle est simplement en cours.
+  const realized = computeElevageRealizedMargin({ animaux, lots, context });
 
   return {
     activities: activities.filter((a) => a.entityCount > 0 || a.totalCost > 0 || a.revenue > 0),
@@ -234,11 +258,48 @@ export function buildElevageActivityPnl({
       revenue: totalRevenue,
       totalCost,
       grossMargin: totalRevenue > 0 ? totalRevenue - totalCost : null,
+      realizedMargin: realized.count > 0 ? realized.margin : null,
+      realizedRevenue: realized.revenue,
+      realizedCost: realized.cost,
+      soldEntitiesCount: realized.count,
+      inventoryAtCost: totalCost - realized.cost,
       reliableCount,
       partialCount,
       salesOrdersCount: arr(salesOrders).length,
     },
   };
+}
+
+/**
+ * Marge réalisée sur les ventes effectives (animaux vendus entiers + lots chair
+ * écoulés), chaque unité vendue rapprochée de son coût de revient unifié. Les
+ * pondeuses (capital amorti) et le cheptel encore vivant sont volontairement exclus.
+ */
+export function computeElevageRealizedMargin({ animaux = [], lots = [], context = {} } = {}) {
+  let revenue = 0;
+  let cost = 0;
+  let count = 0;
+
+  arr(animaux).forEach((animal) => {
+    const rev = revenueOfAnimal(animal);
+    if (rev <= 0) return;
+    const unified = calculateUnifiedAnimalCost({ animal, ...context });
+    revenue += rev;
+    cost += n(unified.totalCost);
+    count += 1;
+  });
+
+  arr(lots).filter(isChairLot).forEach((lot) => {
+    const sold = n(lot.vendus ?? lot.quantite_vendue ?? lot.sujets_vendus);
+    const rev = revenueOfLot(lot); // CA réalisé = sujets vendus x prix/tête (ou total explicite)
+    if (rev <= 0 || sold <= 0) return;
+    const unified = calculateUnifiedLotCost({ lot, ...context });
+    revenue += rev;
+    cost += n(unified.totalCost);
+    count += 1;
+  });
+
+  return { revenue, cost, margin: revenue - cost, count };
 }
 
 export function buildPondeuseKpis(lot = {}, context = {}) {

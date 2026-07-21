@@ -1,8 +1,7 @@
-import { Beef, Drumstick, Egg, HeartPulse, Scale, ShoppingCart, Skull, Wheat } from 'lucide-react';
+import { BarChart3, Beef, Drumstick, Egg, HeartPulse, Scale, ShoppingCart, Skull, Wheat } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import AnimauxV2 from '../AnimauxV2';
 import AvicoleV10 from '../AvicoleV10';
-import ProductionHub from './ProductionHub.jsx';
 import ElevageStartupPanel from './ElevageStartupPanel.jsx';
 import { resolveElevageLotsSubview } from '../../utils/commercialNavigation.js';
 
@@ -26,7 +25,6 @@ export default function ElevageLotsBandesTab({
   initialSubview = 'avicole',
   avicoleProps,
   animalProps,
-  productionHubProps,
   showStartup,
   startupProgress,
   onNavigate,
@@ -48,12 +46,6 @@ export default function ElevageLotsBandesTab({
     const sub = resolveElevageLotsSubview(initialSubview);
     if (sub) queueMicrotask(() => setView(sub));
   }, [initialSubview]);
-
-  const navigateSubview = (target) => {
-    const sub = resolveElevageLotsSubview(target);
-    if (sub) changeView(sub);
-    else onSetTab?.(target);
-  };
 
   const openWorkflowScoped = (modal, ctx = {}) => {
     onOpenWorkflow?.(modal, { ...ctx, scope: view });
@@ -132,14 +124,17 @@ export default function ElevageLotsBandesTab({
 
       {view === 'avicole' ? <AvicoleV10 {...avicoleProps} /> : <AnimauxV2 {...animalProps} />}
 
-      {productionHubProps ? (
-        <ProductionHub
-          {...productionHubProps}
-          setTab={navigateSubview}
-          contextView={view}
-          placement="footer"
-        />
-      ) : null}
+      <button
+        type="button"
+        onClick={() => onSetTab?.('Coûts & performance')}
+        className="flex w-full items-center justify-between gap-3 rounded-2xl border border-line bg-card px-4 py-3 text-left transition hover:border-horizon-dark/40 hover:bg-positive-bg"
+      >
+        <span className="flex items-center gap-2 text-sm font-semibold text-earth">
+          <BarChart3 size={16} className="text-horizon-dark" aria-hidden="true" />
+          Performances & rendements (rendement, coûts/kg, marges)
+        </span>
+        <span className="text-xs font-semibold text-horizon-dark">Onglet Coûts & performance →</span>
+      </button>
     </div>
   );
 }

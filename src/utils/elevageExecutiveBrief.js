@@ -51,9 +51,9 @@ export function buildElevageExecutiveBrief({
     warnings.push(`${reproduction.gestantesProches} mise(s) bas proche(s) - préparer Reproduction.`);
   }
 
-  const grossMargin = activityPnl?.totals?.grossMargin;
-  if (grossMargin != null && grossMargin < 0) {
-    warnings.push('Rentabilité globale négative sur la période - revoir coûts alimentation et prix de vente.');
+  const realizedMargin = activityPnl?.totals?.realizedMargin;
+  if (realizedMargin != null && realizedMargin < 0) {
+    warnings.push('Marge réalisée négative sur les ventes - revoir coûts alimentation et prix de vente.');
   }
 
   healthFindings.slice(0, 2).forEach((f) => {

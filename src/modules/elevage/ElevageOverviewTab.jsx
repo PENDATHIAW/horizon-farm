@@ -64,6 +64,9 @@ export default function ElevageOverviewTab({
             <ElevageStatCard key={kpi.id} label={kpi.label} value={kpi.value} tone={kpi.tone} />
           ))}
         </div>
+        <p className="text-xs leading-relaxed text-slate">
+          La marge réalisée ne compte que les ventes déjà encaissées, chaque sujet vendu face à son coût de revient. Le cheptel encore vivant reste valorisé dans « Valeur cheptel » : c'est un stock, pas une perte.
+        </p>
       </section>
 
       <section className={`rounded-3xl border p-6 shadow-card ${brief.stable ? 'border-positive bg-positive-bg' : 'border-vigilance bg-vigilance-bg'}`}>

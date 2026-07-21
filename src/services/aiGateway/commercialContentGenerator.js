@@ -7,8 +7,93 @@ import {
   createAiActionDraft,
   TARGET_WORKFLOWS,
 } from './aiActionDrafts.js';
+import { draftRelanceMessageDeterministic } from '../relanceAutomation.js';
+import { callClaudeModel } from './modelClient.js';
 
 const fmtMoney = (n) => `${Number(n || 0).toLocaleString('fr-FR')} FCFA`;
+
+/**
+ * Fabrique un « aiDrafter » de relance branché sur le modèle via la passerelle.
+ * À passer à `buildDailyRelanceBatch({ aiDrafter })`. Si le modèle n'est pas
+ * joignable (pas d'endpoint, hors-ligne), il renvoie une chaîne vide et
+ * l'orchestrateur retombe automatiquement sur la rédaction déterministe.
+ */
+export function buildClaudeRelanceDrafter({ fetchImpl } = {}) {
+  return async function claudeRelanceDrafter(context = {}) {
+    const brouillon = draftRelanceMessageDeterministic(context);
+    const prompt = [
+      'Réécris cette relance de paiement pour une ferme sénégalaise (Horizon Farm),',
+      `client « ${context.clientName || 'client'} », segment « ${context.segment || 'standard'} »,`,
+      `niveau ${context.levelLabel || context.level || 'J+2'}, montant dû ${fmtMoney(context.amount)},`,
+      `retard ${context.overdueDays || 0} jour(s). Ton ${context.tone || 'courtois'}, court, respectueux,`,
+      'prêt à envoyer sur WhatsApp. Garde le montant exact. Base :',
+      brouillon,
+    ].join(' ');
+    const result = await callClaudeModel({
+      system: 'Tu rédiges des relances de paiement brèves, cordiales et professionnelles pour une ferme au Sénégal.',
+      prompt,
+      maxTokens: 320,
+      fetchImpl,
+    });
+    return result.ok ? result.text : '';
+  };
+}
+
+/**
+ * Brouillon de relance créance passé par la gateway (message, jamais exécuté
+ * automatiquement : INSIGHT_ONLY + validation obligatoire). Le corps est rédigé
+ * par le moteur personnalisé (segment + niveau d'escalade) ; c'est aussi le point
+ * exact où un modèle Claude viendra affiner le texte, sans changer le contrat.
+ */
+export function proposeRelanceMessageDraft({
+  clientName = '',
+  amount = 0,
+  overdueDays = 0,
+  level = 'j2',
+  levelLabel = '',
+  segment = '',
+  orderId = '',
+  channel = 'whatsapp',
+  phone = '',
+  whatsappUrl = '',
+} = {}) {
+  const missing = [];
+  if (!clientName) missing.push('client_name');
+  if (!phone) missing.push('client_phone');
+
+  const body = clientName
+    ? draftRelanceMessageDeterministic({ level, clientName, amount, orderId, overdueDays, segment })
+    : 'Bonjour, précisez le client concerné pour personnaliser la relance.';
+
+  const warnings = [];
+  if (!phone) warnings.push('Numéro WhatsApp manquant : relance à passer par appel.');
+  warnings.push('Validez le texte avant envoi - aucun message ne part automatiquement.');
+
+  return createAiActionDraft({
+    intent: 'relance_creance',
+    confidence: missing.length ? 0.5 : 0.9,
+    source: AI_DRAFT_SOURCES.COMMERCIAL,
+    draft: {
+      channel,
+      level,
+      level_label: levelLabel || level,
+      client_name: clientName,
+      amount,
+      overdue_days: overdueDays,
+      segment,
+      order_id: orderId,
+      phone,
+      body,
+      whatsapp_url: whatsappUrl,
+    },
+    target_workflow: TARGET_WORKFLOWS.INSIGHT_ONLY,
+    required_validation: true,
+    missing_fields: missing,
+    warnings,
+    confirmation_required: missing.length > 0,
+    status: missing.length ? 'draft_incomplete' : 'awaiting_validation',
+  });
+}
 
 /**
  * Brouillon message client (relance, confirmation) - pas d'envoi automatique.

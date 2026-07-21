@@ -45,6 +45,7 @@ import CommercialSubscriptionsPanel from './commercial/CommercialSubscriptionsPa
 import CommercialProspectsPanel from './commercial/CommercialProspectsPanel.jsx';
 import CommercialSegmentsPanel from './commercial/CommercialSegmentsPanel.jsx';
 import CommercialScheduledRelancesPanel from './commercial/CommercialScheduledRelancesPanel.jsx';
+import CommercialDailyRelancesPanel from './commercial/CommercialDailyRelancesPanel.jsx';
 import CommercialPilotagePanel from './commercial/CommercialPilotagePanel.jsx';
 import CommercialMobileToolbar from './commercial/CommercialMobileToolbar.jsx';
 import CommercialStartupPanel from './commercial/CommercialStartupPanel.jsx';
@@ -677,6 +678,7 @@ export default function CommercialRecoveredModule(props) {
       {tab === 'Créances & relances commercial' ? (
         <div className="space-y-4">
           <ClientsReadable {...clientProps} />
+          <CommercialDailyRelancesPanel clients={clients} orders={data.ordersAll} payments={paymentsAll} />
           <CommercialScheduledRelancesPanel rows={data.relanceRows} clients={clients} onCreateTask={workflowHandlers.onCreateTask} onRefreshTasks={props.onRefreshTasks || tasksCrud.refresh} onOpenClient={openClientTab} onPrepareWhatsApp={prepareRelanceWhatsApp} />
         </div>
       ) : null}

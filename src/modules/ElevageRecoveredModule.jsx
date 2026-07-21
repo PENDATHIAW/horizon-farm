@@ -398,22 +398,28 @@ export default function ElevageRecoveredModule(props) {
   const clearReproductionDraft = useCallback(() => setReproductionHorizonDraft(null), []);
 
   const onPrepareTransformation = useCallback((context = {}) => {
+    const trAnimalId = context.animalId || context.animal_id;
+    const trLotId = context.lotId || context.lot_id;
+    const trSubject = animals.find((a) => String(a.id) === String(trAnimalId))
+      || lots.find((l) => String(l.id) === String(trLotId))
+      || null;
     openElevageTransformationForm({
       setTab,
       setTransformationDraft,
       context: {
-        animalId: context.animalId || context.animal_id,
-        lotId: context.lotId || context.lot_id,
+        animalId: trAnimalId,
+        lotId: trLotId,
         transformType: context.transformType || context.kind || 'abattage',
         activity: context.activity,
         notes: context.notes,
+        subject: trSubject,
       },
       onAfterOpen: () => {
         scrollToTransformationForm();
         toast.success('Transformation - formulaire officiel ouvert');
       },
     });
-  }, [setTab]);
+  }, [setTab, animals, lots]);
 
   const onOpenReproductionWorkflow = useCallback((workflow = 'gestation', context = {}) => {
     openElevageReproductionForm({
@@ -466,16 +472,22 @@ export default function ElevageRecoveredModule(props) {
     }
     setWorkflowScope(scope);
     if (modal === 'health') {
+      const healthAnimalId = context.animalId || context.animal_id;
+      const healthLotId = context.lotId || context.lot_id;
+      const healthSubject = animals.find((a) => String(a.id) === String(healthAnimalId))
+        || lots.find((l) => String(l.id) === String(healthLotId))
+        || null;
       openElevageHealthForm({
         setTab,
         setHealthDraft,
         context: {
-          animalId: context.animalId || context.animal_id,
-          lotId: context.lotId || context.lot_id,
+          animalId: healthAnimalId,
+          lotId: healthLotId,
           typeIntervention: context.typeIntervention || context.type_intervention,
           date: context.date,
           nom: context.nom,
           notes: context.notes,
+          subject: healthSubject,
         },
         onAfterOpen: () => {
           scrollToHealthInterventionForm();
@@ -603,14 +615,6 @@ export default function ElevageRecoveredModule(props) {
       initialSubview={initialSubview}
       avicoleProps={avicoleProps}
       animalProps={animalProps}
-      productionHubProps={{
-        snapshot: data.productionSnapshot,
-        lots,
-        animaux: animals,
-        marginContext: data.marginContext,
-        onNavigate: guardedNavigate,
-        onOpenWorkflow: openWorkflow,
-      }}
       showStartup={showStartup}
       startupProgress={startupProgress}
       onNavigate={guardedNavigate}

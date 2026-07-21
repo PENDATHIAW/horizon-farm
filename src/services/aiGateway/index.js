@@ -46,9 +46,12 @@ export {
 } from './chartExplainService.js';
 export {
   proposeClientMessageDraft,
+  proposeRelanceMessageDraft,
+  buildClaudeRelanceDrafter,
   proposeSaleDraft,
   proposePaymentDraft,
 } from './commercialContentGenerator.js';
+export { callClaudeModel, isModelReachable } from './modelClient.js';
 export {
   generateSalesPublication,
   proposeSalesPublicationDraft,

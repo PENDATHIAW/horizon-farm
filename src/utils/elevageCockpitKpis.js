@@ -25,9 +25,12 @@ export function buildElevageCockpitKpis({
   const lotValue = lots.reduce((s, l) => s + n(l.valeur_estimee ?? l.estimated_value ?? l.cout_total ?? l.cost_total), 0);
   const herdValueTotal = herdValue + lotValue;
 
-  const grossMargin = activityPnl?.totals?.grossMargin;
-  const revenue = activityPnl?.totals?.revenue || 0;
-  const marginRate = revenue > 0 && grossMargin != null ? (grossMargin / revenue) * 100 : null;
+  // Marge réalisée sur ventes effectives (hors cheptel vivant non vendu et capital
+  // pondeuses) : indicateur honnête pour un cycle en cours, contrairement au résultat
+  // brut qui imputerait tout le capital investi au chiffre d'affaires déjà encaissé.
+  const realizedMargin = activityPnl?.totals?.realizedMargin;
+  const realizedRevenue = activityPnl?.totals?.realizedRevenue || 0;
+  const marginRate = realizedRevenue > 0 && realizedMargin != null ? (realizedMargin / realizedRevenue) * 100 : null;
 
   return [
     {
@@ -38,7 +41,7 @@ export function buildElevageCockpitKpis({
     },
     {
       id: 'ic',
-      label: 'IC global (€/kg)',
+      label: 'Coût moyen (FCFA/kg)',
       value: icGlobal > 0 ? fmtCurrency(icGlobal) : '-',
       tone: icGlobal > 0 ? 'neutral' : 'warn',
     },
@@ -57,14 +60,14 @@ export function buildElevageCockpitKpis({
     {
       id: 'feed_cost',
       label: 'Coût alimentation',
-      value: `${Math.round(feedCost).toLocaleString('fr-FR')} F`,
+      value: fmtCurrency(feedCost),
       tone: 'warn',
     },
     {
       id: 'profitability',
-      label: 'Rentabilité globale',
-      value: grossMargin != null ? `${fmtCurrency(grossMargin)}${marginRate != null ? ` (${fmtPercent(marginRate)})` : ''}` : '-',
-      tone: grossMargin > 0 ? 'good' : grossMargin != null ? 'warn' : 'neutral',
+      label: 'Marge réalisée (ventes)',
+      value: realizedMargin != null ? `${fmtCurrency(realizedMargin)}${marginRate != null ? ` (${fmtPercent(marginRate)})` : ''}` : '-',
+      tone: realizedMargin > 0 ? 'good' : realizedMargin != null ? 'warn' : 'neutral',
     },
   ];
 }
