@@ -8,8 +8,36 @@ import {
   TARGET_WORKFLOWS,
 } from './aiActionDrafts.js';
 import { draftRelanceMessageDeterministic } from '../relanceAutomation.js';
+import { callClaudeModel } from './modelClient.js';
 
 const fmtMoney = (n) => `${Number(n || 0).toLocaleString('fr-FR')} FCFA`;
+
+/**
+ * Fabrique un « aiDrafter » de relance branché sur le modèle via la passerelle.
+ * À passer à `buildDailyRelanceBatch({ aiDrafter })`. Si le modèle n'est pas
+ * joignable (pas d'endpoint, hors-ligne), il renvoie une chaîne vide et
+ * l'orchestrateur retombe automatiquement sur la rédaction déterministe.
+ */
+export function buildClaudeRelanceDrafter({ fetchImpl } = {}) {
+  return async function claudeRelanceDrafter(context = {}) {
+    const brouillon = draftRelanceMessageDeterministic(context);
+    const prompt = [
+      'Réécris cette relance de paiement pour une ferme sénégalaise (Horizon Farm),',
+      `client « ${context.clientName || 'client'} », segment « ${context.segment || 'standard'} »,`,
+      `niveau ${context.levelLabel || context.level || 'J+2'}, montant dû ${fmtMoney(context.amount)},`,
+      `retard ${context.overdueDays || 0} jour(s). Ton ${context.tone || 'courtois'}, court, respectueux,`,
+      'prêt à envoyer sur WhatsApp. Garde le montant exact. Base :',
+      brouillon,
+    ].join(' ');
+    const result = await callClaudeModel({
+      system: 'Tu rédiges des relances de paiement brèves, cordiales et professionnelles pour une ferme au Sénégal.',
+      prompt,
+      maxTokens: 320,
+      fetchImpl,
+    });
+    return result.ok ? result.text : '';
+  };
+}
 
 /**
  * Brouillon de relance créance passé par la gateway (message, jamais exécuté
