@@ -6,6 +6,7 @@ import validateHandler from '../../lib/server/assistant/validate.js';
 import documentOcrHandler from '../../lib/server/assistant/documentOcr.js';
 import agentHandler from '../../lib/server/assistant/agent.js';
 import llmStatusHandler from '../../lib/server/assistant/llmStatus.js';
+import generateHandler from '../../lib/server/assistant/generate.js';
 
 const HANDLERS = {
   ask: askHandler,
@@ -14,6 +15,7 @@ const HANDLERS = {
   summary: summaryHandler,
   validate: validateHandler,
   agent: agentHandler,
+  generate: generateHandler,
   'document-ocr': documentOcrHandler,
   'llm-status': llmStatusHandler,
 };

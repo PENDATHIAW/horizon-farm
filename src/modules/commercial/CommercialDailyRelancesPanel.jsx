@@ -1,6 +1,8 @@
 import { useMemo, useState } from 'react';
-import { CalendarClock, MessageCircle, Sparkles } from 'lucide-react';
+import { CalendarClock, MessageCircle, Sparkles, Wand2, Loader2 } from 'lucide-react';
 import { buildDailyRelanceBatchSync } from '../../services/relanceAutomation.js';
+import { buildClaudeRelanceDrafter } from '../../services/aiGateway/index.js';
+import { buildWhatsappShareUrl } from '../../utils/whatsappShare.js';
 import { fmtCurrency } from '../../utils/format';
 
 const priorityClass = (p) => p === 'Urgent'
@@ -13,16 +15,50 @@ const priorityClass = (p) => p === 'Urgent'
  * Relances du jour : détecte les créances échues, propose un message déjà rédigé
  * et un envoi WhatsApp en un clic. Détection et rédaction automatiques ; l'envoi
  * reste un geste humain (aucun message ne part tout seul).
+ *
+ * Le bouton « Améliorer » passe par la passerelle serveur : si une clé modèle est
+ * posée côté serveur, le texte est affiné ; sinon on garde le modèle personnalisé
+ * (repli transparent, jamais d'erreur bloquante).
  */
 export default function CommercialDailyRelancesPanel({ clients = [], orders = [], payments = [] }) {
   const batch = useMemo(
     () => buildDailyRelanceBatchSync({ clients, orders, payments }),
     [clients, orders, payments],
   );
+  const drafter = useMemo(() => buildClaudeRelanceDrafter(), []);
   const [openId, setOpenId] = useState(null);
+  const [overrides, setOverrides] = useState({});
+  const [enhancingId, setEnhancingId] = useState(null);
+  const [notice, setNotice] = useState({});
 
   if (!batch.items.length) return null;
   const { summary } = batch;
+
+  const viewOf = (item) => overrides[item.id] || { message: item.message, whatsappUrl: item.whatsappUrl, source: item.messageSource };
+
+  const enhance = async (item) => {
+    setEnhancingId(item.id);
+    setNotice((prev) => ({ ...prev, [item.id]: '' }));
+    try {
+      const text = await drafter(item.contextForAi || {});
+      if (text && text.trim()) {
+        setOverrides((prev) => ({
+          ...prev,
+          [item.id]: {
+            message: text.trim(),
+            whatsappUrl: buildWhatsappShareUrl({ title: `Relance ${item.levelLabel}`, message: text.trim() }, item.phone),
+            source: 'ai',
+          },
+        }));
+      } else {
+        setNotice((prev) => ({ ...prev, [item.id]: 'Assistant indisponible - message personnalisé conservé.' }));
+      }
+    } catch {
+      setNotice((prev) => ({ ...prev, [item.id]: 'Assistant indisponible - message personnalisé conservé.' }));
+    } finally {
+      setEnhancingId(null);
+    }
+  };
 
   return (
     <section className="rounded-3xl border border-line bg-white p-4 shadow-card sm:p-6 space-y-4">
@@ -44,6 +80,8 @@ export default function CommercialDailyRelancesPanel({ clients = [], orders = []
       <div className="space-y-2">
         {batch.items.map((item) => {
           const open = openId === item.id;
+          const view = viewOf(item);
+          const busy = enhancingId === item.id;
           return (
             <div key={item.id} className="rounded-2xl border border-line bg-card p-3">
               <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
@@ -61,7 +99,7 @@ export default function CommercialDailyRelancesPanel({ clients = [], orders = []
                     {open ? 'Masquer' : 'Voir le message'}
                   </button>
                   {item.channel === 'whatsapp' ? (
-                    <a href={item.whatsappUrl} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1.5 rounded-xl bg-earth px-3 py-2 text-xs font-semibold text-white">
+                    <a href={view.whatsappUrl} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1.5 rounded-xl bg-earth px-3 py-2 text-xs font-semibold text-white">
                       <MessageCircle size={14} aria-hidden="true" /> Envoyer
                     </a>
                   ) : (
@@ -71,10 +109,22 @@ export default function CommercialDailyRelancesPanel({ clients = [], orders = []
               </div>
               {open ? (
                 <div className="mt-3 rounded-xl border border-line bg-white p-3">
-                  <p className="flex items-center gap-1.5 text-meta font-semibold uppercase tracking-normal text-slate">
-                    <Sparkles size={12} className="text-horizon-dark" aria-hidden="true" /> Message proposé ({item.messageSource === 'ai' ? 'assisté' : 'modèle personnalisé'})
-                  </p>
-                  <p className="mt-1.5 whitespace-pre-line text-sm text-earth">{item.message}</p>
+                  <div className="flex items-center justify-between gap-2">
+                    <p className="flex items-center gap-1.5 text-meta font-semibold uppercase tracking-normal text-slate">
+                      <Sparkles size={12} className="text-horizon-dark" aria-hidden="true" /> Message proposé ({view.source === 'ai' ? 'assisté' : 'modèle personnalisé'})
+                    </p>
+                    <button
+                      type="button"
+                      onClick={() => enhance(item)}
+                      disabled={busy}
+                      className="inline-flex items-center gap-1.5 rounded-lg border border-line bg-card px-2.5 py-1.5 text-meta font-semibold text-earth disabled:opacity-60"
+                    >
+                      {busy ? <Loader2 size={12} className="animate-spin" aria-hidden="true" /> : <Wand2 size={12} aria-hidden="true" />}
+                      {busy ? 'Rédaction...' : 'Améliorer'}
+                    </button>
+                  </div>
+                  <p className="mt-1.5 whitespace-pre-line text-sm text-earth">{view.message}</p>
+                  {notice[item.id] ? <p className="mt-1.5 text-meta text-slate">{notice[item.id]}</p> : null}
                 </div>
               ) : null}
             </div>
