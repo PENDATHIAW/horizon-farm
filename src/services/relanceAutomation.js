@@ -95,57 +95,84 @@ export async function buildDailyRelanceBatch({
   referenceDate = '',
   aiDrafter = null,
 } = {}) {
-  const date = clean(referenceDate) || new Date().toISOString().slice(0, 10);
+  const selected = selectDueRelances({ clients, orders, payments });
+  const items = [];
+  for (const sel of selected) {
+    const drafted = await draftRelanceMessage(sel.context, aiDrafter);
+    items.push(assembleRelanceItem(sel, drafted));
+  }
+  return finalizeBatch(items, referenceDate);
+}
+
+/**
+ * Variante SYNCHRONE (rédaction déterministe uniquement) - pratique pour le rendu
+ * React sans état asynchrone. L'amorce IA reste réservée à la version async.
+ */
+export function buildDailyRelanceBatchSync({ clients = [], orders = [], payments = [], referenceDate = '' } = {}) {
+  const items = selectDueRelances({ clients, orders, payments })
+    .map((sel) => assembleRelanceItem(sel, { message: draftRelanceMessageDeterministic(sel.context), source: 'deterministic' }));
+  return finalizeBatch(items, referenceDate);
+}
+
+/** Sélectionne les créances à relancer aujourd'hui et prépare leur contexte. */
+export function selectDueRelances({ clients = [], orders = [], payments = [] } = {}) {
   const creances = buildCommercialRelanceRows({ clients, orders, payments })
     .filter((row) => row.type === 'creance' && n(row.amount) > 0);
-
   const clientById = new Map(arr(clients).map((c) => [String(c.id), c]));
-  const items = [];
 
-  for (const row of creances) {
+  return creances.flatMap((row) => {
     const level = relanceLevelForOverdue(row.overdueDays);
-    if (!level) continue; // impayé trop récent : pas encore de relance
+    if (!level) return []; // impayé trop récent : pas encore de relance
     const client = clientById.get(String(row.clientId)) || { id: row.clientId, nom: row.clientName };
     const orderId = arr(orders).find((o) => String(o.client_id) === String(row.clientId))?.id || '';
-    const context = {
-      level: level.key,
-      levelLabel: level.label,
-      tone: level.tone,
-      clientName: row.clientName,
-      amount: n(row.amount),
-      orderId,
-      overdueDays: n(row.overdueDays),
-      segment: row.segment,
-    };
-    const drafted = await draftRelanceMessage(context, aiDrafter);
-    const phone = phoneOfClient(client);
-    items.push({
-      id: `relance-jour-${row.clientId}-${level.key}`,
-      clientId: row.clientId,
-      clientName: row.clientName,
-      amount: n(row.amount),
-      amountLabel: fmtCurrency(n(row.amount)),
-      overdueDays: n(row.overdueDays),
-      level: level.key,
-      levelLabel: level.label,
-      tone: level.tone,
-      priority: level.key === 'j15' ? 'Urgent' : level.key === 'j7' ? 'Prioritaire' : 'Normal',
-      channel: phone ? 'whatsapp' : 'appel',
-      phone,
-      message: drafted.message,
-      messageSource: drafted.source,
-      whatsappUrl: buildWhatsappShareUrl({ title: `Relance ${level.label}`, message: drafted.message }, phone),
-      requiresManualSend: true,
-      sendPolicy: COMMERCIAL_RELANCE_WHATSAPP_POLICY,
-    });
-  }
+    return [{
+      row,
+      level,
+      client,
+      context: {
+        level: level.key,
+        levelLabel: level.label,
+        tone: level.tone,
+        clientName: row.clientName,
+        amount: n(row.amount),
+        orderId,
+        overdueDays: n(row.overdueDays),
+        segment: row.segment,
+      },
+    }];
+  });
+}
 
+function assembleRelanceItem({ row, level, client, context }, drafted) {
+  const phone = phoneOfClient(client);
+  return {
+    id: `relance-jour-${row.clientId}-${level.key}`,
+    clientId: row.clientId,
+    clientName: row.clientName,
+    amount: n(row.amount),
+    amountLabel: fmtCurrency(n(row.amount)),
+    overdueDays: n(row.overdueDays),
+    level: level.key,
+    levelLabel: level.label,
+    tone: level.tone,
+    priority: level.key === 'j15' ? 'Urgent' : level.key === 'j7' ? 'Prioritaire' : 'Normal',
+    channel: phone ? 'whatsapp' : 'appel',
+    phone,
+    message: drafted.message,
+    messageSource: drafted.source,
+    whatsappUrl: buildWhatsappShareUrl({ title: `Relance ${level.label}`, message: drafted.message }, phone),
+    requiresManualSend: true,
+    sendPolicy: COMMERCIAL_RELANCE_WHATSAPP_POLICY,
+    contextForAi: context,
+  };
+}
+
+function finalizeBatch(items, referenceDate) {
+  const date = clean(referenceDate) || new Date().toISOString().slice(0, 10);
   items.sort((a, b) => (b.overdueDays - a.overdueDays) || (b.amount - a.amount));
-
   const totalAmount = items.reduce((s, i) => s + i.amount, 0);
   const byLevel = items.reduce((acc, i) => { acc[i.level] = (acc[i.level] || 0) + 1; return acc; }, {});
   const sendableNow = items.filter((i) => i.channel === 'whatsapp').length;
-
   return {
     date,
     items,

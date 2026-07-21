@@ -6,6 +6,7 @@ import {
   draftRelanceMessageDeterministic,
   draftRelanceMessage,
   buildDailyRelanceBatch,
+  buildDailyRelanceBatchSync,
 } from '../../src/services/relanceAutomation.js';
 
 test('niveau de relance selon le retard (trop tôt < 2 j)', () => {
@@ -56,6 +57,15 @@ test('lot du jour : créances du seed détectées, prêtes à envoyer (manuel)',
   for (let i = 1; i < batch.items.length; i += 1) {
     assert.ok(batch.items[i - 1].overdueDays >= batch.items[i].overdueDays);
   }
+});
+
+test('variante synchrone (rendu UI) : même résultat déterministe que la version async', async () => {
+  const params = { clients: seed.clients, orders: seed.sales_orders, payments: seed.payments };
+  const sync = buildDailyRelanceBatchSync(params);
+  const async = await buildDailyRelanceBatch(params);
+  assert.equal(sync.items.length, async.items.length);
+  assert.equal(sync.summary.totalAmount, async.summary.totalAmount);
+  assert.ok(sync.items.every((i) => i.messageSource === 'deterministic' && i.whatsappUrl.startsWith('https://wa.me/')));
 });
 
 test('lot du jour : le compteur IA reflète l\'usage de l\'amorce', async () => {
