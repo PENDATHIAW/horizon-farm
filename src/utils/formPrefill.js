@@ -87,7 +87,70 @@ export const FORM_INHERITANCE_RULES = {
     farm_id: [{ source: 'subject', path: 'farm_id' }, { source: 'context', path: 'farmId' }],
     date: [{ source: 'context', path: 'today' }],
   },
+  // Achats & Stock : réception / achat fournisseur.
+  purchase_reception: {
+    fournisseur_id: [{ source: 'context', path: 'fournisseurId' }, { source: 'subject', path: 'fournisseur_id' }, { source: 'related', path: 'lastPurchase.fournisseur_id' }],
+    produit: [{ source: 'subject', path: 'produit' }, { source: 'subject', path: 'nom' }, { source: 'lastValue', path: 'produit' }],
+    categorie: [{ source: 'subject', path: 'categorie' }, { source: 'lastValue', path: 'categorie' }],
+    unite: [{ source: 'subject', path: 'unite' }, { source: 'related', path: 'lastPurchase.unite' }, { source: 'lastValue', path: 'unite' }],
+    prix_unitaire: [{ source: 'related', path: 'lastPurchase.prix_unitaire' }, { source: 'subject', path: 'prix_unitaire' }, { source: 'lastValue', path: 'prix_unitaire' }],
+    stock_id: [{ source: 'subject', path: 'id' }],
+    farm_id: [{ source: 'subject', path: 'farm_id' }, { source: 'context', path: 'farmId' }],
+    date: [{ source: 'context', path: 'today' }],
+  },
+  // Finance : saisie d'une dépense / recette.
+  finance_entry: {
+    activite: [{ source: 'context', path: 'activite' }, { source: 'subject', path: 'activite' }, { source: 'lastValue', path: 'activite' }],
+    categorie: [{ source: 'context', path: 'categorie' }, { source: 'lastValue', path: 'categorie' }],
+    type: [{ source: 'context', path: 'sens' }, { source: 'context', path: 'type' }],
+    related_id: [{ source: 'subject', path: 'id' }],
+    module_lie: [{ source: 'context', path: 'module' }, { source: 'subject', path: 'source_module' }],
+    farm_id: [{ source: 'subject', path: 'farm_id' }, { source: 'context', path: 'farmId' }],
+    date: [{ source: 'context', path: 'today' }],
+  },
 };
+
+/**
+ * Vocabulaire des `form_type` de l'ERP → clé de règle. Permet au point central
+ * (openFormModal) d'appliquer l'héritage quel que soit le module d'origine.
+ */
+export const FORM_TYPE_TO_RULE = {
+  health_action: 'sante_intervention', sante_intervention: 'sante_intervention', health_intervention: 'sante_intervention',
+  feeding_distribution: 'feeding_distribution', daily_feeding: 'feeding_distribution',
+  sale_record: 'sale_record', vente: 'sale_record', sale: 'sale_record',
+  animal_creation: 'animal_creation', naissance: 'animal_creation', birth: 'animal_creation',
+  culture_harvest: 'culture_harvest', recolte: 'culture_harvest', harvest: 'culture_harvest',
+  transformation: 'transformation_slaughter', abattage: 'transformation_slaughter', slaughter: 'transformation_slaughter', animal_transformation: 'transformation_slaughter', lot_transformation: 'transformation_slaughter',
+  purchase_stock: 'purchase_reception', stock_purchase: 'purchase_reception', supplier_invoice: 'purchase_reception', reception_achat: 'purchase_reception',
+  finance_entry: 'finance_entry', depense: 'finance_entry', recette: 'finance_entry',
+};
+
+/** Résout un `form_type` (vocabulaire ERP) vers la clé de règle d'héritage. */
+export function resolveRuleKey(formType = '') {
+  const key = String(formType || '').trim().toLowerCase();
+  return FORM_TYPE_TO_RULE[key] || (FORM_INHERITANCE_RULES[key] ? key : null);
+}
+
+/**
+ * Point d'entrée CENTRAL (tout l'ERP) : enrichit un brouillon de formulaire avec
+ * les valeurs héritées de son sujet, sans écraser la saisie. Sans sujet ou sans
+ * règle pour ce `form_type`, le brouillon est renvoyé inchangé.
+ */
+export function applyDraftPrefill(draft = {}, extraContext = {}) {
+  const ruleKey = resolveRuleKey(draft.form_type || draft.intent);
+  const subject = draft.subject || draft.draft_fields?.subject || draft.fields?.subject || null;
+  if (!ruleKey || !subject || !FORM_INHERITANCE_RULES[ruleKey]) return draft;
+
+  const prefill = buildFormPrefill({
+    formType: ruleKey,
+    subject,
+    context: { ...extraContext, ...(draft.context || {}) },
+  });
+  const fieldsKey = draft.draft_fields ? 'draft_fields' : 'fields';
+  const { form, applied } = mergePrefillIntoForm(prefill.values, draft[fieldsKey] || {});
+  if (!applied.length) return draft;
+  return { ...draft, [fieldsKey]: form, prefill_provenance: prefill.provenance, prefill_applied: applied };
+}
 
 /**
  * Calcule les valeurs héritées pour un formulaire.
