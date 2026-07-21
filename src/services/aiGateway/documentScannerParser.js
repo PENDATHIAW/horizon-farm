@@ -3,6 +3,7 @@
  */
 
 import { SCANNER_DOC_TYPES } from './documentScannerTypes.js';
+import { categorizeExpenseReceipt } from './expenseReceiptCategorizer.js';
 
 const clean = (value) => String(value || '').trim();
 const lower = (value) => clean(value).toLowerCase();
@@ -51,6 +52,11 @@ export function classifyScannerDocumentType(text = '', fileName = '', forcedType
   }
   if (/(bon de livraison|bon livraison|\bbl\b|livraison n)/.test(combined)) {
     return SCANNER_DOC_TYPES.DELIVERY_NOTE;
+  }
+  // Charge d'exploitation (pas un achat stockable) : carburant, transport, énergie,
+  // main d'oeuvre, réparation… → reçu de dépense (finance) plutôt que facture stock.
+  if (/(carburant|gasoil|gazole|essence|diesel|transport|taxi|peage|péage|vidange|electricite|électricité|senelec|groupe electrogene|facture eau|\bsde\b|reparation|réparation|entretien|main d.?oeuvre|salaire|manoeuvre|manœuvre|loyer|communication|telephone|téléphone|internet|forfait)/.test(combined)) {
+    return SCANNER_DOC_TYPES.EXPENSE_RECEIPT;
   }
   if (/(facture|invoice|fournisseur|achat|ttc|ht\b|tva)/.test(combined)) {
     return SCANNER_DOC_TYPES.PURCHASE_INVOICE;
@@ -187,6 +193,27 @@ export function parsePaymentReceipt(text = {}) {
   };
 }
 
+export function parseExpenseReceipt(text = {}) {
+  const raw = typeof text === 'string' ? text : text.text || '';
+  const amounts = extractAmounts(raw);
+  const total = amounts.length ? Math.max(...amounts) : null;
+  const merchant = extractSupplierName(raw)
+    || clean(raw.split('\n').map(clean).find((l) => l.length > 3 && !/facture|recu|reçu|date|fcfa|total/i.test(l)) || '');
+  const { category, activite, confidence, keywords } = categorizeExpenseReceipt({ text: raw, merchant });
+  return {
+    doc_type: SCANNER_DOC_TYPES.EXPENSE_RECEIPT,
+    marchand: merchant,
+    categorie: category,
+    activite,
+    categorization_confidence: confidence,
+    categorization_keywords: keywords,
+    montant: total,
+    date: toISODate(raw),
+    statut_paiement: extractPaymentStatus(raw) === 'unknown' ? 'paye' : extractPaymentStatus(raw),
+    preuve_texte: raw.slice(0, 2000),
+  };
+}
+
 export function parseDeliveryNote(text = {}, context = {}) {
   const purchase = parsePurchaseInvoice(text, context);
   return {
@@ -207,6 +234,10 @@ export function parseScannedDocument({ text = '', fileName = '', docType = '', c
       return { type, fields: parseVetPrescription(text, context), confidence: 0.72 };
     case SCANNER_DOC_TYPES.PAYMENT_RECEIPT:
       return { type, fields: parsePaymentReceipt(text, context), confidence: 0.7 };
+    case SCANNER_DOC_TYPES.EXPENSE_RECEIPT: {
+      const fields = parseExpenseReceipt(text);
+      return { type, fields, confidence: Math.min(0.8, 0.55 + (fields.categorization_confidence || 0) * 0.3) };
+    }
     case SCANNER_DOC_TYPES.DELIVERY_NOTE:
       return { type, fields: parseDeliveryNote(text, context), confidence: 0.68 };
     default:
@@ -230,6 +261,10 @@ export function listMissingScannerFields(type, fields = {}) {
   if (type === SCANNER_DOC_TYPES.PAYMENT_RECEIPT) {
     if (!fields.montant && !fields.requestedAmount) missing.push('montant');
     if (!fields.sale_id && !fields.client_name) missing.push('reference_vente');
+  }
+  if (type === SCANNER_DOC_TYPES.EXPENSE_RECEIPT) {
+    if (!fields.montant) missing.push('montant');
+    if (!clean(fields.categorie)) missing.push('categorie');
   }
   return missing;
 }
