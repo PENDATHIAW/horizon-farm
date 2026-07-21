@@ -68,8 +68,13 @@ export {
 } from './smartReconciliation.js';
 
 export { scanDocumentToDraft, SCANNER_DOC_TYPES } from './documentScannerService.js';
-export { buildScannerDraft } from './documentScannerDrafts.js';
+export { buildScannerDraft, buildExpensePayloadFromScan } from './documentScannerDrafts.js';
 export { executeScannerDraft } from './documentScannerExecute.js';
+export {
+  categorizeExpenseReceipt,
+  buildExpenseCategorizer,
+  EXPENSE_CATEGORIES,
+} from './expenseReceiptCategorizer.js';
 export { extractTextFromDocument, fetchDocumentOcr } from './documentTextExtraction.js';
 export {
   SCANNER_DOC_TYPE_LABELS,

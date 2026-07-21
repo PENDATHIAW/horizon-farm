@@ -1,4 +1,5 @@
 import { generateSequentialId, makeId } from './ids.js';
+import { routeTaskWithRaci } from './raciTaskRouting.js';
 
 const arr = (value) => Array.isArray(value) ? value : [];
 const clean = (value = '') => String(value || '').trim();
@@ -40,31 +41,35 @@ export function hasOpenTaskForAlert(tasks = [], alert = {}) {
   return arr(tasks).some((task) => !isTaskClosed(task) && (String(task.source_record_id || '') === String(alert.id || '') || taskDedupeKey(task) === key));
 }
 
-export function buildTaskFromAlert(alert = {}, rows = [], date = '') {
+export function buildTaskFromAlert(alert = {}, rows = [], date = '', { people = [] } = {}) {
   const id = generateSequentialId('taches', rows);
   const key = alertDedupeKey(alert);
   const title = alert.title || alert.message || 'Action alerte';
   const checklist = normalizeTaskChecklist(alert.checklist || alert.action_recommandee || alert.message || '', title);
   const dueDate = clean(date || alert.due_date || alert.target_date || alert.expires_at) || today();
+  const baseTask = {
+    id,
+    title,
+    module_lie: alert.module_source || alert.module || 'alertes',
+    entity_type: alert.entity_type || 'alerte',
+    related_id: alert.entity_id || alert.id,
+    assigned_to: alert.responsable || alert.assigned_to || 'TEAM-FERME',
+    due_date: dueDate,
+    priority: ['critical', 'critique', 'urgence'].includes(lower(alert.severity)) ? 'critique' : 'haute',
+    status: 'a_faire',
+    notes: alert.message || alert.action_recommandee || '',
+    checklist,
+    source_module: 'alertes',
+    source_record_id: alert.id,
+    action_key: alert.action_recommandee || alert.title || 'action',
+    alert_dedupe_key: key,
+    task_dedupe_key: key,
+    decision_key: alert.decision_key || alert.action_key || '',
+  };
   return {
-    task: {
-      id,
-      title,
-      module_lie: alert.module_source || alert.module || 'alertes',
-      entity_type: alert.entity_type || 'alerte',
-      related_id: alert.entity_id || alert.id,
-      assigned_to: alert.responsable || alert.assigned_to || 'TEAM-FERME',
-      due_date: dueDate,
-      priority: ['critical', 'critique', 'urgence'].includes(lower(alert.severity)) ? 'critique' : 'haute',
-      status: 'a_faire',
-      notes: alert.message || alert.action_recommandee || '',
-      checklist,
-      source_module: 'alertes',
-      source_record_id: alert.id,
-      action_key: alert.action_recommandee || alert.title || 'action',
-      alert_dedupe_key: key,
-      task_dedupe_key: key,
-    },
+    // Gouvernance RACI (additif) : rôle responsable, suggestion d'assignation si
+    // l'annuaire est fourni, rôles/cibles à notifier. N'écrase jamais assigned_to.
+    task: routeTaskWithRaci(baseTask, people),
     alertPatch: { linked_task_id: id, status: alert.status === 'nouvelle' ? 'lue' : alert.status || 'lue' },
     event: {
       id: makeId('EVT'),

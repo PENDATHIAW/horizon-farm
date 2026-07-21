@@ -22,6 +22,8 @@ function intentForType(type) {
       return 'health_prescription_scan';
     case SCANNER_DOC_TYPES.PAYMENT_RECEIPT:
       return 'payment_receipt_scan';
+    case SCANNER_DOC_TYPES.EXPENSE_RECEIPT:
+      return 'expense_receipt_scan';
     case SCANNER_DOC_TYPES.DELIVERY_NOTE:
       return 'delivery_note_scan';
     default:
@@ -35,6 +37,9 @@ function workflowForType(type) {
       return TARGET_WORKFLOWS.HEALTH;
     case SCANNER_DOC_TYPES.PAYMENT_RECEIPT:
       return TARGET_WORKFLOWS.SALE_PAYMENT;
+    case SCANNER_DOC_TYPES.EXPENSE_RECEIPT:
+      // Ouvre le formulaire dépense pré-rempli (non exécutable : à valider).
+      return TARGET_WORKFLOWS.OPEN_FORM;
     default:
       return TARGET_WORKFLOWS.STOCK_PURCHASE;
   }
@@ -106,6 +111,35 @@ export function buildPaymentPayloadFromScan(fields = {}, proofMeta = {}) {
 }
 
 /**
+ * Construit le payload dépense (formulaire finance) depuis un reçu scanné.
+ * form_type finance_entry : reprend l'héritage central (activité, module lié) et
+ * ouvre le formulaire dépense pré-catégorisé, à valider (jamais auto-enregistré).
+ */
+export function buildExpensePayloadFromScan(fields = {}, proofMeta = {}) {
+  return {
+    form_type: 'finance_entry',
+    primary_module: 'finance_pilotage',
+    type: 'sortie',
+    sens: 'sortie',
+    categorie: fields.categorie || 'Autre',
+    activite: fields.activite && fields.activite !== 'general' ? fields.activite : '',
+    montant: fields.montant,
+    objet_cout: clean(fields.marchand) || clean(fields.categorie) || 'Dépense',
+    tiers: clean(fields.marchand),
+    statut_paiement: fields.statut_paiement || 'paye',
+    date: fields.date,
+    module_lie: 'finance_pilotage',
+    categorization_confidence: fields.categorization_confidence,
+    categorization_keywords: fields.categorization_keywords || [],
+    proof_url: proofMeta.proof_url || proofMeta.file_url || '',
+    file_url: proofMeta.file_url || proofMeta.proof_url || '',
+    document_id: proofMeta.document_id || '',
+    document_title: proofMeta.document_title || `Reçu ${fields.marchand || fields.categorie || 'dépense'}`,
+    notes: fields.preuve_texte ? `Reçu scanné : ${clean(fields.preuve_texte).slice(0, 160)}` : 'Reçu de dépense (scan)',
+  };
+}
+
+/**
  * Crée un brouillon IA gateway complet depuis texte extrait.
  */
 export function buildScannerDraft({
@@ -137,6 +171,8 @@ export function buildScannerDraft({
     payload = buildHealthPayloadFromScan(fields, proofMeta);
   } else if (type === SCANNER_DOC_TYPES.PAYMENT_RECEIPT) {
     payload = buildPaymentPayloadFromScan(fields, proofMeta);
+  } else if (type === SCANNER_DOC_TYPES.EXPENSE_RECEIPT) {
+    payload = buildExpensePayloadFromScan(fields, proofMeta);
   } else {
     payload = buildPurchasePayloadFromScan(fields, proofMeta);
   }
