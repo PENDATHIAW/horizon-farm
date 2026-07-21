@@ -98,6 +98,30 @@ export const FORM_INHERITANCE_RULES = {
     farm_id: [{ source: 'subject', path: 'farm_id' }, { source: 'context', path: 'farmId' }],
     date: [{ source: 'context', path: 'today' }],
   },
+  // Élevage : nouvelle pesée d'un sujet (reprend la fiche, le poids courant devient
+  // le poids précédent, l'objectif et la ferme sont déjà connus).
+  weighing: {
+    animal_id: [{ source: 'subject', path: 'id' }],
+    boucle_numero: [{ source: 'subject', path: 'boucle_numero' }, { source: 'subject', path: 'tag' }],
+    espece: [{ source: 'subject', path: 'espece' }, { source: 'subject', path: 'type' }],
+    poids_precedent: [{ source: 'subject', path: 'poids_actuel' }, { source: 'subject', path: 'poids' }, { source: 'related', path: 'lastWeighing.poids' }],
+    poids_cible: [{ source: 'subject', path: 'poids_cible' }, { source: 'subject', path: 'poids_objectif' }, { source: 'subject', path: 'target_weight' }],
+    responsable: [{ source: 'context', path: 'user' }, { source: 'subject', path: 'responsable' }, { source: 'lastValue', path: 'responsable' }],
+    farm_id: [{ source: 'subject', path: 'farm_id' }, { source: 'context', path: 'farmId' }],
+    date: [{ source: 'context', path: 'date' }, { source: 'context', path: 'today' }],
+  },
+  // Commercial : encaissement d'une commande (client, facture, reste à payer déjà
+  // connus - on ne resaisit que le montant réellement reçu si différent).
+  payment_record: {
+    order_id: [{ source: 'subject', path: 'id' }],
+    client_id: [{ source: 'subject', path: 'client_id' }, { source: 'context', path: 'clientId' }],
+    client_nom: [{ source: 'subject', path: 'client_label' }, { source: 'subject', path: 'client_name' }, { source: 'subject', path: 'client_nom' }],
+    invoice_id: [{ source: 'subject', path: 'invoice_id' }],
+    montant: [{ source: 'context', path: 'remaining' }, { source: 'related', path: 'remaining' }, { source: 'subject', path: 'reste_a_payer' }],
+    moyen_paiement: [{ source: 'context', path: 'method' }, { source: 'lastValue', path: 'moyen_paiement' }, { source: 'default', value: 'especes' }],
+    farm_id: [{ source: 'subject', path: 'farm_id' }, { source: 'context', path: 'farmId' }],
+    date: [{ source: 'context', path: 'date' }, { source: 'context', path: 'today' }],
+  },
   // Finance : saisie d'une dépense / recette.
   finance_entry: {
     activite: [{ source: 'context', path: 'activite' }, { source: 'subject', path: 'activite' }, { source: 'lastValue', path: 'activite' }],
@@ -123,6 +147,8 @@ export const FORM_TYPE_TO_RULE = {
   transformation: 'transformation_slaughter', abattage: 'transformation_slaughter', slaughter: 'transformation_slaughter', animal_transformation: 'transformation_slaughter', lot_transformation: 'transformation_slaughter',
   purchase_stock: 'purchase_reception', stock_purchase: 'purchase_reception', supplier_invoice: 'purchase_reception', reception_achat: 'purchase_reception',
   finance_entry: 'finance_entry', depense: 'finance_entry', recette: 'finance_entry',
+  weighing: 'weighing', pesee: 'weighing', 'pesée': 'weighing', animal_weighing: 'weighing', weight_record: 'weighing', poids: 'weighing',
+  payment_record: 'payment_record', sale_payment: 'payment_record', encaissement: 'payment_record', paiement: 'payment_record', payment: 'payment_record',
 };
 
 /** Résout un `form_type` (vocabulaire ERP) vers la clé de règle d'héritage. */
