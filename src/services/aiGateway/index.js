@@ -46,6 +46,7 @@ export {
 } from './chartExplainService.js';
 export {
   proposeClientMessageDraft,
+  proposeRelanceMessageDraft,
   proposeSaleDraft,
   proposePaymentDraft,
 } from './commercialContentGenerator.js';

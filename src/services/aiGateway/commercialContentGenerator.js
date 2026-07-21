@@ -7,8 +7,65 @@ import {
   createAiActionDraft,
   TARGET_WORKFLOWS,
 } from './aiActionDrafts.js';
+import { draftRelanceMessageDeterministic } from '../relanceAutomation.js';
 
 const fmtMoney = (n) => `${Number(n || 0).toLocaleString('fr-FR')} FCFA`;
+
+/**
+ * Brouillon de relance créance passé par la gateway (message, jamais exécuté
+ * automatiquement : INSIGHT_ONLY + validation obligatoire). Le corps est rédigé
+ * par le moteur personnalisé (segment + niveau d'escalade) ; c'est aussi le point
+ * exact où un modèle Claude viendra affiner le texte, sans changer le contrat.
+ */
+export function proposeRelanceMessageDraft({
+  clientName = '',
+  amount = 0,
+  overdueDays = 0,
+  level = 'j2',
+  levelLabel = '',
+  segment = '',
+  orderId = '',
+  channel = 'whatsapp',
+  phone = '',
+  whatsappUrl = '',
+} = {}) {
+  const missing = [];
+  if (!clientName) missing.push('client_name');
+  if (!phone) missing.push('client_phone');
+
+  const body = clientName
+    ? draftRelanceMessageDeterministic({ level, clientName, amount, orderId, overdueDays, segment })
+    : 'Bonjour, précisez le client concerné pour personnaliser la relance.';
+
+  const warnings = [];
+  if (!phone) warnings.push('Numéro WhatsApp manquant : relance à passer par appel.');
+  warnings.push('Validez le texte avant envoi - aucun message ne part automatiquement.');
+
+  return createAiActionDraft({
+    intent: 'relance_creance',
+    confidence: missing.length ? 0.5 : 0.9,
+    source: AI_DRAFT_SOURCES.COMMERCIAL,
+    draft: {
+      channel,
+      level,
+      level_label: levelLabel || level,
+      client_name: clientName,
+      amount,
+      overdue_days: overdueDays,
+      segment,
+      order_id: orderId,
+      phone,
+      body,
+      whatsapp_url: whatsappUrl,
+    },
+    target_workflow: TARGET_WORKFLOWS.INSIGHT_ONLY,
+    required_validation: true,
+    missing_fields: missing,
+    warnings,
+    confirmation_required: missing.length > 0,
+    status: missing.length ? 'draft_incomplete' : 'awaiting_validation',
+  });
+}
 
 /**
  * Brouillon message client (relance, confirmation) - pas d'envoi automatique.

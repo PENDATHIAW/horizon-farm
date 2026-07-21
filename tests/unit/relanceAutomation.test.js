@@ -78,3 +78,29 @@ test('lot du jour : le compteur IA reflète l\'usage de l\'amorce', async () => 
   assert.equal(batch.summary.aiDrafted, batch.items.length);
   assert.ok(batch.items.every((i) => i.messageSource === 'ai'));
 });
+
+// --- Passerelle IA : la relance passe par le contrat gateway (message, jamais exécuté) ---
+import { proposeRelanceMessageDraft } from '../../src/services/aiGateway/commercialContentGenerator.js';
+import { assessDraftSafety } from '../../src/services/aiGateway/aiSafetyGuard.js';
+import { isExecutableWorkflow, TARGET_WORKFLOWS } from '../../src/services/aiGateway/aiActionDrafts.js';
+
+test('gateway : le brouillon de relance est un message validable, jamais auto-exécuté', () => {
+  const draft = proposeRelanceMessageDraft({
+    clientName: 'Grossiste Dakar', amount: 1596750, overdueDays: 92, level: 'j15',
+    levelLabel: 'J+15', segment: 'Fidèle', phone: '221771012010',
+  });
+  assert.equal(draft.intent, 'relance_creance');
+  assert.equal(draft.target_workflow, TARGET_WORKFLOWS.INSIGHT_ONLY);
+  assert.equal(isExecutableWorkflow(draft.target_workflow), false, 'INSIGHT_ONLY : pas exécutable');
+  assert.equal(draft.required_validation, true);
+  assert.ok(draft.confidence >= 0.65);
+  assert.match(draft.draft.body, /Grossiste Dakar/);
+});
+
+test('gateway : sans numéro, confiance basse + confirmation requise', () => {
+  const draft = proposeRelanceMessageDraft({ clientName: 'Client X', amount: 50000, overdueDays: 8, level: 'j7' });
+  assert.ok(draft.missing_fields.includes('client_phone'));
+  assert.equal(draft.confirmation_required, true);
+  const safety = assessDraftSafety(draft);
+  assert.equal(safety.requiresValidation, true);
+});
