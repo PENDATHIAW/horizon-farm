@@ -6,6 +6,16 @@ export { computeDocumentKpis } from './documentKpis.js';
 export { computeRiskKpis } from './riskKpis.js';
 export { computeGrowthKpis } from './growthKpis.js';
 export { computeDashboardKpis, buildDashboardSummary } from './dashboardKpis.js';
+export {
+  buildCockpitCatalog,
+  computeBroilerCockpit,
+  computeLayerCockpit,
+  computeCattleCockpit,
+  computeSmallRuminantCockpit,
+  computeStockCockpit,
+  computeCommercialCockpit,
+  computeFinanceCockpit,
+} from './cockpitCatalog.js';
 
 import { computeCommercialKpis } from './commercialKpis.js';
 import { computeFinanceKpis } from './financeKpis.js';
