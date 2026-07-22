@@ -1,5 +1,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
+import { dirname, join } from 'node:path';
 
 import { buildCommercialStartupJourney } from '../../src/utils/commercialStartup.js';
 import { COMMERCIAL_HEY_HORIZON_QUESTIONS } from '../../src/utils/commercialHeyHorizon.js';
@@ -37,4 +40,14 @@ test('alias reconciliation détecté — redirect Finance géré par App', () =>
   assert.equal(isCommercialReconciliationAlias('reconciliation'), true);
   assert.equal(resolveCommercialTab('Pilotage'), 'Tableau de bord commercial');
   assert.equal(resolveCommercialTab('Clients & créances'), 'Créances & relances commercial');
+});
+
+test('Devis & réconciliation ne sont pas dupliqués (Factures & paiements uniquement)', () => {
+  const root = join(dirname(fileURLToPath(import.meta.url)), '../..');
+  const module = readFileSync(join(root, 'src/modules/CommercialRecoveredModule.jsx'), 'utf8');
+  // Le Tableau de bord ne réembarque plus le panneau Devis/réconciliation :
+  // ces panneaux vivent dans le seul onglet « Factures & paiements ».
+  assert.doesNotMatch(module, /Devis & réconciliation \(avancé\)/);
+  assert.equal((module.match(/<CommercialQuotesPanel/g) || []).length, 1);
+  assert.equal((module.match(/<CommercialReconciliationPanel/g) || []).length, 1);
 });
