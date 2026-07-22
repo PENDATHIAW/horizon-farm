@@ -101,7 +101,7 @@ test('Centre décisionnel — onglets critiques', async () => {
 
 test('Matrice modules couverte', () => {
   assert.ok(criticalModuleIds().length >= 17);
-  assert.equal(MODULE_TAB_MATRIX.commercial.length, 7);
+  assert.equal(MODULE_TAB_MATRIX.commercial.length, 8);
   assert.equal(MODULE_TAB_MATRIX.achats_stock.length, 7);
   assert.equal(MODULE_TAB_MATRIX.elevage.length, 8);
   assert.equal(MODULE_TAB_MATRIX.cultures.length, 7);

@@ -6,7 +6,7 @@ export default {
   objectifs_croissance: ['Objectifs', 'Scénarios', 'Historique'],
   elevage: ['Vue d’ensemble', 'Lots & animaux', 'Alimentation', 'Production', 'Santé & Biosécurité', 'Transformation', 'Coûts & performance', 'Historique'],
   cultures: ['Parcelles', 'Campagnes', 'Irrigation', 'Intrants & fertilisation', 'Récoltes', 'Coûts & marge', 'Historique'],
-  commercial: ['Tableau de bord', 'Clients', 'Ventes & commandes', 'Livraisons', 'Factures & paiements', 'Créances & relances', 'Réclamations'],
+  commercial: ['Tableau de bord', 'Clients', 'Ventes & commandes', 'Opportunités', 'Livraisons', 'Factures & paiements', 'Créances & relances', 'Réclamations'],
   achats_stock: ['Tableau de bord', 'Produits & catégories', 'Fournisseurs', 'Achats & réceptions', 'Stocks & lots', 'Mouvements', 'Inventaires'],
   finance_pilotage: ['Vue d’ensemble', 'Saisie & trésorerie', 'Coûts & marges', 'Budget & financements', 'Investissements & dettes'],
   activite_suivi: ['À faire', 'Calendrier', 'Alertes liées', 'Journal d’exploitation', 'Historique'],

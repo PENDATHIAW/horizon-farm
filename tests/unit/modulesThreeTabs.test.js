@@ -9,7 +9,7 @@ import { MODULE_TARGET_TABS } from '../../src/config/horizonVision.config.js';
 
 test('les modules Achats, Commercial et Cultures exposent leurs 7 onglets cibles', () => {
   assert.deepEqual(MODULE_TARGET_TABS.achats_stock, ['Tableau de bord', 'Produits & catégories', 'Fournisseurs', 'Achats & réceptions', 'Stocks & lots', 'Mouvements', 'Inventaires']);
-  assert.deepEqual(MODULE_TARGET_TABS.commercial, ['Tableau de bord', 'Clients', 'Ventes & commandes', 'Livraisons', 'Factures & paiements', 'Créances & relances', 'Réclamations']);
+  assert.deepEqual(MODULE_TARGET_TABS.commercial, ['Tableau de bord', 'Clients', 'Ventes & commandes', 'Opportunités', 'Livraisons', 'Factures & paiements', 'Créances & relances', 'Réclamations']);
   assert.equal(MODULE_TARGET_TABS.cultures.length, 7);
 });
 
@@ -24,7 +24,7 @@ test('resolveAchatsStockTab — aliases legacy', () => {
 test('resolveCommercialTab — aliases legacy', () => {
   assert.equal(resolveCommercialTab('Clients'), 'Clients commercial');
   assert.equal(resolveCommercialTab('Relances'), 'Créances & relances commercial');
-  assert.equal(resolveCommercialTab('Opportunités'), 'Ventes & commandes commercial');
+  assert.equal(resolveCommercialTab('Opportunités'), 'Opportunités commercial');
   assert.equal(resolveCommercialTab('Résumé'), 'Tableau de bord commercial');
   assert.equal(resolveCommercialTab('Abonnements'), 'Clients commercial');
 });
