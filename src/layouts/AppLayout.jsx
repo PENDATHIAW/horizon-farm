@@ -30,6 +30,7 @@ import SettingsPanel from '../components/SettingsPanel';
 import VoiceSearch from '../components/VoiceSearch';
 import { t } from '../i18n/fr/index.js';
 import { readOfflineQueue } from '../services/offlineQueueService';
+import { setErpDataSnapshot } from '../services/erpDataSnapshot.js';
 import { searchERP } from '../services/globalSearchService';
 import { applyUiSettingsToDocument, isDemoModeEnabled, readUiSettings } from '../utils/uiPreferences';
 import { shouldOfferWhatsapp } from '../config/alertPolicy.js';
@@ -168,6 +169,12 @@ export default function AppLayout({
     window.addEventListener('horizon-ui-intent', handler);
     return () => window.removeEventListener('horizon-ui-intent', handler);
   }, []);
+
+  // Publie l'instantané ERP (données filtrées + utilisateur) pour que tout
+  // ouvreur de formulaire préremplisse même sans câblage explicite.
+  useEffect(() => {
+    setErpDataSnapshot({ data: dataMap, user: displayUser });
+  }, [dataMap, displayUser]);
 
   const closePanels = () => {
     setNotificationsOpen(false);
