@@ -1,6 +1,13 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import toast from 'react-hot-toast';
+import { Egg, Scale, Wheat } from 'lucide-react';
 import ModuleTabsBar from '../components/module/ModuleTabsBar.jsx';
+import {
+  ELEVAGE_ACTION_GRID,
+  ELEVAGE_KPI_GRID,
+  ElevageActionCard,
+  ElevageStatCard,
+} from './elevage/elevageUi.jsx';
 import useCrudModule from '../hooks/useCrudModule';
 import { aggregateSummaryLayingRate, formatOfficialLayingRate } from '../utils/elevageLayingRate.js';
 import { rowsOf } from '../utils/moduleRows';
@@ -627,34 +634,56 @@ export default function ElevageRecoveredModule(props) {
     />
   );
 
+  const productionKpis = [
+    { id: 'ponte', label: 'Taux de ponte (officiel)', value: data.layingRateCalculable ? data.layingRateLabel : 'à évaluer', tone: data.layingRateCalculable ? 'good' : 'neutral' },
+    { id: 'eggs7d', label: 'Œufs ramassés (7 j)', value: data.eggs7d ?? 0, tone: 'neutral' },
+    { id: 'pondeuses', label: 'Lots pondeuses', value: data.pondeuses ?? 0, tone: 'neutral' },
+    { id: 'chair', label: 'Lots chair', value: data.chair ?? 0, tone: 'neutral' },
+    { id: 'naissances', label: 'Naissances (événements)', value: data.birthLikeEvents ?? 0, tone: 'good' },
+    { id: 'mortalite', label: 'Mortalité récente', value: data.recentMortality ?? 0, tone: data.recentMortality ? 'warn' : 'neutral' },
+  ];
+
+  // Onglet Production : production (ponte, cycles, reproduction) sans redupliquer
+  // les registres Avicole/Animaux, qui vivent dans l'onglet « Lots & animaux ».
   const productionContent = (
     <div className="space-y-4">
-      {lotsContent('avicole')}
-      <details className="border-t border-line pt-4">
-        <summary className="cursor-pointer text-sm font-semibold text-earth">Cycles et reproduction</summary>
-        <div className="mt-4 space-y-4">
-          <ElevageCyclesReproductionTab
-            cyclesPanelProps={{
-              dataMap: cyclesDataMap,
-              lots,
-              animaux: animals,
-              productionLogs,
-              alertes: rowsOf(props.alertes, alertsCrud, false),
-              onNavigate: guardedNavigate,
-              setTab,
-              farmScopeLabel: props.farmScopeLabel,
-              farmScope: props.farmScope,
-              farmFiltered: props.farmFiltered,
-              initialProductionQuestion: cyclesProductionQuestion,
-              meteo: props.meteo,
-            }}
-            reproductionData={data}
-            reproductionFormProps={reproductionFormProps}
-            onOpenReproductionWorkflow={onOpenReproductionWorkflow}
-            onNavigate={guardedNavigate}
-          />
+      <section className="rounded-3xl border border-line bg-white p-6 shadow-card space-y-4">
+        <div>
+          <p className="text-xs font-semibold uppercase tracking-normal text-horizon-dark">Production</p>
+          <h2 className="mt-1 text-lg font-semibold text-earth">Production du cheptel</h2>
+          <p className="mt-1 text-sm text-slate">Ponte, cycles et reproduction. Les registres et fiches sont dans l’onglet « Lots &amp; animaux ».</p>
         </div>
-      </details>
+        <div className={ELEVAGE_KPI_GRID}>
+          {productionKpis.map((kpi) => (
+            <ElevageStatCard key={kpi.id} label={kpi.label} value={kpi.value} tone={kpi.tone} />
+          ))}
+        </div>
+        <div className={ELEVAGE_ACTION_GRID}>
+          <ElevageActionCard icon={Egg} title="Enregistrer la ponte" text="Ramassage, casse et stock d’œufs après validation." onClick={() => openWorkflow('eggs', { scope: 'avicole' })} />
+          <ElevageActionCard icon={Scale} title="Enregistrer une pesée" text="Poids et historique du lot ou de l’animal." onClick={() => openWorkflow('weighing')} />
+          <ElevageActionCard icon={Wheat} title="Distribuer l’aliment" text="Stock, coût et historique après validation." onClick={() => openWorkflow('feeding')} />
+        </div>
+      </section>
+      <ElevageCyclesReproductionTab
+        cyclesPanelProps={{
+          dataMap: cyclesDataMap,
+          lots,
+          animaux: animals,
+          productionLogs,
+          alertes: rowsOf(props.alertes, alertsCrud, false),
+          onNavigate: guardedNavigate,
+          setTab,
+          farmScopeLabel: props.farmScopeLabel,
+          farmScope: props.farmScope,
+          farmFiltered: props.farmFiltered,
+          initialProductionQuestion: cyclesProductionQuestion,
+          meteo: props.meteo,
+        }}
+        reproductionData={data}
+        reproductionFormProps={reproductionFormProps}
+        onOpenReproductionWorkflow={onOpenReproductionWorkflow}
+        onNavigate={guardedNavigate}
+      />
     </div>
   );
 
