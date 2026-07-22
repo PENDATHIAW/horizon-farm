@@ -169,6 +169,16 @@ test('P0-03 — une seule instance StockSalesOpportunityBridge (StocksV5)', () =
   assert.ok(v5.includes('StockSalesOpportunityBridge'));
 });
 
+test('P0-03b — la liste des mouvements n’est plus dupliquée dans StocksV5', () => {
+  // StocksV5 est rendu dans 3 onglets stock : la liste de mouvements
+  // (StockMovementsPanel) ne doit plus y figurer, sinon elle apparaît 3 fois.
+  // L’historique des mouvements vit dans l’onglet dédié « Mouvements ».
+  const v5 = readFileSync('src/modules/StocksV5.jsx', 'utf8');
+  assert.equal(v5.includes('StockMovementsPanel'), false);
+  const module = readFileSync('src/modules/AchatsStockRecoveredModule.jsx', 'utf8');
+  assert.ok(module.includes('AchatsStockMovementsPanel'), 'onglet Mouvements conservé');
+});
+
 test('P0-02 — summarizeStockValuation cohérent avec CMUP', () => {
   const stocks = [{ id: 'STK-1', produit: 'Aliment', quantite: 10, prixUnit: 100 }];
   const movements = [{
