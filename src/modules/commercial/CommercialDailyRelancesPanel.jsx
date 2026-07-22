@@ -132,7 +132,7 @@ export default function CommercialDailyRelancesPanel({ clients = [], orders = []
         })}
       </div>
 
-      <p className="text-meta text-slate">Aucun message n'est envoyé automatiquement : chaque relance ouvre WhatsApp avec le texte pré-rempli, prêt à vérifier avant l'envoi.</p>
+      <p className="text-meta text-slate">Chaque relance ouvre WhatsApp avec le message pré-rempli : vous vérifiez et vous envoyez.</p>
     </section>
   );
 }
