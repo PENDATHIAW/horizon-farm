@@ -429,9 +429,15 @@ export default function AchatsStockRecoveredModule(props) {
       {tab === 'Tableau de bord stock' ? (
         <Summary data={data} setTab={setTab} onApply={applyFinding} onRelance={relanceSupplier} busyId={busyId} onNavigate={props.onNavigate} onMarkExpiry={handleExpiryAction} showStartup={data.startupMode} />
       ) : null}
-      {tab === 'Produits & catégories stock' ? <StocksV5 {...stockProps} /> : null}
+      {tab === 'Produits & catégories stock' ? (
+        <div className="space-y-4">
+          <AchatsStockSection title="Produits & catégories" subtitle="Référentiel des produits stockés : libellés, catégories, unités et seuils d'alerte." />
+          <StocksV5 {...stockProps} />
+        </div>
+      ) : null}
       {tab === 'Stocks & lots' ? (
         <div className="space-y-4">
+          <AchatsStockSection title="Niveaux de stock & lots" subtitle="Quantités disponibles, lots et origine (production, élevage), sans stock parallèle." />
           <StockNavigationContextBanner
             stockContext={props.stockNavigationContext?.stockContext}
             searchContext={props.stockNavigationContext?.searchContext}
@@ -456,6 +462,7 @@ export default function AchatsStockRecoveredModule(props) {
       ) : null}
       {tab === 'Inventaires stock' ? (
         <div className="space-y-4">
+          <AchatsStockSection title="Inventaires" subtitle="Comptage physique, écarts et valorisation. Annexe documentaire et graphiques ci-dessous." />
           <StocksV5 {...stockProps} />
           <details ref={annexeDetailsRef} className="rounded-2xl border border-line bg-card p-4">
             <summary className="cursor-pointer font-semibold text-sm text-earth">Annexe & graphiques</summary>

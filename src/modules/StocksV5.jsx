@@ -1,7 +1,6 @@
 import useCrudModule from '../hooks/useCrudModule';
 import { makeId } from '../utils/ids';
 import { persistStockMovement } from '../services/stockMovementHelpers';
-import StockMovementsPanel from './StockMovementsPanel.jsx';
 import StockSalesOpportunityBridge from './StockSalesOpportunityBridge.jsx';
 import SellableStockPublicationBridge from './commercial/SellableStockPublicationBridge.jsx';
 import StocksV4 from './StocksV4.jsx';
@@ -17,7 +16,6 @@ export default function StocksV5(props) {
   const eventsCrud = useCrudModule('business_events');
   const movementsCrud = useCrudModule('stock_movements');
   const rows = props.rows || [];
-  const movements = props.stockMovements || movementsCrud.rows || [];
 
   const movementHandlers = {
     onCreateStockMovement: props.onCreateStockMovement || movementsCrud.create,
@@ -89,7 +87,6 @@ export default function StocksV5(props) {
         onCreateBusinessEvent={props.onCreateBusinessEvent || eventsCrud.create}
         onRefreshBusinessEvents={props.onRefreshBusinessEvents || eventsCrud.refresh}
       />
-      <StockMovementsPanel movements={movements} />
     </div>
   );
 }
