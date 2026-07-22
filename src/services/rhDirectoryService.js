@@ -1,15 +1,25 @@
 import { supabase } from '../lib/supabase';
 import { DEFAULT_FARM_ID } from '../utils/farmScope.js';
-import { RH_DEFAULT_PEOPLE, RH_STORAGE_KEY, RH_TEAMS } from '../utils/rhDirectory.js';
+import { isDemoPerson, RH_DEFAULT_PEOPLE, RH_STORAGE_KEY, RH_TEAMS } from '../utils/rhDirectory.js';
+import { isSimulatedDataModeEnabled } from '../utils/uiPreferences.js';
 
 const SETTINGS_ROW_ID = DEFAULT_FARM_ID;
 const storageKey = (farmId = SETTINGS_ROW_ID) => `${RH_STORAGE_KEY}:${farmId}`;
 
-function normalizeDirectory(raw = {}) {
-  const people = Array.isArray(raw.people) && raw.people.length ? raw.people : RH_DEFAULT_PEOPLE;
-  const mergedPeople = [...people, ...RH_DEFAULT_PEOPLE.filter((demo) => !people.some((p) => p.id === demo.id))];
+function normalizeDirectory(raw = {}, { includeDemo = isSimulatedDataModeEnabled() } = {}) {
+  const stored = Array.isArray(raw.people) ? raw.people : [];
+  let people;
+  if (includeDemo) {
+    // Mode démonstration : injecter/compléter avec le jeu RH fictif.
+    const base = stored.length ? stored : RH_DEFAULT_PEOPLE;
+    people = [...base, ...RH_DEFAULT_PEOPLE.filter((demo) => !base.some((p) => p.id === demo.id))];
+  } else {
+    // Mode données réelles : aucune personne fictive, même si une ancienne
+    // sauvegarde en avait persisté. Seul le réel saisi subsiste.
+    people = stored.filter((person) => !isDemoPerson(person));
+  }
   return {
-    people: mergedPeople,
+    people,
     teams: Array.isArray(raw.teams) && raw.teams.length ? raw.teams : RH_TEAMS,
     absences: Array.isArray(raw.absences) ? raw.absences : [],
     updated_at: raw.updated_at || new Date().toISOString(),
