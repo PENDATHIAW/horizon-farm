@@ -13,14 +13,28 @@ const seedIdsByModule = Object.fromEntries(
   ]),
 );
 
-function filterSeedRows(dataMap = {}) {
-  if (isSimulatedDataModeEnabled()) return dataMap;
+// Une ligne est « simulée » si sa provenance le marque (source commençant par
+// « simulation »). Robuste aux identifiants qui changent d'une instance à l'autre.
+export function isSimulatedRow(row = {}) {
+  return String(row?.source || '').toLowerCase().startsWith('simulation');
+}
+
+/**
+ * Retire du dataMap toute ligne du jeu simulé, par marqueur de provenance ET par
+ * identifiant de seed. Pur (sans lecture du mode) : sert de cœur testable.
+ */
+export function stripSimulatedRows(dataMap = {}) {
   return Object.fromEntries(Object.entries(dataMap || {}).map(([moduleKey, rows]) => {
     if (!Array.isArray(rows)) return [moduleKey, rows];
     const seedIds = seedIdsByModule[moduleKey];
-    if (!seedIds?.size) return [moduleKey, rows];
-    return [moduleKey, rows.filter((row) => !seedIds.has(String(row?.id || '')))];
+    return [moduleKey, rows.filter((row) => !isSimulatedRow(row) && !(seedIds?.has(String(row?.id || ''))))];
   }));
+}
+
+function filterSeedRows(dataMap = {}) {
+  if (isSimulatedDataModeEnabled()) return dataMap;
+  // Mode « données réelles » : sans saisie réelle, chaque module reste vide.
+  return stripSimulatedRows(dataMap);
 }
 
 export function useAppData() {
