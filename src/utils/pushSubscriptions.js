@@ -29,7 +29,7 @@ export async function getPushRegistration() {
   return registration;
 }
 
-export async function subscribeDeviceToPush({ userId = 'owner', label = 'Appareil principal', channels = ['urgence', 'critique'] } = {}) {
+export async function subscribeDeviceToPush({ userId = 'owner', label = 'Appareil principal', channels = ['urgence', 'critique'], role = '' } = {}) {
   if (!pushSupported()) throw new Error('Push non supporté');
   const publicKey = getPublicVapidKey();
   if (!publicKey) throw new Error('VITE_VAPID_PUBLIC_KEY manquant');
@@ -40,7 +40,8 @@ export async function subscribeDeviceToPush({ userId = 'owner', label = 'Apparei
   if (!subscription) {
     subscription = await registration.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: base64ToUint8Array(publicKey) });
   }
-  const payload = { userId, label, channels, subscription: subscription.toJSON(), created_at: new Date().toISOString() };
+  // role : rôle RACI de l'appareil (facultatif) pour le ciblage des notifications.
+  const payload = { userId, label, channels, role, subscription: subscription.toJSON(), created_at: new Date().toISOString() };
   await persistPushSubscription(payload);
   toast.success('Appareil abonné aux alertes push');
   return payload;
