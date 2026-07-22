@@ -34,3 +34,13 @@ test('Transformation — finance handlers câblés', () => {
   assert.match(recoveredSrc, /onCreateFinanceTransaction/);
   assert.match(recoveredSrc, /transactions: rowsOf\(props\.transactions/);
 });
+
+test('Production — onglet orienté production, sans redupliquer le registre Avicole', () => {
+  // L'onglet Production ne réaffiche plus le registre Avicole/Animaux (bascule)
+  // qui appartient à « Lots & animaux » : plus de mirroir entre les deux onglets.
+  assert.doesNotMatch(recoveredSrc, /productionContent = \([\s\S]*?lotsContent\('avicole'\)/);
+  // Il porte sa propre identité : KPIs de production + cycles/reproduction.
+  assert.match(recoveredSrc, /Production du cheptel/);
+  assert.match(recoveredSrc, /const productionKpis = \[/);
+  assert.match(recoveredSrc, /productionContent = \([\s\S]*?<ElevageCyclesReproductionTab/);
+});
