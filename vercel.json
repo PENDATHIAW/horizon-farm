@@ -9,6 +9,8 @@
     { "source": "/((?!api/).*)", "destination": "/" }
   ],
   "crons": [
-    { "path": "/api/push/dispatch-alerts", "schedule": "0 7 * * *" }
+    { "path": "/api/push/dispatch-alerts", "schedule": "0 7 * * *" },
+    { "path": "/api/push/digest?period=hebdo", "schedule": "0 6 * * 1" },
+    { "path": "/api/push/digest?period=mensuel", "schedule": "0 6 1 * *" }
   ]
 }
