@@ -154,7 +154,7 @@ export default function AccueilConforme(props) {
                 key={action.id}
                 type="button"
                 data-testid={`daily-action-${action.id}`}
-                onClick={() => openDailyQuickEntry(action, onNavigate)}
+                onClick={() => openDailyQuickEntry(action, onNavigate, { data: donnees, user: identifiantUtilisateur(user) })}
                 className="group flex min-h-11 flex-col items-center justify-center gap-1.5 rounded-control border border-line bg-pure px-3 py-3 text-center text-sm font-semibold text-ink transition hover:-translate-y-0.5 hover:border-leaf hover:bg-positive-bg hover:shadow-card"
               >
                 {Icone ? (
