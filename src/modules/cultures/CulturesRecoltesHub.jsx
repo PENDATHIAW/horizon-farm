@@ -10,7 +10,6 @@ export default function CulturesRecoltesHub({
   handlers,
   onSuccess,
   opportunities = [],
-  onNavigate,
   ...bridgeProps
 }) {
   const realRows = getRealCultureRows(rows);
@@ -23,10 +22,6 @@ export default function CulturesRecoltesHub({
       <CulturesHarvestPanel rows={rows} context={context} handlers={handlers} onSuccess={onSuccess} />
       <CulturesTransformationPanel stocks={stocks} context={context} handlers={handlers} onSuccess={onSuccess} />
       <CulturesSaleOpportunityBridge rows={realRows} opportunities={opportunities} {...bridgeProps} />
-      <p className="text-xs text-slate">
-        Transformation détaillée aussi disponible dans l&apos;onglet{' '}
-        <button type="button" className="font-semibold text-positive underline" onClick={() => onNavigate?.('cultures', { tab: 'Transformation' })}>Transformation</button>.
-      </p>
     </div>
   );
 }
