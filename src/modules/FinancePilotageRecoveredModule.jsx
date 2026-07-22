@@ -157,7 +157,6 @@ function RentabilitePanel({ profitability = null, consolidationProps = {} }) {
           <Stat label="Charges structure" value={fmtCurrency(profit.structureCharges)} tone="warn" />
         </div>
       </section>
-      <MarginGlossaryPanel />
       <ProfitabilityStatement {...consolidationProps} />
     </div>
   );
