@@ -692,35 +692,6 @@ export default function CommercialRecoveredModule(props) {
             onApplyFinding={applyFinding}
             busyId={busyId}
           />
-          <details className="rounded-2xl border border-line bg-card p-4">
-            <summary className="cursor-pointer font-semibold text-sm text-earth">Devis & réconciliation (avancé)</summary>
-            <div className="mt-3 space-y-4">
-              <CommercialQuotesPanel
-                orders={data.ordersAll}
-                orderItems={data.orderItems}
-                clients={data.clients}
-                onCreateOrder={data.handlers.onCreateOrder}
-                onCreateItem={data.handlers.onCreateItem}
-                onUpdateOrder={data.handlers.onUpdateOrder}
-                onCreateDelivery={data.handlers.onCreateDelivery}
-                onCreateInvoice={data.handlers.onCreateInvoice}
-                onCreateDocument={data.handlers.onCreateDocument}
-                onCreatePayment={data.handlers.onCreatePayment}
-                onCreateBusinessEvent={data.handlers.onCreateBusinessEvent}
-                onRefreshWorkflow={data.handlers.onRefreshWorkflow}
-                farmScope={data.farmScope}
-                accessibleFarms={data.accessibleFarms}
-                activeFarm={data.activeFarm}
-                stocks={data.stocks}
-                lots={data.lots}
-                cultures={data.cultures}
-                animaux={data.animaux}
-                payments={data.paymentsAll}
-                transactions={data.transactions}
-              />
-              <CommercialReconciliationPanel rows={data.reconciliationRows} setTab={setTab} />
-            </div>
-          </details>
           <CommercialPilotagePanel
             data={data}
             setTab={setTab}
