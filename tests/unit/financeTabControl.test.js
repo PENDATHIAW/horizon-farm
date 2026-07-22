@@ -90,3 +90,14 @@ test('resolveFinanceTab — alias externes vers composants rendus', () => {
   assert.equal(resolveFinanceTab('Résumé'), 'Vue finance');
   assert.equal(resolveFinanceTab('Créances'), 'Budget & écarts finance');
 });
+
+test('MarginGlossaryPanel n’est pas dupliqué dans Coûts & marges', async () => {
+  const { readFileSync } = await import('node:fs');
+  const { fileURLToPath } = await import('node:url');
+  const { dirname, join } = await import('node:path');
+  const root = join(dirname(fileURLToPath(import.meta.url)), '../..');
+  const src = readFileSync(join(root, 'src/modules/FinancePilotageRecoveredModule.jsx'), 'utf8');
+  // Le glossaire ne doit apparaître qu'une fois : RentabilitePanel ne le rend
+  // plus, l'onglet le compose explicitement une seule fois.
+  assert.equal((src.match(/<MarginGlossaryPanel/g) || []).length, 1);
+});
