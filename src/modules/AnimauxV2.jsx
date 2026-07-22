@@ -210,13 +210,18 @@ export default function AnimauxV2(props) {
   const valorisationSample = useMemo(() => {
     const sample = activeSpeciesRows[0];
     if (!sample) return null;
+    // Mêmes entrées que le moteur Finance (summarizeUnifiedFarmCosts) pour que le
+    // coût affiché sur la fiche corresponde exactement à la Rentabilité Finance :
+    // alimentation, santé ET charges directes rattachées (événements métier).
     const unified = calculateUnifiedAnimalCost({
       animal: sample,
       alimentationLogs: props.alimentationLogs || [],
       vaccins: props.vaccins || [],
+      healthEvents: businessEvents || [],
+      directCharges: businessEvents || [],
     });
     return { name: sample.name || sample.nom || sample.id, total: unified.totalCost };
-  }, [activeSpeciesRows, props.alimentationLogs, props.vaccins]);
+  }, [activeSpeciesRows, props.alimentationLogs, props.vaccins, businessEvents]);
 
   return <div id="animaux-module-root" className="space-y-6 animaux-mobile-structured"><style>{`@media (max-width: 640px){.animaux-mobile-structured .rounded-2xl{border-radius:18px}.animaux-mobile-structured table{font-size:12px}.animaux-mobile-structured th,.animaux-mobile-structured td{padding-left:10px!important;padding-right:10px!important}.animaux-mobile-structured .text-2xl{font-size:1.35rem}.animaux-mobile-structured .grid{gap:.75rem}.animaux-mobile-structured .overflow-x-auto{max-width:100vw}}`}</style>
     <AnimalScanBar
