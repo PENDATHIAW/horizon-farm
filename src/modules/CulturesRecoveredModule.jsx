@@ -19,11 +19,11 @@ import CulturesCyclesHub from './cultures/CulturesCyclesHub.jsx';
 import CulturesEconomieHub from './cultures/CulturesEconomieHub.jsx';
 import CulturesIntrantsHub from './cultures/CulturesIntrantsHub.jsx';
 import CulturesIrrigationQuickForm from './cultures/CulturesIrrigationQuickForm.jsx';
+import CulturesIrrigationSummary from './cultures/CulturesIrrigationSummary.jsx';
 import CulturesParcellesHub from './cultures/CulturesParcellesHub.jsx';
 import CulturesPilotageHub from './cultures/CulturesPilotageHub.jsx';
 import CulturesRecoltesHub from './cultures/CulturesRecoltesHub.jsx';
 import CulturesSanteHub from './cultures/CulturesSanteHub.jsx';
-import CulturesTransformationHub from './cultures/CulturesTransformationHub.jsx';
 import ModuleProjectionsStrip from '../components/module/ModuleProjectionsStrip.jsx';
 import { buildCulturesModuleProjections } from '../utils/moduleProjections.js';
 import { subscribeFormModal } from '../services/formModalManager.js';
@@ -52,7 +52,6 @@ export default function CulturesRecoveredModule(props) {
   const santeDetailsRef = useRef(null);
   const cyclesDetailsRef = useRef(null);
   const annexeDetailsRef = useRef(null);
-  const transformationDetailsRef = useRef(null);
   const graphiquesDetailsRef = useRef(null);
   const tab = controlled
     ? resolveCulturesTab(props.initialTab || 'Parcelles & campagnes')
@@ -103,7 +102,6 @@ export default function CulturesRecoveredModule(props) {
       sante: santeDetailsRef,
       cycles: cyclesDetailsRef,
       annexe: annexeDetailsRef,
-      transformation: transformationDetailsRef,
       graphiques: graphiquesDetailsRef,
     };
     const target = refBySection[sectionIntent]?.current;
@@ -398,9 +396,9 @@ export default function CulturesRecoveredModule(props) {
       <CulturesCyclesHub rows={rows} salesOrders={salesOrders} deliveries={deliveriesList} businessEvents={businessEvents} onNavigate={props.onNavigate} />
     </div>
   ) : tab === 'Irrigation cultures' ? (
-    <div className="space-y-4" ref={intrantsDetailsRef}>
+    <div className="space-y-4">
       <CulturesIrrigationQuickForm rows={rows} context={workflowContext} handlers={workflowHandlers} onSuccess={refreshWorkflow} />
-      <CulturesIntrantsHub {...sharedV3Props} />
+      <CulturesIrrigationSummary rows={rows} />
     </div>
   ) : tab === 'Intrants & fertilisation cultures' ? (
     <div className="space-y-4">
@@ -425,19 +423,6 @@ export default function CulturesRecoveredModule(props) {
         onRefreshBusinessEvents={sharedV3Props.onRefreshBusinessEvents}
         onNavigate={props.onNavigate}
       />
-      <details ref={transformationDetailsRef} className="rounded-2xl border border-line bg-card p-4">
-        <summary className="cursor-pointer font-semibold text-sm text-earth">Transformation cultures</summary>
-        <div className="mt-3">
-          <CulturesTransformationHub
-            rows={rows}
-            stocks={stocks}
-            context={workflowContext}
-            handlers={workflowHandlers}
-            onSuccess={refreshWorkflow}
-            onNavigate={props.onNavigate}
-          />
-        </div>
-      </details>
     </div>
   ) : tab === 'Coûts & marge cultures' ? (
     <div className="space-y-4">

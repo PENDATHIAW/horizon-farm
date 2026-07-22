@@ -18,7 +18,6 @@ const recoltesHub = readFileSync(join(root, 'src/modules/cultures/CulturesRecolt
 const intrantsHub = readFileSync(join(root, 'src/modules/cultures/CulturesIntrantsHub.jsx'), 'utf8');
 const harvestPanel = readFileSync(join(root, 'src/modules/cultures/CulturesHarvestPanel.jsx'), 'utf8');
 const transformPanel = readFileSync(join(root, 'src/modules/cultures/CulturesTransformationPanel.jsx'), 'utf8');
-const transformHub = readFileSync(join(root, 'src/modules/cultures/CulturesTransformationHub.jsx'), 'utf8');
 const healthPanel = readFileSync(join(root, 'src/modules/CultureOperationalHealthPanel.jsx'), 'utf8');
 
 test('Cultures — 7 onglets cible dans horizonVision', () => {
@@ -64,6 +63,18 @@ test('Intrants uniquement via Intrants & Météo', () => {
   assert.doesNotMatch(showMain, /Utiliser intrant/);
 });
 
+test('Irrigation — onglet dédié, sans redupliquer le hub Intrants & météo', () => {
+  // La branche de l'onglet Irrigation ne réaffiche plus CulturesIntrantsHub
+  // (qui appartient à l'onglet Intrants & fertilisation) : plus de doublon.
+  const irrigationBranch = recovered.match(/tab === 'Irrigation cultures' \?([\s\S]*?): tab === 'Intrants & fertilisation cultures' \?/)?.[1] || '';
+  assert.ok(irrigationBranch, 'branche Irrigation trouvée');
+  assert.match(irrigationBranch, /CulturesIrrigationQuickForm/);
+  assert.match(irrigationBranch, /CulturesIrrigationSummary/);
+  assert.doesNotMatch(irrigationBranch, /CulturesIntrantsHub/);
+  // CulturesIntrantsHub reste rendu une seule fois (onglet Intrants).
+  assert.equal((recovered.match(/<CulturesIntrantsHub/g) || []).length, 1);
+});
+
 test('Pertes via Santé avec Finance (runCultureLossSideEffects)', () => {
   assert.match(santeHub, /actionsMode="loss"/);
   assert.match(tabActionsBridge, /runCultureLossSideEffects/);
@@ -91,7 +102,7 @@ test('Mode intégré Parcelles sans sous-onglets V3', () => {
 
 test('Transformation — workflow réel commitCultureTransformation', () => {
   assert.match(transformPanel, /commitCultureTransformation/);
-  assert.match(transformHub, /CulturesTransformationPanel/);
+  // La transformation est rendue via l'onglet Récoltes (panneau unique), sans hub redondant.
   assert.match(recoltesHub, /CulturesTransformationPanel/);
   assert.match(readFileSync(join(root, 'src/utils/culturesWorkflow.js'), 'utf8'), /export async function commitCultureTransformation/);
 });

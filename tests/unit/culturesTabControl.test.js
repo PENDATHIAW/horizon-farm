@@ -10,7 +10,9 @@ const recovered = readFileSync(join(root, 'src/modules/CulturesRecoveredModule.j
 
 test('CulturesRecoveredModule — sections repliables avec refs deep-link', () => {
   assert.match(recovered, /intrantsDetailsRef/);
-  assert.match(recovered, /transformationDetailsRef/);
+  // La transformation n'est plus une section repliable dédoublée : elle est
+  // rendue une seule fois dans l'onglet Récoltes (via CulturesRecoltesHub).
+  assert.doesNotMatch(recovered, /transformationDetailsRef/);
   assert.match(recovered, /graphiquesDetailsRef/);
   assert.match(recovered, /resolveCulturesSectionIntent/);
   assert.match(recovered, /sectionIntent/);
