@@ -605,11 +605,10 @@ export default function CommercialRecoveredModule(props) {
       {tab === 'Ventes & commandes commercial' ? (
         <div className="space-y-4">
           <VentesV5 {...salesProps} user={props.user} />
-          <details className="border-t border-line pt-4">
-            <summary className="cursor-pointer text-sm font-semibold text-earth">Opportunités disponibles</summary>
-            <div className="mt-4">{opportunitiesPanel}</div>
-          </details>
         </div>
+      ) : null}
+      {tab === 'Opportunités commercial' ? (
+        <div className="space-y-4">{opportunitiesPanel}</div>
       ) : null}
       {tab === 'Clients commercial' ? (
         <div className="space-y-4">
@@ -677,7 +676,6 @@ export default function CommercialRecoveredModule(props) {
       ) : null}
       {tab === 'Créances & relances commercial' ? (
         <div className="space-y-4">
-          <ClientsReadable {...clientProps} />
           <CommercialDailyRelancesPanel clients={clients} orders={data.ordersAll} payments={paymentsAll} />
           <CommercialScheduledRelancesPanel rows={data.relanceRows} clients={clients} onCreateTask={workflowHandlers.onCreateTask} onRefreshTasks={props.onRefreshTasks || tasksCrud.refresh} onOpenClient={openClientTab} onPrepareWhatsApp={prepareRelanceWhatsApp} />
         </div>
