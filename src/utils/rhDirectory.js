@@ -1,5 +1,6 @@
 import { horizonFarmSimulationSeed } from './horizonFarmSimulationSeed';
 import { DEFAULT_FARM_ID } from './farmScope.js';
+import { isSimulatedDataModeEnabled } from './uiPreferences.js';
 
 export const RH_STORAGE_KEY = 'horizon_farm_rh_directory_v1';
 
@@ -91,13 +92,36 @@ export const RH_DEFAULT_PEOPLE = [
 
 export function getRoleFunctions(role) { return RH_FUNCTIONS_BY_ROLE[role] || RH_FUNCTIONS_BY_ROLE['Nouveau rôle']; }
 
+// Identités fictives connues (jeu de démonstration RH).
+const DEMO_PERSON_IDS = new Set(RH_DEFAULT_PEOPLE.map((person) => String(person.id)));
+
+/**
+ * Une personne est « de démonstration » si son identité provient du jeu démo,
+ * porte une provenance simulée, ou est annotée comme fictive. Robuste même si
+ * d'anciennes sauvegardes ont persisté des personnes démo dans une ferme réelle.
+ */
+export function isDemoPerson(person = {}) {
+  const id = String(person?.id || '');
+  return DEMO_PERSON_IDS.has(id)
+    || id.startsWith('RH-DEMO')
+    || String(person?.source || '').toLowerCase().startsWith('simulation')
+    || /fictive|fictif|d[ée]monstration/i.test(String(person?.notes || ''));
+}
+
 const rhFarmStorageKey = (farmId = DEFAULT_FARM_ID) => `${RH_STORAGE_KEY}:${String(farmId || DEFAULT_FARM_ID)}`;
 
-const normalizeRhDirectory = (directory = {}) => {
-  const people = Array.isArray(directory.people) && directory.people.length ? directory.people : RH_DEFAULT_PEOPLE;
-  const mergedPeople = [...people, ...RH_DEFAULT_PEOPLE.filter((demo) => !people.some((person) => person.id === demo.id))];
+const normalizeRhDirectory = (directory = {}, { includeDemo = isSimulatedDataModeEnabled() } = {}) => {
+  const stored = Array.isArray(directory.people) ? directory.people : [];
+  let people;
+  if (includeDemo) {
+    const base = stored.length ? stored : RH_DEFAULT_PEOPLE;
+    people = [...base, ...RH_DEFAULT_PEOPLE.filter((demo) => !base.some((person) => person.id === demo.id))];
+  } else {
+    // Mode données réelles : aucune personne fictive, même persistée.
+    people = stored.filter((person) => !isDemoPerson(person));
+  }
   return {
-    people: mergedPeople,
+    people,
     teams: Array.isArray(directory.teams) && directory.teams.length ? directory.teams : RH_TEAMS,
     absences: Array.isArray(directory.absences) ? directory.absences : [],
     updated_at: directory.updated_at || new Date().toISOString(),
@@ -116,7 +140,7 @@ const writeRhDirectoryLocal = (directory, farmId = DEFAULT_FARM_ID) => {
 };
 
 export function getRhDirectory({ farmId = DEFAULT_FARM_ID } = {}) {
-  if (typeof window === 'undefined') return { people: RH_DEFAULT_PEOPLE, teams: RH_TEAMS };
+  if (typeof window === 'undefined') return normalizeRhDirectory({});
   try {
     const raw = window.localStorage.getItem(rhFarmStorageKey(farmId)) || window.localStorage.getItem(RH_STORAGE_KEY);
     return raw ? normalizeRhDirectory(JSON.parse(raw)) : normalizeRhDirectory({});
