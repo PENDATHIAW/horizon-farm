@@ -179,6 +179,19 @@ test('P0-03b — la liste des mouvements n’est plus dupliquée dans StocksV5',
   assert.ok(module.includes('AchatsStockMovementsPanel'), 'onglet Mouvements conservé');
 });
 
+test('P0-03c — les 3 onglets stock passent une vue distincte au tableau partagé', () => {
+  const module = readFileSync('src/modules/AchatsStockRecoveredModule.jsx', 'utf8');
+  assert.match(module, /<StocksV5 \{\.\.\.stockProps\} view="produits" \/>/);
+  assert.match(module, /<StocksV5 \{\.\.\.stockProps\} view="niveaux" \/>/);
+  assert.match(module, /<StocksV5 \{\.\.\.stockProps\} view="inventaire" \/>/);
+  // StocksV4 adapte son contexte à la vue (sections opérationnelles masquées
+  // pour le référentiel et l'inventaire), défaut 'full' = comportement complet.
+  const v4 = readFileSync('src/modules/StocksV4.jsx', 'utf8');
+  assert.match(v4, /const view = props\.view \|\| 'full'/);
+  assert.match(v4, /const showOps = view === 'full' \|\| view === 'niveaux'/);
+  assert.match(v4, /\{showOps \? <StockOperationalHealthPanel/);
+});
+
 test('P0-02 — summarizeStockValuation cohérent avec CMUP', () => {
   const stocks = [{ id: 'STK-1', produit: 'Aliment', quantite: 10, prixUnit: 100 }];
   const movements = [{

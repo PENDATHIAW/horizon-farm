@@ -432,7 +432,7 @@ export default function AchatsStockRecoveredModule(props) {
       {tab === 'Produits & catégories stock' ? (
         <div className="space-y-4">
           <AchatsStockSection title="Produits & catégories" subtitle="Référentiel des produits stockés : libellés, catégories, unités et seuils d'alerte." />
-          <StocksV5 {...stockProps} />
+          <StocksV5 {...stockProps} view="produits" />
         </div>
       ) : null}
       {tab === 'Stocks & lots' ? (
@@ -445,7 +445,7 @@ export default function AchatsStockRecoveredModule(props) {
             stocks={stocks}
             onClear={props.onClearStockNavigationContext}
           />
-          <StocksV5 {...stockProps} />
+          <StocksV5 {...stockProps} view="niveaux" />
           <CollapsibleAdvancedSection
             eyebrow="Sources du stock"
             title="Origine production et élevage"
@@ -463,7 +463,7 @@ export default function AchatsStockRecoveredModule(props) {
       {tab === 'Inventaires stock' ? (
         <div className="space-y-4">
           <AchatsStockSection title="Inventaires" subtitle="Comptage physique, écarts et valorisation. Annexe documentaire et graphiques ci-dessous." />
-          <StocksV5 {...stockProps} />
+          <StocksV5 {...stockProps} view="inventaire" />
           <details ref={annexeDetailsRef} className="rounded-2xl border border-line bg-card p-4">
             <summary className="cursor-pointer font-semibold text-sm text-earth">Annexe & graphiques</summary>
             <div className="mt-3 space-y-4">
