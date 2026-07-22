@@ -405,7 +405,7 @@ export default function DocumentScannerPanel({
                 <input type="date" className={inputCls()} value={editFields.date || ''} onChange={(e) => setEditFields((f) => ({ ...f, date: e.target.value }))} />
               </Field>
               <p className="md:col-span-2 text-sm text-slate">
-                Dépense pré-catégorisée : {editFields.categorie || 'Autre'} · {fmtCurrency(editFields.montant || 0)} - à valider avant enregistrement.
+                Dépense proposée : {editFields.categorie || 'Autre'} · {fmtCurrency(editFields.montant || 0)}. Vérifiez puis enregistrez.
               </p>
             </div>
           ) : null}

@@ -24,8 +24,8 @@ export default function Rapports(props) {
 
     <div className="rounded-3xl border border-line bg-card p-6 shadow-card">
       <p className="text-xs uppercase tracking-normal text-slate font-semibold">Rapports & exports</p>
-      <h2 className="mt-1 text-2xl font-semibold text-earth">Produire des documents, pas analyser l’impact</h2>
-      <p className="mt-1 text-sm text-slate">La préparation financeur, les preuves et la valeur créée se consultent dans Impact & Valeur. Ici, on génère les PDF, exports et rapports programmés.</p>
+      <h2 className="mt-1 text-2xl font-semibold text-earth">Documents & rapports</h2>
+      <p className="mt-1 text-sm text-slate">PDF, exports et rapports programmés. La préparation financeur, les preuves et la valeur créée se consultent dans Impact &amp; Valeur.</p>
     </div>
 
     <ModuleSection icon={FileText} title="Générer un dossier financeur" subtitle="Créer le PDF final pour banque, DER, FONGIP, BNDE, partenaire ou investisseur.">

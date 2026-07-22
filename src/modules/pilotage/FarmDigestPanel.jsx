@@ -52,7 +52,7 @@ export default function FarmDigestPanel({ data = {} }) {
         <Stat label="Actions" value={digest.summary.actions} />
       </div>
       <pre className="max-h-80 overflow-auto whitespace-pre-wrap rounded-2xl border border-line bg-card p-3 text-sm text-earth">{text}</pre>
-      <p className="text-meta text-slate">Prêt à envoyer à la direction / au financeur. Chiffres issus des moteurs, aucun inventé.</p>
+      <p className="text-meta text-slate">Prêt à envoyer à la direction ou au financeur.</p>
     </section>
   );
 }

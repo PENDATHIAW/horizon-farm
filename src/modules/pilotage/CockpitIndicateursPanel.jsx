@@ -85,7 +85,7 @@ export default function CockpitIndicateursPanel({ data = {} }) {
           );
         })}
       </div>
-      <p className="text-meta text-slate">Repères indicatifs (contexte Sénégal). Une valeur « à compléter » signale une donnée manquante, jamais un chiffre inventé.</p>
+      <p className="text-meta text-slate">Repères indicatifs (contexte Sénégal). « À compléter » signale une donnée manquante.</p>
     </section>
   );
 }
