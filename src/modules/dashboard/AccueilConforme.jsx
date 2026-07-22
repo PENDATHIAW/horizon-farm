@@ -20,6 +20,10 @@ import ListeTaches, { filtrerTaches } from '../../components/uniques/ListeTaches
 import ListeAlertes from '../../components/uniques/ListeAlertes.jsx';
 import DecisionBriefingCard from './DecisionBriefingCard.jsx';
 import CarteKPI from '../../components/uniques/CarteKPI.jsx';
+import CockpitIndicateursPanel from '../pilotage/CockpitIndicateursPanel.jsx';
+import PredictiveAlertsPanel from '../pilotage/PredictiveAlertsPanel.jsx';
+import FarmDigestPanel from '../pilotage/FarmDigestPanel.jsx';
+import MobileMoneyReconciliationPanel from '../pilotage/MobileMoneyReconciliationPanel.jsx';
 import { runKpiEngine } from '../../services/kpiEngine/index.js';
 import { resolveDashboardTab } from '../../utils/commercialNavigation.js';
 import { SAISIES_QUOTIDIENNES } from '../../config/formulaires20s.config.js';
@@ -101,6 +105,7 @@ export default function AccueilConforme(props) {
     alertes_center: alertes,
     taches,
     clients: props.clients,
+    alimentation_logs: props.alimentationLogs || props.alimentation_logs,
   }), [props, alertes, taches]);
   const kpis = useMemo(() => {
     try {
@@ -199,10 +204,16 @@ export default function AccueilConforme(props) {
   );
 
   const pilotage = (
-    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-      {codesPilotage.map((code) => (
-        <CarteKPI key={code} code={code} periode={periodLabel} donnees={donnees} kpis={kpis} onNavigate={onNavigate} />
-      ))}
+    <div className="space-y-4">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        {codesPilotage.map((code) => (
+          <CarteKPI key={code} code={code} periode={periodLabel} donnees={donnees} kpis={kpis} onNavigate={onNavigate} />
+        ))}
+      </div>
+      <CockpitIndicateursPanel data={donnees} />
+      <PredictiveAlertsPanel data={donnees} onCreateTask={props.onCreateTask} />
+      <MobileMoneyReconciliationPanel data={donnees} />
+      <FarmDigestPanel data={donnees} />
     </div>
   );
 
