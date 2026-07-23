@@ -71,6 +71,13 @@ export function evaluateErpHealth({
     checks.push({ id: 'sync_queue', label: 'File de synchronisation', status: HEALTH_STATUS.warn, message: `${pending} mutation(s) en attente de synchronisation.` });
   }
 
+  const conflicts = Array.isArray(offlineQueue)
+    ? offlineQueue.filter((mutation) => mutation?.status === 'conflict').length
+    : 0;
+  if (conflicts > 0) {
+    checks.push({ id: 'sync_conflicts', label: 'Conflits de synchronisation', status: HEALTH_STATUS.warn, message: `${conflicts} conflit(s) à résoudre : une donnée a changé côté serveur depuis une saisie hors ligne.`, action: 'Ouvrir Gestion système, onglet Synchronisation, pour choisir la valeur à conserver.' });
+  }
+
   if (lastSyncAt == null) {
     checks.push({ id: 'sync_freshness', label: 'Dernière synchronisation', status: HEALTH_STATUS.info, message: 'Aucune synchronisation enregistrée pour cette session.' });
   } else {

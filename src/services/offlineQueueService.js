@@ -1,4 +1,4 @@
-import { buildIdempotencyKey, MUTATION_STATUS, rowVersion } from './offlineMutationModel.js';
+import { buildIdempotencyKey, MUTATION_STATUS, resolveQueuedConflict, rowVersion } from './offlineMutationModel.js';
 
 const QUEUE_KEY = 'horizon_farm_offline_queue';
 
@@ -110,3 +110,25 @@ export const enqueueOfflineMutation = ({ moduleKey, action, id, payload, type, b
 export const clearOfflineQueue = () => saveOfflineQueue([]);
 
 export const isBrowserOffline = () => typeof navigator !== 'undefined' && navigator.onLine === false;
+
+/** Mutations actuellement en conflit (à résoudre par l'utilisateur). */
+export const listOfflineConflicts = () => readOfflineQueue().filter((item) => item.status === MUTATION_STATUS.CONFLICT);
+
+/**
+ * Applique un choix de résolution à une mutation en conflit et met à jour la file.
+ * @param {string} queueUid identifiant unique de l'entrée de file (item.id)
+ * @param {'server'|'client'|'merge'} strategy
+ * @param {object|null} serverRow état serveur courant de la ligne
+ * @returns {{ok: boolean, dropped?: boolean}}
+ */
+export const resolveOfflineConflict = (queueUid, strategy, serverRow = null) => {
+  const queue = readOfflineQueue();
+  const item = queue.find((entry) => entry.id === queueUid);
+  if (!item) return { ok: false };
+  const outcome = resolveQueuedConflict(item, strategy, serverRow);
+  const next = outcome.drop
+    ? queue.filter((entry) => entry.id !== queueUid)
+    : queue.map((entry) => (entry.id === queueUid ? outcome.mutation : entry));
+  saveOfflineQueue(next);
+  return { ok: true, dropped: Boolean(outcome.drop) };
+};
