@@ -33,14 +33,14 @@ export default function CockpitDecisionsTab({
       />
       <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
         <ActiviteSuiviPriorityPanel
-          items={data.priorityQueue.slice(0, 5)}
+          items={data.priorityQueue.filter((item) => item.kind === 'alerte').slice(0, 5)}
           kind="alerte"
           onResolveAlert={onResolveAlert}
           busyId={busyId}
           setTab={navigateActivite}
         />
         <ActiviteSuiviPriorityPanel
-          items={data.priorityQueue.slice(0, 5)}
+          items={data.priorityQueue.filter((item) => item.kind === 'tache').slice(0, 5)}
           kind="tache"
           onResolveAlert={onResolveAlert}
           busyId={busyId}
