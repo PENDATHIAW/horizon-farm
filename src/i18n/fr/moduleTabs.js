@@ -8,7 +8,7 @@ export default {
   cultures: ['Parcelles', 'Campagnes', 'Irrigation', 'Intrants & fertilisation', 'Récoltes', 'Coûts & marge', 'Historique'],
   commercial: ['Tableau de bord', 'Clients', 'Ventes & commandes', 'Opportunités', 'Livraisons', 'Factures & paiements', 'Créances & relances', 'Réclamations'],
   achats_stock: ['Tableau de bord', 'Produits & catégories', 'Fournisseurs', 'Achats & réceptions', 'Stocks & lots', 'Mouvements', 'Inventaires'],
-  finance_pilotage: ['Vue d’ensemble', 'Saisie & trésorerie', 'Coûts & marges', 'Budget & financements', 'Investissements & dettes'],
+  finance_pilotage: ['Vue d’ensemble', 'Saisie & trésorerie', 'Coûts & marges', 'Prévisions & financement', 'Investissements & dettes'],
   activite_suivi: ['À faire', 'Calendrier', 'Alertes liées', 'Journal d’exploitation', 'Historique'],
   documents_rapports: ['Bibliothèque', 'Preuves & justificatifs', 'Rapports', 'Publications', 'Archives'],
   equipe: ['Vue d’ensemble', 'Membres', 'Affectations', 'Absences'],

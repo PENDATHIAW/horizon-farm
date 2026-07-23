@@ -45,7 +45,7 @@ export default function FinanceFinancingSimulatorPanel({
       <div className="flex items-center gap-2">
         <Calculator size={20} className="text-horizon-dark" />
         <div>
-          <h2 className="text-lg font-semibold text-earth">Simulateur de financement</h2>
+          <h2 className="text-lg font-semibold text-earth">Simulation d’emprunt</h2>
           <p className="text-sm text-slate">Estimation indicative - à confirmer avec votre banque.</p>
         </div>
       </div>

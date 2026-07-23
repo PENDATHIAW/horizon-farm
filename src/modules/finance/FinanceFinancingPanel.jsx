@@ -19,8 +19,8 @@ export default function FinanceFinancingPanel({
         <div className="flex items-center gap-2">
           <Banknote size={20} className="text-horizon-dark" />
           <div>
-            <h2 className="text-lg font-semibold text-earth">Financement</h2>
-            <p className="text-sm text-slate">Lecture banque / investisseur - données reprises du business plan.</p>
+            <h2 className="text-lg font-semibold text-earth">Capacité de financement</h2>
+            <p className="text-sm text-slate">Analyse du besoin et de la capacité de remboursement à partir du business plan.</p>
           </div>
         </div>
 
@@ -60,7 +60,7 @@ export default function FinanceFinancingPanel({
             className="inline-flex items-center gap-1 rounded-xl border border-line bg-white px-3 py-2 text-xs font-semibold text-earth hover:bg-card"
           >
             <ExternalLink size={14} />
-            Financements
+            Suivre les financements
           </button>
           <button
             type="button"

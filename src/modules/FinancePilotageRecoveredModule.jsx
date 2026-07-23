@@ -734,7 +734,7 @@ export default function FinancePilotageRecoveredModule(props) {
           <FinanceInnerTabs
             tabs={[
               { key: 'echeancier', label: 'Échéancier' },
-              { key: 'financement', label: 'Financement' },
+              { key: 'financement', label: 'Capacité de financement' },
               { key: 'annexe', label: 'Annexe' },
             ]}
             active={pilotageSubview}
