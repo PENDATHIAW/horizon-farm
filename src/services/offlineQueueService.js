@@ -1,3 +1,5 @@
+import { buildIdempotencyKey, MUTATION_STATUS, rowVersion } from './offlineMutationModel.js';
+
 const QUEUE_KEY = 'horizon_farm_offline_queue';
 
 const arr = (v) => (Array.isArray(v) ? v : []);
@@ -79,8 +81,12 @@ export const saveOfflineQueue = (items = []) => {
   localStorage.setItem(QUEUE_KEY, JSON.stringify(optimizeOfflineQueue(Array.isArray(items) ? items.filter(Boolean) : [])));
 };
 
-export const enqueueOfflineMutation = ({ moduleKey, action, id, payload, type }) => {
+export const enqueueOfflineMutation = ({ moduleKey, action, id, payload, type, baseRow = null }) => {
   const queue = readOfflineQueue();
+  // `id` reste l'identifiant unique de l'entrée de file (clé React, traçabilité) ;
+  // `recordId` porte l'identifiant réel de l'enregistrement (cible du rejeu et de
+  // la déduplication). base_version capture l'état vu à la saisie pour détecter
+  // un conflit au rejeu. idempotency_key rend le rejeu idempotent.
   const item = {
     id: `OFF-${Date.now().toString(36).toUpperCase()}-${Math.random().toString(36).slice(2, 6).toUpperCase()}`,
     type: type || (moduleKey === 'smartfarm_events' ? 'SYNC_TELEMETRY' : undefined),
@@ -88,9 +94,13 @@ export const enqueueOfflineMutation = ({ moduleKey, action, id, payload, type })
     action,
     recordId: id,
     payload,
-    status: 'pending',
+    idempotency_key: buildIdempotencyKey({ moduleKey, action, id, payload }),
+    base_version: rowVersion(baseRow),
+    status: MUTATION_STATUS.PENDING,
+    attempts: 0,
     createdAt: new Date().toISOString(),
     created_at: new Date().toISOString(),
+    client_updated_at: new Date().toISOString(),
     device: typeof navigator !== 'undefined' ? navigator.userAgent.slice(0, 120) : 'unknown',
   };
   saveOfflineQueue([...queue, item]);

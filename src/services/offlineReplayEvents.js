@@ -70,7 +70,11 @@ export function selectionnerNouveauxEvenements(candidats = [], evenementsConnus 
 export function dedupeFileHorsLigne(file = []) {
   const parCle = new Map();
   for (const item of file) {
-    const cle = `${item.moduleKey}|${item.action}|${item.id}`;
+    // Dédupliquer par identifiant réel de l'enregistrement (recordId), pas par
+    // l'identifiant unique de l'entrée de file : deux écritures de la même ligne
+    // sont ainsi bien fusionnées (la dernière l'emporte).
+    const recordId = item.recordId ?? item.id;
+    const cle = `${item.moduleKey}|${item.action}|${recordId}`;
     parCle.set(cle, item);
   }
   return [...parCle.values()];
