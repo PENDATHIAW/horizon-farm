@@ -4,6 +4,7 @@ import { DEPRECATED_MODULE_ALIASES, resolveActiveModuleId } from '../config/modu
 import { normalizeErpRole } from '../config/erpRoles.js';
 import { supabase } from '../lib/supabase';
 import { applyDefaultDataModeForRole } from '../utils/uiPreferences';
+import { resolveAllowedModules } from '../utils/moduleAccessPolicy.js';
 
 const AuthContext = createContext(null);
 
@@ -217,8 +218,9 @@ export function AuthProvider({ children }) {
   const signOut = useCallback(async () => supabase.auth.signOut(), []);
 
   const hasModuleAccess = useCallback((moduleId) => {
-    const role = normalizeErpRole(profile?.role || user?.user_metadata?.role || 'visiteur', 'visiteur');
-    const allowed = ROLE_PERMISSIONS[role] || [];
+    // Autorisation dérivée du seul profil serveur (jamais des user_metadata) ;
+    // un compte non actif ou un profil de secours en production = accès minimal.
+    const allowed = resolveAllowedModules(profile, ROLE_PERMISSIONS, { profilesRequired: PROFILES_TABLE_ENABLED });
     if (allowed.includes('*')) return true;
     const resolved = resolveActiveModuleId(ROUTE_TO_MODULE[moduleId] || moduleId);
     if (allowed.includes(resolved) || allowed.includes(moduleId)) return true;
@@ -228,7 +230,7 @@ export function AuthProvider({ children }) {
     if (anciensIds.some((ancien) => allowed.includes(ancien))) return true;
     const legacyKeys = LEGACY_KEYS_BY_GRAND_MODULE[resolved] || [];
     return legacyKeys.some((key) => allowed.includes(key));
-  }, [profile, user]);
+  }, [profile]);
 
   const value = useMemo(() => ({
     session,
