@@ -62,7 +62,6 @@ export const RACI_MATRIX = {
   relance_creance: { finance: 'R', responsable_filiere: 'A', promotrice_direction: 'I' },
 };
 
-const arr = (v) => (Array.isArray(v) ? v : []);
 const rolesWith = (process, letter) => Object.entries(RACI_MATRIX[process] || {})
   .filter(([, l]) => l === letter)
   .map(([role]) => role);
