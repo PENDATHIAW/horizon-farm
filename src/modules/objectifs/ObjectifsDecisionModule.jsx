@@ -202,12 +202,6 @@ export default function ObjectifsDecisionModule({
     }
   }, [enrichedDataMap, meteo]);
 
-  const tabBadges = useMemo(() => ({
-    'Efficacité Technique & Zootechnique': (analytics.technical?.thermalAlerts?.length || 0)
-      + (analytics.technical?.rows?.filter((r) => r.ponteAlert || r.icAlert || r.gmqAlert).length || 0),
-    'Sécurisation des Flux': (analytics.flux?.sanitaryAlerts?.length || 0) + (analytics.flux?.feedAlert ? 1 : 0),
-  }), [analytics]);
-
   const content = tab === 'Objectifs'
     ? (
       <ObjectifsBpSuiviTab
@@ -259,7 +253,7 @@ export default function ObjectifsDecisionModule({
         </div>
       </section>
 
-      <ModuleTabsBar moduleId="objectifs_croissance" active={tab} onChange={setTab} tabBadges={tabBadges} />
+      <ModuleTabsBar moduleId="objectifs_croissance" active={tab} onChange={setTab} />
       {content}
     </div>
   );
