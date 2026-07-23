@@ -6,6 +6,7 @@ import { evaluateSurveillanceUxRules } from './erpRules/surveillanceUxRules.js';
 import { evaluateErpUxAuditRules } from './erpRules/erpUxAuditRules.js';
 import { syncRecommendationsToSupabase } from './aiRecommendationsService.js';
 import { applyErpHealthAutoActions } from './erpHealthAutoActions.js';
+import { areAutomaticWritesEnabled } from '../utils/automationControl.js';
 
 
 
@@ -86,7 +87,7 @@ export function runErpHealthEngine(data = {}) {
 }
 
 /** Exécute le moteur et synchronise les recommandations Supabase. */
-export async function runErpHealthEngineAndSync(data = {}, { sync = true } = {}) {
+export async function runErpHealthEngineAndSync(data = {}, { sync = areAutomaticWritesEnabled() } = {}) {
   const report = runErpHealthEngine(data);
   if (sync) {
     await syncRecommendationsToSupabase(data).catch(() => {});
@@ -118,8 +119,10 @@ export function scheduleErpHealthOnCriticalChange(getData, onReport, autoActions
     ]);
     if (fingerprint === lastFingerprint) return;
     lastFingerprint = fingerprint;
-    const report = await runErpHealthEngineAndSync(data);
-    if (autoActions && typeof autoActions === 'function') {
+    const writeEnabled = areAutomaticWritesEnabled();
+    const report = await runErpHealthEngineAndSync(data, { sync: writeEnabled });
+    report.observationMode = !writeEnabled;
+    if (writeEnabled && autoActions && typeof autoActions === 'function') {
       report.autoExecution = await applyErpHealthAutoActions(report, autoActions(data, report));
       try {
         localStorage.setItem(STORAGE_KEY, JSON.stringify({
@@ -143,8 +146,10 @@ export function scheduleErpHealthOnCriticalChange(getData, onReport, autoActions
 export function scheduleErpHealthEngine(getData, onReport, intervalMs = 60 * 60 * 1000, autoActions = null) {
   const tick = async () => {
     const data = typeof getData === 'function' ? getData() : getData;
-    const report = await runErpHealthEngineAndSync(data);
-    if (autoActions && typeof autoActions === 'function') {
+    const writeEnabled = areAutomaticWritesEnabled();
+    const report = await runErpHealthEngineAndSync(data, { sync: writeEnabled });
+    report.observationMode = !writeEnabled;
+    if (writeEnabled && autoActions && typeof autoActions === 'function') {
       report.autoExecution = await applyErpHealthAutoActions(report, autoActions(data, report));
       try {
         localStorage.setItem(STORAGE_KEY, JSON.stringify({

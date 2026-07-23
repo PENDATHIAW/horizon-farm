@@ -11,8 +11,6 @@ import AnimauxSpeciesFocused from './AnimauxSpeciesFocused.jsx';
 import DirectChargesBridge from './DirectChargesBridge.jsx';
 import LifecycleHistoryPanel from './LifecycleHistoryPanel.jsx';
 import AnimalScanBar from '../components/elevage/AnimalScanBar.jsx';
-import { calculateUnifiedAnimalCost } from '../services/unifiedCostService.js';
-import { fmtCurrency } from '../utils/format';
 import { subscribeFormModal } from '../services/formModalManager.js';
 
 const toNumber = (value = 0) => Number(value || 0);
@@ -207,22 +205,6 @@ export default function AnimauxV2(props) {
   const selectedActivity = speciesActivityMap[species] || 'bovins';
   const commonWorkflowProps = { salesOrders, payments, transactions, deliveriesList: deliveries, deliveries, businessEvents, opportunities, onCreateBusinessEvent: props.onCreateBusinessEvent || businessEventsCrud.create, onRefreshBusinessEvents: props.onRefreshBusinessEvents || businessEventsCrud.refresh, onUpdateBusinessEvent: props.onUpdateBusinessEvent || businessEventsCrud.update, onDeleteBusinessEvent: props.onDeleteBusinessEvent || businessEventsCrud.remove, onCreateOpportunity: props.onCreateOpportunity || opportunitiesCrud.create, onUpdateOpportunity: props.onUpdateOpportunity || opportunitiesCrud.update, onRefreshOpportunities: props.onRefreshOpportunities || opportunitiesCrud.refresh };
 
-  const valorisationSample = useMemo(() => {
-    const sample = activeSpeciesRows[0];
-    if (!sample) return null;
-    // Mêmes entrées que le moteur Finance (summarizeUnifiedFarmCosts) pour que le
-    // coût affiché sur la fiche corresponde exactement à la Rentabilité Finance :
-    // alimentation, santé ET charges directes rattachées (événements métier).
-    const unified = calculateUnifiedAnimalCost({
-      animal: sample,
-      alimentationLogs: props.alimentationLogs || [],
-      vaccins: props.vaccins || [],
-      healthEvents: businessEvents || [],
-      directCharges: businessEvents || [],
-    });
-    return { name: sample.name || sample.nom || sample.id, total: unified.totalCost };
-  }, [activeSpeciesRows, props.alimentationLogs, props.vaccins, businessEvents]);
-
   return <div id="animaux-module-root" className="space-y-6 animaux-mobile-structured"><style>{`@media (max-width: 640px){.animaux-mobile-structured .rounded-2xl{border-radius:18px}.animaux-mobile-structured table{font-size:12px}.animaux-mobile-structured th,.animaux-mobile-structured td{padding-left:10px!important;padding-right:10px!important}.animaux-mobile-structured .text-2xl{font-size:1.35rem}.animaux-mobile-structured .grid{gap:.75rem}.animaux-mobile-structured .overflow-x-auto{max-width:100vw}}`}</style>
     <AnimalScanBar
       animaux={props.rows || []}
@@ -232,11 +214,6 @@ export default function AnimauxV2(props) {
         window.setTimeout(() => document.getElementById('animaux-module-root')?.scrollIntoView({ behavior: 'smooth' }), 80);
       }}
     />
-    {valorisationSample?.total > 0 ? (
-      <p className="rounded-xl border border-positive bg-positive-bg px-3 py-2 text-sm text-positive">
-        Valorisation (moteur Finance) · <b>{valorisationSample.name}</b> : coût unifié {fmtCurrency(valorisationSample.total)} - aligné Rentabilité Finance.
-      </p>
-    ) : null}
     {horizonDraft ? <div id="hey-horizon-animal-card"><HeyHorizonAnimalCard draft={horizonDraft} rows={props.rows || []} species={species} onCreate={wrapCreate} onUpdate={wrapUpdate} onCreateBusinessEvent={props.onCreateBusinessEvent || businessEventsCrud.create} onRefresh={props.onRefresh} onRefreshBusinessEvents={props.onRefreshBusinessEvents || businessEventsCrud.refresh} onClose={() => setHorizonDraft(null)} /></div> : null}
     <ModuleSection icon={Beef} title="Cheptel"><div className="grid grid-cols-1 md:grid-cols-3 gap-3">{ANIMAL_SPECIES_TABS.map((tab) => <button key={tab} type="button" onClick={() => setSpecies(tab)} className={`rounded-2xl border px-4 py-3 text-left transition-all ${species === tab ? 'bg-earth text-white border-earth' : 'bg-white text-slate border-line'}`}><p className="text-xs uppercase tracking-normal">Espèce</p><p className="font-semibold">{tab}s</p><p className="text-xs opacity-75">{counts[tab] || 0} animaux · {filterAnimalsBySpecies(props.rows || [], tab).filter(isOperationalAnimal).length} actifs</p></button>)}</div></ModuleSection>
     <AnimalCycleHealthPanel rows={props.rows || []} alimentationLogs={props.alimentationLogs || []} vaccins={props.vaccins || []} salesOrders={salesOrders} onNavigate={props.onNavigate} />

@@ -15,6 +15,7 @@ import { makeInterconnectionEvent } from '../utils/moduleInterconnections.js';
 
 const arr = (value) => (Array.isArray(value) ? value : []);
 const clean = (value) => String(value || '').trim();
+const lower = (value) => clean(value).toLowerCase();
 
 const today = () => new Date().toISOString().slice(0, 10);
 
@@ -83,7 +84,18 @@ export async function syncSaleTraceFromOrder(order = {}, { clientLabel = 'Client
 export async function resolveSaleTasksOnPayment({ sale = {}, payments = [], tasks = [], handlers = {} } = {}) {
   const remaining = remainingForOrder(sale, payments);
   if (remaining > 0 || !handlers.onUpdateTask) return null;
-  const related = arr(tasks).filter((task) => clean(task.related_id || task.source_record_id || task.entity_id) === clean(sale.id));
+  const related = arr(tasks).filter((task) => {
+    const linked = clean(task.related_id || task.source_record_id || task.entity_id);
+    if (linked !== clean(sale.id)) return false;
+    const text = lower([
+      task.title,
+      task.notes,
+      task.task_dedupe_key,
+      task.action_key,
+      task.routine_key,
+    ].filter(Boolean).join(' '));
+    return /relanc|encaisser|cr[ée]ance|paiement/.test(text);
+  });
   await Promise.allSettled(related.map((task) => handlers.onUpdateTask(task.id, {
     status: 'termine',
     statut: 'termine',
@@ -114,8 +126,10 @@ export async function runErpInterconnectionRepair({
   alimentationLogs = [],
   alertes = [],
   handlers = {},
+  write = false,
 } = {}) {
   const audit = buildInterconnectionAudit({ orders, payments, finances, invoices, documents, opportunities, sante, stocks, alimentationLogs });
+  if (!write) return { fixed: 0, audit, observationMode: true };
   let fixed = 0;
 
   for (const { payment, order } of audit.paymentsWithoutFinance) {

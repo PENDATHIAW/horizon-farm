@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef } from 'react';
 import { runErpInterconnectionRepair } from '../services/erpInterconnectionEngine';
+import { areAutomaticWritesEnabled } from '../utils/automationControl.js';
 
 const arr = (value) => (Array.isArray(value) ? value : []);
 const rows = (crud) => arr(crud?.rows);
@@ -23,6 +24,7 @@ export default function ErpInterconnectionBridge({ cruds = {} }) {
       ranRef.current = signature;
 
       void runErpInterconnectionRepair({
+        write: areAutomaticWritesEnabled(),
         orders: rows(cruds.sales_orders),
         payments: rows(cruds.payments),
         finances: rows(cruds.finances),

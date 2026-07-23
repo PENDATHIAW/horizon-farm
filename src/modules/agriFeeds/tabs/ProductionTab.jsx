@@ -190,10 +190,6 @@ export default function ProductionTab({
     <div className="space-y-4">
       <section className="rounded-3xl border border-line bg-white p-6 space-y-2">
         <p className="text-lg font-semibold text-earth">Production</p>
-        <p className="text-sm text-slate leading-relaxed max-w-3xl">
-          Ordres de fabrication avec consommation FIFO des matières, lots produits finis,
-          stock PF et QR public (sans recette complète). QC obligatoire avant clôture.
-        </p>
         {message ? (
           <p className="text-sm rounded-xl border border-line bg-card px-3 py-2">{message}</p>
         ) : null}

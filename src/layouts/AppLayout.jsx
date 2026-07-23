@@ -37,8 +37,16 @@ import { shouldOfferWhatsapp } from '../config/alertPolicy.js';
 import { shareAlertOnWhatsapp } from '../utils/whatsappShare.js';
 
 const dangerStatuses = ['retard', 'critique', 'urgent', 'impaye', 'partiel', 'malade', 'panne', 'hors_service'];
+const ALERT_TYPE_LABELS = {
+  missing_required_document: 'Pièce obligatoire manquante',
+};
 const normalize = (value = '') => String(value).toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
 const isRisky = (value) => dangerStatuses.some((status) => normalize(value).includes(status));
+const alertTypeLabel = (value) => {
+  const raw = String(value || 'Alerte').trim();
+  const label = ALERT_TYPE_LABELS[raw] || raw.replaceAll('_', ' ');
+  return label.charAt(0).toUpperCase() + label.slice(1);
+};
 const isMobileViewport = () => typeof window !== 'undefined' && window.matchMedia('(max-width: 767px)').matches;
 const safeRows = (value) => (Array.isArray(value) ? value : []);
 const safeWeather = (value = {}) => ({
@@ -315,7 +323,7 @@ export default function AppLayout({
                     return (
                     <div key={alert.id} className={`flex items-start gap-2 rounded-control border p-3 ${urgent ? 'border-urgent bg-urgent-bg' : 'border-vigilance bg-vigilance-bg'}`}>
                       <button type="button" onClick={() => { navigate(alert.navModule || alert.moduleKey); setNotificationsOpen(false); }} className="flex flex-1 gap-2 text-left">
-                        <AlertTriangle size={15} className={urgent ? 'mt-1 shrink-0 text-urgent' : 'mt-1 shrink-0 text-horizon-dark'} /><div><p className="text-xs font-semibold text-ink">{alert.type}</p><p className="mt-1 text-xs text-slate">{alert.text}</p></div>
+                        <AlertTriangle size={15} className={urgent ? 'mt-1 shrink-0 text-urgent' : 'mt-1 shrink-0 text-horizon-dark'} /><div><p className="text-xs font-semibold text-ink">{alertTypeLabel(alert.type)}</p><p className="mt-1 text-xs text-slate">{alert.text}</p></div>
                       </button>
                       {shouldOfferWhatsapp(alert) ? (
                         <button type="button" aria-label="Partager sur WhatsApp" title="Partager sur WhatsApp" onClick={(e) => { e.stopPropagation(); shareAlertOnWhatsapp(alert); }} className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-positive text-white hover:bg-positive/90">

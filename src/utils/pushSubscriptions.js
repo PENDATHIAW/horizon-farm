@@ -1,7 +1,17 @@
 import toast from 'react-hot-toast';
+import { supabase } from '../lib/supabase.js';
 
 const LOCAL_SUBS_KEY = 'horizon_farm_push_subscriptions_v1';
 const clean = (value) => String(value || '').trim();
+
+export async function getPushApiHeaders() {
+  const { data } = await supabase.auth.getSession();
+  const token = data?.session?.access_token || '';
+  return {
+    'Content-Type': 'application/json',
+    ...(token ? { Authorization: `Bearer ${token}` } : {}),
+  };
+}
 
 function base64ToUint8Array(base64String = '') {
   const padding = '='.repeat((4 - (base64String.length % 4)) % 4);
@@ -49,7 +59,7 @@ export async function subscribeDeviceToPush({ userId = 'owner', label = 'Apparei
 
 export async function persistPushSubscription(payload) {
   try {
-    const response = await fetch('/api/push/subscribe', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+    const response = await fetch('/api/push/subscribe', { method: 'POST', headers: await getPushApiHeaders(), body: JSON.stringify(payload) });
     if (response.ok) return response.json();
   } catch {
     // fallback local ci-dessous
@@ -68,7 +78,7 @@ export function getLocalPushSubscriptions() {
 export async function sendTestPush({ title = 'Test Horizon Farm', body = 'Notification push de test.', severity = 'info', module = 'alertes' } = {}) {
   const payload = { title, body, severity, module, url: `/?module=${module}`, requireInteraction: severity === 'urgence' };
   const localSubscriptions = getLocalPushSubscriptions();
-  const response = await fetch('/api/push/send', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ...payload, localSubscriptions }) });
+  const response = await fetch('/api/push/send', { method: 'POST', headers: await getPushApiHeaders(), body: JSON.stringify({ ...payload, localSubscriptions }) });
   if (!response.ok) throw new Error('Envoi push impossible');
   return response.json();
 }

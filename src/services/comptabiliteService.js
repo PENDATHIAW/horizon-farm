@@ -1,8 +1,6 @@
 ﻿import { supabase } from '../lib/supabase';
 import {
   ACCOUNTING_ACCOUNTS_SEED,
-  ACCOUNTING_BUDGETS_SEED,
-  ACCOUNTING_CLOSURES_SEED,
   TREASURY_ACCOUNTS_SEED,
   buildDraftEntryFromTransaction,
 } from '../utils/accounting';
@@ -160,9 +158,6 @@ export const comptabiliteService = {
 
     if (accounts.length === 0) accounts = await safeUpsertMany('accounting_accounts', ACCOUNTING_ACCOUNTS_SEED);
     if (treasuryAccounts.length === 0) treasuryAccounts = await safeUpsertMany('treasury_accounts', TREASURY_ACCOUNTS_SEED);
-    if (budgets.length === 0) budgets = await safeUpsertMany('accounting_budgets', ACCOUNTING_BUDGETS_SEED);
-    if (closures.length === 0) closures = await safeUpsertMany('accounting_closures', ACCOUNTING_CLOSURES_SEED);
-
     return { accounts, entries, lines, budgets, closures, documents, treasuryAccounts, treasuryMovements };
   },
 

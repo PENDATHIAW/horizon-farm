@@ -57,8 +57,8 @@ export default function MobileMoneyPayPanel({
       }
       toast.success(
         link.sandbox
-          ? 'Lien simulation créé - confirmez le paiement ci-dessous'
-          : 'Lien de paiement ouvert - en attente confirmation client',
+          ? 'Lien de test créé. Validez-le ci-dessous.'
+          : 'Lien ouvert. En attente du paiement du client.',
         { duration: 5000 },
       );
     } catch (error) {
@@ -74,7 +74,7 @@ export default function MobileMoneyPayPanel({
     try {
       const status = await getMobileMoneyPaymentStatus(ref);
       if (status.status !== 'completed') {
-        toast.error('Paiement pas encore confirmé par Wave / Orange Money');
+        toast.error('Le paiement n’est pas encore reçu.');
         return;
       }
       const result = await finalizeMobileMoneyPayment({
@@ -90,17 +90,17 @@ export default function MobileMoneyPayPanel({
         activeFarm,
       });
       if (result?.skipped && result.reason === 'duplicate_payment') {
-        toast.success('Encaissement déjà enregistré');
+        toast.success('Encaissement déjà enregistré.');
       } else if (result?.skipped) {
         toast.error(result.reason || 'Encaissement ignoré');
       } else {
-        toast.success(`Encaissement ${fmtCurrency(status.amount)} confirmé (${status.provider})`, { duration: 5000 });
+        toast.success(`${fmtCurrency(status.amount)} reçu par ${status.provider === 'wave' ? 'Wave' : 'Orange Money'}.`, { duration: 5000 });
       }
       setPending(null);
       await onRefreshWorkflow?.();
       onSuccess?.(result);
     } catch (error) {
-      toast.error(error.message || 'Finalisation impossible');
+      toast.error(error.message || 'Le paiement n’a pas pu être enregistré.');
     } finally {
       setBusy(false);
     }
@@ -113,7 +113,7 @@ export default function MobileMoneyPayPanel({
       await simulateMobileMoneyConfirm(pending.ref);
       await checkAndFinalize(pending.ref);
     } catch (error) {
-      toast.error(error.message || 'Simulation impossible');
+      toast.error(error.message || 'Le test n’a pas pu être validé.');
     } finally {
       setBusy(false);
     }
@@ -143,15 +143,14 @@ export default function MobileMoneyPayPanel({
   return (
     <div className="rounded-xl border border-line bg-neutral-bg p-4 space-y-3">
       <div>
-        <p className="text-xs font-semibold uppercase tracking-normal text-neutral">Paiement mobile</p>
+        <p className="text-xs font-semibold uppercase tracking-normal text-neutral">Encaissement mobile</p>
         <p className="text-sm text-neutral mt-1">
           Envoyer un lien Wave ou Orange Money pour <b>{fmtCurrency(remaining)}</b>.
-          L’encaissement ERP est créé après confirmation (webhook ou vérification).
         </p>
       </div>
       <div className="flex flex-wrap gap-2 items-end">
         <label className="text-xs text-neutral">
-          Fournisseur
+          Moyen de paiement
           <select
             className="mt-1 rounded-lg border border-line bg-white px-3 py-2 text-sm"
             value={provider}
@@ -165,7 +164,7 @@ export default function MobileMoneyPayPanel({
         </Btn>
         {pending?.sandbox ? (
           <Btn small variant="outline" onClick={simulateConfirm} disabled={busy}>
-            Confirmer paiement (simulation)
+            Valider le test
           </Btn>
         ) : null}
         {pending?.ref && !pending?.sandbox ? (
@@ -177,8 +176,8 @@ export default function MobileMoneyPayPanel({
       {pending ? (
         <p className="text-xs text-neutral">
           Réf. <code>{pending.ref}</code>
-          {pending.sandbox ? ' · mode simulation' : ''}
-          {polling ? ' · vérification automatique…' : ''}
+          {pending.sandbox ? ' · test' : ''}
+          {polling ? ' · vérification en cours…' : ''}
         </p>
       ) : null}
       {!clientPhone ? (

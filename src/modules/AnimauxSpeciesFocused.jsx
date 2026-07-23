@@ -63,8 +63,14 @@ const ageLabel = (row = {}) => {
   if (months < 24) return `${months} mois`;
   return `${Math.floor(months / 12)} an(s) ${months % 12 ? `${months % 12} mois` : ''}`.trim();
 };
-const animalOrigin = (row = {}) => fallbackText(row.origine || row.fournisseur_vendeur || row.source || row.mode_acquisition);
-const locationOf = (row = {}) => fallbackText(row.localisation || row.emplacement || row.parc || row.enclos);
+const animalOrigin = (row = {}, fallback = 'Non renseigné') => fallbackText(
+  row.origine || row.fournisseur_vendeur || row.mode_acquisition,
+  fallback,
+);
+const locationOf = (row = {}, fallback = 'Non renseigné') => fallbackText(
+  row.localisation || row.emplacement || row.parc || row.enclos,
+  fallback,
+);
 function parseDocuments(raw) {
   if (!raw) return [];
   if (Array.isArray(raw)) return raw.map((item) => typeof item === 'string' ? { title: item, url: item } : item).filter(Boolean);
@@ -277,6 +283,7 @@ function AnimalDetailModal({ open, onClose, animal, alimentationLogs = [], vacci
   const sales = linkedSales(animal, salesOrders, payments);
   const salePricing = recommendAnimalSalePrice({ animal, alimentationLogs, vaccins: linkedHealth, marketPrices });
   const proposed = buildAnimalProposedSaleDisplay(salePricing, costs);
+  const headerDetails = [locationOf(animal, ''), animalOrigin(animal, '')].filter(Boolean);
 
   const identityRows = [
     ['Identifiant / boucle', physicalIdOf(animal)],
@@ -303,7 +310,7 @@ function AnimalDetailModal({ open, onClose, animal, alimentationLogs = [], vacci
     <div className="rounded-3xl bg-earth text-white p-6">
       <p className="text-xs uppercase tracking-normal text-horizon">{fallbackText(animal.type || animal.espece, 'Espèce non renseignée')} · {fallbackText(animal.sexe === 'M' ? 'Mâle' : animal.sexe === 'F' ? 'Femelle' : animal.sexe)} · {isLocked(animal) ? 'Fiche verrouillée' : 'Actif'}</p>
       <h2 className="text-2xl font-semibold mt-1">{fallbackText(animal.name || animal.nom || physicalIdOf(animal))}</h2>
-      <p className="mt-1 text-sm text-line">{locationOf(animal)} · {animalOrigin(animal)}</p>
+      {headerDetails.length ? <p className="mt-1 text-sm text-line">{headerDetails.join(' · ')}</p> : null}
       <div className="grid grid-cols-2 md:grid-cols-5 gap-3 mt-4">{[['Poids entrée', entryWeightOf(animal) ? `${fmtNumber(entryWeightOf(animal))} kg` : 'Non renseigné'], ['Poids actuel', g.current ? `${fmtNumber(g.current)} kg` : 'Non renseigné'], ['Objectif', g.target ? `${fmtNumber(g.target)} kg` : 'À renseigner'], ['Progression', `${g.progress}%`], ['Prêt à vendre', g.status === 'pret' ? 'Oui' : 'Non']].map(([label, value]) => <div key={label} className="rounded-2xl bg-white/10 border border-white/10 p-3"><p className="text-xs text-line">{label}</p><p className="font-semibold text-white mt-1">{value}</p></div>)}</div>
     </div>
 
