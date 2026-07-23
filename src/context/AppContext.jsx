@@ -70,6 +70,7 @@ import {
 import { supabase } from '../lib/supabase';
 import { normalizeByModule } from '../utils/normalize.js';
 import { clearOfflineQueue, enqueueOfflineMutation, isBrowserOffline, readOfflineQueue, saveOfflineQueue } from '../services/offlineQueueService';
+import { classifyReplayOutcome, isActionable, markConflict, registerFailure } from '../services/offlineMutationModel.js';
 import { isDataKeyEnabled, resolveModuleFlags } from '../config/moduleFlags';
 import { groupRealtimeModulesByTable, makeRealtimeChannelName } from '../utils/realtimeSubscriptions.js';
 
@@ -209,6 +210,10 @@ export function AppProvider({ children, initialDataMap = null }) {
   const createAnimalFollowUpTaskAndAlert = useCallback(async (animal) => { const nextDate = animal?.date_prochaine_verification || animal?.next_action_date || animal?.prochaine_visite; if (!animal?.id || !nextDate) return; try { const taskId = `TSK-${animal.id}-${String(nextDate).replace(/-/g, '')}`; const alertDate = new Date(nextDate); alertDate.setDate(alertDate.getDate() - 3); await tachesService.create({ id: taskId, farm_id: animal.farm_id, title: `Verification sanitaire ${animal.id} - ${animal.name || 'animal'}`, module_lie: 'animaux', assigned_to: animal.veterinaire_id || 'Equipe ferme', due_date: alertDate.toISOString().slice(0, 10), priority: 'haute', status: 'a_faire', checklist: 'Verifier etat sante; noter poids; mettre a jour fiche; contacter veterinaire si besoin' }); await supabase.from('alertes_center').insert(withFarmId('alertes_center', { id: `ALERT-${taskId}`, farm_id: animal.farm_id, title: `Rappel sanitaire ${animal.id}`, message: `Controle sanitaire prevu le ${nextDate}. Alerte creee 3 jours avant.`, module_source: 'animaux', entity_type: 'animal', entity_id: animal.id, severity: 'warning', status: 'nouvelle', action_recommandee: 'Verifier la fiche animal et confirmer la visite veterinaire.', send_whatsapp: false })); await refreshModule('taches'); } catch (error) { console.warn('Rappel sanitaire non cree', error.message); } }, [refreshModule]);
   const businessEventsRef = useRef([]);
   useEffect(() => { businessEventsRef.current = dataMap.business_events || []; }, [dataMap.business_events]);
+  // Miroir du dataMap pour le rejeu hors ligne : permet de comparer une mutation
+  // en attente à l'état connu de sa ligne et de détecter un conflit sans re-render.
+  const dataMapRef = useRef(dataMap);
+  useEffect(() => { dataMapRef.current = dataMap; }, [dataMap]);
 
   const emitBusinessEvents = useCallback((events = [], moduleKey = '', record = {}) => {
     const filtered = filterAppContextBusinessEvents(events, moduleKey, record);
@@ -256,9 +261,9 @@ export function AppProvider({ children, initialDataMap = null }) {
 
   const createRecord = useCallback(async (moduleKey, payload) => { const service = serviceMap[moduleKey]; const config = MODULE_CONFIG[moduleKey] || {}; const idField = config.idField || 'id'; const generatedId = payload?.[idField] || makeId(config.idPrefix || moduleKey.toUpperCase()); const record = normalizeByModule(moduleKey, [{ ...payload, [idField]: generatedId }])[0]; setModuleError(moduleKey, null); setDataMap((prev) => ({ ...prev, [moduleKey]: [record, ...(prev[moduleKey] || [])] })); if (!service) return record; markLocalWrite(moduleKey); try { const created = await service.create(record); const normalized = normalizeByModule(moduleKey, [created || record])[0]; setDataMap((prev) => ({ ...prev, [moduleKey]: (prev[moduleKey] || []).map((row) => row[idField] === generatedId ? normalized : row) })); refreshModule(moduleKey); void writeAuditLog('creation', moduleKey, generatedId); if (moduleKey === 'animaux') { void appendAnimalTraceStep(normalized, getAcquisitionTraceStep(normalized, dataMap.animaux || [])); void createAnimalFollowUpTaskAndAlert(normalized); } emitBusinessEvents(buildCreateEvents(moduleKey, normalized), moduleKey, normalized); return normalized; } catch (error) { if (isBrowserOffline()) { enqueueOfflineMutation({ moduleKey, action: 'create', id: generatedId, payload: record }); setModuleError(moduleKey, 'Mode hors ligne: creation mise en file de synchronisation'); return record; } setDataMap((prev) => ({ ...prev, [moduleKey]: (prev[moduleKey] || []).filter((row) => row[idField] !== generatedId) }));       setModuleError(moduleKey, friendlySaveError(error, 'Erreur creation')); throw error; } }, [appendAnimalTraceStep, createAnimalFollowUpTaskAndAlert, dataMap.animaux, emitBusinessEvents, markLocalWrite, refreshModule, setModuleError, writeAuditLog]);
 
-  const updateRecord = useCallback(async (moduleKey, id, payload) => { const service = serviceMap[moduleKey]; const config = MODULE_CONFIG[moduleKey] || {}; const idField = config.idField || 'id'; let previousRow = null; setDataMap((prev) => { const rows = prev[moduleKey] || []; previousRow = rows.find((row) => row[idField] === id) || null; return { ...prev, [moduleKey]: rows.map((row) => (row[idField] === id ? { ...row, ...payload } : row)) }; }); if (!service) return payload; markLocalWrite(moduleKey); try { const updated = await service.update(id, payload); const normalized = normalizeByModule(moduleKey, [updated || { ...previousRow, ...payload }])[0]; setDataMap((prev) => ({ ...prev, [moduleKey]: (prev[moduleKey] || []).map((row) => (row[idField] === id ? normalized : row)) })); refreshModule(moduleKey); void writeAuditLog('modification', moduleKey, id); if (moduleKey === 'animaux') { const traceStep = previousRow?.en_gestation !== normalized.en_gestation && normalized.en_gestation ? getGestationTraceStep(normalized) : null; void appendAnimalTraceStep(normalized, traceStep); void createAnimalFollowUpTaskAndAlert(normalized); } emitBusinessEvents(buildUpdateEvents(moduleKey, previousRow, normalized), moduleKey, normalized); return normalized; } catch (error) { if (isBrowserOffline()) { enqueueOfflineMutation({ moduleKey, action: 'update', id, payload }); setModuleError(moduleKey, 'Mode hors ligne: modification mise en file de synchronisation'); return { ...previousRow, ...payload }; } setDataMap((prev) => ({ ...prev, [moduleKey]: (prev[moduleKey] || []).map((row) => (row[idField] === id ? previousRow : row)) })); setModuleError(moduleKey, friendlySaveError(error, 'Erreur modification')); throw error; } }, [appendAnimalTraceStep, createAnimalFollowUpTaskAndAlert, emitBusinessEvents, markLocalWrite, refreshModule, setModuleError, writeAuditLog]);
+  const updateRecord = useCallback(async (moduleKey, id, payload) => { const service = serviceMap[moduleKey]; const config = MODULE_CONFIG[moduleKey] || {}; const idField = config.idField || 'id'; let previousRow = null; setDataMap((prev) => { const rows = prev[moduleKey] || []; previousRow = rows.find((row) => row[idField] === id) || null; return { ...prev, [moduleKey]: rows.map((row) => (row[idField] === id ? { ...row, ...payload } : row)) }; }); if (!service) return payload; markLocalWrite(moduleKey); try { const updated = await service.update(id, payload); const normalized = normalizeByModule(moduleKey, [updated || { ...previousRow, ...payload }])[0]; setDataMap((prev) => ({ ...prev, [moduleKey]: (prev[moduleKey] || []).map((row) => (row[idField] === id ? normalized : row)) })); refreshModule(moduleKey); void writeAuditLog('modification', moduleKey, id); if (moduleKey === 'animaux') { const traceStep = previousRow?.en_gestation !== normalized.en_gestation && normalized.en_gestation ? getGestationTraceStep(normalized) : null; void appendAnimalTraceStep(normalized, traceStep); void createAnimalFollowUpTaskAndAlert(normalized); } emitBusinessEvents(buildUpdateEvents(moduleKey, previousRow, normalized), moduleKey, normalized); return normalized; } catch (error) { if (isBrowserOffline()) { enqueueOfflineMutation({ moduleKey, action: 'update', id, payload, baseRow: previousRow }); setModuleError(moduleKey, 'Mode hors ligne: modification mise en file de synchronisation'); return { ...previousRow, ...payload }; } setDataMap((prev) => ({ ...prev, [moduleKey]: (prev[moduleKey] || []).map((row) => (row[idField] === id ? previousRow : row)) })); setModuleError(moduleKey, friendlySaveError(error, 'Erreur modification')); throw error; } }, [appendAnimalTraceStep, createAnimalFollowUpTaskAndAlert, emitBusinessEvents, markLocalWrite, refreshModule, setModuleError, writeAuditLog]);
 
-  const deleteRecord = useCallback(async (moduleKey, id) => { const service = serviceMap[moduleKey]; const config = MODULE_CONFIG[moduleKey] || {}; const idField = config.idField || 'id'; let previousRows = []; setDataMap((prev) => { previousRows = prev[moduleKey] || []; return { ...prev, [moduleKey]: previousRows.filter((row) => row[idField] !== id) }; }); if (!service) return true; try { await service.remove(id); await writeAuditLog('suppression', moduleKey, id); return true; } catch (error) { if (isBrowserOffline()) { enqueueOfflineMutation({ moduleKey, action: 'delete', id }); setModuleError(moduleKey, 'Mode hors ligne: suppression mise en file de synchronisation'); return true; } setDataMap((prev) => ({ ...prev, [moduleKey]: previousRows })); setModuleError(moduleKey, error.message || 'Erreur suppression'); throw error; } }, [setModuleError, writeAuditLog]);
+  const deleteRecord = useCallback(async (moduleKey, id) => { const service = serviceMap[moduleKey]; const config = MODULE_CONFIG[moduleKey] || {}; const idField = config.idField || 'id'; let previousRows = []; setDataMap((prev) => { previousRows = prev[moduleKey] || []; return { ...prev, [moduleKey]: previousRows.filter((row) => row[idField] !== id) }; }); if (!service) return true; try { await service.remove(id); await writeAuditLog('suppression', moduleKey, id); return true; } catch (error) { if (isBrowserOffline()) { enqueueOfflineMutation({ moduleKey, action: 'delete', id, baseRow: previousRows.find((row) => row[idField] === id) || null }); setModuleError(moduleKey, 'Mode hors ligne: suppression mise en file de synchronisation'); return true; } setDataMap((prev) => ({ ...prev, [moduleKey]: previousRows })); setModuleError(moduleKey, error.message || 'Erreur suppression'); throw error; } }, [setModuleError, writeAuditLog]);
 
   const syncOfflineQueue = useCallback(async () => {
     const localPreview = session?.user?.id === 'local-preview-user';
@@ -271,21 +276,37 @@ export function AppProvider({ children, initialDataMap = null }) {
     for (const item of queue) {
       const service = serviceMap[item.moduleKey];
       if (!service) continue;
+      // Les mutations en conflit ou rejetées restent visibles mais ne sont plus
+      // rejouées automatiquement (résolution ultérieure).
+      if (!isActionable(item)) { pending.push(item); continue; }
+      const idField = (MODULE_CONFIG[item.moduleKey] || {}).idField || 'id';
+      const recordId = item.recordId ?? item.id;
+      // État connu de la ligne : permet de détecter qu'elle a changé côté serveur
+      // depuis la saisie hors ligne (conflit) au lieu d'écraser silencieusement.
+      const rows = dataMapRef.current?.[item.moduleKey];
+      const currentServerRow = Array.isArray(rows)
+        ? (rows.find((row) => String(row[idField]) === String(recordId)) ?? null)
+        : undefined;
+      const decision = classifyReplayOutcome({ mutation: item, currentServerRow });
+      if (decision.outcome === 'noop') continue; // ex. suppression déjà effective
+      if (decision.outcome === 'conflict') { pending.push(markConflict(item, decision.reason)); continue; }
       try {
         if (item.action === 'create') await service.create(item.payload);
-        if (item.action === 'update') await service.update(item.id, item.payload);
-        if (item.action === 'delete') await service.remove(item.id);
-        await writeAuditLog(`sync_${item.action}`, item.moduleKey, item.id);
+        if (item.action === 'update') await service.update(recordId, item.payload);
+        if (item.action === 'delete') await service.remove(recordId);
+        await writeAuditLog(`sync_${item.action}`, item.moduleKey, recordId);
         // Réémission des événements métier avec leur issue_key : le rejeu passe
         // par la même voie idempotente que l'écriture en ligne, donc un seul
         // effet inter-modules même si la file est rejouée plusieurs fois.
         if (item.action === 'create' || item.action === 'update') {
-          const record = item.payload || { id: item.id };
+          const record = item.payload || { id: recordId };
           const events = buildReplayEvents(item.moduleKey, item.action, record, item.previousRow || null);
           emitBusinessEvents(events, item.moduleKey, record);
         }
       } catch (error) {
-        pending.push({ ...item, last_error: error.message });
+        // Échec technique : on compte la tentative ; après plusieurs échecs la
+        // mutation est marquée rejetée (visible) au lieu d'être rejouée sans fin.
+        pending.push(registerFailure(item, error.message));
       }
     }
     if (pending.length === 0) clearOfflineQueue(); else saveOfflineQueue(pending);
