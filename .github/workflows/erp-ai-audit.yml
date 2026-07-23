@@ -17,7 +17,7 @@ jobs:
 
       - name: Detect fragile DOM patches
         run: |
-          if rg -n "MutationObserver|SalesLabelCleaner|TreeWalker" src/; then
+          if grep -R -n -E "MutationObserver|SalesLabelCleaner|TreeWalker" src/; then
             echo "::error::Correction DOM fragile détectée. Corriger les libellés dans les composants sources."
             exit 1
           fi
@@ -27,7 +27,7 @@ jobs:
         run: |
           test -f src/config/modules.config.js || (echo "::error::modules.config.js manquant" && exit 1)
           test -f src/services/moduleDataComposer.js || (echo "::error::moduleDataComposer.js manquant" && exit 1)
-          test -f src/services/erpHealthRules.js || (echo "::error::erpHealthRules.js manquant" && exit 1)
+          test -f src/services/erpHealthEngine.js || (echo "::error::erpHealthEngine.js manquant" && exit 1)
           test -f src/services/workflowRefresh.js || (echo "::error::workflowRefresh.js manquant" && exit 1)
           test -f src/services/erpRules/index.js || (echo "::error::erpRules/index.js manquant" && exit 1)
           test -f lib/server/erp/audit.js || (echo "::error::lib/server/erp/audit.js manquant" && exit 1)

@@ -73,7 +73,11 @@ export default function App() {
   const [financementsTab, setFinancementsTab] = useState('cockpit-dashboard');
   const [smartfarmTab, setSmartfarmTab] = useState('Vue d’ensemble');
   const [farmsPanelAction, setFarmsPanelAction] = useState(null);
-  const openAssistantRef = useRef(() => {});
+  const [assistantOpen, setAssistantOpen] = useState(false);
+  const openAssistantWithQuery = useCallback((query) => {
+    setAssistantOpen(true);
+    scheduleHeyHorizonQuery(query, 180);
+  }, []);
   const deepLinkAppliedRef = useRef(false);
   const navigateModule = useCallback((moduleId, options = {}) => {
     const tab = options?.tab || options?.commercialTab || options?.elevageTab || options?.achatsStockTab || options?.financeTab || options?.culturesTab || options?.agriFeedsTab || options?.activiteSuiviTab || options?.documentsRapportsTab || options?.rhTab;
@@ -206,7 +210,7 @@ export default function App() {
         }, 320);
       }
       if (options?.heyHorizonQuery) {
-        window.setTimeout(() => openAssistantRef.current?.(options.heyHorizonQuery), 400);
+        window.setTimeout(() => openAssistantWithQuery(options.heyHorizonQuery), 400);
       }
       trackNavOpen(resolved);
       setActiveState(resolved);
@@ -214,18 +218,10 @@ export default function App() {
     }
     trackNavOpen(resolved);
     setActiveState(resolved);
-  }, []);
+  }, [openAssistantWithQuery]);
   const setActive = navigateModule;
   const [sidebarOpen, setSidebarOpen] = useState(getInitialSidebarOpen);
   useEffect(() => watchSidebarViewport(setSidebarOpen), []);
-  const [assistantOpen, setAssistantOpen] = useState(false);
-  const openAssistantWithQuery = useCallback((query) => {
-    setAssistantOpen(true);
-    scheduleHeyHorizonQuery(query, 180);
-  }, []);
-  useEffect(() => {
-    openAssistantRef.current = openAssistantWithQuery;
-  }, [openAssistantWithQuery]);
   const { user, profile, loading: authLoading, signOut, canAccess } = useAuth();
   useEffect(() => {
     if (!user?.id || authLoading || deepLinkAppliedRef.current) return undefined;
@@ -897,7 +893,6 @@ export default function App() {
   const activeModuleId0 = resolveActiveModuleId(active);
   const activeModuleId = isModuleEnabled(activeModuleId0, moduleFlags) ? activeModuleId0 : 'dashboard';
   const activeModuleProps = applyFarmScopeToProps(
-    // eslint-disable-next-line react-hooks/refs -- moduleProps is a memoized lookup table of props, not a React ref.
     applyPeriodScopeToProps(moduleProps[activeModuleId] || moduleProps[active] || {}, periodScope, { cacheGeneration: crudFingerprint }),
     farmScope,
     { accessibleFarms: effectiveAccessibleFarms, activeFarm, moduleId: activeModuleId },

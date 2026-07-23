@@ -512,7 +512,7 @@ export default function ElevageRecoveredModule(props) {
       return;
     }
     openWorkflowModal(modal);
-  }, [onPrepareTransformation, openWorkflowModal, lotsSubview, setTab, setHealthDraft]);
+  }, [animals, lots, onPrepareTransformation, openWorkflowModal, lotsSubview, setTab, setHealthDraft]);
   const closeWorkflow = useCallback(() => setActiveModal(null), []);
 
   const startupProgress = useMemo(() => buildElevageStartupProgress({
