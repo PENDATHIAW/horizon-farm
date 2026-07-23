@@ -4,6 +4,7 @@ import { readFileSync, readdirSync } from 'node:fs';
 import { request as httpsRequest } from 'node:https';
 import { basename, dirname, isAbsolute, join, relative, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { DOMAIN_CHECKS, SMARTFARM_EXPECTATIONS } from './rls/rlsRoleMatrix.mjs';
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..');
 const migrationsDir = join(root, 'supabase/migrations');
@@ -588,16 +589,7 @@ async function verifyRoleIsolation() {
 
     for (const user of users) user.token = await signInIsolationUser(user, keys.anonKey);
 
-    const expectations = {
-      promotrice_direction: { smartRead: true, smartWrite: true, farmB: true },
-      responsable_filiere: { smartRead: true, smartWrite: true, farmB: false },
-      terrain: { smartRead: true, smartWrite: false, farmB: false },
-      finance: { smartRead: true, smartWrite: false, farmB: false },
-      veterinaire: { smartRead: false, smartWrite: false, farmB: false },
-      maintenance: { smartRead: true, smartWrite: true, farmB: false },
-      financeur_externe: { smartRead: false, smartWrite: false, farmB: false },
-      admin_support: { smartRead: true, smartWrite: true, farmB: true },
-    };
+    const expectations = SMARTFARM_EXPECTATIONS;
 
     for (const user of users) {
       const expected = expectations[user.role];
@@ -647,16 +639,7 @@ async function verifyRoleIsolation() {
       check(writeAccepted === expected.smartWrite, `${user.role} ecriture REST reelle`);
     }
 
-    const domainChecks = {
-      promotrice_direction: [['transactions', true, true]],
-      responsable_filiere: [['transactions', true, false], ['animals', true, true]],
-      terrain: [['tasks', true, true], ['transactions', false, false]],
-      finance: [['transactions', true, true], ['animals', true, false]],
-      veterinaire: [['vaccins', true, true], ['transactions', false, false]],
-      maintenance: [['equipment', true, true], ['transactions', false, false]],
-      financeur_externe: [['funding_reports', false, false], ['transactions', false, false]],
-      admin_support: [['transactions', true, true]],
-    };
+    const domainChecks = DOMAIN_CHECKS;
     for (const user of users) {
       for (const [table, expectedRead, expectedWrite] of domainChecks[user.role]) {
         const canRead = await rpcBoolean('can_read_farm_table', {
