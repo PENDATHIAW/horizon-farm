@@ -10,6 +10,7 @@ import { ERP_ROLES } from '../config/moduleTabs/shared.js';
 import { useAuth } from '../context/AuthContext.jsx';
 import { farmsService } from '../services/farmsService.js';
 import { resolveGestionSystemeTab } from '../utils/commercialNavigation.js';
+import ErpHealthPanel from './ErpHealthPanel.jsx';
 import FarmsManagementPanel from './farms/FarmsManagementPanel.jsx';
 import SyncActivityCenter from './SyncActivityCenter.jsx';
 import SystemAccessAuditPanel from './SystemAccessAuditPanel.jsx';
@@ -113,7 +114,7 @@ export default function GestionSystemeV1Module(props) {
         : tab === 'SystemSettingsView' ? <SettingsView farm={activeFarm} onNavigate={props.onNavigate} />
           : tab === 'SystemReferencesView' ? <ReferencesView dataMap={dataMap} />
             : tab === 'SystemCatalogsView' ? <CatalogsView dataMap={dataMap} />
-              : tab === 'SystemSyncView' ? <SyncActivityCenter {...(props.syncProps || props)} embedded />
+              : tab === 'SystemSyncView' ? <div className="space-y-6"><ErpHealthPanel dataMap={dataMap} /><SyncActivityCenter {...(props.syncProps || props)} embedded /></div>
                 : tab === 'SystemAuditSecurityView' ? auditView
                   : <FarmsManagementPanel user={user} companyId={props.companyId} accessibleFarms={props.accessibleFarms} onFarmsChanged={props.onFarmsChanged} initialAction={props.farmsPanelAction} farmComparisonData={props.farmComparisonData} onManageFarms={props.onManageFarms} onNavigate={props.onNavigate} />;
 
