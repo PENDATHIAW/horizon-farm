@@ -12,7 +12,6 @@ import RapportsExportsTab from './documents/tabs/RapportsExportsTab.jsx';
 import ReportLifecyclePanel from './documents/tabs/ReportLifecyclePanel.jsx';
 import PublicationsTab from './documents/tabs/PublicationsTab.jsx';
 import ArchivesTab from './documents/tabs/ArchivesTab.jsx';
-import { Button } from './documents/documentsModuleUi.jsx';
 
 function Tabs({ active, onChange }) {
   return <ModuleTabsBar moduleId="documents_rapports" active={active} onChange={onChange} />;
@@ -168,8 +167,6 @@ export default function DocumentsRapportsModule(props) {
               <span className="text-slate">Santé </span>
               <b className={data.healthScore >= 75 ? 'text-positive' : 'text-horizon-dark'}>{data.healthScore}/100</b>
             </div>
-            <Button onClick={() => navigateDocuments('Bibliothèque')}>Bibliothèque</Button>
-            <Button onClick={() => navigateDocuments('Rapports')}>Rapports</Button>
           </div>
         </div>
       </div>

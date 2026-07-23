@@ -4,7 +4,7 @@ import CircularEconomyKpiPanel from '../../../components/greenpreneurs/CircularE
 import GreenpreneursReadinessCard from '../../../components/greenpreneurs/GreenpreneursReadinessCard.jsx';
 import { fmtNumber } from '../../../utils/format';
 import { isSimulatedDataModeEnabled } from '../../../utils/uiPreferences.js';
-import { Button, Empty, Field, Row, Section, labelOf, typeOf, dateOf, detailOf } from '../documentsModuleUi.jsx';
+import { Button, Field, Section } from '../documentsModuleUi.jsx';
 
 export default function RapportsExportsTab({
   data,
@@ -61,16 +61,13 @@ export default function RapportsExportsTab({
           <Field label="Export clients" value={`${fmtNumber(data.clients.length)} client(s)`} />
         </div>
       </Section>
-      <Section icon={BarChart3} title="Sources et modèles de rapport">
-        <div className="grid grid-cols-2 gap-3 xl:grid-cols-4 mb-4">
+      <Section icon={BarChart3} title="Sources du rapport">
+        <div className="grid grid-cols-3 gap-3 mb-2">
           <Field label="Rapports" value={fmtNumber(data.reports.length)} />
           <Field label="Modules couverts" value={fmtNumber(data.coveredModules.length)} />
           <Field label="Exports" value={fmtNumber(data.exports.length)} />
-          <Field label="Modèles" value={fmtNumber(data.templates.length)} />
         </div>
-        {data.templates.length ? data.templates.slice(0, 14).map((row) => (
-          <Row key={row.id || labelOf(row)} title={labelOf(row)} detail={`${typeOf(row)} · ${dateOf(row)} · ${detailOf(row)}`} value="Modèle" />
-        )) : <Empty label="Aucun modèle enregistré." />}
+        <p className="text-sm text-slate">Les modèles de documents sont gérés dans l’onglet Bibliothèque.</p>
       </Section>
       <Section icon={BarChart3} title="Couverture analytique">
         <p className="mb-4 text-sm text-slate">Évolutions finance et clients intégrées - l’onglet Graphiques technique est fusionné ici.</p>
