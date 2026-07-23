@@ -6,6 +6,7 @@ export default function CommercialRelancesPanel({
   rows = [],
   onOpenClient,
   onPrepareWhatsApp,
+  onSchedule,
 }) {
   if (!rows.length) return null;
 
@@ -57,6 +58,15 @@ export default function CommercialRelancesPanel({
                     className="rounded-lg border border-positive/40 bg-positive/10 px-2 py-1 text-meta font-semibold text-positive"
                   >
                     Préparer WhatsApp
+                  </button>
+                ) : null}
+                {onSchedule ? (
+                  <button
+                    type="button"
+                    onClick={() => onSchedule(row)}
+                    className="rounded-lg border border-earth px-2 py-1 text-meta font-semibold text-earth"
+                  >
+                    {row.scheduled ? `Planifiée ${row.scheduledDate}` : 'Planifier'}
                   </button>
                 ) : null}
                 {row.whatsappStatus ? (

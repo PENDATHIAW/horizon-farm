@@ -93,23 +93,7 @@ export default function CommercialScheduledRelancesPanel({
         )}
       </section>
 
-      <CommercialRelancesPanel rows={rows} onOpenClient={onOpenClient} onPrepareWhatsApp={onPrepareWhatsApp} />
-
-      {rows.length ? (
-        <section className="rounded-2xl border border-line bg-card p-4">
-          <p className="text-sm font-semibold text-earth mb-2">Planifier une relance (tâche)</p>
-          <div className="space-y-2">
-            {rows.slice(0, 4).map((row) => (
-              <div key={`plan-${row.id}`} className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-line bg-white px-3 py-2 text-sm">
-                <span className="font-semibold text-earth">{row.clientName} · {fmtCurrency(row.amount)}</span>
-                <button type="button" onClick={() => openScheduleModal(row)} className="rounded-lg border border-earth px-2 py-1 text-meta font-semibold text-earth">
-                  {row.scheduled ? `Planifiée ${row.scheduledDate}` : 'Planifier'}
-                </button>
-              </div>
-            ))}
-          </div>
-        </section>
-      ) : null}
+      <CommercialRelancesPanel rows={rows} onOpenClient={onOpenClient} onPrepareWhatsApp={onPrepareWhatsApp} onSchedule={openScheduleModal} />
 
       <QuickInputModal
         open={Boolean(scheduleTarget)}
