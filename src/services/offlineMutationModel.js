@@ -176,3 +176,25 @@ export function isActionable(mutation) {
   const status = mutation?.status || MUTATION_STATUS.PENDING;
   return status === MUTATION_STATUS.PENDING || status === MUTATION_STATUS.REPAIRED;
 }
+
+/**
+ * Applique un choix de résolution à une mutation en conflit.
+ * - SERVER : on abandonne la mutation locale (drop).
+ * - CLIENT / MERGE : on reconstruit la charge et on réaligne base_version sur
+ *   l'état serveur courant, pour que le rejeu suivant applique sans reconflit.
+ * @returns {{drop: true}|{mutation: object}}
+ */
+export function resolveQueuedConflict(mutation, strategy, serverRow) {
+  const outcome = resolveConflict(strategy, { mutation, serverRow });
+  if (outcome.drop) return { drop: true };
+  return {
+    mutation: {
+      ...mutation,
+      payload: outcome.payload,
+      base_version: rowVersion(serverRow),
+      status: MUTATION_STATUS.REPAIRED,
+      conflict_reason: undefined,
+      attempts: 0,
+    },
+  };
+}

@@ -49,14 +49,28 @@ conflits**. Ce document décrit l'état livré et la suite.
   scénarios de l'audit inclus (deux appareils sur la même ligne, reprise après
   crash, suppression d'une ligne modifiée).
 
-## Sous-lot b — à venir
+## Sous-lot b — Écran de résolution de conflit *(livré)*
+
+- `src/services/offlineMutationModel.js` — `resolveQueuedConflict(mutation,
+  stratégie, ligneServeur)` : applique le choix, réaligne `base_version` sur
+  l'état serveur (pas de reconflit) et repasse la mutation en `repaired`.
+- `src/services/offlineQueueService.js` — `listOfflineConflicts()` et
+  `resolveOfflineConflict(id, stratégie, ligneServeur)` mettent la file à jour.
+- `src/modules/OfflineConflictsPanel.jsx` — écran dans Gestion système >
+  Synchronisation : pour chaque conflit, tableau valeur locale / valeur serveur
+  et trois choix (garder le serveur, forcer ma valeur, fusionner).
+- `src/services/erpHealthCheck.js` — signal « Conflits de synchronisation » dans
+  le centre de santé quand des conflits existent.
+- Tests : `offlineConflictResolution.test.js` (stratégies serveur/client/fusion,
+  réalignement de version).
+
+## Sous-lot c — à venir
 
 - **Stockage IndexedDB** en remplacement de `localStorage` (durabilité, taille,
   pièces sensibles non stockées en clair). Non testable en CI Node (IndexedDB
   absent) : nécessite un harnais dédié.
-- **Écran de résolution de conflit** : présenter les mutations `conflict`, laisser
-  choisir serveur / local / fusion, et appliquer `resolveConflict`.
-- **Boîte de synchronisation** : en attente / envoyée / rejetée / conflit / réparée.
+- **Boîte de synchronisation** complète : en attente / envoyée / rejetée /
+  conflit / réparée.
 - Chiffrement des mutations sensibles et horodatage serveur d'autorité.
 
 ## Portée
