@@ -81,7 +81,19 @@ export const saveOfflineQueue = (items = []) => {
   localStorage.setItem(QUEUE_KEY, JSON.stringify(optimizeOfflineQueue(Array.isArray(items) ? items.filter(Boolean) : [])));
 };
 
-export const enqueueOfflineMutation = ({ moduleKey, action, id, payload, type, baseRow = null }) => {
+export function getOfflineRecordId(item = {}) {
+  return String(item.recordId || item.payload?.id || item.id || '').trim();
+}
+
+export const enqueueOfflineMutation = ({
+  moduleKey,
+  action,
+  id,
+  payload,
+  type,
+  baseRow = null,
+  previousRow = baseRow,
+}) => {
   const queue = readOfflineQueue();
   // `id` reste l'identifiant unique de l'entrée de file (clé React, traçabilité) ;
   // `recordId` porte l'identifiant réel de l'enregistrement (cible du rejeu et de
@@ -95,7 +107,8 @@ export const enqueueOfflineMutation = ({ moduleKey, action, id, payload, type, b
     recordId: id,
     payload,
     idempotency_key: buildIdempotencyKey({ moduleKey, action, id, payload }),
-    base_version: rowVersion(baseRow),
+    base_version: rowVersion(baseRow || previousRow),
+    previousRow: previousRow || baseRow,
     status: MUTATION_STATUS.PENDING,
     attempts: 0,
     createdAt: new Date().toISOString(),

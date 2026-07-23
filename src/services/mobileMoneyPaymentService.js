@@ -1,17 +1,23 @@
 /**
- * Client Wave / Orange Money - création lien, statut, finalisation encaissement ERP.
+ * Client Wave / Orange Money.
  */
 
-import { recordSalePayment } from '../utils/recordSalePayment.js';
+import { supabase } from '../lib/supabase.js';
 
 const API_BASE = '/api/mobile-money';
 
 async function callApi(action, { method = 'POST', body, query } = {}) {
+  const { data: sessionData } = await supabase.auth.getSession();
+  const accessToken = sessionData?.session?.access_token || '';
+  if (!accessToken) throw new Error('Votre session a expiré. Reconnectez-vous pour continuer.');
   const qs = query ? `?${new URLSearchParams(query).toString()}` : '';
   const url = `${API_BASE}/${action}${qs}`;
   const response = await fetch(url, {
     method,
-    headers: { 'Content-Type': 'application/json' },
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${accessToken}`,
+    },
     body: method === 'GET' ? undefined : JSON.stringify(body || {}),
   });
   const data = await response.json().catch(() => ({}));
@@ -50,41 +56,23 @@ export async function simulateMobileMoneyConfirm(ref) {
 }
 
 /**
- * Après confirmation mobile money → encaissement canonique ERP.
+ * Le serveur a déjà enregistré l'encaissement lorsqu'il renvoie "completed".
  */
 export async function finalizeMobileMoneyPayment({
-  sale,
   statusResult = {},
-  payments = [],
-  transactions = [],
-  clients = [],
-  salesOrders = [],
-  handlers = {},
-  farmScope = {},
-  accessibleFarms = [],
-  activeFarm = null,
 } = {}) {
-  const provider = statusResult.provider || 'wave';
-  const amount = Number(statusResult.amount || 0);
-  const paymentId = statusResult.payment_id || '';
-
-  const result = await recordSalePayment({
-    sale,
-    requestedAmount: amount,
-    payments,
-    transactions,
-    clients,
-    salesOrders,
-    paymentMethod: provider,
-    paymentDate: new Date().toISOString().slice(0, 10),
-    paymentId,
-    handlers,
-    farmScope,
-    accessibleFarms,
-    activeFarm,
-  });
-
-  return { ...result, mobileMoneyRef: statusResult.ref, provider };
+  if (statusResult.status !== 'completed' || !statusResult.payment_id) {
+    throw new Error('Le paiement n’est pas encore confirmé.');
+  }
+  return {
+    skipped: Boolean(statusResult.already_posted),
+    reason: statusResult.already_posted ? 'duplicate_payment' : '',
+    paymentId: statusResult.payment_id,
+    amount: Number(statusResult.amount || 0),
+    mobileMoneyRef: statusResult.ref,
+    provider: statusResult.provider || 'wave',
+    serverFinalized: true,
+  };
 }
 
 export function isMobileMoneyProvider(method = '') {

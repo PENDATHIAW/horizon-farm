@@ -6,6 +6,7 @@ import { isSimulatedDataModeEnabled } from '../utils/uiPreferences.js';
 import { withFarmId } from '../utils/farmScopePayload.js';
 import { filterLegacyBootstrapRows } from '../utils/legacyBootstrapData.js';
 import { enrichLinkedFields } from './issueLinkingService.js';
+import { isFarmScopedTable } from '../config/farmScopedTables.js';
 
 import {
   resetSimulatedLocalStateIfNeeded,
@@ -140,6 +141,34 @@ const getMissingSchemaColumn = (error) => { const message = String(error?.messag
 const isDuplicateKeyError = (error) => { const message = String(error?.message || '').toLowerCase(); return error?.code === '23505' || message.includes('duplicate key value violates unique constraint'); };
 const isSingleObjectCoercionError = (error) => { const message = String(error?.message || '').toLowerCase(); return error?.code === 'PGRST116' || message.includes('cannot coerce the result to a single json object') || message.includes('json object requested'); };
 const withoutColumn = (payload, column) => Object.fromEntries(Object.entries(payload).filter(([key]) => (dbKeyMap[key] || key) !== column));
+const REQUIRED_PERSISTENCE_COLUMNS = new Set([
+  'farm_id', 'event_key', 'idempotency_key', 'issue_key', 'dedupe_key',
+  'alert_dedupe_key', 'task_dedupe_key', 'movement_ref',
+]);
+const REQUIRED_PERSISTENCE_COLUMNS_BY_TABLE = Object.freeze({
+  payments: new Set(['order_id', 'montant', 'montant_paye', 'amount', 'moyen_paiement', 'mode_paiement', 'statut', 'status', 'provider', 'provider_ref', 'payment_intent_id', 'confirmed_at']),
+  transactions: new Set(['type', 'montant', 'date', 'paiement', 'moyen_paiement', 'treasury_account_id', 'payment_id', 'order_id']),
+  stock_movements: new Set(['stock_id', 'movement_type', 'quantity', 'stock_before', 'stock_after', 'stock_delta']),
+  business_events: new Set(['event_type', 'module_source', 'entity_type', 'entity_id', 'event_date']),
+  sales_orders: new Set(['client_id', 'montant_total', 'montant_paye', 'reste_a_payer', 'statut_paiement']),
+});
+
+export function isRequiredPersistenceColumn(table, column) {
+  return REQUIRED_PERSISTENCE_COLUMNS.has(String(column || ''))
+    || REQUIRED_PERSISTENCE_COLUMNS_BY_TABLE[table]?.has(String(column || ''))
+    || false;
+}
+
+export function requiredPersistenceError(error, table, column) {
+  console.error(`Colonne obligatoire absente: ${table}.${column}`, error?.message || error);
+  const next = new Error('Enregistrement impossible pour le moment. Une information obligatoire ne peut pas être conservée.');
+  next.code = 'REQUIRED_FIELD_NOT_STORED';
+  next.cause = error;
+  next.table = table;
+  next.column = column;
+  return next;
+}
+
 const firstRow = (data, fallback = null) => Array.isArray(data) ? (data[0] || fallback) : (data || fallback);
 const selectExistingByPrimaryKey = async ({ table, id, idField, fallback }) => { if (!id) return fallback; const { data, error } = await supabase.from(table).select('*').eq(idField, id).limit(1); if (error) return fallback; return firstRow(data, fallback); };
 const updateExistingByPrimaryKey = async ({ table, payload, idField }) => { const id = payload?.[idField]; if (!id) return payload; const { data, error } = await supabase.from(table).update(payload).eq(idField, id).select('*').limit(1); if (error) { if (isSingleObjectCoercionError(error)) return selectExistingByPrimaryKey({ table, id, idField, fallback: payload }); throw error; } return firstRow(data, payload); };
@@ -147,18 +176,23 @@ const executeMutation = async ({ table, action, payload, id, idField }) => actio
 const runMutationWithSchemaRetry = async ({ table, action, payload, id, idField }) => {
   let nextPayload = toDbPayload(action === 'insert' ? withFarmId(table, payload) : payload, table);
   const removedColumns = [];
+  let lastError = null;
   for (let attempt = 0; attempt < 40; attempt += 1) {
     const { data, error } = await executeMutation({ table, action, payload: nextPayload, id, idField });
     if (!error) return firstRow(data, nextPayload);
+    lastError = error;
     if (isSingleObjectCoercionError(error)) return selectExistingByPrimaryKey({ table, id: id || nextPayload?.[idField], idField, fallback: nextPayload });
     if (action === 'insert' && isDuplicateKeyError(error) && nextPayload?.[idField]) return updateExistingByPrimaryKey({ table, payload: nextPayload, idField });
     const missingColumn = getMissingSchemaColumn(error);
     if (!missingColumn || removedColumns.includes(missingColumn)) throw error;
+    if (isRequiredPersistenceColumn(table, missingColumn)) {
+      throw requiredPersistenceError(error, table, missingColumn);
+    }
     removedColumns.push(missingColumn);
     nextPayload = withoutColumn(nextPayload, missingColumn);
+    if (Object.keys(nextPayload).length === 0) throw error;
   }
-  console.warn(`Schema Supabase incomplet pour ${table}. Colonnes ignorees: ${removedColumns.join(', ')}`);
-  return nextPayload;
+  throw lastError || new Error('Enregistrement impossible pour le moment.');
 };
 const isSoftDeleted = (row = {}) => Boolean(row.is_deleted || row.deleted_at || row.deletedAt);
 const filterSoftDeletedRows = (rows = []) => Array.isArray(rows) ? rows.filter((row) => !isSoftDeleted(row)) : [];
@@ -230,5 +264,5 @@ export const createSupabaseCrudService = (table, idField = 'id') => ({
     return created;
   },
   async update(id, payload) { if (!table) return payload; if (isSimulatedDataModeEnabled()) return updateSimulatedRow(table, id, payload, idField); return runMutationWithSchemaRetry({ table, action: 'update', payload, id, idField }); },
-  async remove(id) { if (!table) return true; if (isSimulatedDataModeEnabled()) return removeSimulatedRow(table, id, idField); await writeDeletedRecord({ table, id, idField }); const softDeleted = await trySoftDelete({ table, id, idField }); if (softDeleted) return true; const { error } = await supabase.from(table).delete().eq(idField, id); if (error) throw error; return true; },
+  async remove(id) { if (!table) return true; if (isSimulatedDataModeEnabled()) return removeSimulatedRow(table, id, idField); const softDeleted = await trySoftDelete({ table, id, idField }); if (softDeleted) return true; if (isFarmScopedTable(table)) throw new Error('Suppression impossible pour le moment. La donnée a été conservée.'); const { error } = await supabase.from(table).delete().eq(idField, id); if (error) throw error; await writeDeletedRecord({ table, id, idField }); return true; },
 });

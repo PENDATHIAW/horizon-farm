@@ -29,6 +29,25 @@ const lower = (value) => String(value || '').trim().toLowerCase();
 const money = (value) => `${Math.round(Number(value || 0)).toLocaleString('fr-FR')} FCFA`;
 const number = (value) => Number(value || 0).toLocaleString('fr-FR');
 const dateLabel = (value) => (value ? new Intl.DateTimeFormat('fr-FR', { day: '2-digit', month: 'short', year: 'numeric' }).format(new Date(value)) : 'Non planifié');
+const FUNDING_ALERT_LABELS = {
+  deadline_without_owner: 'Échéance sans responsable',
+  missing_required_document: 'Pièce obligatoire manquante',
+  agreement_without_allocation: 'Fonds reçus sans affectation',
+  spend_above_80: 'Fonds utilisés à plus de 80 %',
+  report_snapshot_outdated: 'Rapport à mettre à jour',
+  funder_access_anomaly: 'Accès financeur à vérifier',
+  event_without_next_action: 'Prochaine action manquante',
+  allocation_above_received: 'Affectation supérieure aux fonds reçus',
+};
+const FUNDING_SOURCE_LABELS = {
+  commercial: ['Ventes et encaissements', 'Ventes enregistrées'],
+  finance: ['Comptes et trésorerie', 'Opérations financières enregistrées'],
+  stock: ['Valeur des stocks', 'Stocks enregistrés'],
+  business_plan: ['Plan d’affaires', 'Plan d’affaires Horizon Farm'],
+  profile: ['Présentation du projet', 'Informations du projet'],
+};
+const fundingAlertLabel = (type) => FUNDING_ALERT_LABELS[type] || String(type || 'Alerte').replaceAll('_', ' ');
+const fundingSourceLabel = (key, source) => FUNDING_SOURCE_LABELS[key] || [String(key || ''), String(source || '')];
 
 function realFundingSeed(props = {}) {
   const dataMap = props.dataMap || {};
@@ -238,7 +257,7 @@ function DashboardTab({ cockpit }) {
                 <div key={alert.id} className="rounded-lg border border-vigilance bg-vigilance-bg p-3">
                   <div className="flex flex-wrap items-center justify-between gap-2">
                     <p className="font-semibold text-horizon-dark">{alert.title}</p>
-                    <Badge tone={alert.severity === 'critique' || alert.severity === 'haute' ? 'danger' : 'amber'}>{alert.type}</Badge>
+                    <Badge tone={alert.severity === 'critique' || alert.severity === 'haute' ? 'danger' : 'amber'}>{fundingAlertLabel(alert.type)}</Badge>
                   </div>
                 </div>
               ))}
@@ -252,12 +271,12 @@ function DashboardTab({ cockpit }) {
           <div className="rounded-lg border border-line bg-white p-4 space-y-3">
             {Object.entries(sourceSnapshot.sources || {}).map(([key, source]) => (
               <div key={key} className="flex items-center justify-between gap-3 text-sm">
-                <span className="font-semibold text-earth">{key}</span>
-                <span className="text-right text-slate">{source}</span>
+                <span className="font-semibold text-earth">{fundingSourceLabel(key, source)[0]}</span>
+                <span className="text-right text-slate">{fundingSourceLabel(key, source)[1]}</span>
               </div>
             ))}
             <div className="border-t border-line pt-3 text-sm text-slate">
-              Hash snapshot: <span className="font-semibold text-earth">{sourceSnapshot.hash}</span>
+              Données mises à jour : <span className="font-semibold text-earth">{dateLabel(sourceSnapshot.generated_at)}</span>
             </div>
           </div>
         </Section>
@@ -420,7 +439,7 @@ function FundingDocumentsTab({ cockpit }) {
 }
 
 function FundingPublicationsTab({ cockpit, onCreateReport, onPublishReport, publishMessage }) {
-  return <Section title="Publications" icon={FileText} right={<button type="button" onClick={onCreateReport} className="h-10 rounded-lg bg-earth px-3 text-sm font-semibold text-white">Créer une version</button>}>{publishMessage ? <div className="mb-3 rounded-lg border border-vigilance bg-vigilance-bg p-3 text-sm font-semibold text-horizon-dark">{publishMessage}</div> : null}{cockpit.reports.length ? <div className="space-y-2">{cockpit.reports.map((report) => <div key={`${report.id}-${report.version}`} className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-line bg-white p-4"><div><p className="font-semibold text-earth">{report.title}</p><p className="text-xs text-slate">v{report.version} · {report.source_snapshot_hash}</p></div><div className="flex items-center gap-2"><Badge tone={report.status === 'published' ? 'good' : 'amber'}>{report.status}</Badge>{report.status !== 'published' ? <button type="button" onClick={() => onPublishReport(report)} className="h-9 rounded-lg border border-earth px-3 text-xs font-semibold">Publier</button> : null}</div></div>)}</div> : <EmptyState>Aucune publication préparée.</EmptyState>}</Section>;
+  return <Section title="Publications" icon={FileText} right={<button type="button" onClick={onCreateReport} className="h-10 rounded-lg bg-earth px-3 text-sm font-semibold text-white">Créer une version</button>}>{publishMessage ? <div className="mb-3 rounded-lg border border-vigilance bg-vigilance-bg p-3 text-sm font-semibold text-horizon-dark">{publishMessage}</div> : null}{cockpit.reports.length ? <div className="space-y-2">{cockpit.reports.map((report) => <div key={`${report.id}-${report.version}`} className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-line bg-white p-4"><div><p className="font-semibold text-earth">{report.title}</p><p className="text-xs text-slate">Version {report.version}{report.source_snapshot_generated_at ? ` · Données du ${dateLabel(report.source_snapshot_generated_at)}` : ''}</p></div><div className="flex items-center gap-2"><Badge tone={report.status === 'published' ? 'good' : 'amber'}>{report.status}</Badge>{report.status !== 'published' ? <button type="button" onClick={() => onPublishReport(report)} className="h-9 rounded-lg border border-earth px-3 text-xs font-semibold">Publier</button> : null}</div></div>)}</div> : <EmptyState>Aucune publication préparée.</EmptyState>}</Section>;
 }
 
 function FundingAccessTab({ cockpit }) {

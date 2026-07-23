@@ -31,10 +31,10 @@ cible l'entité et l'action recommandée (voir `resolveActionTarget` dans
 ## Logique d'envoi (arrière-plan)
 
 1. Cron Vercel `0 7 * * *` → `/api/push/dispatch-alerts`
-2. `dispatch-alerts` interroge `/api/push/latest-alert` (dernière alerte
-   urgence/critique active dans `alertes_center`)
-3. `latest-alert` normalise le message (titre, corps, module cible, url)
-4. `/api/push/send` → `web-push` envoie à toutes les subscriptions actives
+2. `dispatch-alerts` lance `/api/push/check-alerts`, qui écarte les alertes déjà
+   envoyées et réserve chaque alerte avant l'envoi
+3. Le message est préparé avec son module cible et son lien
+4. L'envoi est effectué vers les appareils inscrits
 5. Le **service worker** (`public/sw.js`, gestionnaire `push`) affiche la
    notification ; au clic (`notificationclick`) il ouvre/réveille l'app sur le
    bon module.
@@ -64,7 +64,7 @@ npx web-push generate-vapid-keys
 | `VAPID_SUBJECT` | Serveur | `mailto:...` (optionnel) |
 | `SUPABASE_URL` / `VITE_SUPABASE_URL` | Serveur | Lecture subscriptions |
 | `SUPABASE_SERVICE_ROLE_KEY` | Serveur | Lecture subscriptions (secret) |
-| `CRON_SECRET` | Serveur | Protège le cron (optionnel) |
+| `CRON_SECRET` | Serveur | Protège les envois automatiques (obligatoire) |
 
 `VITE_VAPID_PUBLIC_KEY` et `VAPID_PUBLIC_KEY` doivent contenir **la même**
 clé publique.
@@ -73,13 +73,13 @@ clé publique.
 
 Les abonnements des appareils sont stockés dans la table Supabase
 `push_subscriptions` (colonnes `user_id, label, channels, endpoint,
-subscription, active`). Sans `SUPABASE_SERVICE_ROLE_KEY`, l'envoi retombe sur
-un stockage mémoire non persistant (utile en dev, pas en prod).
+subscription, active`). Sans `SUPABASE_SERVICE_ROLE_KEY`, l'inscription et
+l'envoi sont refusés afin d'éviter une fausse confirmation.
 
 ## État sans configuration
 
 - Notifications **dans l'app** : fonctionnelles (permission navigateur).
 - Notifications **arrière-plan** : `pushSetupStatus()` renvoie
   `ready:false, reason:'missing_vapid_public_key'` et l'abonnement est ignoré
-  silencieusement. `/api/push/send` renvoie `simulated:true`. Aucune erreur
-  bloquante pour l'utilisateur.
+  silencieusement. Aucun envoi n'est annoncé comme réussi tant que les clés ne
+  sont pas renseignées.

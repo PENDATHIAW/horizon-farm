@@ -6,6 +6,7 @@ import { syncSmartFarmEventSignals } from '../../../services/smartFarmEventAlert
 import { isSmartFarmDeviceCritical } from '../../../utils/smartFarmWorkflows.js';
 import { countSmartFarmCriticalDevices } from '../../../services/smartFarmAlertSync.js';
 import { useSmartFarmRealtime } from './useSmartFarmRealtime.js';
+import { areAutomaticWritesEnabled } from '../../../utils/automationControl.js';
 
 const arr = (v) => (Array.isArray(v) ? v : []);
 
@@ -48,6 +49,7 @@ export function useSmartFarmTelemetry(props = {}) {
   const mergedEvents = realtime.liveEvents.length ? realtime.liveEvents : smartfarmEvents;
 
   useEffect(() => {
+    if (!areAutomaticWritesEnabled()) return undefined;
     let cancelled = false;
     const h = handlers;
     (async () => {

@@ -69,7 +69,7 @@ import {
 } from '../services/fundingCrudService.js';
 import { supabase } from '../lib/supabase';
 import { normalizeByModule } from '../utils/normalize.js';
-import { clearOfflineQueue, enqueueOfflineMutation, isBrowserOffline, readOfflineQueue, saveOfflineQueue } from '../services/offlineQueueService';
+import { clearOfflineQueue, enqueueOfflineMutation, getOfflineRecordId, isBrowserOffline, readOfflineQueue, saveOfflineQueue } from '../services/offlineQueueService';
 import { classifyReplayOutcome, isActionable, markConflict, registerFailure } from '../services/offlineMutationModel.js';
 import { isDataKeyEnabled, resolveModuleFlags } from '../config/moduleFlags';
 import { groupRealtimeModulesByTable, makeRealtimeChannelName } from '../utils/realtimeSubscriptions.js';
@@ -280,7 +280,7 @@ export function AppProvider({ children, initialDataMap = null }) {
       // rejouées automatiquement (résolution ultérieure).
       if (!isActionable(item)) { pending.push(item); continue; }
       const idField = (MODULE_CONFIG[item.moduleKey] || {}).idField || 'id';
-      const recordId = item.recordId ?? item.id;
+      const recordId = getOfflineRecordId(item);
       // État connu de la ligne : permet de détecter qu'elle a changé côté serveur
       // depuis la saisie hors ligne (conflit) au lieu d'écraser silencieusement.
       const rows = dataMapRef.current?.[item.moduleKey];

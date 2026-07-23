@@ -46,6 +46,7 @@ import { formatPeriodScopeLabel, isAllTimeScope, normalizePeriodScope } from './
 import { getInitialSidebarOpen, watchSidebarViewport } from './utils/sidebarViewport.js';
 import LoginPage from './pages/LoginPage';
 import { KpiOverviewProvider } from './context/KpiOverviewContext.jsx';
+import { areAutomaticWritesEnabled } from './utils/automationControl.js';
 
 const MODULES = Object.fromEntries(
   Object.entries(MODULE_ENTRY_POINTS).map(([id, loader]) => [id, lazy(() => lazyWithRetry(loader))]),
@@ -385,6 +386,7 @@ export default function App() {
 
   useEffect(() => {
     if (authLoading || !user?.id) return;
+    if (!areAutomaticWritesEnabled()) return;
     const tasks = rows(c.taches);
     const mirrors = findHealthMirrorTasksToArchive(tasks);
     if (!mirrors.length || typeof c.taches?.update !== 'function' || mirrorPruneBusy.current) return;
@@ -397,6 +399,7 @@ export default function App() {
 
   useEffect(() => {
     if (authLoading || !user?.id) return;
+    if (!areAutomaticWritesEnabled()) return;
     const alerts = rows(c.alertes_center);
     const obsolete = findOperationalAlertsToArchive(alerts);
     if (!obsolete.length || typeof c.alertes_center?.update !== 'function' || alertPruneBusy.current) return;

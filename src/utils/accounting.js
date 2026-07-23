@@ -19,12 +19,12 @@
 ];
 
 export const TREASURY_ACCOUNTS_SEED = [
-  { id: 'TRES-CAISSE', label: 'Caisse ferme', type: 'caisse', provider: 'Cash', solde_initial: 350000, solde_actuel: 350000, currency: 'FCFA', status: 'actif' },
-  { id: 'TRES-BANQUE', label: 'Compte bancaire', type: 'banque', provider: 'Banque', solde_initial: 1250000, solde_actuel: 1250000, currency: 'FCFA', status: 'actif' },
-  { id: 'TRES-WAVE', label: 'Wave Business', type: 'mobile_money', provider: 'Wave', solde_initial: 485000, solde_actuel: 485000, currency: 'FCFA', status: 'actif' },
-  { id: 'TRES-OM', label: 'Orange Money', type: 'mobile_money', provider: 'Orange Money', solde_initial: 320000, solde_actuel: 320000, currency: 'FCFA', status: 'actif' },
-  { id: 'TRES-FREE', label: 'Free Money', type: 'mobile_money', provider: 'Free Money', solde_initial: 90000, solde_actuel: 90000, currency: 'FCFA', status: 'actif' },
-  { id: 'TRES-CARTE', label: 'Cartes bancaires', type: 'carte', provider: 'Carte bancaire', solde_initial: 180000, solde_actuel: 180000, currency: 'FCFA', status: 'actif' },
+  { id: 'TRES-CAISSE', label: 'Caisse ferme', type: 'caisse', provider: 'Cash', solde_initial: 0, solde_actuel: 0, currency: 'FCFA', status: 'actif' },
+  { id: 'TRES-BANQUE', label: 'Compte bancaire', type: 'banque', provider: 'Banque', solde_initial: 0, solde_actuel: 0, currency: 'FCFA', status: 'actif' },
+  { id: 'TRES-WAVE', label: 'Wave', type: 'mobile_money', provider: 'Wave', solde_initial: 0, solde_actuel: 0, currency: 'FCFA', status: 'actif' },
+  { id: 'TRES-OM', label: 'Orange Money', type: 'mobile_money', provider: 'Orange Money', solde_initial: 0, solde_actuel: 0, currency: 'FCFA', status: 'actif' },
+  { id: 'TRES-FREE', label: 'Free Money', type: 'mobile_money', provider: 'Free Money', solde_initial: 0, solde_actuel: 0, currency: 'FCFA', status: 'actif' },
+  { id: 'TRES-CARTE', label: 'Cartes bancaires', type: 'carte', provider: 'Carte bancaire', solde_initial: 0, solde_actuel: 0, currency: 'FCFA', status: 'actif' },
 ];
 
 export const ACCOUNTING_BUDGETS_SEED = [

@@ -16,6 +16,7 @@ import {
   dedupeFileHorsLigne,
   withStableIssueKey,
 } from '../../src/services/offlineReplayEvents.js';
+import { getOfflineRecordId } from '../../src/services/offlineQueueService.js';
 
 /** Rejoue une file (avec doublons éventuels) et accumule les effets réellement créés. */
 function rejouerFile(file, effetsExistants = []) {
@@ -76,6 +77,20 @@ test('rejeu complet de la file entière deux fois = un seul effet par opération
 test('la file hors ligne est dédupliquée par (module, action, id)', () => {
   const file = dedupeFileHorsLigne([vente, vente, reception]);
   assert.equal(file.length, 2);
+});
+
+test('la file utilise l’identifiant de la donnée et non celui de l’attente', () => {
+  const file = dedupeFileHorsLigne([
+    { ...vente, id: 'OFF-1', recordId: 'V1', payload: { ...vente.payload, montant_total: 40000 } },
+    { ...vente, id: 'OFF-2', recordId: 'V1', payload: { ...vente.payload, montant_total: 50000 } },
+  ]);
+  assert.equal(file.length, 1);
+  assert.equal(getOfflineRecordId(file[0]), 'V1');
+  assert.equal(file[0].payload.montant_total, 50000);
+});
+
+test('les anciennes attentes retrouvent l’identifiant dans leur contenu', () => {
+  assert.equal(getOfflineRecordId({ id: 'OFF-ANCIEN', payload: { id: 'S42' } }), 'S42');
 });
 
 test('withStableIssueKey préserve une clé déjà présente', () => {

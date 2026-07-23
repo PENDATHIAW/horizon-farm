@@ -11,6 +11,7 @@
 import { buildCreateEvents, buildUpdateEvents } from './businessEventBuilders.js';
 import { findDuplicateBusinessEvent } from './businessEventDedup.js';
 import { buildIssueKey } from './issueLinkingService.js';
+import { getOfflineRecordId } from './offlineQueueService.js';
 
 const clean = (v) => String(v || '').trim();
 
@@ -63,7 +64,7 @@ export function selectionnerNouveauxEvenements(candidats = [], evenementsConnus 
 }
 
 /**
- * Déduplique une file de mutations hors ligne par (moduleKey, action, id) en
+ * Déduplique une file de mutations hors ligne par (moduleKey, action, donnée) en
  * gardant la dernière charge utile : rejouer la même écriture n'apparaît qu'une
  * fois, ce qui évite les doubles insertions au niveau de l'enregistrement.
  */
@@ -73,8 +74,7 @@ export function dedupeFileHorsLigne(file = []) {
     // Dédupliquer par identifiant réel de l'enregistrement (recordId), pas par
     // l'identifiant unique de l'entrée de file : deux écritures de la même ligne
     // sont ainsi bien fusionnées (la dernière l'emporte).
-    const recordId = item.recordId ?? item.id;
-    const cle = `${item.moduleKey}|${item.action}|${recordId}`;
+    const cle = `${item.moduleKey}|${item.action}|${getOfflineRecordId(item)}`;
     parCle.set(cle, item);
   }
   return [...parCle.values()];

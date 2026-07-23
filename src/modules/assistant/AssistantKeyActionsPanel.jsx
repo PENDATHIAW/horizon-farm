@@ -29,9 +29,6 @@ export default function AssistantKeyActionsPanel({ onNavigate }) {
     <section className="space-y-4">
       <div className="rounded-3xl border border-line bg-white p-6 shadow-card">
         <h2 className="text-lg font-semibold text-earth">Actions clés</h2>
-        <p className="mt-1 text-sm text-slate">
-          Les deux gestes qui comptent le plus dans chaque module. L’assistant vous y emmène en un clic.
-        </p>
       </div>
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
         {ASSISTANT_KEY_ACTIONS.map((group) => {

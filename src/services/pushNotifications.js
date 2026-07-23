@@ -4,6 +4,7 @@ import {
   getLocalPushSubscriptions,
   persistPushSubscription,
   getPushRegistration,
+  getPushApiHeaders,
 } from '../utils/pushSubscriptions.js';
 
 const LOCAL_SUBS_KEY = 'horizon_farm_push_subscriptions_v1';
@@ -85,7 +86,7 @@ export async function unsubscribeFromPushNotifications(_user = {}) {
   try {
     await fetch('/api/push/unsubscribe', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: await getPushApiHeaders(),
       body: JSON.stringify({ endpoint }),
     });
   } catch {
@@ -119,7 +120,7 @@ export async function sendTestPushNotification({ title, body, severity = 'critiq
   const localSubscriptions = getLocalPushSubscriptions();
   const response = await fetch('/api/push/test', {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: await getPushApiHeaders(),
     body: JSON.stringify({
       title: clean(title) || 'Test Horizon Farm',
       body: clean(body) || 'Notification push de test.',
