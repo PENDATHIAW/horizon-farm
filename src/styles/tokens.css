@@ -1,15 +1,17 @@
 @theme {
   --font-sans: "Inter", system-ui, sans-serif;
-  --font-display: "Fraunces", Georgia, serif;
-  --font-serif: "Fraunces", Georgia, serif;
+  /* Refonte Orgaloop : interface entièrement sans-serif (plus de serif Fraunces
+     pour l'affichage). Le titrage passe en Inter, plus sobre et plus plat. */
+  --font-display: "Inter", system-ui, sans-serif;
+  --font-serif: "Inter", system-ui, sans-serif;
 
   --color-earth: #234F3B;
   --color-leaf: #2E6B4E;
   --color-horizon: #C9971C;
   --color-horizon-dark: #9A7413;
   --color-pure: #FFFFFF;
-  --color-mist: #F6F8F6;
-  --color-card: #FBFCFB;
+  --color-mist: #FAFBFA;
+  --color-card: #FFFFFF;
   --color-ink: #20302A;
   --color-slate: #5E6E65;
   --color-line: #E5EBE7;
@@ -26,8 +28,8 @@
   --radius-card: 0.75rem;
   --radius-control: 0.625rem;
   --radius-chip: 999px;
-  --shadow-card: 0 1px 2px rgba(20, 64, 46, 0.04), 0 3px 8px rgba(20, 64, 46, 0.05), 0 10px 22px rgba(20, 64, 46, 0.035);
-  --shadow-float: 0 2px 6px rgba(20, 64, 46, 0.08), 0 12px 28px rgba(20, 64, 46, 0.10), 0 26px 52px rgba(20, 64, 46, 0.06);
+  --shadow-card: 0 1px 2px rgba(20, 64, 46, 0.03);
+  --shadow-float: 0 4px 16px rgba(20, 64, 46, 0.10);
   --text-label: 0.8rem;
   --text-meta: 0.72rem;
   --text-body: 0.95rem;
@@ -55,8 +57,8 @@
   --hf-horizon: #C9971C;
   --hf-horizon-dark: #9A7413;
   --hf-white: #FFFFFF;
-  --hf-mist: #F6F8F6;
-  --hf-card: #FBFCFB;
+  --hf-mist: #FAFBFA;
+  --hf-card: #FFFFFF;
   --hf-ink: #20302A;
   --hf-slate: #5E6E65;
   --hf-line: #E5EBE7;
@@ -81,8 +83,8 @@
   --hf-radius-card: 0.75rem;
   --hf-radius-control: 0.625rem;
   --hf-radius-chip: 999px;
-  --hf-shadow-card: 0 1px 2px rgba(20, 64, 46, 0.04), 0 3px 8px rgba(20, 64, 46, 0.05), 0 10px 22px rgba(20, 64, 46, 0.035);
-  --hf-shadow-float: 0 2px 6px rgba(20, 64, 46, 0.08), 0 12px 28px rgba(20, 64, 46, 0.10), 0 26px 52px rgba(20, 64, 46, 0.06);
+  --hf-shadow-card: 0 1px 2px rgba(20, 64, 46, 0.03);
+  --hf-shadow-float: 0 4px 16px rgba(20, 64, 46, 0.10);
 
   --hf-font-display: "Fraunces", Georgia, serif;
   --hf-font-sans: "Inter", system-ui, sans-serif;
