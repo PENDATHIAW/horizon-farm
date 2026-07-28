@@ -13,6 +13,7 @@ import { resolveGestionSystemeTab } from '../utils/commercialNavigation.js';
 import ErpHealthPanel from './ErpHealthPanel.jsx';
 import LocalBackupPanel from './LocalBackupPanel.jsx';
 import OfflineConflictsPanel from './OfflineConflictsPanel.jsx';
+import OnboardingAssistantPanel from './OnboardingAssistantPanel.jsx';
 import FarmsManagementPanel from './farms/FarmsManagementPanel.jsx';
 import SyncActivityCenter from './SyncActivityCenter.jsx';
 import SystemAccessAuditPanel from './SystemAccessAuditPanel.jsx';
@@ -53,7 +54,7 @@ function RolesPermissionsView() {
   return <Section icon={ShieldCheck} title="Rôles & permissions" subtitle="Huit rôles définissent les accès; les politiques Supabase restent la protection finale."><div className="grid gap-3 md:grid-cols-2">{ERP_ROLES.map((role) => <div key={role} className="border-l-4 border-leaf bg-card p-4"><p className="font-semibold text-earth">{ROLE_LABELS[role]}</p><p className="mt-1 text-sm text-slate">{ROLE_SCOPES[role]}</p></div>)}</div></Section>;
 }
 
-function ModulesActivationView({ activeFarm, onFarmsChanged }) {
+function ModulesActivationView({ activeFarm, onFarmsChanged, onNavigate }) {
   const [flags, setFlags] = useState(() => resolveModuleFlags(activeFarm));
   const [busy, setBusy] = useState('');
   const change = async (moduleId, enabled) => {
@@ -73,7 +74,7 @@ function ModulesActivationView({ activeFarm, onFarmsChanged }) {
       setBusy('');
     }
   };
-  return <Section icon={SlidersHorizontal} title="Modules & activation" subtitle="Réglages propres à la ferme active. Un module désactivé ne charge pas ses données."><div className="divide-y divide-line">{Object.keys(FLAGGED_MODULES).map((moduleId) => <label key={moduleId} className="flex items-center justify-between gap-4 py-4"><span><span className="block font-semibold text-earth">{MODULE_LABELS[moduleId]}</span><span className="text-sm text-slate">{flags[moduleId] ? 'Disponible pour cette ferme' : 'Masqué et non chargé'}</span></span><input type="checkbox" checked={Boolean(flags[moduleId])} disabled={busy === moduleId} onChange={(event) => change(moduleId, event.target.checked)} className="h-5 w-5 accent-positive" /></label>)}</div></Section>;
+  return <div className="space-y-6"><OnboardingAssistantPanel activeFarm={activeFarm} onFarmsChanged={onFarmsChanged} onNavigate={onNavigate} /><Section icon={SlidersHorizontal} title="Modules & activation" subtitle="Réglages propres à la ferme active. Un module désactivé ne charge pas ses données."><div className="divide-y divide-line">{Object.keys(FLAGGED_MODULES).map((moduleId) => <label key={moduleId} className="flex items-center justify-between gap-4 py-4"><span><span className="block font-semibold text-earth">{MODULE_LABELS[moduleId]}</span><span className="text-sm text-slate">{flags[moduleId] ? 'Disponible pour cette ferme' : 'Masqué et non chargé'}</span></span><input type="checkbox" checked={Boolean(flags[moduleId])} disabled={busy === moduleId} onChange={(event) => change(moduleId, event.target.checked)} className="h-5 w-5 accent-positive" /></label>)}</div></Section></div>;
 }
 
 function SettingsView({ farm = {}, onNavigate }) {
@@ -112,7 +113,7 @@ export default function GestionSystemeV1Module(props) {
   const auditView = <div className="space-y-6"><SystemAccessAuditPanel role={role} auditLogs={auditRows} users={arr(props.users).length ? props.users : props.profiles} /><WorkflowQualityPanel dataMap={dataMap} onNavigate={props.onNavigate} /><VisionModuleAuditPanel dataMap={dataMap} onNavigate={props.onNavigate} /><JustifiedExceptionsAuditPanel onCreateBusinessEvent={props.onCreateBusinessEvent} onRefreshBusinessEvents={props.onRefreshAll} /></div>;
   const content = tab === 'SystemUsersAccessView' ? <UsersAccessView user={user} role={role} users={props.users} profiles={props.profiles} />
     : tab === 'SystemRolesPermissionsView' ? <RolesPermissionsView />
-      : tab === 'SystemModulesActivationView' ? <ModulesActivationView key={activeFarm.id || 'default'} activeFarm={activeFarm} onFarmsChanged={props.onFarmsChanged} />
+      : tab === 'SystemModulesActivationView' ? <ModulesActivationView key={activeFarm.id || 'default'} activeFarm={activeFarm} onFarmsChanged={props.onFarmsChanged} onNavigate={props.onNavigate} />
         : tab === 'SystemSettingsView' ? <SettingsView farm={activeFarm} onNavigate={props.onNavigate} />
           : tab === 'SystemReferencesView' ? <ReferencesView dataMap={dataMap} />
             : tab === 'SystemCatalogsView' ? <CatalogsView dataMap={dataMap} />
