@@ -206,7 +206,7 @@ export default function AppLayout({
         title={!sidebarOpen ? item.label : undefined}
         aria-label={item.label}
         aria-current={isActive ? 'page' : undefined}
-        className={`relative flex min-h-11 w-full items-center gap-3 rounded-control border-l-4 px-3 py-2 text-left transition ${isActive ? 'border-horizon bg-positive-bg text-earth' : 'border-transparent text-line hover:bg-leaf hover:text-pure'}`}
+        className={`relative flex min-h-11 w-full items-center gap-3 rounded-control border-l-4 px-3 py-2 text-left transition ${isActive ? 'border-horizon bg-positive-bg text-earth' : 'border-transparent text-slate hover:bg-mist hover:text-earth'}`}
       >
         <NavIcon icon={item.icon} />
         {sidebarOpen ? <span className="truncate text-sm font-medium">{item.label}</span> : null}
@@ -219,10 +219,10 @@ export default function AppLayout({
     <div className="h-screen overflow-hidden bg-mist text-ink">
       {sidebarOpen ? <button type="button" aria-label="Fermer le menu" onClick={() => setSidebarOpen?.(false)} className="fixed inset-y-0 left-80 right-0 z-30 bg-earth/30 md:hidden" /> : null}
       <div className="flex h-full overflow-hidden">
-        <aside className={`${sidebarOpen ? 'translate-x-0 md:w-64' : '-translate-x-full md:w-16 md:translate-x-0'} fixed inset-y-0 left-0 z-40 flex w-80 max-w-full shrink-0 flex-col overflow-hidden border-r border-leaf bg-earth shadow-float transition-all duration-200 md:relative md:shadow-none`}>
-          <div className="flex items-center gap-3 border-b border-leaf px-3 py-3">
-            <BrandLogo variant={sidebarOpen ? 'sidebar' : 'compact'} showText={sidebarOpen} inverse />
-            <button type="button" aria-label={sidebarOpen ? 'Réduire le menu' : 'Ouvrir le menu'} onClick={() => setSidebarOpen?.(!sidebarOpen)} className="ml-auto grid h-11 w-11 place-items-center rounded-control text-line hover:bg-leaf hover:text-pure">
+        <aside className={`${sidebarOpen ? 'translate-x-0 md:w-64' : '-translate-x-full md:w-16 md:translate-x-0'} fixed inset-y-0 left-0 z-40 flex w-80 max-w-full shrink-0 flex-col overflow-hidden border-r border-line bg-pure shadow-float transition-all duration-200 md:relative md:shadow-none`}>
+          <div className="flex items-center gap-3 border-b border-line px-3 py-3">
+            <BrandLogo variant={sidebarOpen ? 'sidebar' : 'compact'} showText={sidebarOpen} />
+            <button type="button" aria-label={sidebarOpen ? 'Réduire le menu' : 'Ouvrir le menu'} onClick={() => setSidebarOpen?.(!sidebarOpen)} className="ml-auto grid h-11 w-11 place-items-center rounded-control text-slate hover:bg-mist hover:text-earth">
               {sidebarOpen ? <X size={17} /> : <Menu size={17} />}
             </button>
           </div>
@@ -240,26 +240,26 @@ export default function AppLayout({
                     <button
                       type="button"
                       onClick={() => setOpenSections((current) => ({ ...current, [group.key]: !expanded }))}
-                      className={`flex min-h-9 w-full items-center gap-2 rounded-control px-3 py-2 text-left text-meta font-semibold uppercase ${isGroupActive ? 'text-horizon' : 'text-line hover:bg-leaf hover:text-pure'}`}
+                      className={`flex min-h-9 w-full items-center gap-2 rounded-control px-3 py-2 text-left text-meta font-semibold uppercase ${isGroupActive ? 'text-horizon' : 'text-slate hover:bg-mist hover:text-earth'}`}
                       aria-expanded={expanded}
                     >
                       <GroupIcon size={15} aria-hidden="true" />
                       <span className="flex-1">{group.label}</span>
                       <ChevronDown size={14} className={expanded ? 'rotate-180' : ''} aria-hidden="true" />
                     </button>
-                  ) : <div className="mx-2 border-t border-leaf" />}
+                  ) : <div className="mx-2 border-t border-line" />}
                   {(!sidebarOpen || expanded) ? <div className="space-y-1">{group.items.map(renderNavItem)}</div> : null}
                 </div>
               );
             })}
           </nav>
-          <div className="space-y-2 border-t border-leaf p-3">
+          <div className="space-y-2 border-t border-line p-3">
             <div className={`flex items-center gap-2 rounded-control px-3 py-2 ${online ? 'bg-positive-bg text-positive' : 'bg-urgent-bg text-urgent'}`}>
               {online ? <Wifi size={14} className="shrink-0" /> : <WifiOff size={14} className="shrink-0" />}
               {sidebarOpen ? <span className="text-xs font-medium">{online ? 'Connecté' : 'Hors ligne'}</span> : null}
             </div>
             {sidebarOpen ? (
-              <button type="button" onClick={signOutAction} className="flex w-full items-center gap-2 rounded-control bg-leaf px-3 py-2 text-left text-pure hover:bg-positive">
+              <button type="button" onClick={signOutAction} className="flex w-full items-center gap-2 rounded-control border border-line bg-card px-3 py-2 text-left text-earth hover:bg-mist">
                 <div className="grid h-7 w-7 place-items-center rounded-full bg-positive-bg text-xs font-semibold text-earth">{displayUser.slice(0, 1).toUpperCase()}</div>
                 <span className="min-w-0 flex-1 truncate text-xs font-semibold">{displayUser}</span>
                 <LogOut size={14} />
