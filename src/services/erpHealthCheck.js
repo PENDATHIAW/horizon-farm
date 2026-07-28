@@ -12,6 +12,8 @@
  * couvrir, il évalue ce qui est réellement observable depuis le client.
  */
 
+import { auditStockLedgers } from './stockLedgerIntegrity.js';
+
 export const HEALTH_STATUS = Object.freeze({ ok: 'ok', info: 'info', warn: 'warn', degraded: 'degraded', down: 'down' });
 
 const RANK = { ok: 0, info: 1, warn: 2, degraded: 3, down: 4 };
@@ -50,6 +52,8 @@ export function evaluateErpHealth({
   storageAvailable = true,
   simulatedMode = false,
   services = {},
+  stocks = null,
+  stockMovements = null,
   now = Date.now(),
 } = {}) {
   const checks = [];
@@ -95,6 +99,22 @@ export function evaluateErpHealth({
   checks.push(simulatedMode
     ? { id: 'data_mode', label: 'Mode de données', status: HEALTH_STATUS.info, message: 'Mode démonstration actif : les données affichées sont fictives.' }
     : { id: 'data_mode', label: 'Mode de données', status: HEALTH_STATUS.ok, message: 'Mode données réelles.' });
+
+  // Intégrité du grand livre de stock : la chaîne des mouvements doit rester
+  // cohérente (soldes chaînés, delta signé, solde final = quantité stockée).
+  const ledgerStocks = Array.isArray(stocks) ? stocks : (Array.isArray(dataMap?.stock) ? dataMap.stock : null);
+  const ledgerMovements = Array.isArray(stockMovements) ? stockMovements : (Array.isArray(dataMap?.stock_movements) ? dataMap.stock_movements : null);
+  if (ledgerStocks && ledgerMovements && ledgerMovements.length > 0) {
+    const audit = auditStockLedgers(ledgerStocks, ledgerMovements);
+    if (audit.ok) {
+      checks.push({ id: 'stock_ledger', label: 'Grand livre de stock', status: HEALTH_STATUS.ok, message: 'Chaîne des mouvements cohérente.' });
+    } else {
+      const parts = [];
+      if (audit.stocksWithAnomalies > 0) parts.push(`${audit.stocksWithAnomalies} article(s) avec écart`);
+      if (audit.orphanMovements > 0) parts.push(`${audit.orphanMovements} mouvement(s) orphelin(s)`);
+      checks.push({ id: 'stock_ledger', label: 'Grand livre de stock', status: HEALTH_STATUS.warn, message: `Incohérence de journal : ${parts.join(', ')}.`, action: 'Ouvrir Achats & stock pour vérifier les mouvements et rétablir le solde.' });
+    }
+  }
 
   const SERVICE_LABELS = { weather: 'Service météo', assistant: 'Assistant ERP', push: 'Notifications push' };
   Object.entries(services || {}).forEach(([key, status]) => {
