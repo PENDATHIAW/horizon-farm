@@ -95,8 +95,9 @@
   --hf-text-value: 1rem;
   --hf-text-label: 0.8rem;
   --hf-text-meta: 0.72rem;
-  --hf-kpi-min-height: 13.5rem;
-  --hf-kpi-chart-height: 2.5rem;
+  /* Refonte Orgaloop : tuiles KPI compactes et calmes (au lieu de hautes). */
+  --hf-kpi-min-height: 8.5rem;
+  --hf-kpi-chart-height: 2rem;
 
   --hf-duration-fast: 140ms;
   --hf-duration-normal: 200ms;

@@ -173,7 +173,7 @@ body td {
   border-radius: var(--hf-radius-card);
   background: var(--hf-card);
   box-shadow: var(--hf-shadow-card);
-  padding: var(--hf-space-6);
+  padding: 1.15rem 1.15rem 1rem;
   color: var(--hf-ink);
   text-align: left;
 }
