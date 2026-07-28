@@ -138,7 +138,7 @@ test('resolveFinanceTab — anciens liens vers les 5 vues cibles', () => {
   assert.equal(resolveFinanceTab('Investissements'), 'Investissements & dettes finance');
   assert.equal(resolveFinanceTab('Réconciliation'), 'Trésorerie finance');
   assert.equal(resolveFinanceTab('Créances & dettes'), 'Budget & écarts finance');
-  assert.deepEqual(MODULE_TARGET_TABS.finance_pilotage, ['Vue d’ensemble', 'Saisie & trésorerie', 'Coûts & marges', 'Budget & financements', 'Investissements & dettes']);
+  assert.deepEqual(MODULE_TARGET_TABS.finance_pilotage, ['Vue d’ensemble', 'Saisie & trésorerie', 'Coûts & marges', 'Prévisions & financement', 'Investissements & dettes']);
 });
 
 test('applyFarmScopeToProps finance_pilotage — filtre farm_id si activé', () => {
