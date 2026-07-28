@@ -128,78 +128,78 @@ export default function AccueilConforme(props) {
     ? CODES_KPI_PILOTAGE.filter((code) => ['ponte', 'produits_sous_seuil'].includes(code))
     : CODES_KPI_PILOTAGE;
 
+  const kpiCards = !terrain
+    ? ['tresorerie', 'ponte', 'ca', 'alertes_urgentes']
+    : ['effectif_animaux', 'ponte', 'alertes_urgentes'];
+
+  // Mise en page façon maquette : colonne principale (tuiles + activité) et un
+  // rail latéral calme (alertes + briefing).
   const vueDuJour = (
-    <div className="space-y-4">
-      {!terrain ? (
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
-          <CarteKPI code="tresorerie" periode={periodLabel} donnees={donnees} kpis={kpis} onNavigate={onNavigate} />
-          <CarteKPI code="ponte" periode={periodLabel} donnees={donnees} kpis={kpis} onNavigate={onNavigate} />
-          <CarteKPI code="ca" periode={periodLabel} donnees={donnees} kpis={kpis} onNavigate={onNavigate} />
-          <CarteKPI code="alertes_urgentes" periode={periodLabel} donnees={donnees} kpis={kpis} onNavigate={onNavigate} />
+    <div className="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1fr)_340px]">
+      <div className="space-y-6">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          {kpiCards.map((code) => (
+            <CarteKPI key={code} code={code} periode={periodLabel} donnees={donnees} kpis={kpis} onNavigate={onNavigate} />
+          ))}
         </div>
-      ) : (
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-          <CarteKPI code="effectif_animaux" periode={periodLabel} donnees={donnees} kpis={kpis} onNavigate={onNavigate} />
-          <CarteKPI code="ponte" periode={periodLabel} donnees={donnees} kpis={kpis} onNavigate={onNavigate} />
-          <CarteKPI code="alertes_urgentes" periode={periodLabel} donnees={donnees} kpis={kpis} onNavigate={onNavigate} />
-        </div>
-      )}
-      <section className="hf-card" data-testid="daily-quick-actions">
-        <p className="text-label font-semibold uppercase text-earth">Gestes du jour</p>
-        <div className="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-7">
-          {ACTIONS_RAPIDES_QUOTIDIENNES.map((action) => {
-            const Icone = ICONES_GESTES[action.id];
-            return (
-              <button
-                key={action.id}
-                type="button"
-                data-testid={`daily-action-${action.id}`}
-                onClick={() => openDailyQuickEntry(action, onNavigate, { data: donnees, user: identifiantUtilisateur(user) })}
-                className="group flex min-h-11 flex-col items-center justify-center gap-1.5 rounded-control border border-line bg-pure px-3 py-3 text-center text-sm font-semibold text-ink transition hover:-translate-y-0.5 hover:border-leaf hover:bg-positive-bg hover:shadow-card"
-              >
-                {Icone ? (
-                  <span className="grid h-8 w-8 place-items-center rounded-full bg-positive-bg text-leaf transition group-hover:bg-white">
-                    <Icone size={17} aria-hidden="true" />
-                  </span>
-                ) : null}
-                <span className="leading-tight">{action.libelle}</span>
-              </button>
-            );
-          })}
-        </div>
-      </section>
-      <DecisionBriefingCard
-        dataMap={{
-          transactions: props.transactions, salesOrders: props.salesOrders, payments: props.payments,
-          fournisseurs: props.fournisseurs, stocks: props.stocks, stock: props.stocks,
-          animaux: props.animaux, lots: props.lotsData, avicole: props.lotsData,
-          cultures: props.cultures, sante: props.vaccins, vaccins: props.vaccins,
-          investissements: props.investissements, businessEvents: props.businessEvents,
-          clients: props.clients, alertes,
-        }}
-        onNavigate={onNavigate}
-      />
-      <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-        <ListeAlertes alertes={alertesOperationnelles} filtres={{ gravite: 'critique', limite: 6 }} titre="Priorités : alertes critiques" onNavigate={onNavigate} onCreerTache={props.onCreateTask ? (alerte) => props.onCreateTask({ title: `Traiter : ${alerte.title || alerte.id}`, alert_id: alerte.id, module_lie: alerte.module_source, priority: 'critique', status: 'a_faire' }) : undefined} />
-        <ListeTaches taches={tachesUrgentes} filtres={{ statut: 'toutes', limite: 6 }} titre="Priorités : tâches urgentes" onOuvrirTache={() => onNavigate?.('activite_suivi')} />
-      </div>
-      <section className="hf-card">
-        <p className="text-label font-semibold uppercase text-earth">Stocks sensibles</p>
-        {stocksSensibles.length === 0 ? (
-          <p className="mt-3 text-sm text-slate">Aucun produit sous seuil. Le stock est maîtrisé.</p>
-        ) : (
-          <ul className="mt-3 space-y-1">
-            {stocksSensibles.map((ligne) => (
-              <li key={ligne.id}>
-                <button type="button" onClick={() => onNavigate?.('achats_stock')} className="text-sm font-semibold text-earth hover:underline">
-                  {ligne.name} {ligne.daysLeft != null ? `· ${ligne.daysLeft} j restants` : ''}
+        <section className="hf-card" data-testid="daily-quick-actions">
+          <p className="text-label font-semibold uppercase text-slate">Gestes du jour</p>
+          <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-4">
+            {ACTIONS_RAPIDES_QUOTIDIENNES.map((action) => {
+              const Icone = ICONES_GESTES[action.id];
+              return (
+                <button
+                  key={action.id}
+                  type="button"
+                  data-testid={`daily-action-${action.id}`}
+                  onClick={() => openDailyQuickEntry(action, onNavigate, { data: donnees, user: identifiantUtilisateur(user) })}
+                  className="group flex min-h-11 flex-col items-center justify-center gap-1.5 rounded-control border border-line bg-pure px-3 py-3 text-center text-sm font-semibold text-ink transition hover:border-leaf hover:bg-positive-bg"
+                >
+                  {Icone ? (
+                    <span className="grid h-8 w-8 place-items-center rounded-full bg-positive-bg text-leaf transition group-hover:bg-white">
+                      <Icone size={17} aria-hidden="true" />
+                    </span>
+                  ) : null}
+                  <span className="leading-tight">{action.libelle}</span>
                 </button>
-              </li>
-            ))}
-          </ul>
-        )}
-      </section>
-      <JournalEvenements evenements={businessEvents} filtres={{ limite: 8 }} titre="Derniers mouvements" onNavigate={onNavigate} />
+              );
+            })}
+          </div>
+        </section>
+        <ListeTaches taches={tachesUrgentes} filtres={{ statut: 'toutes', limite: 6 }} titre="Activité du jour" onOuvrirTache={() => onNavigate?.('activite_suivi')} />
+        <section className="hf-card">
+          <p className="text-label font-semibold uppercase text-slate">Stocks sensibles</p>
+          {stocksSensibles.length === 0 ? (
+            <p className="mt-3 text-sm text-slate">Aucun produit sous seuil. Le stock est maîtrisé.</p>
+          ) : (
+            <ul className="mt-3 space-y-1">
+              {stocksSensibles.map((ligne) => (
+                <li key={ligne.id}>
+                  <button type="button" onClick={() => onNavigate?.('achats_stock')} className="text-sm font-semibold text-earth hover:underline">
+                    {ligne.name} {ligne.daysLeft != null ? `· ${ligne.daysLeft} j restants` : ''}
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )}
+        </section>
+        <JournalEvenements evenements={businessEvents} filtres={{ limite: 8 }} titre="Derniers mouvements" onNavigate={onNavigate} />
+      </div>
+
+      <div className="space-y-6">
+        <ListeAlertes alertes={alertesOperationnelles} filtres={{ gravite: 'critique', limite: 6 }} titre="Alertes" onNavigate={onNavigate} onCreerTache={props.onCreateTask ? (alerte) => props.onCreateTask({ title: `Traiter : ${alerte.title || alerte.id}`, alert_id: alerte.id, module_lie: alerte.module_source, priority: 'critique', status: 'a_faire' }) : undefined} />
+        <DecisionBriefingCard
+          dataMap={{
+            transactions: props.transactions, salesOrders: props.salesOrders, payments: props.payments,
+            fournisseurs: props.fournisseurs, stocks: props.stocks, stock: props.stocks,
+            animaux: props.animaux, lots: props.lotsData, avicole: props.lotsData,
+            cultures: props.cultures, sante: props.vaccins, vaccins: props.vaccins,
+            investissements: props.investissements, businessEvents: props.businessEvents,
+            clients: props.clients, alertes,
+          }}
+          onNavigate={onNavigate}
+        />
+      </div>
     </div>
   );
 
@@ -227,14 +227,15 @@ export default function AccueilConforme(props) {
   );
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-6">
       <section className="hf-card">
-        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
           <div>
-            <p className="text-label font-semibold uppercase text-horizon-dark">Accueil</p>
-            <h1 className="mt-1 text-ink">Bonjour {identifiantUtilisateur(user) || 'Horizon Farm'}</h1>
-            {periodLabel ? <div className="mt-2"><PeriodScopeBadge label={periodLabel} /></div> : null}
+            <p className="text-label font-semibold uppercase text-slate">Accueil</p>
+            <h1 className="mt-1.5 text-ink">Bonjour {identifiantUtilisateur(user) || 'Horizon Farm'}</h1>
+            <p className="mt-1 text-sm text-slate">Voici ce qui compte aujourd'hui pour votre ferme.</p>
           </div>
+          {periodLabel ? <PeriodScopeBadge label={periodLabel} /> : null}
         </div>
       </section>
       <ModuleTabsBar moduleId="dashboard" active={tab} onChange={setTab} rolesMasquesPour={terrain ? 'terrain' : null} />
