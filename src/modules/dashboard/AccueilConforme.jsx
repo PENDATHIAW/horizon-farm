@@ -129,7 +129,7 @@ export default function AccueilConforme(props) {
     : CODES_KPI_PILOTAGE;
 
   const vueDuJour = (
-    <div className="space-y-4">
+    <div className="space-y-6">
       {!terrain ? (
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
           <CarteKPI code="tresorerie" periode={periodLabel} donnees={donnees} kpis={kpis} onNavigate={onNavigate} />
@@ -204,7 +204,7 @@ export default function AccueilConforme(props) {
   );
 
   const pilotage = (
-    <div className="space-y-4">
+    <div className="space-y-6">
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {codesPilotage.map((code) => (
           <CarteKPI key={code} code={code} periode={periodLabel} donnees={donnees} kpis={kpis} onNavigate={onNavigate} />
@@ -227,14 +227,15 @@ export default function AccueilConforme(props) {
   );
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-6">
       <section className="hf-card">
-        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
           <div>
             <p className="text-label font-semibold uppercase text-horizon-dark">Accueil</p>
-            <h1 className="mt-1 text-ink">Bonjour {identifiantUtilisateur(user) || 'Horizon Farm'}</h1>
-            {periodLabel ? <div className="mt-2"><PeriodScopeBadge label={periodLabel} /></div> : null}
+            <h1 className="mt-1.5 text-ink">Bonjour {identifiantUtilisateur(user) || 'Horizon Farm'}</h1>
+            <p className="mt-1 text-sm text-slate">Voici ce qui compte aujourd'hui pour votre ferme.</p>
           </div>
+          {periodLabel ? <PeriodScopeBadge label={periodLabel} /> : null}
         </div>
       </section>
       <ModuleTabsBar moduleId="dashboard" active={tab} onChange={setTab} rolesMasquesPour={terrain ? 'terrain' : null} />
