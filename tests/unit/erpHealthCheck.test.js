@@ -80,6 +80,32 @@ test('synchronisation périmée (>24h) = avertissement', () => {
   assert.equal(report.checks.find((c) => c.id === 'sync_freshness').status, HEALTH_STATUS.warn);
 });
 
+test('grand livre de stock : chaîne cohérente = ok', () => {
+  const stocks = [{ id: 'S1', quantite: 70 }];
+  const stockMovements = [
+    { id: 'a1', stock_id: 'S1', movement_type: 'entree', quantity: 100, stock_before: 0, stock_after: 100, stock_delta: 100, dedupe_key: 'k1', created_at: '2026-01-01T08:00:00.000Z' },
+    { id: 'a2', stock_id: 'S1', movement_type: 'sortie', quantity: 30, stock_before: 100, stock_after: 70, stock_delta: -30, dedupe_key: 'k2', created_at: '2026-01-02T08:00:00.000Z' },
+  ];
+  const report = evaluateErpHealth({ dataMap: fullDataMap, stocks, stockMovements });
+  assert.equal(report.checks.find((c) => c.id === 'stock_ledger').status, HEALTH_STATUS.ok);
+});
+
+test('grand livre de stock : chaîne rompue = avertissement', () => {
+  const stocks = [{ id: 'S1', quantite: 90 }];
+  const stockMovements = [
+    { id: 'a1', stock_id: 'S1', movement_type: 'entree', quantity: 100, stock_before: 0, stock_after: 100, stock_delta: 100, dedupe_key: 'k1', created_at: '2026-01-01T08:00:00.000Z' },
+  ];
+  const report = evaluateErpHealth({ dataMap: fullDataMap, stocks, stockMovements });
+  const check = report.checks.find((c) => c.id === 'stock_ledger');
+  assert.equal(check.status, HEALTH_STATUS.warn);
+  assert.ok(check.action);
+});
+
+test('grand livre de stock : contrôle absent sans mouvements fournis', () => {
+  const report = evaluateErpHealth({ dataMap: fullDataMap });
+  assert.equal(report.checks.find((c) => c.id === 'stock_ledger'), undefined);
+});
+
 test('le centre de santé est monté dans Gestion système (onglet Synchronisation)', async () => {
   const { readFileSync } = await import('node:fs');
   const { fileURLToPath } = await import('node:url');
