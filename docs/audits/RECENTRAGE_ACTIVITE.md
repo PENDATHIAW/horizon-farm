@@ -42,9 +42,15 @@ Régler `activity_type = ['aviculture_pondeuses', 'agri_feeds']` (Gestion systè
 Pour reprendre la chair ou les bovins plus tard : rajouter `poulets_chair` ou
 `embouche_bovine` à `activity_type`. Tout réapparaît, sans restauration de code.
 
+## Données d'Élevage (étape 2, livrée)
+
+`ElevageRecoveredModule` filtre désormais ses animaux et ses lots avec
+`filterRecordsByFarmActivities(activeFarm, ...)` : une ferme pondeuses ne voit
+plus les bandes chair ni les bovins (masqués, pas supprimés). Ferme mixte ou non
+configurée : tout reste affiché.
+
 ## Étape suivante
 
-- Filtrer les données d'Élevage par activité (masquer les bandes chair et les
-  bovins pour une ferme pondeuses) via `filterRecordsByFarmActivities`, déjà
-  disponible et testé.
 - Masquage fin des onglets d'Élevage propres à la chair / aux bovins.
+- Étendre le filtrage par activité au Commercial (ventes chair/bovins) et aux
+  indicateurs si besoin.

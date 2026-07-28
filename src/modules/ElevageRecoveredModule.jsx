@@ -11,6 +11,7 @@ import {
 import useCrudModule from '../hooks/useCrudModule';
 import { aggregateSummaryLayingRate, formatOfficialLayingRate } from '../utils/elevageLayingRate.js';
 import { rowsOf } from '../utils/moduleRows';
+import { filterRecordsByFarmActivities } from '../config/farmActivities';
 import { shouldHandleProductionQuestionEvent } from '../utils/elevageCyclesNavigation.js';
 import PeriodScopeBadge from '../components/PeriodScopeBadge.jsx';
 import ModuleProjectionsStrip from '../components/module/ModuleProjectionsStrip.jsx';
@@ -236,8 +237,10 @@ export default function ElevageRecoveredModule(props) {
   const alertsCrud = useCrudModule('alertes_center');
   const periodFiltered = Boolean(props.periodFiltered);
 
-  const animals = rowsOf(props.animaux, animauxCrud, false);
-  const lots = rowsOf(props.lots, avicoleCrud, false);
+  // Recentrage par activité : une ferme pondeuses ne voit pas les bandes chair
+  // ni les bovins (masqués, pas supprimés). Ferme mixte ou non configurée : tout.
+  const animals = filterRecordsByFarmActivities(props.activeFarm, rowsOf(props.animaux, animauxCrud, false));
+  const lots = filterRecordsByFarmActivities(props.activeFarm, rowsOf(props.lots, avicoleCrud, false));
   const health = rowsOf(props.sante, santeCrud, periodFiltered);
   const productionLogs = rowsOf(props.productionLogs, productionCrud, periodFiltered);
   const feedLogs = rowsOf(props.alimentationLogs, feedCrud, periodFiltered);
