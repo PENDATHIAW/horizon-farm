@@ -23,7 +23,7 @@
   --color-neutral-bg: #F0F3F1;
 
   --spacing: 0.25rem;
-  --radius-card: 0.75rem;
+  --radius-card: 0.875rem;
   --radius-control: 0.625rem;
   --radius-chip: 999px;
   --shadow-card: 0 1px 2px rgba(20, 64, 46, 0.04), 0 3px 8px rgba(20, 64, 46, 0.05), 0 10px 22px rgba(20, 64, 46, 0.035);
@@ -33,18 +33,22 @@
   --text-body: 0.95rem;
   --text-data: 1rem;
   --text-section: 1.15rem;
-  --text-screen: 1.5rem;
-  --text-card-value: 2rem;
+  --text-screen: 1.85rem;
+  --text-card-value: 2.25rem;
   --text-xs: 0.72rem;
   --text-sm: 0.95rem;
   --text-base: 1rem;
   --text-lg: 1.15rem;
+  /* Échelle d'affichage restaurée : les grands titres respirent au lieu d'être
+     tous écrasés à 1,5rem. Les tailles courantes (xl, 2xl, très utilisées)
+     restent inchangées pour ne pas bousculer les écrans existants ; seule la
+     strate d'affichage (3xl et plus) reprend une progression modulaire. */
   --text-xl: 1.5rem;
   --text-2xl: 1.5rem;
-  --text-3xl: 1.5rem;
-  --text-4xl: 1.5rem;
-  --text-5xl: 1.5rem;
-  --text-6xl: 1.5rem;
+  --text-3xl: 1.9rem;
+  --text-4xl: 2.25rem;
+  --text-5xl: 2.75rem;
+  --text-6xl: 3.25rem;
 }
 
 :root {
@@ -78,7 +82,7 @@
   --hf-space-8: 2rem;
   --hf-space-12: 3rem;
 
-  --hf-radius-card: 0.75rem;
+  --hf-radius-card: 0.875rem;
   --hf-radius-control: 0.625rem;
   --hf-radius-chip: 999px;
   --hf-shadow-card: 0 1px 2px rgba(20, 64, 46, 0.04), 0 3px 8px rgba(20, 64, 46, 0.05), 0 10px 22px rgba(20, 64, 46, 0.035);
@@ -86,8 +90,8 @@
 
   --hf-font-display: "Fraunces", Georgia, serif;
   --hf-font-sans: "Inter", system-ui, sans-serif;
-  --hf-text-card-value: 2rem;
-  --hf-text-screen-title: 1.5rem;
+  --hf-text-card-value: 2.25rem;
+  --hf-text-screen-title: 1.85rem;
   --hf-text-section-title: 1.15rem;
   --hf-text-body: 0.95rem;
   --hf-text-value: 1rem;
