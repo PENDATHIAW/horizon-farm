@@ -233,6 +233,89 @@ export function getFarmActivityNotice(moduleId = '', farm = {}, filteringEnabled
   return getFarmActivityNoticeDetail(moduleId, farm, filteringEnabled)?.message || null;
 }
 
+/**
+ * Recentrage réversible par activité (branchement navigation + données).
+ *
+ * Les activités ne filtrent que les modules DE PRODUCTION. Les modules de
+ * pilotage et de gestion (finance, commercial, objectifs, documents, systeme,
+ * etc.) restent toujours accessibles quelle que soit l'activité. Une ferme sans
+ * activity_type (ou 'mixte') voit tout : le recentrage ne s'applique qu'aux
+ * fermes explicitement configurées.
+ */
+export const ACTIVITY_GATED_MODULES = Object.freeze({
+  elevage: ['aviculture_pondeuses', 'poulets_chair', 'embouche_bovine', 'ovins', 'caprins'],
+  cultures: ['cultures', 'maraichage', 'fourrage'],
+  agri_feeds: ['agri_feeds'],
+  smartfarm: ['smart_farm'],
+});
+
+const activityNorm = (value) => String(value ?? '')
+  .toLowerCase()
+  .normalize('NFD')
+  .replace(/[̀-ͯ]/g, '');
+
+/**
+ * Un module lié à une activité est-il visible pour cette ferme ? Les modules
+ * non listés dans ACTIVITY_GATED_MODULES (pilotage, gestion) sont toujours
+ * visibles. 'mixte' ou activity_type absent : tout visible.
+ */
+export function isActivityModuleVisible(moduleId, farm = {}) {
+  const required = ACTIVITY_GATED_MODULES[moduleId];
+  if (!required) return true;
+  const activities = normalizeFarmActivities(farm?.activity_type);
+  if (activities.includes('mixte')) return true;
+  return required.some((key) => activities.includes(key));
+}
+
+/**
+ * Classe un enregistrement d'élevage/culture (lot, animal, produit) dans une
+ * clé d'activity_type, à partir d'un texte représentatif. Renvoie null si aucun
+ * repère (donnée transverse : conservée, jamais masquée). L'ordre compte :
+ * pondeuses avant chair pour ne pas classer « aliment pondeuse » en chair.
+ */
+export function recordActivityKey(text) {
+  const t = activityNorm(text);
+  if (!t) return null;
+  // Repères bovins d'abord : « boeuf » contient « oeuf », on évite de le classer
+  // en pondeuses. Bornes de mot pour ne pas confondre « oeuf » et « boeuf ».
+  if (/\b(bovin|boeuf|taureau|veau|vache|zebu|genisse)/.test(t)) return 'embouche_bovine';
+  if (/\b(pondeuse|ponte|oeuf|layer)/.test(t)) return 'aviculture_pondeuses';
+  if (/\b(chair|broiler|poulet)/.test(t)) return 'poulets_chair';
+  if (/\b(ovin|mouton|brebis|belier)/.test(t)) return 'ovins';
+  if (/\b(caprin|chevre|bouc|cabri)/.test(t)) return 'caprins';
+  if (/\b(parcelle|maraich|recolte|semis|campagne|culture)/.test(t)) return 'cultures';
+  return null;
+}
+
+/** Texte représentatif d'un enregistrement pour la classification d'activité. */
+export function activityTextOf(record = {}) {
+  return [
+    record.espece, record.type, record.type_lot, record.production_type,
+    record.activity_type, record.categorie, record.category,
+    record.name, record.nom, record.designation, record.libelle,
+  ].filter(Boolean).join(' ');
+}
+
+/** L'activité d'un enregistrement est-elle active pour la ferme ? */
+export function isRecordActivityActive(farm, text) {
+  const key = recordActivityKey(text);
+  if (!key) return true;
+  const activities = normalizeFarmActivities(farm?.activity_type);
+  if (activities.includes('mixte')) return true;
+  return activities.includes(key);
+}
+
+/**
+ * Filtre une liste (lots, animaux, produits) selon les activités actives de la
+ * ferme. Ferme non recentrée (mixte / non configurée) : liste inchangée.
+ */
+export function filterRecordsByFarmActivities(farm, records = [], getText = activityTextOf) {
+  if (!Array.isArray(records)) return [];
+  const activities = normalizeFarmActivities(farm?.activity_type);
+  if (activities.includes('mixte')) return records;
+  return records.filter((record) => isRecordActivityActive(farm, getText(record)));
+}
+
 export const FARM_ACCESS_ROLES = Object.freeze([
   'super_admin',
   'direction',
