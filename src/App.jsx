@@ -2,6 +2,7 @@ import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState, useT
 import { CRUD_KEYS, MODULE_REGISTRY, NAV_MODULE_ORDER } from './config/modules.config';
 import { MODULE_ENTRY_POINTS, resolveActiveModuleId } from './config/moduleEntryPoints';
 import { isModuleEnabled, persistModuleFlags, resolveModuleFlags } from './config/moduleFlags';
+import { isActivityModuleVisible } from './config/farmActivities';
 import { lazyWithRetry } from './utils/lazyWithRetry';
 import { buildUnifiedAlerts, alertModuleFlags } from './utils/unifiedAlerts';
 import { scheduleErpHealthEngine, scheduleErpHealthOnCriticalChange } from './services/erpHealthEngine';
@@ -413,13 +414,13 @@ export default function App() {
   }, [authLoading, user?.id, crudFingerprint, healthAutoActions, decisionDataMapRaw]);
 
   const navItems = useMemo(() => NAV_MODULE_ORDER
-    .filter((id) => canAccess(id) && isModuleEnabled(id, moduleFlags))
+    .filter((id) => canAccess(id) && isModuleEnabled(id, moduleFlags) && isActivityModuleVisible(id, activeFarm))
     .map((id) => ({
     id,
     label: MODULE_REGISTRY[id]?.label || id,
     icon: MODULE_REGISTRY[id]?.icon,
     hasAlert: alertFlags[id],
-  })), [alertFlags, canAccess, moduleFlags]);
+  })), [alertFlags, canAccess, moduleFlags, activeFarm]);
   const moduleProps = useMemo(() => {
   const syncActivityProps = { onRefreshAll: refreshAll, onFlushOffline: flushOfflineQueue, online, lastOnlineAt, dataMap, tasks: rows(c.taches), alertes: rows(c.alertes_center), businessEvents: rows(c.business_events), businessEventsAll: rows(c.business_events), auditLogs: rows(c.audit_logs), auditLogsAll: rows(c.audit_logs), auditLoading: c.audit_logs.loading, onRefreshAuditLogs: c.audit_logs.refresh, onNavigate: setActive, onCreateTask: c.taches.create, onUpdateTask: c.taches.update, onRefreshTasks: c.taches.refresh, onCreateAlert: c.alertes_center.create, onUpdateAlert: c.alertes_center.update, onRefreshAlertes: c.alertes_center.refresh, onUpdateSalesOrder: c.sales_orders.update, onRefreshSalesOrders: c.sales_orders.refresh, onUpdateOpportunity: c.sales_opportunities.update, onRefreshOpportunities: c.sales_opportunities.refresh, onCreateDocument: c.documents.create, onUpdateDocument: c.documents.update, onRefreshDocuments: c.documents.refresh, onCreateBusinessEvent: c.business_events.create, onRefreshBusinessEvents: c.business_events.refresh, onCreateFinanceTransaction: c.finances.create, onUpdateFinanceTransaction: c.finances.update, onRefreshFinances: c.finances.refresh, onUpdatePayment: c.payments.update, onRefreshPayments: c.payments.refresh, onCreateStock: c.stock.create, onUpdateStock: c.stock.update, onRefreshStock: c.stock.refresh, onUpdateAlimentation: c.alimentation_logs.update, onRefreshAlimentation: c.alimentation_logs.refresh, onCreateSensor: c.sensor_devices.create, onRefreshSensors: c.sensor_devices.refresh, onCreateSmartfarmEvent: c.smartfarm_events.create, onUpdateSmartfarmEvent: c.smartfarm_events.update, onRefreshSmartfarmEvents: c.smartfarm_events.refresh };
   const shared = { onNavigate: setActive, onCreateBusinessEvent: c.business_events.create, onRefreshBusinessEvents: c.business_events.refresh };
@@ -891,7 +892,7 @@ export default function App() {
   }, [c, user, profile?.role, liveMeteo, decisionDataMapRaw, crudFingerprint, centreTab, objectifsTab, commercialTab, elevageTab, agriFeedsTab, culturesTab, achatsStockTab, achatsStockContext, financeTab, activiteSuiviTab, documentsRapportsTab, rhTab, equipementsTab, gestionSystemeTab, financementsTab, smartfarmTab, farmsPanelAction, effectiveAccessibleFarms, activeFarm, objectiveTeam, refreshAccessibleFarms, online, lastOnlineAt, dataMap, refreshAll, refreshSalesWorkflowFn, navigateModule, setActive, flushOfflineQueue, handleManageFarms, farmComparisonData, openAssistantWithQuery, base, weatherLoading]);
 
   const activeModuleId0 = resolveActiveModuleId(active);
-  const activeModuleId = isModuleEnabled(activeModuleId0, moduleFlags) ? activeModuleId0 : 'dashboard';
+  const activeModuleId = isModuleEnabled(activeModuleId0, moduleFlags) && isActivityModuleVisible(activeModuleId0, activeFarm) ? activeModuleId0 : 'dashboard';
   const activeModuleProps = applyFarmScopeToProps(
     applyPeriodScopeToProps(moduleProps[activeModuleId] || moduleProps[active] || {}, periodScope, { cacheGeneration: crudFingerprint }),
     farmScope,
@@ -933,7 +934,7 @@ export default function App() {
   if (authLoading) return <div className="min-h-screen bg-mist flex items-center justify-center text-earth font-semibold">Chargement Horizon Farm...</div>;
   if (!user) return <LoginPage />;
   const resolvedActive0 = resolveActiveModuleId(active);
-  const resolvedActive = isModuleEnabled(resolvedActive0, moduleFlags) ? resolvedActive0 : 'dashboard';
+  const resolvedActive = isModuleEnabled(resolvedActive0, moduleFlags) && isActivityModuleVisible(resolvedActive0, activeFarm) ? resolvedActive0 : 'dashboard';
   const ActiveModule = MODULES[resolvedActive] || MODULES.dashboard;
 
   const activeModuleLabel = MODULE_REGISTRY[resolvedActive]?.label || MODULE_REGISTRY[active]?.label || resolvedActive;
