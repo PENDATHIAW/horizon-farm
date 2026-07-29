@@ -83,10 +83,13 @@ test('les cinq consommateurs utilisent les composants partagés sans listes loca
     cultures: fs.readFileSync('src/modules/CulturesRecoveredModule.jsx', 'utf8'),
     centre: fs.readFileSync('src/modules/centre/CentreDecisionModule.jsx', 'utf8'),
   };
+  // Accueil (refonte Direction C, focus épuré) : conserve les composants
+  // partagés pour les KPI et les tâches. Les alertes et le journal y sont
+  // rendus en lignes fines (sans cartes) à partir de données déjà filtrées par
+  // les sélecteurs partagés ; l'exigence de composant reste portée par les
+  // modules propriétaires (activité, élevage, cultures, centre) ci-dessous.
   assert.match(sources.accueil, /CarteKPI/);
-  assert.match(sources.accueil, /JournalEvenements/);
   assert.match(sources.accueil, /ListeTaches/);
-  assert.match(sources.accueil, /ListeAlertes/);
   assert.match(sources.activiteTasks, /ListeTaches/);
   assert.doesNotMatch(sources.activiteTasks, /TachesV3/);
   assert.match(sources.activiteAlerts, /ListeAlertes/);

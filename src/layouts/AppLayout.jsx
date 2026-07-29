@@ -206,7 +206,7 @@ export default function AppLayout({
         title={!sidebarOpen ? item.label : undefined}
         aria-label={item.label}
         aria-current={isActive ? 'page' : undefined}
-        className={`relative flex min-h-11 w-full items-center gap-3 rounded-control border-l-4 px-3 py-2 text-left transition ${isActive ? 'border-horizon bg-positive-bg text-earth' : 'border-transparent text-slate hover:bg-mist hover:text-earth'}`}
+        className={`relative flex min-h-11 w-full items-center gap-3 rounded-control border-l-4 px-3 py-2 text-left transition ${isActive ? 'border-ink bg-mist text-ink' : 'border-transparent text-slate hover:bg-mist hover:text-ink'}`}
       >
         <NavIcon icon={item.icon} />
         {sidebarOpen ? <span className="truncate text-sm font-medium">{item.label}</span> : null}

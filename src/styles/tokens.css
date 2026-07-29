@@ -5,8 +5,8 @@
   --font-display: "Inter", system-ui, sans-serif;
   --font-serif: "Inter", system-ui, sans-serif;
 
-  --color-earth: #234F3B;
-  --color-leaf: #2E6B4E;
+  --color-earth: #2D3330;
+  --color-leaf: #515C57;
   --color-horizon: #C9971C;
   --color-horizon-dark: #9A7413;
   --color-pure: #FFFFFF;
@@ -53,8 +53,8 @@
 :root {
   color-scheme: light;
 
-  --hf-earth: #234F3B;
-  --hf-leaf: #2E6B4E;
+  --hf-earth: #2D3330;
+  --hf-leaf: #515C57;
   --hf-horizon: #C9971C;
   --hf-horizon-dark: #9A7413;
   --hf-white: #FFFFFF;
