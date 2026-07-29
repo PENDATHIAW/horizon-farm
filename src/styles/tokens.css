@@ -12,7 +12,7 @@
   --color-pure: #FFFFFF;
   --color-mist: #FAFBFA;
   --color-card: #FFFFFF;
-  --color-ink: #20302A;
+  --color-ink: #2B3A34;
   --color-slate: #5E6E65;
   --color-line: #E5EBE7;
   --color-positive: #2E7D52;
@@ -30,17 +30,18 @@
   --radius-chip: 999px;
   --shadow-card: 0 1px 2px rgba(20, 64, 46, 0.03);
   --shadow-float: 0 4px 16px rgba(20, 64, 46, 0.10);
-  --text-label: 0.8rem;
-  --text-meta: 0.72rem;
-  --text-body: 0.95rem;
-  --text-data: 1rem;
-  --text-section: 1.15rem;
-  --text-screen: 1.5rem;
-  --text-card-value: 2rem;
-  --text-xs: 0.72rem;
-  --text-sm: 0.95rem;
-  --text-base: 1rem;
-  --text-lg: 1.15rem;
+  /* Refonte Orgaloop : typographie douce et petite (tailles resserrées). */
+  --text-label: 0.74rem;
+  --text-meta: 0.7rem;
+  --text-body: 0.875rem;
+  --text-data: 0.9rem;
+  --text-section: 1.05rem;
+  --text-screen: 1.35rem;
+  --text-card-value: 1.6rem;
+  --text-xs: 0.7rem;
+  --text-sm: 0.85rem;
+  --text-base: 0.9rem;
+  --text-lg: 1.05rem;
   --text-xl: 1.5rem;
   --text-2xl: 1.5rem;
   --text-3xl: 1.5rem;
@@ -59,7 +60,7 @@
   --hf-white: #FFFFFF;
   --hf-mist: #FAFBFA;
   --hf-card: #FFFFFF;
-  --hf-ink: #20302A;
+  --hf-ink: #2B3A34;
   --hf-slate: #5E6E65;
   --hf-line: #E5EBE7;
 
@@ -88,13 +89,13 @@
 
   --hf-font-display: "Fraunces", Georgia, serif;
   --hf-font-sans: "Inter", system-ui, sans-serif;
-  --hf-text-card-value: 2rem;
-  --hf-text-screen-title: 1.5rem;
-  --hf-text-section-title: 1.15rem;
-  --hf-text-body: 0.95rem;
-  --hf-text-value: 1rem;
-  --hf-text-label: 0.8rem;
-  --hf-text-meta: 0.72rem;
+  --hf-text-card-value: 1.6rem;
+  --hf-text-screen-title: 1.35rem;
+  --hf-text-section-title: 1.05rem;
+  --hf-text-body: 0.875rem;
+  --hf-text-value: 0.9rem;
+  --hf-text-label: 0.74rem;
+  --hf-text-meta: 0.7rem;
   /* Refonte Orgaloop : tuiles KPI compactes et calmes (au lieu de hautes). */
   --hf-kpi-min-height: 8.5rem;
   --hf-kpi-chart-height: 2rem;
