@@ -623,6 +623,7 @@ export default function ElevageRecoveredModule(props) {
   const lotsContent = (initialSubview = lotsSubview) => (
     <ElevageLotsBandesTab
       initialSubview={initialSubview}
+      activeFarm={props.activeFarm}
       avicoleProps={avicoleProps}
       animalProps={animalProps}
       showStartup={showStartup}
