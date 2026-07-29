@@ -64,6 +64,37 @@ export const CODES_KPI_PILOTAGE = [
 const estRoleTerrain = (user = {}) => ROLES_TERRAIN.has(String(user?.user_metadata?.role || user?.role || '').toLowerCase());
 const identifiantUtilisateur = (user = {}) => String(user?.user_metadata?.name || user?.email || '').trim();
 
+const fmtFcfa = (value) => new Intl.NumberFormat('fr-FR', { maximumFractionDigits: 0 }).format(Number(value) || 0);
+
+/**
+ * Panneau Trésorerie du rail (façon maquette) : soldes réels par compte
+ * (Wave, Orange Money, espèces, banque) + total, lus du moteur KPI finance.
+ */
+function TresoreriePanel({ treasury, onNavigate }) {
+  const accounts = (treasury?.accounts || []).filter((a) => Math.abs(Number(a.net) || 0) > 0);
+  if (accounts.length === 0) return null;
+  return (
+    <section className="hf-card">
+      <div className="mb-2 flex items-center justify-between">
+        <p className="text-label font-semibold uppercase text-slate">Trésorerie</p>
+        <button type="button" onClick={() => onNavigate?.('finance_pilotage')} className="text-xs font-semibold text-leaf hover:underline">Détail</button>
+      </div>
+      <ul>
+        {accounts.map((a) => (
+          <li key={a.key} className="flex items-center justify-between border-t border-line py-2 text-sm first:border-t-0">
+            <span className="text-slate">{a.label}</span>
+            <span className="font-semibold tabular-nums text-ink">{fmtFcfa(a.net)}</span>
+          </li>
+        ))}
+        <li className="mt-1 flex items-center justify-between border-t border-line pt-3 text-sm font-semibold">
+          <span className="text-ink">Total disponible</span>
+          <span className="tabular-nums text-ink">{fmtFcfa(treasury?.cashNet)} FCFA</span>
+        </li>
+      </ul>
+    </section>
+  );
+}
+
 export default function AccueilConforme(props) {
   const {
     user = {}, taches = [], alertes = [], businessEvents = [],
@@ -188,6 +219,7 @@ export default function AccueilConforme(props) {
 
       <div className="space-y-6">
         <ListeAlertes alertes={alertesOperationnelles} filtres={{ gravite: 'critique', limite: 6 }} titre="Alertes" onNavigate={onNavigate} onCreerTache={props.onCreateTask ? (alerte) => props.onCreateTask({ title: `Traiter : ${alerte.title || alerte.id}`, alert_id: alerte.id, module_lie: alerte.module_source, priority: 'critique', status: 'a_faire' }) : undefined} />
+        <TresoreriePanel treasury={kpis?.finance?.treasuryByAccount} onNavigate={onNavigate} />
         <DecisionBriefingCard
           dataMap={{
             transactions: props.transactions, salesOrders: props.salesOrders, payments: props.payments,
