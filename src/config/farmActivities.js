@@ -242,6 +242,21 @@ export function getFarmActivityNotice(moduleId = '', farm = {}, filteringEnabled
  * activity_type (ou 'mixte') voit tout : le recentrage ne s'applique qu'aux
  * fermes explicitement configurées.
  */
+/**
+ * Recentrage par défaut : sans activité explicitement enregistrée, l'ERP est
+ * recentré d'office sur les pondeuses + AGRI FEEDS (pas de réglage manuel
+ * nécessaire). 'mixte' force l'affichage de toutes les activités ; une liste
+ * explicite l'emporte toujours.
+ */
+export const DEFAULT_FARM_ACTIVITIES = Object.freeze(['aviculture_pondeuses', 'agri_feeds']);
+
+export function activitiesOf(farm = {}) {
+  const cleaned = arr(farm?.activity_type).map((value) => String(value || '').trim()).filter(Boolean);
+  if (!cleaned.length) return [...DEFAULT_FARM_ACTIVITIES];
+  if (cleaned.includes('mixte')) return ['mixte'];
+  return [...new Set(cleaned)];
+}
+
 export const ACTIVITY_GATED_MODULES = Object.freeze({
   elevage: ['aviculture_pondeuses', 'poulets_chair', 'embouche_bovine', 'ovins', 'caprins'],
   cultures: ['cultures', 'maraichage', 'fourrage'],
@@ -262,7 +277,7 @@ const activityNorm = (value) => String(value ?? '')
 export function isActivityModuleVisible(moduleId, farm = {}) {
   const required = ACTIVITY_GATED_MODULES[moduleId];
   if (!required) return true;
-  const activities = normalizeFarmActivities(farm?.activity_type);
+  const activities = activitiesOf(farm);
   if (activities.includes('mixte')) return true;
   return required.some((key) => activities.includes(key));
 }
@@ -300,7 +315,7 @@ export function activityTextOf(record = {}) {
 export function isRecordActivityActive(farm, text) {
   const key = recordActivityKey(text);
   if (!key) return true;
-  const activities = normalizeFarmActivities(farm?.activity_type);
+  const activities = activitiesOf(farm);
   if (activities.includes('mixte')) return true;
   return activities.includes(key);
 }
@@ -311,7 +326,7 @@ export function isRecordActivityActive(farm, text) {
  */
 export function filterRecordsByFarmActivities(farm, records = [], getText = activityTextOf) {
   if (!Array.isArray(records)) return [];
-  const activities = normalizeFarmActivities(farm?.activity_type);
+  const activities = activitiesOf(farm);
   if (activities.includes('mixte')) return records;
   return records.filter((record) => isRecordActivityActive(farm, getText(record)));
 }
@@ -328,7 +343,7 @@ export function filterRecordsByFarmActivities(farm, records = [], getText = acti
  * deux est pratiquée. Ferme mixte ou non configurée : les deux restent.
  */
 export function elevageSubviewsForFarm(farm = {}) {
-  const activities = normalizeFarmActivities(farm?.activity_type);
+  const activities = activitiesOf(farm);
   if (activities.includes('mixte')) return { avicole: true, animaux: true };
   const avicole = activities.some((a) => ['aviculture_pondeuses', 'poulets_chair'].includes(a));
   const animaux = activities.some((a) => ['embouche_bovine', 'ovins', 'caprins'].includes(a));
@@ -337,7 +352,7 @@ export function elevageSubviewsForFarm(farm = {}) {
 }
 
 export function poultryScopesForFarm(farm = {}) {
-  const activities = normalizeFarmActivities(farm?.activity_type);
+  const activities = activitiesOf(farm);
   if (activities.includes('mixte')) return { pondeuse: true, chair: true };
   const pondeuse = activities.includes('aviculture_pondeuses');
   const chair = activities.includes('poulets_chair');

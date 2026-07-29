@@ -24,10 +24,16 @@ test('les modules de pilotage/gestion restent toujours visibles', () => {
   }
 });
 
-test('ferme mixte ou non configurée : tout est visible (rétrocompatible)', () => {
-  for (const ferme of [fermeMixte, fermeSansConfig, null]) {
-    assert.equal(isActivityModuleVisible('cultures', ferme), true);
+test('ferme mixte : tout est visible', () => {
+  assert.equal(isActivityModuleVisible('cultures', fermeMixte), true);
+  assert.equal(isActivityModuleVisible('elevage', fermeMixte), true);
+});
+
+test('ferme non configurée : recentrée par défaut sur pondeuses + AGRI FEEDS', () => {
+  for (const ferme of [fermeSansConfig, null]) {
     assert.equal(isActivityModuleVisible('elevage', ferme), true);
+    assert.equal(isActivityModuleVisible('agri_feeds', ferme), true);
+    assert.equal(isActivityModuleVisible('cultures', ferme), false);
   }
 });
 
@@ -63,5 +69,10 @@ test('filterRecordsByFarmActivities ne garde que les pondeuses pour une ferme re
 test('filterRecordsByFarmActivities laisse tout passer pour une ferme mixte', () => {
   const lots = [{ id: 'l1', name: 'pondeuses' }, { id: 'l2', name: 'chair' }];
   assert.equal(filterRecordsByFarmActivities(fermeMixte, lots).length, 2);
-  assert.equal(filterRecordsByFarmActivities(fermeSansConfig, lots).length, 2);
+});
+
+test('filterRecordsByFarmActivities : ferme non configurée recentrée pondeuses par défaut', () => {
+  const lots = [{ id: 'l1', name: 'pondeuses' }, { id: 'l2', name: 'chair' }];
+  const gardes = filterRecordsByFarmActivities(fermeSansConfig, lots).map((l) => l.id);
+  assert.deepEqual(gardes, ['l1'], 'chair masquée par défaut');
 });
