@@ -14,12 +14,9 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Droplets, Egg, HeartCrack, Scale, ShoppingCart, Utensils, Wheat } from 'lucide-react';
 import ModuleTabsBar from '../../components/module/ModuleTabsBar.jsx';
-import PeriodScopeBadge from '../../components/PeriodScopeBadge.jsx';
-import JournalEvenements from '../../components/uniques/JournalEvenements.jsx';
-import ListeTaches, { filtrerTaches } from '../../components/uniques/ListeTaches.jsx';
-import ListeAlertes from '../../components/uniques/ListeAlertes.jsx';
-import DecisionBriefingCard from './DecisionBriefingCard.jsx';
+import ListeTaches from '../../components/uniques/ListeTaches.jsx';
 import CarteKPI from '../../components/uniques/CarteKPI.jsx';
+import { CATALOGUE_KPI, valeurKpi } from '../../config/catalogueKpi.js';
 import CockpitIndicateursPanel from '../pilotage/CockpitIndicateursPanel.jsx';
 import PredictiveAlertsPanel from '../pilotage/PredictiveAlertsPanel.jsx';
 import FarmDigestPanel from '../pilotage/FarmDigestPanel.jsx';
@@ -64,9 +61,20 @@ export const CODES_KPI_PILOTAGE = [
 const estRoleTerrain = (user = {}) => ROLES_TERRAIN.has(String(user?.user_metadata?.role || user?.role || '').toLowerCase());
 const identifiantUtilisateur = (user = {}) => String(user?.user_metadata?.name || user?.email || '').trim();
 
+const fmtFcfa = (value) => new Intl.NumberFormat('fr-FR', { maximumFractionDigits: 0 }).format(Number(value) || 0);
+
+const formatKpiValue = (value) => {
+  if (value == null || value === '') return '-';
+  const n = Number(value);
+  if (!Number.isFinite(n)) return String(value);
+  return new Intl.NumberFormat('fr-FR', { maximumFractionDigits: Number.isInteger(n) ? 0 : 1 }).format(n);
+};
+
+const estAlerteUrgente = (a = {}) => ['critique', 'urgence', 'danger', 'critical', 'high'].includes(String(a.severity || a.gravite || '').toLowerCase());
+
 export default function AccueilConforme(props) {
   const {
-    user = {}, taches = [], alertes = [], businessEvents = [],
+    user = {}, taches = [], alertes = [],
     onNavigate, periodLabel = '', initialTab, onTabChange,
   } = props;
 
@@ -117,89 +125,101 @@ export default function AccueilConforme(props) {
   const tachesOperationnelles = useMemo(() => filterRealOpenTasks(taches), [taches]);
   const alertesOperationnelles = useMemo(() => filterRealOpenAlerts(alertes), [alertes]);
 
-  const tachesUrgentes = useMemo(
-    () => filtrerTaches(tachesOperationnelles, { statut: 'ouvertes', limite: 6 })
-      .filter((t) => ['critique', 'haute', 'critical', 'high'].includes(String(t.priority || '').toLowerCase())
-        || (String(t.due_date || '').slice(0, 10) <= new Date().toISOString().slice(0, 10))),
-    [tachesOperationnelles],
-  );
   const stocksSensibles = useMemo(() => (kpis?.stock?.ruptureRows || []).slice(0, 5), [kpis]);
   const codesPilotage = terrain
     ? CODES_KPI_PILOTAGE.filter((code) => ['ponte', 'produits_sous_seuil'].includes(code))
     : CODES_KPI_PILOTAGE;
 
+  const statCodes = !terrain
+    ? ['ponte', 'tresorerie', 'ca', 'produits_sous_seuil']
+    : ['ponte', 'effectif_animaux', 'alertes_urgentes'];
+  const statOf = (code) => {
+    const r = valeurKpi(code, donnees, { periodScope: props.periodScope || {}, kpis });
+    const entree = r.entree || CATALOGUE_KPI[code] || {};
+    const dispo = r.disponible !== false && r.valeur != null;
+    return { label: entree.libelle || code, unit: entree.unite || '', value: dispo ? formatKpiValue(r.valeur) : '-', module: entree.proprietaire };
+  };
+  const treasury = kpis?.finance?.treasuryByAccount;
+  const treasuryAccounts = (treasury?.accounts || []).filter((a) => Math.abs(Number(a.net) || 0) > 0);
+
+  // Direction C (focus épuré) : une seule colonne, sans cartes encadrées, des
+  // lignes fines et de grands chiffres calmes.
   const vueDuJour = (
-    <div className="space-y-4">
-      {!terrain ? (
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
-          <CarteKPI code="tresorerie" periode={periodLabel} donnees={donnees} kpis={kpis} onNavigate={onNavigate} />
-          <CarteKPI code="ponte" periode={periodLabel} donnees={donnees} kpis={kpis} onNavigate={onNavigate} />
-          <CarteKPI code="ca" periode={periodLabel} donnees={donnees} kpis={kpis} onNavigate={onNavigate} />
-          <CarteKPI code="alertes_urgentes" periode={periodLabel} donnees={donnees} kpis={kpis} onNavigate={onNavigate} />
-        </div>
-      ) : (
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-          <CarteKPI code="effectif_animaux" periode={periodLabel} donnees={donnees} kpis={kpis} onNavigate={onNavigate} />
-          <CarteKPI code="ponte" periode={periodLabel} donnees={donnees} kpis={kpis} onNavigate={onNavigate} />
-          <CarteKPI code="alertes_urgentes" periode={periodLabel} donnees={donnees} kpis={kpis} onNavigate={onNavigate} />
-        </div>
-      )}
-      <section className="hf-card" data-testid="daily-quick-actions">
-        <p className="text-label font-semibold uppercase text-earth">Gestes du jour</p>
-        <div className="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-7">
+    <div className="space-y-10">
+      <div className="flex flex-wrap gap-x-10 gap-y-6 border-b border-line pb-8">
+        {statCodes.map((code) => {
+          const s = statOf(code);
+          return (
+            <button key={code} type="button" onClick={() => s.module && onNavigate?.(s.module)} className="text-left">
+              <p className="text-meta font-semibold uppercase tracking-wide text-slate">{s.label}</p>
+              <p className="mt-1.5 text-[1.8rem] font-semibold leading-none text-ink">{s.value}{s.unit ? <span className="ml-1 text-sm font-semibold text-slate">{s.unit}</span> : null}</p>
+            </button>
+          );
+        })}
+      </div>
+
+      <section data-testid="daily-quick-actions">
+        <p className="mb-3 text-meta font-semibold uppercase tracking-wide text-slate">À faire maintenant</p>
+        <div className="flex flex-wrap gap-2">
           {ACTIONS_RAPIDES_QUOTIDIENNES.map((action) => {
             const Icone = ICONES_GESTES[action.id];
             return (
-              <button
-                key={action.id}
-                type="button"
-                data-testid={`daily-action-${action.id}`}
-                onClick={() => openDailyQuickEntry(action, onNavigate, { data: donnees, user: identifiantUtilisateur(user) })}
-                className="group flex min-h-11 flex-col items-center justify-center gap-1.5 rounded-control border border-line bg-pure px-3 py-3 text-center text-sm font-semibold text-ink transition hover:-translate-y-0.5 hover:border-leaf hover:bg-positive-bg hover:shadow-card"
-              >
-                {Icone ? (
-                  <span className="grid h-8 w-8 place-items-center rounded-full bg-positive-bg text-leaf transition group-hover:bg-white">
-                    <Icone size={17} aria-hidden="true" />
-                  </span>
-                ) : null}
-                <span className="leading-tight">{action.libelle}</span>
+              <button key={action.id} type="button" data-testid={`daily-action-${action.id}`} onClick={() => openDailyQuickEntry(action, onNavigate, { data: donnees, user: identifiantUtilisateur(user) })} className="inline-flex items-center gap-2 rounded-full border border-line px-4 py-2 text-sm font-semibold text-ink transition hover:bg-mist">
+                {Icone ? <Icone size={15} aria-hidden="true" className="text-slate" /> : null}
+                {action.libelle}
               </button>
             );
           })}
         </div>
       </section>
-      <DecisionBriefingCard
-        dataMap={{
-          transactions: props.transactions, salesOrders: props.salesOrders, payments: props.payments,
-          fournisseurs: props.fournisseurs, stocks: props.stocks, stock: props.stocks,
-          animaux: props.animaux, lots: props.lotsData, avicole: props.lotsData,
-          cultures: props.cultures, sante: props.vaccins, vaccins: props.vaccins,
-          investissements: props.investissements, businessEvents: props.businessEvents,
-          clients: props.clients, alertes,
-        }}
-        onNavigate={onNavigate}
-      />
-      <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-        <ListeAlertes alertes={alertesOperationnelles} filtres={{ gravite: 'critique', limite: 6 }} titre="Priorités : alertes critiques" onNavigate={onNavigate} onCreerTache={props.onCreateTask ? (alerte) => props.onCreateTask({ title: `Traiter : ${alerte.title || alerte.id}`, alert_id: alerte.id, module_lie: alerte.module_source, priority: 'critique', status: 'a_faire' }) : undefined} />
-        <ListeTaches taches={tachesUrgentes} filtres={{ statut: 'toutes', limite: 6 }} titre="Priorités : tâches urgentes" onOuvrirTache={() => onNavigate?.('activite_suivi')} />
-      </div>
-      <section className="hf-card">
-        <p className="text-label font-semibold uppercase text-earth">Stocks sensibles</p>
-        {stocksSensibles.length === 0 ? (
-          <p className="mt-3 text-sm text-slate">Aucun produit sous seuil. Le stock est maîtrisé.</p>
+
+      <section>
+        <p className="mb-1 text-meta font-semibold uppercase tracking-wide text-slate">Alertes</p>
+        {alertesOperationnelles.length === 0 ? (
+          <p className="py-3 text-sm text-slate">Aucune alerte. Tout est calme.</p>
         ) : (
-          <ul className="mt-3 space-y-1">
-            {stocksSensibles.map((ligne) => (
-              <li key={ligne.id}>
-                <button type="button" onClick={() => onNavigate?.('achats_stock')} className="text-sm font-semibold text-earth hover:underline">
-                  {ligne.name} {ligne.daysLeft != null ? `· ${ligne.daysLeft} j restants` : ''}
-                </button>
-              </li>
-            ))}
-          </ul>
+          alertesOperationnelles.slice(0, 6).map((a) => (
+            <button key={a.id} type="button" onClick={() => onNavigate?.(a.module_source || a.navModule)} className="flex w-full items-center justify-between gap-3 border-b border-line py-3 text-left last:border-b-0">
+              <span className="min-w-0">
+                <span className="block truncate text-sm font-medium text-ink">{a.title || a.titre || a.id}</span>
+                {a.message ? <span className="mt-0.5 block truncate text-meta text-slate">{a.message}</span> : null}
+              </span>
+              <span className={`shrink-0 text-meta font-semibold ${estAlerteUrgente(a) ? 'text-urgent' : 'text-horizon-dark'}`}>{estAlerteUrgente(a) ? 'Urgent' : 'À voir'}</span>
+            </button>
+          ))
         )}
       </section>
-      <JournalEvenements evenements={businessEvents} filtres={{ limite: 8 }} titre="Derniers mouvements" onNavigate={onNavigate} />
+
+      {stocksSensibles.length > 0 ? (
+        <section>
+          <p className="mb-1 text-meta font-semibold uppercase tracking-wide text-slate">Stocks sensibles</p>
+          {stocksSensibles.map((ligne) => (
+            <button key={ligne.id} type="button" onClick={() => onNavigate?.('achats_stock')} className="flex w-full items-center justify-between border-b border-line py-3 text-left text-sm last:border-b-0">
+              <span className="text-ink">{ligne.name}</span>
+              {ligne.daysLeft != null ? <span className="text-meta font-semibold text-horizon-dark">{ligne.daysLeft} j restants</span> : null}
+            </button>
+          ))}
+        </section>
+      ) : null}
+
+      {treasuryAccounts.length > 0 ? (
+        <section>
+          <div className="mb-1 flex items-center justify-between">
+            <p className="text-meta font-semibold uppercase tracking-wide text-slate">Trésorerie</p>
+            <button type="button" onClick={() => onNavigate?.('finance_pilotage')} className="text-meta font-semibold text-slate hover:text-ink">Détail</button>
+          </div>
+          {treasuryAccounts.map((a) => (
+            <div key={a.key} className="flex items-center justify-between border-b border-line py-3 text-sm">
+              <span className="text-slate">{a.label}</span>
+              <span className="font-semibold tabular-nums text-ink">{fmtFcfa(a.net)}</span>
+            </div>
+          ))}
+          <div className="flex items-center justify-between py-3 text-sm font-semibold">
+            <span className="text-ink">Total disponible</span>
+            <span className="tabular-nums text-ink">{fmtFcfa(treasury?.cashNet)} FCFA</span>
+          </div>
+        </section>
+      ) : null}
     </div>
   );
 
@@ -227,16 +247,12 @@ export default function AccueilConforme(props) {
   );
 
   return (
-    <div className="space-y-4">
-      <section className="hf-card">
-        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-          <div>
-            <p className="text-label font-semibold uppercase text-horizon-dark">Accueil</p>
-            <h1 className="mt-1 text-ink">Bonjour {identifiantUtilisateur(user) || 'Horizon Farm'}</h1>
-            {periodLabel ? <div className="mt-2"><PeriodScopeBadge label={periodLabel} /></div> : null}
-          </div>
-        </div>
-      </section>
+    <div className="mx-auto max-w-2xl space-y-8">
+      <header>
+        <p className="text-meta font-semibold uppercase tracking-wide text-slate">Accueil{periodLabel ? ` · ${periodLabel}` : ''}</p>
+        <h1 className="mt-1.5 text-ink">Bonjour {identifiantUtilisateur(user) || 'Horizon Farm'}</h1>
+        <p className="mt-1 text-sm text-slate">Voici ce qui compte aujourd'hui pour votre ferme.</p>
+      </header>
       <ModuleTabsBar moduleId="dashboard" active={tab} onChange={setTab} rolesMasquesPour={terrain ? 'terrain' : null} />
       {tab === 'Pilotage' && !terrain ? pilotage : tab === 'Mes actions' ? mesActions : vueDuJour}
     </div>

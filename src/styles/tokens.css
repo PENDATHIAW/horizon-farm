@@ -1,16 +1,18 @@
 @theme {
   --font-sans: "Inter", system-ui, sans-serif;
-  --font-display: "Fraunces", Georgia, serif;
-  --font-serif: "Fraunces", Georgia, serif;
+  /* Refonte Orgaloop : interface entièrement sans-serif (plus de serif Fraunces
+     pour l'affichage). Le titrage passe en Inter, plus sobre et plus plat. */
+  --font-display: "Inter", system-ui, sans-serif;
+  --font-serif: "Inter", system-ui, sans-serif;
 
-  --color-earth: #234F3B;
-  --color-leaf: #2E6B4E;
+  --color-earth: #2D3330;
+  --color-leaf: #515C57;
   --color-horizon: #C9971C;
   --color-horizon-dark: #9A7413;
   --color-pure: #FFFFFF;
-  --color-mist: #F6F8F6;
-  --color-card: #FBFCFB;
-  --color-ink: #20302A;
+  --color-mist: #FAFBFA;
+  --color-card: #FFFFFF;
+  --color-ink: #2B3A34;
   --color-slate: #5E6E65;
   --color-line: #E5EBE7;
   --color-positive: #2E7D52;
@@ -26,19 +28,20 @@
   --radius-card: 0.75rem;
   --radius-control: 0.625rem;
   --radius-chip: 999px;
-  --shadow-card: 0 1px 2px rgba(20, 64, 46, 0.04), 0 3px 8px rgba(20, 64, 46, 0.05), 0 10px 22px rgba(20, 64, 46, 0.035);
-  --shadow-float: 0 2px 6px rgba(20, 64, 46, 0.08), 0 12px 28px rgba(20, 64, 46, 0.10), 0 26px 52px rgba(20, 64, 46, 0.06);
-  --text-label: 0.8rem;
-  --text-meta: 0.72rem;
-  --text-body: 0.95rem;
-  --text-data: 1rem;
-  --text-section: 1.15rem;
-  --text-screen: 1.5rem;
-  --text-card-value: 2rem;
-  --text-xs: 0.72rem;
-  --text-sm: 0.95rem;
-  --text-base: 1rem;
-  --text-lg: 1.15rem;
+  --shadow-card: 0 1px 2px rgba(20, 64, 46, 0.03);
+  --shadow-float: 0 4px 16px rgba(20, 64, 46, 0.10);
+  /* Refonte Orgaloop : typographie douce et petite (tailles resserrées). */
+  --text-label: 0.74rem;
+  --text-meta: 0.7rem;
+  --text-body: 0.875rem;
+  --text-data: 0.9rem;
+  --text-section: 1.05rem;
+  --text-screen: 1.35rem;
+  --text-card-value: 1.6rem;
+  --text-xs: 0.7rem;
+  --text-sm: 0.85rem;
+  --text-base: 0.9rem;
+  --text-lg: 1.05rem;
   --text-xl: 1.5rem;
   --text-2xl: 1.5rem;
   --text-3xl: 1.5rem;
@@ -50,14 +53,14 @@
 :root {
   color-scheme: light;
 
-  --hf-earth: #234F3B;
-  --hf-leaf: #2E6B4E;
+  --hf-earth: #2D3330;
+  --hf-leaf: #515C57;
   --hf-horizon: #C9971C;
   --hf-horizon-dark: #9A7413;
   --hf-white: #FFFFFF;
-  --hf-mist: #F6F8F6;
-  --hf-card: #FBFCFB;
-  --hf-ink: #20302A;
+  --hf-mist: #FAFBFA;
+  --hf-card: #FFFFFF;
+  --hf-ink: #2B3A34;
   --hf-slate: #5E6E65;
   --hf-line: #E5EBE7;
 
@@ -81,20 +84,21 @@
   --hf-radius-card: 0.75rem;
   --hf-radius-control: 0.625rem;
   --hf-radius-chip: 999px;
-  --hf-shadow-card: 0 1px 2px rgba(20, 64, 46, 0.04), 0 3px 8px rgba(20, 64, 46, 0.05), 0 10px 22px rgba(20, 64, 46, 0.035);
-  --hf-shadow-float: 0 2px 6px rgba(20, 64, 46, 0.08), 0 12px 28px rgba(20, 64, 46, 0.10), 0 26px 52px rgba(20, 64, 46, 0.06);
+  --hf-shadow-card: 0 1px 2px rgba(20, 64, 46, 0.03);
+  --hf-shadow-float: 0 4px 16px rgba(20, 64, 46, 0.10);
 
   --hf-font-display: "Fraunces", Georgia, serif;
   --hf-font-sans: "Inter", system-ui, sans-serif;
-  --hf-text-card-value: 2rem;
-  --hf-text-screen-title: 1.5rem;
-  --hf-text-section-title: 1.15rem;
-  --hf-text-body: 0.95rem;
-  --hf-text-value: 1rem;
-  --hf-text-label: 0.8rem;
-  --hf-text-meta: 0.72rem;
-  --hf-kpi-min-height: 13.5rem;
-  --hf-kpi-chart-height: 2.5rem;
+  --hf-text-card-value: 1.6rem;
+  --hf-text-screen-title: 1.35rem;
+  --hf-text-section-title: 1.05rem;
+  --hf-text-body: 0.875rem;
+  --hf-text-value: 0.9rem;
+  --hf-text-label: 0.74rem;
+  --hf-text-meta: 0.7rem;
+  /* Refonte Orgaloop : tuiles KPI compactes et calmes (au lieu de hautes). */
+  --hf-kpi-min-height: 8.5rem;
+  --hf-kpi-chart-height: 2rem;
 
   --hf-duration-fast: 140ms;
   --hf-duration-normal: 200ms;
