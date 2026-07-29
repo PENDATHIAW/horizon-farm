@@ -17,6 +17,7 @@ import AvicoleEvolution from './AvicoleEvolution.jsx';
 import DirectChargesBridge from './DirectChargesBridge.jsx';
 import LifecycleHistoryPanel from './LifecycleHistoryPanel.jsx';
 import { subscribeFormModal } from '../services/formModalManager.js';
+import { poultryScopesForFarm } from '../config/farmActivities';
 
 const norm = (value = '') => String(value || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
 const num = (value = 0) => Number(value || 0);
@@ -123,7 +124,14 @@ function HeyHorizonAvicoleCard({ draft, rows, onUpdate, onCreateProduction, onCo
 }
 
 export default function AvicoleV10(props) {
-  const [activity, setActivity] = useState('pondeuse');
+  // Recentrage : si la ferme ne pratique qu'une seule filière avicole, on
+  // masque le sélecteur pondeuse/chair et on va droit au contenu concerné.
+  const poultryScopes = poultryScopesForFarm(props.activeFarm);
+  const showActivitySelector = poultryScopes.pondeuse && poultryScopes.chair;
+  const soleScope = poultryScopes.pondeuse ? 'pondeuse' : 'chair';
+  const [activityState, setActivity] = useState(soleScope);
+  // Sélecteur masqué (une seule filière) : l'activité effective est forcée.
+  const activity = showActivitySelector ? activityState : soleScope;
   const [horizonDraft, setHorizonDraft] = useState(null);
   const rows = uniqueRowsById(props.rows || []);
   const productionLogs = useMemo(() => props.productionLogs || [], [props.productionLogs]);
@@ -257,7 +265,9 @@ export default function AvicoleV10(props) {
     <div className="rounded-3xl border border-line bg-card p-6 shadow-card">
       <p className="text-xs uppercase tracking-normal text-slate font-semibold flex items-center gap-2"><Bird size={15} aria-hidden="true" /> Avicole</p>
       <h2 className="mt-1 text-2xl font-semibold text-earth">{selectedLabel}</h2>
-      <div className="mt-4 grid grid-cols-1 xl:grid-cols-2 gap-4"><ActivityEntryCard active={activity === 'pondeuse'} icon={Egg} title="Pondeuses" rows={pondeuses} productionLogs={productionLogs} action="Ouvrir" onClick={() => setActivity('pondeuse')} /><ActivityEntryCard active={activity === 'chair'} icon={Drumstick} title="Poulets de chair" rows={chair} productionLogs={productionLogs} action="Ouvrir" onClick={() => setActivity('chair')} /></div>
+      {showActivitySelector ? (
+        <div className="mt-4 grid grid-cols-1 xl:grid-cols-2 gap-4"><ActivityEntryCard active={activity === 'pondeuse'} icon={Egg} title="Pondeuses" rows={pondeuses} productionLogs={productionLogs} action="Ouvrir" onClick={() => setActivity('pondeuse')} /><ActivityEntryCard active={activity === 'chair'} icon={Drumstick} title="Poulets de chair" rows={chair} productionLogs={productionLogs} action="Ouvrir" onClick={() => setActivity('chair')} /></div>
+      ) : null}
     </div>
 
     <AvicoleCycleHealthPanel rows={rows} productionLogs={productionLogs} alimentationLogs={props.alimentationLogs || []} onNavigate={props.onNavigate} />

@@ -4,6 +4,7 @@ import AnimauxV2 from '../AnimauxV2';
 import AvicoleV10 from '../AvicoleV10';
 import ElevageStartupPanel from './ElevageStartupPanel.jsx';
 import { resolveElevageLotsSubview } from '../../utils/commercialNavigation.js';
+import { elevageSubviewsForFarm } from '../../config/farmActivities';
 
 function QuickAction({ icon: Icon, label, onClick, primary }) {
   return (
@@ -23,6 +24,7 @@ function QuickAction({ icon: Icon, label, onClick, primary }) {
  */
 export default function ElevageLotsBandesTab({
   initialSubview = 'avicole',
+  activeFarm,
   avicoleProps,
   animalProps,
   showStartup,
@@ -32,7 +34,13 @@ export default function ElevageLotsBandesTab({
   onSetTab,
   onLotsSubviewChange,
 }) {
-  const [view, setView] = useState(() => resolveElevageLotsSubview(initialSubview) || 'avicole');
+  // Recentrage : masquer le sélecteur Avicole / Animaux quand la ferme ne
+  // pratique qu'une seule des deux sous-vues (on va droit au contenu utile).
+  const subviews = elevageSubviewsForFarm(activeFarm);
+  const showSubviewSelector = subviews.avicole && subviews.animaux;
+  const forcedView = !showSubviewSelector ? (subviews.animaux && !subviews.avicole ? 'animaux' : 'avicole') : null;
+  const [stateView, setView] = useState(() => resolveElevageLotsSubview(initialSubview) || 'avicole');
+  const view = forcedView || stateView;
 
   const changeView = (target) => {
     const sub = resolveElevageLotsSubview(target) || target;
@@ -86,29 +94,33 @@ export default function ElevageLotsBandesTab({
 
       <div className="rounded-3xl border border-line bg-white p-4 shadow-card space-y-3">
         <p className="text-xs font-semibold uppercase tracking-normal text-horizon-dark">Registre terrain</p>
-        <div className="flex flex-wrap gap-2">
-          <button
-            type="button"
-            onClick={() => changeView('avicole')}
-            className={`flex flex-1 min-w-[140px] items-center justify-center gap-2 rounded-xl px-4 py-3 text-sm font-semibold sm:flex-none ${view === 'avicole' ? 'bg-earth text-white' : 'border border-line bg-card text-earth'}`}
-          >
-            <Drumstick size={18} aria-hidden="true" />
-            Avicole & lots
-          </button>
-          <button
-            type="button"
-            onClick={() => changeView('animaux')}
-            className={`flex flex-1 min-w-[140px] items-center justify-center gap-2 rounded-xl px-4 py-3 text-sm font-semibold sm:flex-none ${view === 'animaux' ? 'bg-earth text-white' : 'border border-line bg-card text-earth'}`}
-          >
-            <Beef size={18} aria-hidden="true" />
-            Animaux & cheptel
-          </button>
-        </div>
-        <p className="text-xs text-slate">
-          {view === 'avicole'
-            ? 'Pondeuses, chair, ramassages et lots - le reste de la page s’adapte à l’avicole.'
-            : 'Bovins, ovins, caprins et reproduction - performances filtrées pour le cheptel.'}
-        </p>
+        {showSubviewSelector ? (
+          <>
+            <div className="flex flex-wrap gap-2">
+              <button
+                type="button"
+                onClick={() => changeView('avicole')}
+                className={`flex flex-1 min-w-[140px] items-center justify-center gap-2 rounded-xl px-4 py-3 text-sm font-semibold sm:flex-none ${view === 'avicole' ? 'bg-earth text-white' : 'border border-line bg-card text-earth'}`}
+              >
+                <Drumstick size={18} aria-hidden="true" />
+                Avicole & lots
+              </button>
+              <button
+                type="button"
+                onClick={() => changeView('animaux')}
+                className={`flex flex-1 min-w-[140px] items-center justify-center gap-2 rounded-xl px-4 py-3 text-sm font-semibold sm:flex-none ${view === 'animaux' ? 'bg-earth text-white' : 'border border-line bg-card text-earth'}`}
+              >
+                <Beef size={18} aria-hidden="true" />
+                Animaux & cheptel
+              </button>
+            </div>
+            <p className="text-xs text-slate">
+              {view === 'avicole'
+                ? 'Pondeuses, chair, ramassages et lots - le reste de la page s’adapte à l’avicole.'
+                : 'Bovins, ovins, caprins et reproduction - performances filtrées pour le cheptel.'}
+            </p>
+          </>
+        ) : null}
         <div className={`grid gap-2 ${quickActions.length >= 5 ? 'grid-cols-3 sm:grid-cols-5' : 'grid-cols-2 sm:grid-cols-4'}`}>
           {quickActions.map((action) => (
             <QuickAction

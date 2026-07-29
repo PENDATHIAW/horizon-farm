@@ -316,6 +316,35 @@ export function filterRecordsByFarmActivities(farm, records = [], getText = acti
   return records.filter((record) => isRecordActivityActive(farm, getText(record)));
 }
 
+/**
+ * Périmètres avicoles actifs pour une ferme (pondeuse / chair). Sert à masquer
+ * le sélecteur pondeuse/chair quand la ferme ne pratique qu'un seul des deux :
+ * on va alors droit au contenu, sans carte de choix. Ferme mixte ou non
+ * configurée : les deux restent disponibles.
+ */
+/**
+ * Sous-vues d'élevage actives (avicole / animaux) selon les activités de la
+ * ferme. Permet de masquer le sélecteur Avicole / Animaux quand une seule des
+ * deux est pratiquée. Ferme mixte ou non configurée : les deux restent.
+ */
+export function elevageSubviewsForFarm(farm = {}) {
+  const activities = normalizeFarmActivities(farm?.activity_type);
+  if (activities.includes('mixte')) return { avicole: true, animaux: true };
+  const avicole = activities.some((a) => ['aviculture_pondeuses', 'poulets_chair'].includes(a));
+  const animaux = activities.some((a) => ['embouche_bovine', 'ovins', 'caprins'].includes(a));
+  if (!avicole && !animaux) return { avicole: true, animaux: true };
+  return { avicole, animaux };
+}
+
+export function poultryScopesForFarm(farm = {}) {
+  const activities = normalizeFarmActivities(farm?.activity_type);
+  if (activities.includes('mixte')) return { pondeuse: true, chair: true };
+  const pondeuse = activities.includes('aviculture_pondeuses');
+  const chair = activities.includes('poulets_chair');
+  if (!pondeuse && !chair) return { pondeuse: true, chair: true };
+  return { pondeuse, chair };
+}
+
 export const FARM_ACCESS_ROLES = Object.freeze([
   'super_admin',
   'direction',
