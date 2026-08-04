@@ -62,8 +62,12 @@ test('isFarmOnboarded reflète la présence d’un profil choisi', () => {
   assert.equal(isFarmOnboarded({ settings: { onboarding: { profile: 'mixte' } } }), true);
 });
 
-test('listOnboardingProfiles et getOnboardingProfile sont cohérents', () => {
-  assert.equal(listOnboardingProfiles().length, ONBOARDING_PROFILES.length);
+test('listOnboardingProfiles ne propose que pondeuses + AGRI FEEDS, getOnboardingProfile garde tout', () => {
+  const visibleIds = listOnboardingProfiles().map((profile) => profile.id);
+  assert.deepEqual(visibleIds, ['aviculture_ponte', 'agro_industrie']);
+  // Les autres profils restent définis et récupérables (réversibilité).
+  assert.ok(ONBOARDING_PROFILES.length > visibleIds.length);
   assert.equal(getOnboardingProfile('mixte').label, 'Exploitation mixte');
+  assert.equal(getOnboardingProfile('aviculture_ponte').label, 'Aviculture pondeuses');
   assert.equal(getOnboardingProfile('nope'), null);
 });

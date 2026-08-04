@@ -19,6 +19,18 @@ export const FARM_ACTIVITY_TYPES = Object.freeze([
 
 export const FARM_ACTIVITY_KEYS = FARM_ACTIVITY_TYPES.map((entry) => entry.key);
 
+/**
+ * Activités proposées à la sélection dans les réglages de ferme. L'exploitation
+ * étant recentrée sur les pondeuses, on ne propose que l'aviculture pondeuses et
+ * AGRI FEEDS. Les autres activités restent définies plus haut (réversibilité)
+ * mais ne sont plus offertes au choix : plus de chair, de bovins, etc.
+ */
+export const SELECTABLE_FARM_ACTIVITY_KEYS = Object.freeze(['aviculture_pondeuses', 'agri_feeds']);
+
+export const SELECTABLE_FARM_ACTIVITY_TYPES = FARM_ACTIVITY_TYPES.filter(
+  (entry) => SELECTABLE_FARM_ACTIVITY_KEYS.includes(entry.key),
+);
+
 /** Modules toujours accessibles - contenu adapté selon la ferme. */
 export const FARM_COMMON_MODULES = Object.freeze([
   'dashboard',

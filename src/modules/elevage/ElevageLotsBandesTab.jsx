@@ -139,7 +139,7 @@ export default function ElevageLotsBandesTab({
       <button
         type="button"
         onClick={() => onSetTab?.('Coûts & performance')}
-        className="flex w-full items-center justify-between gap-3 rounded-2xl border border-line bg-card px-4 py-3 text-left transition hover:border-horizon-dark/40 hover:bg-positive-bg"
+        className="flex w-full items-center justify-between gap-3 rounded-2xl border border-line bg-card px-4 py-3 text-left transition hover:border-horizon-dark/40 hover:bg-mist"
       >
         <span className="flex items-center gap-2 text-sm font-semibold text-earth">
           <BarChart3 size={16} className="text-horizon-dark" aria-hidden="true" />

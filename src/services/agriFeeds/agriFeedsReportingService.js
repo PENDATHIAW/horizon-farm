@@ -176,12 +176,13 @@ export function computeAgriFeedsOperationalSummary(dataMap = {}) {
 
 export function buildAgriFeedsFinanceurReport(dataMap = {}, options = {}) {
   const normalized = normalizeAgriFeedsDataMap(dataMap);
-  const period = options.period || new Date().toISOString().slice(0, 7);
+  const reference = options.now ? new Date(options.now) : new Date();
+  const period = options.period || reference.toISOString().slice(0, 7);
   const readiness = computeAgriFeedsReadiness(normalized);
   const operational = computeAgriFeedsOperationalSummary(normalized);
   const quality = computeQualitySummary(normalized);
   const traceability = computeTraceabilityCompleteness(normalized);
-  const commercial = computeAgriFeedsCommercialKpis(normalized, { now: options.now || new Date() });
+  const commercial = computeAgriFeedsCommercialKpis(normalized, { now: reference });
 
   const executiveSummary = [
     `Mode recommandé : ${readiness.recommendedMode}.`,

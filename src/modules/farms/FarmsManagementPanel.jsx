@@ -16,6 +16,7 @@ import {
   buildFarmRecordFromCreationDraft,
   buildFarmUpdateFromDraft,
   cloneFarmCreationDraft,
+  DEFAULT_FARM_LOCATION,
   EMPTY_FARM_CREATION_DRAFT,
 } from '../../config/farmCreationModel.js';
 import { canManageFarms, farmsService } from '../../services/farmsService.js';
@@ -46,10 +47,11 @@ function farmToDraft(farm = {}) {
       start_date: settings.start_date || '',
     },
     location: settings.location_details || {
-      country: farm.country || 'SN',
-      region: farm.region || '',
-      commune: farm.location || '',
-      address: farm.location || '',
+      country: farm.country || DEFAULT_FARM_LOCATION.country,
+      region: farm.region || DEFAULT_FARM_LOCATION.region,
+      department: DEFAULT_FARM_LOCATION.department,
+      commune: farm.location || DEFAULT_FARM_LOCATION.commune,
+      address: farm.location || DEFAULT_FARM_LOCATION.address,
       latitude: farm.latitude,
       longitude: farm.longitude,
     },

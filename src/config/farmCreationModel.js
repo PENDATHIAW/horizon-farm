@@ -28,6 +28,20 @@ export const FARM_ACCESS_ROLE_LABELS = Object.freeze({
   super_admin: 'Super admin',
 });
 
+/**
+ * Localisation par défaut de l'exploitation (poulailler de pondeuses à Thiès,
+ * commune de Noto Diobass) et nombre de box. Sert de valeur de départ à la
+ * création et de repli quand la fiche ferme n'a pas encore de lieu renseigné.
+ */
+export const DEFAULT_FARM_LOCATION = Object.freeze({
+  country: 'SN',
+  region: 'Thiès',
+  department: 'Thiès',
+  commune: 'Noto Diobass',
+  address: 'Noto Diobass, Thiès',
+});
+export const DEFAULT_FARM_BUILDINGS_COUNT = 2;
+
 export const EMPTY_FARM_CREATION_DRAFT = Object.freeze({
   general: {
     name: '',
@@ -43,10 +57,10 @@ export const EMPTY_FARM_CREATION_DRAFT = Object.freeze({
   },
   location: {
     country: 'SN',
-    region: '',
-    department: '',
-    commune: '',
-    address: '',
+    region: 'Thiès',
+    department: 'Thiès',
+    commune: 'Noto Diobass',
+    address: 'Noto Diobass, Thiès',
     latitude: null,
     longitude: null,
     surface_area: null,
@@ -55,11 +69,11 @@ export const EMPTY_FARM_CREATION_DRAFT = Object.freeze({
     road_access: '',
   },
   activities: {
-    activity_type: [],
+    activity_type: ['aviculture_pondeuses'],
   },
   capacities: {
     capacity_layers: null,
-    buildings_count: null,
+    buildings_count: 2,
     target_lay_rate: null,
     mortality_alert_threshold: null,
     main_feed_type: '',
@@ -140,7 +154,7 @@ export function getCapacityFieldsForActivities(activityTypes = []) {
 
   if (activities.includes('aviculture_pondeuses')) {
     push('capacity_layers', 'Capacité pondeuses');
-    push('buildings_count', 'Nombre de bâtiments', 'number');
+    push('buildings_count', 'Nombre de box (bâtiments)', 'number');
     push('target_lay_rate', 'Objectif taux ponte (%)');
     push('mortality_alert_threshold', 'Seuil mortalité alerte (%)');
     push('main_feed_type', 'Type aliment principal', 'text');

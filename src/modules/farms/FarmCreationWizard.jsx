@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import { CheckCircle2, ChevronLeft, ChevronRight, X } from 'lucide-react';
-import { FARM_ACTIVITY_TYPES } from '../../config/farmActivities.js';
+import { SELECTABLE_FARM_ACTIVITY_KEYS, SELECTABLE_FARM_ACTIVITY_TYPES } from '../../config/farmActivities.js';
 import {
   buildFarmCreationSummary,
   FARM_ACCESS_ROLE_LABELS,
@@ -67,11 +67,13 @@ function StepActivities({ draft, updateActivities }) {
   const selected = draft.activities?.activity_type || [];
   const toggle = (key) => {
     const next = selected.includes(key) ? selected.filter((entry) => entry !== key) : [...selected, key];
-    updateActivities({ activity_type: next.filter((entry) => entry !== 'mixte') });
+    // On ne conserve que les activités réellement proposées (pondeuses / AGRI FEEDS),
+    // ce qui purge d'anciennes valeurs comme chair ou bovins encore stockées.
+    updateActivities({ activity_type: next.filter((entry) => SELECTABLE_FARM_ACTIVITY_KEYS.includes(entry)) });
   };
   return (
     <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-      {FARM_ACTIVITY_TYPES.filter((entry) => entry.key !== 'mixte').map((entry) => (
+      {SELECTABLE_FARM_ACTIVITY_TYPES.map((entry) => (
         <label key={entry.key} className={`flex items-center gap-3 rounded-2xl border px-4 py-3 cursor-pointer ${selected.includes(entry.key) ? 'border-leaf bg-positive-bg' : 'border-line bg-card'}`}>
           <input type="checkbox" checked={selected.includes(entry.key)} onChange={() => toggle(entry.key)} />
           <span className="text-sm font-semibold text-earth">{entry.label}</span>

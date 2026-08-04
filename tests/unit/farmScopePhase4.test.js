@@ -47,9 +47,12 @@ test('Phase 4 — buildFarmRecordFromCreationDraft stocke settings jsonb', () =>
 test('Phase 4 — validation étapes assistant', () => {
   const draft = cloneFarmCreationDraft();
   assert.match(validateFarmCreationStep('general', draft), /nom/i);
+  // Pondeuses est présélectionné par défaut : l'étape activités est déjà valide.
+  assert.equal(validateFarmCreationStep('activities', draft), null);
+  draft.activities.activity_type = [];
   assert.match(validateFarmCreationStep('activities', draft), /activité/i);
   draft.general.name = 'OK';
-  draft.activities.activity_type = ['cultures'];
+  draft.activities.activity_type = ['aviculture_pondeuses'];
   assert.equal(validateFarmCreationStep('general', draft), null);
   assert.equal(validateFarmCreationStep('activities', draft), null);
 });
