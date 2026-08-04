@@ -99,8 +99,16 @@ export const ONBOARDING_PROFILES = Object.freeze([
 
 const PROFILES_BY_ID = new Map(ONBOARDING_PROFILES.map((profile) => [profile.id, profile]));
 
+/**
+ * Filières proposées à l'onboarding. L'exploitation étant recentrée sur les
+ * pondeuses, on ne propose que l'aviculture pondeuses et l'agro-industrie
+ * (AGRI FEEDS). Les autres profils restent définis (réversibilité) mais ne
+ * sont plus offerts au choix : plus de chair, de bovins ni de cultures.
+ */
+const VISIBLE_ONBOARDING_PROFILE_IDS = Object.freeze(['aviculture_ponte', 'agro_industrie']);
+
 export function listOnboardingProfiles() {
-  return ONBOARDING_PROFILES;
+  return ONBOARDING_PROFILES.filter((profile) => VISIBLE_ONBOARDING_PROFILE_IDS.includes(profile.id));
 }
 
 export function getOnboardingProfile(profileId) {
